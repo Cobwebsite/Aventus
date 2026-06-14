@@ -1,0 +1,2 @@
+export type NotVoid = { [key: string]: NotVoid; } | object | string | boolean | symbol | number | null | undefined;
+export type Last<T extends any[]> = T extends [...infer _, infer Last] ? Last : never;

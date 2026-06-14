@@ -120,7 +120,7 @@ export class AventusWebcomponentCompiler {
             src: ""
         },
         docInvisible: "",
-        dependances: [],
+        dependencies: [],
         classScript: "",
         classDoc: "",
         debugTxt: "",
@@ -283,7 +283,7 @@ export class AventusWebcomponentCompiler {
             let normalCompile = AventusTsLanguageService.compileTs(this.classInfo, this.logicalFile);
             this.componentResult.classScript = normalCompile.classScript;
             this.componentResult.classDoc = normalCompile.classDoc;
-            this.componentResult.dependances = normalCompile.dependances;
+            this.componentResult.dependencies = normalCompile.dependencies;
             this.componentResult.docInvisible = normalCompile.docInvisible;
             this.componentResult.docVisible = normalCompile.docVisible;
             this.componentResult.npm = normalCompile.npm;
@@ -293,7 +293,7 @@ export class AventusWebcomponentCompiler {
 
             this.prepareHTMLDocObject();
             this.loadParent(this.classInfo);
-            this.addViewElementToDependance();
+            this.addViewElementToDependency();
             this.writeFile();
 
             if (!this.classInfo.isAbstract && !this.classInfo.isInterface) {
@@ -472,7 +472,7 @@ export class AventusWebcomponentCompiler {
     //#endregion
 
     //#region prepare view
-    private addViewElementToDependance() {
+    private addViewElementToDependency() {
         if (this.htmlParsed && this.htmlFile && this.classInfo) {
             this.logicalFile.resetViewClassInfoDep();
             let addedDep: string[] = [];
@@ -481,7 +481,7 @@ export class AventusWebcomponentCompiler {
                 if (interestPoint.type == "tag") {
                     if (!addedDep.includes(interestPoint.name)) {
                         addedDep.push(interestPoint.name);
-                        this.classInfo.addDependanceTag(interestPoint.name, this.componentResult);
+                        this.classInfo.addDependencyTag(interestPoint.name, this.componentResult);
                     }
 
                     if (!fileByTag.hasOwnProperty(interestPoint.name)) {
@@ -2119,7 +2119,7 @@ this.clearWatchHistory = () => {
 
                 // default
                 if (property.defaultValue) {
-                    this.storyArgs[property.name] = property.defaultValue
+                    this.storyArgs[property.name] = `"${property.defaultValue}"`;
                 }
                 if (property.chainValues) {
                     styleTemp.value = property.chainValues.join(" | ");

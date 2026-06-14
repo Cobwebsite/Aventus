@@ -2,7 +2,7 @@ import { machineId as Id } from 'node-machine-id';
 import { hostname } from 'os';
 import { SettingsManager, HiddenSettings } from '../settings/Settings';
 import { Build } from '../project/Build';
-import { DependanceManager } from '../project/DependanceManager';
+import { DependencyManager } from '../project/DependencyManager';
 import { dirname, join, normalize } from 'path';
 import { AventusExtension } from '../definition';
 import { createReadStream, createWriteStream, existsSync, readdirSync, readFileSync, rmSync, unlink, unlinkSync } from 'fs';
@@ -73,7 +73,7 @@ export class Store {
 			form.append("tags[]", tag);
 		}
 
-		let pathPackages = join(DependanceManager.getInstance().getPath(), "@locals", build.buildConfig.fullname + AventusExtension.Package);
+		let pathPackages = join(DependencyManager.getInstance().getPath(), "@locals", build.buildConfig.fullname + AventusExtension.Package);
 		if (!existsSync(pathPackages)) {
 			return false;
 		}

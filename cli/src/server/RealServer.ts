@@ -20,6 +20,10 @@ export class RealServer {
 		return this.cliConnection ? this.cliConnection._connection : null;
 	}
 
+	public static get notifications() {
+		return this.cliConnection?.notifications;
+	}
+
 	private static waitingStart: (() => void) | null = null;
 	public static start(config: ServerConfig) {
 		return new Promise<void>((resolve) => {

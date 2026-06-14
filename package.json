@@ -462,7 +462,7 @@
 				"title": "Aventus : Get namespace for a path"
 			},
 			{
-				"command": "aventus.dependances.show",
+				"command": "aventus.dependencies.show",
 				"title": "Aventus : show webview"
 			},
 			{
@@ -737,7 +737,7 @@
 					"when": "false"
 				},
 				{
-					"command": "aventus.dependances.show",
+					"command": "aventus.dependencies.show",
 					"when": "false"
 				},
 				{

@@ -1,6 +1,6 @@
 if(!Object.hasOwn(window, "AvInstance")) {
 	Object.defineProperty(window, "AvInstance", {
-		get() {return Aventus.Instance;}
+		get() {return Aventus?.Instance;}
 	});
 
 	(() => {
@@ -5056,7 +5056,7 @@ let Converter=class Converter {
 Converter.Namespace=`Aventus`;
 __as1(_, 'Converter', Converter);
 
-let Data=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let Data=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class Data {
     static converter = new Converter();
     /**
@@ -5206,7 +5206,7 @@ let HttpCache=class HttpCache {
 HttpCache.Namespace=`Aventus`;
 __as1(_, 'HttpCache', HttpCache);
 
-let GenericError=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let GenericError=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class GenericError {
     static converter = new Converter();
     static get Fullname() { return "Aventus.GenericError"; }
@@ -6832,75 +6832,6 @@ ProgressCircle.Namespace=`Aventus`;
 ProgressCircle.Tag=`av-progress-circle`;
 __as1(_, 'ProgressCircle', ProgressCircle);
 if(!window.customElements.get('av-progress-circle')){window.customElements.define('av-progress-circle', ProgressCircle);Aventus.WebComponentInstance.registerDefinition(ProgressCircle);}
-
-Navigation.Page = class Page extends Aventus.WebComponent {
-    static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'visible'() { return this.getBoolProp('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }    router;
-    state;
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
-    if (target.visible) {
-        target.onShow();
-    }
-    else {
-        target.onHide();
-    }
-})); }
-    static __style = `:host{display:block}:host(:not([visible])){display:none}`;
-    constructor() {
-        super();
-        if (this.constructor == Page) {
-            throw "can't instanciate an abstract class";
-        }
-    }
-    __getStatic() {
-        return Page;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Page.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "Page";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
-    __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    async show(state) {
-        this.state = state;
-        if (!this.visible)
-            this.visible = true;
-        else
-            this.onShow();
-    }
-    async hide() {
-        this.visible = false;
-        this.state = undefined;
-    }
-    onShow() {
-    }
-    onHide() {
-    }
-    isAllowed(state, pattern, router) {
-        return true;
-    }
-    loadData(state, path) {
-        return true;
-    }
-    getSlugs(path) {
-        const slugs = this.router?.getSlugs();
-        return slugs;
-    }
-}
-Navigation.Page.Namespace=`Aventus.Navigation`;
-__as1(_.Navigation, 'Page', Navigation.Page);
 
 let RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     /**
@@ -10789,6 +10720,75 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
 }
 Modal.ModalElement.Namespace=`Aventus.Modal`;
 __as1(_.Modal, 'ModalElement', Modal.ModalElement);
+
+Navigation.Page = class Page extends Aventus.WebComponent {
+    static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'visible'() { return this.getBoolProp('visible') }
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    router;
+    state;
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
+    if (target.visible) {
+        target.onShow();
+    }
+    else {
+        target.onHide();
+    }
+})); }
+    static __style = `:host{display:block}:host(:not([visible])){display:none}`;
+    constructor() {
+        super();
+        if (this.constructor == Page) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return Page;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Page.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Page";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
+    __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    async show(state) {
+        this.state = state;
+        if (!this.visible)
+            this.visible = true;
+        else
+            this.onShow();
+    }
+    async hide() {
+        this.visible = false;
+        this.state = undefined;
+    }
+    onShow() {
+    }
+    onHide() {
+    }
+    isAllowed(state, pattern, router) {
+        return true;
+    }
+    loadData(state, path) {
+        return true;
+    }
+    getSlugs(path) {
+        const slugs = this.router?.getSlugs();
+        return slugs;
+    }
+}
+Navigation.Page.Namespace=`Aventus.Navigation`;
+__as1(_.Navigation, 'Page', Navigation.Page);
 
 Navigation.Default404 = class Default404 extends Navigation.Page {
     static __style = `:host{align-items:center;height:100%;justify-content:center;width:100%}:host h1{font-size:48px;text-align:center}:host([visible]){display:flex}`;

@@ -22,7 +22,7 @@ declare global {
         useLive?: boolean;
     }
 
-    interface DependanceConfig {
+    interface DependenciesConfig {
         /** The type to load */
         type: any,
         /** The type must be loaded before the current class */
@@ -106,7 +106,7 @@ declare global {
     function Debugger(config: DebuggerConfig): (ConstructorConstraint: Function) => void;
 
 
-    function Dependances(info: DependanceConfig[]): (ConstructorConstraint: Function) => void;
+    function Dependencies(info: DependenciesConfig[]): (ConstructorConstraint: Function) => void;
 
     /**
      * Register the element inside the Converter instance

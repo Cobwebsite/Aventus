@@ -2,22 +2,22 @@ import { resolve } from 'path';
 import { Action, ActionOption, ArgOption } from '../Action';
 import { Server } from '../../server/Server';
 
-type DependanceOptions = {}
+type HelpLLMOptions = {}
 
-export class Dependance extends Action<DependanceOptions> {
+export class HelpLLM extends Action<HelpLLMOptions> {
 	public get name(): string {
-		return "dependances help-llm";
+		return "dependencies help-llm";
 	}
 	public get description(): string {
-		return "Write dependances to help llm"
+		return "Write dependencies to help llm"
 	}
 	protected registerArgs(addArg: (arg: ArgOption) => void) {
 
 	}
-	protected registerOptions(addOption: (option: ActionOption<DependanceOptions>) => void) {
+	protected registerOptions(addOption: (option: ActionOption<HelpLLMOptions>) => void) {
 
 	}
-	public async run(args: string[], options: DependanceOptions) {
+	public async run(args: string[], options: HelpLLMOptions) {
 		try {
 			let configPath = args[0];
 			if (configPath) {
@@ -30,7 +30,7 @@ export class Dependance extends Action<DependanceOptions> {
 				loadFiles: false,
 				configPath: configPath
 			});
-			await Server.executeCommand("aventus.ai.dependances");
+			await Server.executeCommand("aventus.ai.dependencies");
 
 		} catch (e) {
 			console.log(e)

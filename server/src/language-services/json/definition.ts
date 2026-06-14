@@ -24,8 +24,8 @@ export interface AventusConfigBuild {
 	namespaceRulesRegex: { [namespace: string]: RegExp },
 	namespaceRoot: string,
 	avoidParsingInsideTags: string[],
-	rawDependances: { [name: string]: AventusConfigBuildDependance },
-	dependances: { [name: string]: AventusConfigBuildDependance },
+	rawDependencies: { [name: string]: AventusConfigBuildDependency },
+	dependencies: { [name: string]: AventusConfigBuildDependency },
 	nodeModulesDir: string,
 	i18n?: AventusConfigBuildI18n
 }
@@ -58,12 +58,12 @@ export interface AventusConfigBuildCompileOutputI18n {
 	mode: 'singleFile' | 'oneToOne' | 'groupComponent' | 'basedOnAttribute' | 'include'
 }
 
-export interface AventusConfigBuildDependance {
+export interface AventusConfigBuildDependency {
 	uri?: string,
 	npm?: string,
 	version?: string,
 	include?: IncludeType,
-	subDependancesInclude?: { // define how to include children, you can specify each dependance here or add a star as name to define globaly
+	subDependenciesInclude?: { // define how to include children, you can specify each Dependencies here or add a star as name to define globaly
 		[name: string]: IncludeType
 	},
 	isLocal?: boolean
@@ -94,7 +94,7 @@ export interface AventusConfig {
 	readme?: string,
 	repository?: string,
 	documentation?: string,
-	dependances: { [name: string]: AventusConfigBuildDependance },
+	dependencies: { [name: string]: AventusConfigBuildDependency },
 	build: AventusConfigBuild[],
 	static: AventusConfigStatic[],
 	namespaceStrategy: 'manual' | 'followFolders' | 'followFoldersCamelCase' | 'rules'

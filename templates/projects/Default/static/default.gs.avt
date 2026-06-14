@@ -1,0 +1,9 @@
+@import './_theme.gs.avt';
+
+html,
+body {
+	height: 100%;
+	margin: auto;
+	overflow: hidden;
+	width: 100%;
+}

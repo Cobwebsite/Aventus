@@ -1113,7 +1113,7 @@ export class AventusTsLanguageService {
             hotReload: "",
             docVisible: "",
             docInvisible: "",
-            dependances: Object.values(element.dependances),
+            dependencies: Object.values(element.dependencies),
             classScript: "",
             classDoc: "",
             debugTxt: "",
@@ -1428,7 +1428,7 @@ export class AventusTsLanguageService {
         }
         return "";
     }
-    public static removeUnusedImport(txt: string, forcedDependances: string[]): string {
+    public static removeUnusedImport(txt: string, forcedDependencies: string[]): string {
         try {
             let document = TextDocument.create("temp.js", "js", 1, txt);
             const host: LanguageServiceHost = {
@@ -1481,7 +1481,7 @@ export class AventusTsLanguageService {
                     if (isImport) {
                         const execResult = /'(\S*)'/.exec(diag.messageText + '');
                         if (execResult && execResult[1]) {
-                            if (forcedDependances.includes(execResult[1]))
+                            if (forcedDependencies.includes(execResult[1]))
                                 continue;
                         }
                         unusedRanges.push({
@@ -1535,7 +1535,7 @@ export class AventusTsLanguageService {
     }
 }
 //#region definition const + tools function
-export type CompileDependance = {
+export type CompileDependency = {
     fullName: string,
     uri: string,
     isStrong: boolean,
@@ -1553,7 +1553,7 @@ export type CompileTsResult = {
     hotReload: string,
     docVisible: string,
     docInvisible: string,
-    dependances: CompileDependance[],
+    dependencies: CompileDependency[],
     classScript: string,
     classDoc: string,
     debugTxt: string,

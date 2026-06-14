@@ -101,7 +101,7 @@ export class WebComponentInstance {
 @Storybook({
     prefix: "Webcomponent"
 })
-@Dependances([{
+@Dependencies([{
     type: WebComponentInstance,
     strong: true
 }])

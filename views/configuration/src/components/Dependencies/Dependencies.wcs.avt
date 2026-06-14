@@ -1,5 +1,5 @@
 :host {
-	.no-dependances-txt {
+	.no-dependencies-txt {
 		display: none;
 	}
 	vscode-data-grid-row {
@@ -16,7 +16,7 @@
 }
 
 :host([no_deps]) {
-	.no-dependances-txt {
+	.no-dependencies-txt {
 		display: block;
 	}
 }

@@ -1,6 +1,7 @@
 {
     "module": "Aventus",
     "componentPrefix": "av",
+    "description": "Core package for AventusJs",
     "build": [
         {
             "name": "Main",

@@ -40,29 +40,29 @@ export class PropertyInfo {
     public deprecated: boolean = false;
     public deprecatedMsg: string = "";
     public get compiledContent(): string {
-        let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependenciesLocations, this._class.compileTransformations);
         return txt;
     }
     public get compiledContentHotReload(): string {
-        let txt = BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        let txt = BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependenciesLocations, this._class.compileTransformations);
         return txt;
     }
     public get compiledContentNpm(): string {
-        let txt = BaseInfo.getContentNpm(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        let txt = BaseInfo.getContentNpm(this.content, this.start, this.end, this._class.dependenciesLocations, this._class.compileTransformations);
         return txt;
     }
 
     public get defaultValue(): string | null {
         if (this.defaultValueTxt === null) return null;
-        return BaseInfo.getContent(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
+        return BaseInfo.getContent(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependenciesLocations, this._class.compileTransformations);
     }
     public get defaultValueHotReload(): string | null {
         if (this.defaultValueTxt === null) return null;
-        return BaseInfo.getContentHotReload(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
+        return BaseInfo.getContentHotReload(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependenciesLocations, this._class.compileTransformations);
     }
     public get defaultValueNpm(): string | null {
         if (this.defaultValueTxt === null) return null;
-        return BaseInfo.getContentNpm(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
+        return BaseInfo.getContentNpm(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependenciesLocations, this._class.compileTransformations);
     }
 
     public defaultValueStory: string | null = null;

@@ -1,6 +1,6 @@
 if(!Object.hasOwn(window, "AvInstance")) {
 	Object.defineProperty(window, "AvInstance", {
-		get() {return Aventus.Instance;}
+		get() {return Aventus?.Instance;}
 	});
 
 	(() => {
@@ -31,7 +31,7 @@ if(!Object.hasOwn(window, "AvInstance")) {
 
 if(!Object.hasOwn(window, "AvInstance")) {
 	Object.defineProperty(window, "AvInstance", {
-		get() {return Aventus.Instance;}
+		get() {return Aventus?.Instance;}
 	});
 
 	(() => {
@@ -1308,7 +1308,7 @@ let HttpResponse=class HttpResponse {
 HttpResponse.Namespace=`Aventus`;
 __as1(_, 'HttpResponse', HttpResponse);
 
-let Data=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let Data=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class Data {
     static converter = new Converter();
     /**
@@ -1408,7 +1408,7 @@ let HttpCache=class HttpCache {
 HttpCache.Namespace=`Aventus`;
 __as1(_, 'HttpCache', HttpCache);
 
-let GenericError=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let GenericError=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class GenericError {
     static converter = new Converter();
     static get Fullname() { return "Aventus.GenericError"; }

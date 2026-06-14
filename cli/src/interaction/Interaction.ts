@@ -10,7 +10,9 @@ export class Interaction {
 	private static realInteraction?: typeof RealInteraction;
 
 	public static async load(config?: InteractionConfig) {
+		// this.realInteraction = (await import('./RealInteraction')).RealInteraction
 		this.realInteraction = (await (eval('import("./RealInteraction.js")'))).default.RealInteraction
+		// this.realInteraction = RealInteraction;
 		this.realInteraction['_server'] = Server;
 		if (config)
 			this.realInteraction.config = config

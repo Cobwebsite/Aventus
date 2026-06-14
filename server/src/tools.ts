@@ -337,7 +337,7 @@ export function setValueToObject(path: string, obj: any, value: any) {
 }
 
 const md5HashFile: { [path: string]: string } = {};
-export function writeFile(outputFile: string, txt: string, type: "build" | "static" | "storybook", name?: string) {
+export function writeFile(outputFile: string, txt: string, type: "build" | "static" | "storybook" | "manifest", name?: string) {
     let hash = md5(txt);
     const folder = dirname(outputFile);
     if (!existsSync(folder)) {

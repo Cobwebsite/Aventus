@@ -20,7 +20,7 @@ import { CustomCssProperty } from './helper/CSSCustomNode';
 export class AventusWebSCSSFile extends AventusBaseFile {
     public compiledVersion = -1;
     private usedBy: { [uri: string]: AventusWebSCSSFile } = {};
-    private dependances: { [uri: string]: AventusWebSCSSFile } = {};
+    private dependencies: { [uri: string]: AventusWebSCSSFile } = {};
 
     private diagnostics: Diagnostic[] = [];
     private diagnosticCompile: Diagnostic | undefined;
@@ -59,13 +59,13 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     }
 
     public async init(): Promise<void> {
-        await this.loadDependances();
+        await this.loadDependencies();
         await this.compile(false);
     }
 
     protected async onValidate(): Promise<Diagnostic[]> {
         this.diagnostics = await this.build.scssLanguageService.doValidation(this.file);
-        await this.loadDependances();
+        await this.loadDependencies();
         if (this.diagnosticCompile) {
             return [...this.diagnostics, this.diagnosticCompile];
         }
@@ -104,9 +104,9 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                 let arrMatch: RegExpExecArray | null = null;
                 while (arrMatch = regex.exec(textToSearch)) {
                     let importName = arrMatch[2];
-                    let fileDependance = await this.resolvePath(importName, file.folderPath);
-                    if (fileDependance) {
-                        let nesteadContent = await _loadContent(fileDependance);
+                    let fileDependency = await this.resolvePath(importName, file.folderPath);
+                    if (fileDependency) {
+                        let nesteadContent = await _loadContent(fileDependency);
                         if (nesteadContent == errorMsgTxt) {
                             return nesteadContent;
                         }
@@ -184,11 +184,11 @@ export class AventusWebSCSSFile extends AventusBaseFile {
         }
     }
     protected async onDelete() {
-        for (let dependanceUri in this.dependances) {
-            this.removeDependance(dependanceUri);
+        for (let dependencyUri in this.dependencies) {
+            this.removeDependency(dependencyUri);
         }
         for (let usedByUri in this.usedBy) {
-            delete this.usedBy[usedByUri].dependances[this.file.uri];
+            delete this.usedBy[usedByUri].dependencies[this.file.uri];
             delete this.usedBy[usedByUri];
             await this.usedBy[usedByUri].onContentChange();
         }
@@ -230,45 +230,45 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     }
 
 
-    //#region dependances
-    private async loadDependances() {
+    //#region dependencies
+    private async loadDependencies() {
         let text = this.file.contentUser;
         let textToSearch = text.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1')
         let regex = /@import *?('|")(\S*?)('|");?/g;
         let arrMatch: RegExpExecArray | null = null;
-        for (let dependanceUri in this.dependances) {
-            this.removeDependance(dependanceUri);
+        for (let dependencyUri in this.dependencies) {
+            this.removeDependency(dependencyUri);
         }
         while (arrMatch = regex.exec(textToSearch)) {
             let importName = arrMatch[2];
-            let fileDependance = await this.resolvePath(importName, this.file.folderPath);
-            if (!fileDependance) {
+            let fileDependency = await this.resolvePath(importName, this.file.folderPath);
+            if (!fileDependency) {
                 let start = text.indexOf(arrMatch[0]);
                 let end = start + arrMatch[0].length;
                 this.diagnostics.push(createErrorScssPos(this.file.documentUser, "Can't load this file", start, end));
             }
             else {
-                await this.addDependance(fileDependance);
+                await this.addDependency(fileDependency);
             }
         }
     }
 
-    private removeDependance(uri: string): void {
-        if (this.dependances[uri]) {
-            delete this.dependances[uri].usedBy[this.file.uri];
-            delete this.dependances[uri];
+    private removeDependency(uri: string): void {
+        if (this.dependencies[uri]) {
+            delete this.dependencies[uri].usedBy[this.file.uri];
+            delete this.dependencies[uri];
         }
     }
-    private async addDependance(fileDependance: AventusFile): Promise<void> {
-        if (this.build.scssFiles[fileDependance.uri]) {
-            this.dependances[fileDependance.uri] = this.build.scssFiles[fileDependance.uri];
-            this.build.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
+    private async addDependency(fileDependency: AventusFile): Promise<void> {
+        if (this.build.scssFiles[fileDependency.uri]) {
+            this.dependencies[fileDependency.uri] = this.build.scssFiles[fileDependency.uri];
+            this.build.scssFiles[fileDependency.uri].usedBy[this.file.uri] = this;
         }
-        else if (fileDependance.uri.endsWith(AventusExtension.ComponentStyle)) {
-            this.build.scssFiles[fileDependance.uri] = new AventusWebSCSSFile(fileDependance, this.build);
-            await this.build.scssFiles[fileDependance.uri].init();
-            this.dependances[fileDependance.uri] = this.build.scssFiles[fileDependance.uri];
-            this.build.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
+        else if (fileDependency.uri.endsWith(AventusExtension.ComponentStyle)) {
+            this.build.scssFiles[fileDependency.uri] = new AventusWebSCSSFile(fileDependency, this.build);
+            await this.build.scssFiles[fileDependency.uri].init();
+            this.dependencies[fileDependency.uri] = this.build.scssFiles[fileDependency.uri];
+            this.build.scssFiles[fileDependency.uri].usedBy[this.file.uri] = this;
         }
     }
 

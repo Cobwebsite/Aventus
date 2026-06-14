@@ -10,7 +10,7 @@ export class Create extends Action<CreateOptions> {
 		return "create";
 	}
 	public get description(): string {
-		return "Create from a template"
+		return "Create new project / files from a template"
 	}
 	protected registerArgs(addArg: (arg: ArgOption) => void) {
 

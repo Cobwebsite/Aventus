@@ -23,8 +23,13 @@ export type ServerConfig = {
 export class Server {
 
 	private static realServer?: typeof RealServer;
+	public static get notifications() {
+		return this.realServer?.notifications;
+	}
 	public static async load() {
+		// this.realServer = (await import('./RealServer')).RealServer
 		this.realServer = (await (eval('import("./RealServer.js")'))).default.RealServer
+		// this.realServer = RealServer;
 		this.realServer['_interaction'] = Interaction
 	}
 
@@ -54,4 +59,6 @@ export class Server {
 	public static async Input(options: InputOptions): Promise<string | null> {
 		return this.realServer?.Input(options);
 	}
+
+
 }

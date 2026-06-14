@@ -19,7 +19,7 @@
 	"static": [
 		{
 			"name": "Main",
-			"input": "./src/static/*",
+			"input": "./static/*",
 			"output": "./dist/"
 		}
 	]

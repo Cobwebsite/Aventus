@@ -1,5 +1,5 @@
-<h3>Dependances</h3>
-<p class="no-dependances-txt">Your project has no dependance</p>
+<h3>Dependencies</h3>
+<p class="no-dependencies-txt">Your project has no dependencies</p>
 <vscode-data-grid aria-label="Default">
 	<vscode-data-grid-row row-type="header">
 		<vscode-data-grid-cell cell-type="columnheader" grid-column="1">
@@ -15,7 +15,7 @@
 			Action
 		</vscode-data-grid-cell>
 	</vscode-data-grid-row>
-	for(let dep of this.dependances) {
+	for(let dep of this.dependencies) {
 		<vscode-data-grid-row @element="temp">
 			<vscode-data-grid-cell grid-column="1">
 				{{dep.name}}

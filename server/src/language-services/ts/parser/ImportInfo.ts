@@ -275,12 +275,12 @@ export class ImportInfo {
 			for (let type of types) {
 				for (let name in type) {
 					let _class = type[name]
-					const dependances = Object.values(_class.dependances);
-					for (let dependance of dependances) {
-						if (dependance.uri == "@external" && dependance.fullName == localName) {
-							dependance.uri = "@local";
-							dependance.fullName = "$namespace$" + baseInfoLinked.fullName;
-							//dependance.isStrong = false;
+					const dependencies = Object.values(_class.dependencies);
+					for (let dependency of dependencies) {
+						if (dependency.uri == "@external" && dependency.fullName == localName) {
+							dependency.uri = "@local";
+							dependency.fullName = "$namespace$" + baseInfoLinked.fullName;
+							//dependency.isStrong = false;
 						}
 					}
 				}

@@ -1,0 +1,3 @@
+:host {
+	--primary-color: #e5540e;
+}

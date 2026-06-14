@@ -36,7 +36,7 @@ export class VariableInfo extends BaseInfo {
 				break;
 			}
 		}
-		this.loadOnlyDependancesRecu(node, 0, true);
+		this.loadOnlyDependenciesRecu(node, 0, true);
 	}
 
 	protected defineStoryContent(): IStoryContentVariable {

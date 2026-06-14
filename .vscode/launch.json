@@ -58,9 +58,10 @@
 			"name": "Launch CLI Test",
 			"program": "${workspaceFolder}/cli/out/cli.js",
 			"args": [
-				"check"
+				"dependencies",
+				"help-llm"
 			],
-			"cwd": "C:/Projets/Tableau/tableauApp/Front",
+			"cwd": "D:/Aventus/test",
 			"outFiles": [
 				"${workspaceFolder}/cli/out/**/*.js"
 			],

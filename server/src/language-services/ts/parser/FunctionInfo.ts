@@ -14,21 +14,21 @@ export class FunctionInfo extends BaseInfo {
 		this.infoType = InfoType.function;
 		if (node.typeParameters) {
 			for (let typeParam of node.typeParameters) {
-				this.preventDependanceAdd(typeParam.name.getText());
+				this.preventDependencyAdd(typeParam.name.getText());
 				if (typeParam.constraint) {
-					this.addDependance(typeParam.constraint, true);
+					this.addDependency(typeParam.constraint, true);
 				}
 			}
 		}
 		for (let param of node.parameters) {
 			if (param.type) {
-				this.addDependance(param.type, false);
+				this.addDependency(param.type, false);
 			}
 		}
 
 		forEachChild(node, x => {
 			if (x.kind == SyntaxKind.Block) {
-				this.loadOnlyDependancesRecu(x, 0, false);
+				this.loadOnlyDependenciesRecu(x, 0, false);
 			}
 		})
 

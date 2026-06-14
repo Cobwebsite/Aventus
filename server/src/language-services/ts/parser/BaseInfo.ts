@@ -4,7 +4,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { BaseLibInfo } from './BaseLibInfo';
 import { TypeInfo } from './TypeInfo';
 import { DecoratorInfo } from './DecoratorInfo';
-import { DependancesDecorator } from './decorators/DependancesDecorator';
+import { DependenciesDecorator } from './decorators/DependenciesDecorator';
 import { GenericServer } from '../../../GenericServer';
 import { InternalDecorator } from './decorators/InternalDecorator';
 import { Build } from '../../../project/Build';
@@ -30,7 +30,7 @@ export enum InfoType {
     enum
 }
 
-type DependanceType = {
+type DependencyType = {
     fullName: string,
     uri: string, // @local (same file), @external (lib), @npm (npm), file uri (same build) 
     isStrong: boolean
@@ -38,7 +38,7 @@ type DependanceType = {
 
 export type SupportedRootNodes = ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableDeclaration | MethodDeclaration
 
-export type DependanceInfo = {
+export type DependencyInfo = {
     replacement: string | null,
     docReplacement: string | null,
     hotReloadReplacement: string | null,
@@ -108,8 +108,8 @@ export abstract class BaseInfo {
     public storieDecorator?: StorybookDecorator;
     public storyType: 'all' | 'none' | 'public' | 'protected' = 'none';
 
-    // public dependancesFullName: string[] = [];
-    public dependances: { [name: string]: DependanceType } = {};
+    // public dependenciesFullName: string[] = [];
+    public dependencies: { [name: string]: DependencyType } = {};
     public compiled: string = "";
     public documentation?: DocumentationInfo;
     public isExported: boolean = false;
@@ -120,24 +120,24 @@ export abstract class BaseInfo {
     public deprecatedMsg: string = "";
     public compileTransformations: { [key: string]: { newText: string, start: number, end: number } } = {};
     public get compiledContent(): string {
-        return BaseInfo.getContent(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
+        return BaseInfo.getContent(this.content, this.start, this.end, this.dependenciesLocations, this.compileTransformations);
     }
     public get compiledContentHotReload(): string {
-        return BaseInfo.getContentHotReload(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
+        return BaseInfo.getContentHotReload(this.content, this.start, this.end, this.dependenciesLocations, this.compileTransformations);
     }
     public get compiledContentNpm(): string {
-        return BaseInfo.getContentNpm(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
+        return BaseInfo.getContentNpm(this.content, this.start, this.end, this.dependenciesLocations, this.compileTransformations);
     }
     public get compiledContentDoc(): string {
-        return BaseInfo.getContentDoc(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
+        return BaseInfo.getContentDoc(this.content, this.start, this.end, this.dependenciesLocations, this.compileTransformations);
     }
     public get fileUri() {
         return this.document.uri;
     }
     public document: TextDocument;
-    private dependancePrevented: string[] = [];
-    public dependancesLocations: {
-        [name: string]: DependanceInfo
+    private dependenciesPrevented: string[] = [];
+    public dependenciesLocations: {
+        [name: string]: DependencyInfo
     } = {};
 
     public infoType: InfoType = InfoType.none;
@@ -152,7 +152,7 @@ export abstract class BaseInfo {
         this._parserInfo = parserInfo;
         this.document = parserInfo.document;
         this.decorators = DecoratorInfo.buildDecorator(node, this);
-        this.dependancesLocations = {};
+        this.dependenciesLocations = {};
         this.build = parserInfo.build;
         this.willBeCompiled = node.kind != SyntaxKind.InterfaceDeclaration && node.kind != SyntaxKind.TypeAliasDeclaration
         if (node.name) {
@@ -194,10 +194,10 @@ export abstract class BaseInfo {
 
     protected loadDecorators() {
         for (let decorator of this.decorators) {
-            let temp = DependancesDecorator.is(decorator);
+            let temp = DependenciesDecorator.is(decorator);
             if (temp) {
-                for (let dependance of temp.dependances) {
-                    this.addDependanceName(dependance.type, dependance.strong, 0, 0);
+                for (let dependency of temp.dependencies) {
+                    this.addDependencyName(dependency.type, dependency.strong, 0, 0);
                 }
             }
             let temp2 = DeprecatedDecorator.is(decorator);
@@ -208,21 +208,21 @@ export abstract class BaseInfo {
         }
     }
 
-    protected preventDependanceAdd(name: string) {
-        if (!this.dependancePrevented.includes(name)) {
-            this.dependancePrevented.push(name);
+    protected preventDependencyAdd(name: string) {
+        if (!this.dependenciesPrevented.includes(name)) {
+            this.dependenciesPrevented.push(name);
         }
     }
 
-    private loadExpression(x: Node, depth2: number = 0, isStrongDependance: boolean = false) {
+    private loadExpression(x: Node, depth2: number = 0, isStrongDependency: boolean = false) {
         GenericServer.debug("***" + depth2 + ". " + x.getText());
         GenericServer.debug(SyntaxKind[x.kind]);
         if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
-            this.addDependance(x as ExpressionWithTypeArguments, isStrongDependance);
+            this.addDependency(x as ExpressionWithTypeArguments, isStrongDependency);
         }
         else if (x.kind == SyntaxKind.NewExpression) {
             let exp = (x as NewExpression);
-            this.loadExpression(exp.expression, depth2 + 1, isStrongDependance);
+            this.loadExpression(exp.expression, depth2 + 1, isStrongDependency);
         }
         else if (x.kind == SyntaxKind.PropertyAccessExpression) {
             let exp = (x as PropertyAccessExpression);
@@ -230,21 +230,21 @@ export abstract class BaseInfo {
             let baseInfo = ParserTs.getBaseInfo(txt);
             if (baseInfo && exp.expression.getText() + "." + txt == baseInfo.fullName) {
                 // when static call on external class
-                this.addDependanceName(baseInfo.fullName, isStrongDependance, exp.getStart(), exp.getEnd());
+                this.addDependencyName(baseInfo.fullName, isStrongDependency, exp.getStart(), exp.getEnd());
             }
             else {
                 // when static call on local class
                 let localClassName = exp.expression.getText();
                 if (localClassName != 'this' && !localClassName.includes('.')) {
                     if (ParserTs.hasLocal(localClassName)) {
-                        this.addDependanceName(localClassName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
+                        this.addDependencyName(localClassName, isStrongDependency, exp.expression.getStart(), exp.expression.getEnd());
                     }
                     else if (ParserTs.hasImport(localClassName)) {
-                        this.addDependanceName(localClassName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
+                        this.addDependencyName(localClassName, isStrongDependency, exp.expression.getStart(), exp.expression.getEnd());
                     }
                 }
             }
-            this.loadExpression(exp.expression, depth2 + 1, isStrongDependance);
+            this.loadExpression(exp.expression, depth2 + 1, isStrongDependency);
         }
         else if (x.kind == SyntaxKind.Identifier) {
             if (x.parent.kind == SyntaxKind.PropertyAccessExpression) {
@@ -261,21 +261,21 @@ export abstract class BaseInfo {
             if (localClassName != 'this' && !localClassName.includes('.')) {
                 let baseInfo = ParserTs.getBaseInfo(localClassName);
                 if (baseInfo) {
-                    this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
+                    this.addDependencyName(localClassName, isStrongDependency, x.getStart(), x.getEnd());
                 }
                 else {
                     if (ParserTs.hasLocal(localClassName)) {
-                        this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
+                        this.addDependencyName(localClassName, isStrongDependency, x.getStart(), x.getEnd());
                     }
                     else if (ParserTs.hasImport(localClassName)) {
-                        this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
+                        this.addDependencyName(localClassName, isStrongDependency, x.getStart(), x.getEnd());
                     }
                 }
             }
         }
         else if (x.kind == SyntaxKind.CallExpression) {
             let exp = (x as CallExpression);
-            this.loadExpression(exp.expression, depth2 + 1, isStrongDependance);
+            this.loadExpression(exp.expression, depth2 + 1, isStrongDependency);
         }
     }
 
@@ -320,42 +320,42 @@ export abstract class BaseInfo {
         return true;
     }
 
-    private loadDependanceContext: undefined | 'Decorator' = undefined;
-    private maybeDependances: { [name: string]: { uri: string, name: string, compiled: boolean } } = {}
-    protected loadOnlyDependancesRecu(node: Node, depth: number = 0, isStrongDependance: boolean = false) {
+    private loadDependencyContext: undefined | 'Decorator' = undefined;
+    private maybeDependencies: { [name: string]: { uri: string, name: string, compiled: boolean } } = {}
+    protected loadOnlyDependenciesRecu(node: Node, depth: number = 0, isStrongDependency: boolean = false) {
         if (this.parserInfo.isExternal) {
             return
         }
         if (node.kind == SyntaxKind.Decorator) {
-            this.loadDependanceContext = "Decorator";
+            this.loadDependencyContext = "Decorator";
         }
         forEachChild(node, x => {
             if (x.kind == SyntaxKind.TypeReference) {
-                this.addDependance(x as TypeReferenceNode, isStrongDependance);
+                this.addDependency(x as TypeReferenceNode, isStrongDependency);
                 return;
             }
             else {
-                this.loadExpression(x, depth, isStrongDependance);
+                this.loadExpression(x, depth, isStrongDependency);
             }
-            this.loadOnlyDependancesRecu(x, depth + 1, isStrongDependance);
+            this.loadOnlyDependenciesRecu(x, depth + 1, isStrongDependency);
         })
         if (node.kind == SyntaxKind.Decorator) {
-            this.loadDependanceContext = undefined;
+            this.loadDependencyContext = undefined;
         }
     }
     /**
      * return the fullName
      * @param name 
-     * @param isStrongDependance 
+     * @param isStrongDependency 
      */
-    protected addDependance(type: TypeNode, isStrongDependance: boolean): void {
+    protected addDependency(type: TypeNode, isStrongDependency: boolean): void {
         if (this.parserInfo.isExternal) {
             return
         }
         // TODO : add scope declaration variable
         const loop = (info: TypeInfo) => {
             if (info.kind == "type") {
-                this.addDependanceName(info.value, isStrongDependance, info.start, info.endNonGeneric);
+                this.addDependencyName(info.value, isStrongDependency, info.start, info.endNonGeneric);
                 for (let nested of info.nested) {
                     loop(nested);
                 }
@@ -380,9 +380,9 @@ export abstract class BaseInfo {
     /**
      * return the fullName
      * @param name 
-     * @param isStrongDependance 
+     * @param isStrongDependency 
      */
-    protected addDependanceWaitName(type: TypeNode, isStrongDependance: boolean, cb: (names: string[], namesNpm: string[]) => void): void {
+    protected addDependencyWaitName(type: TypeNode, isStrongDependency: boolean, cb: (names: string[], namesNpm: string[]) => void): void {
         if (this.parserInfo.isExternal) {
             cb([type.getText()], [type.getText()])
             return
@@ -401,7 +401,7 @@ export abstract class BaseInfo {
         const loop = (info: TypeInfo, lvl: number) => {
             if (info.kind == "type") {
                 nb++;
-                this.addDependanceName(info.value, isStrongDependance, info.start, info.endNonGeneric, (fullName, fullNameNpm) => {
+                this.addDependencyName(info.value, isStrongDependency, info.start, info.endNonGeneric, (fullName, fullNameNpm) => {
                     if (lvl == 0) {
                         if (fullName) result.push(fullName);
                         if (fullNameNpm) resultNpm.push(fullNameNpm);
@@ -414,7 +414,7 @@ export abstract class BaseInfo {
                 }
                 for (let generic of info.genericValue) {
                     // generic isn't strong bc will disapear in js
-                    isStrongDependance = false;
+                    isStrongDependency = false;
                     loop(generic, lvl + 1);
                 }
             }
@@ -518,18 +518,18 @@ export abstract class BaseInfo {
         let currentFullName = [this.build.module, this.fullName].join(".")
         return this.parserInfo.getNpmReplacementName(currentFullName, fullName)
     }
-    public addDependanceTag(tag: string, componentResult: CompileTsResult) {
-        let dependance = this.build.getWebComponentTagDependance(tag);
-        if (dependance) {
-            for (let dep of componentResult.dependances) {
-                if (dep.fullName == dependance.fullName) {
+    public addDependencyTag(tag: string, componentResult: CompileTsResult) {
+        let dependency = this.build.getWebComponentTagDependency(tag);
+        if (dependency) {
+            for (let dep of componentResult.dependencies) {
+                if (dep.fullName == dependency.fullName) {
                     return;
                 }
             }
 
-            let depUri = dependance.uri; // @external (lib), @npm (npm), file uri (same build)
+            let depUri = dependency.uri; // @external (lib), @npm (npm), file uri (same build)
             if (depUri == '@external') {
-                const name = dependance.fullName;
+                const name = dependency.fullName;
                 let classExternal = this.build.externalPackageInformation.getNpmUri(name);
                 const npmReplacement = this.getNpmReplacementName(name);
                 if (classExternal) {
@@ -543,7 +543,7 @@ export abstract class BaseInfo {
                 }
             }
             else if (depUri == "@npm") {
-                const name = dependance.fullName;
+                const name = dependency.fullName;
                 let md5uri = md5(this.parserInfo.npmImports[name].uri);
                 const npmReplacement = this.getNpmReplacementName(md5uri + "." + name);
                 this._parserInfo.registerGeneratedImport({
@@ -556,9 +556,9 @@ export abstract class BaseInfo {
             }
             else {
                 // if not imported on the top on the file we need to import it
-                const importInfo = ImportInfo.manualLocalImport(this, dependance.fullName, dependance.uri);
+                const importInfo = ImportInfo.manualLocalImport(this, dependency.fullName, dependency.uri);
 
-                const fullNameOther = dependance.fullName;
+                const fullNameOther = dependency.fullName;
                 let namespace1: string[] = this.fullName.split(".");
                 namespace1.pop();
 
@@ -599,10 +599,10 @@ export abstract class BaseInfo {
                 })
             }
 
-            componentResult.dependances.push(dependance)
+            componentResult.dependencies.push(dependency)
         }
     }
-    protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number, onNameTemp?: ((name?: string, nameNpm?: string) => void)): void {
+    protected addDependencyName(name: string, isStrongDependency: boolean, start: number, end: number, onNameTemp?: ((name?: string, nameNpm?: string) => void)): void {
         if (this.parserInfo.isExternal) {
             return
         }
@@ -617,7 +617,7 @@ export abstract class BaseInfo {
             onName();
             return
         }
-        GenericServer.debug("try add dependance " + name);
+        GenericServer.debug("try add dendency " + name);
 
         let match = /<.*>/g.exec(name);
         if (match) {
@@ -643,8 +643,8 @@ export abstract class BaseInfo {
         }
 
         if (start > 0 && end > 0) {
-            if (!this.dependancesLocations[name]) {
-                this.dependancesLocations[name] = {
+            if (!this.dependenciesLocations[name]) {
+                this.dependenciesLocations[name] = {
                     locations: {},
                     typeRemplacement: null,
                     replacement: null,
@@ -654,15 +654,15 @@ export abstract class BaseInfo {
                 }
             }
             let key = start + "_" + end;
-            if (!this.dependancesLocations[name].locations) {
-                GenericServer.showErrorMessage("For the admin : you can add " + name + " as dependance to avoid");
+            if (!this.dependenciesLocations[name].locations) {
+                GenericServer.showErrorMessage("For the admin : you can add " + name + " as dependency to avoid");
                 onName();
                 return
             }
-            if (!this.dependancesLocations[name].locations[key]) {
+            if (!this.dependenciesLocations[name].locations[key]) {
                 let token = getTokenAtPosition(this.parserInfo.srcFile, (start + end) / 2);
                 let isType = isTypeReferenceNode(token) || isTypeReferenceNode(token.parent);
-                this.dependancesLocations[name].locations[key] = {
+                this.dependenciesLocations[name].locations[key] = {
                     start: start,
                     end: end,
                     isType
@@ -671,24 +671,24 @@ export abstract class BaseInfo {
         }
 
 
-        if (!this.addDependanceNameCustomCheck(name)) {
+        if (!this.addDependencyNameCustomCheck(name)) {
             onName();
             return
         }
-        if (this.dependancePrevented.includes(name)) {
+        if (this.dependenciesPrevented.includes(name)) {
             onName();
             return
         }
-        if (this.dependances[name]) {
+        if (this.dependencies[name]) {
             onName();
-            // there is a dependance but not loaded bc of context => check if can be loaded
-            if (this.loadDependanceContext === undefined && this.maybeDependances[name]) {
+            // there is a dependency but not loaded bc of context => check if can be loaded
+            if (this.loadDependencyContext === undefined && this.maybeDependencies[name]) {
 
-                const npmReplacement = this.getNpmReplacementName(this.maybeDependances[name].name);
+                const npmReplacement = this.getNpmReplacementName(this.maybeDependencies[name].name);
                 this._parserInfo.registerGeneratedImport({
-                    uri: this.maybeDependances[name].uri,
-                    name: this.maybeDependances[name].name,
-                    compiled: this.maybeDependances[name].compiled,
+                    uri: this.maybeDependencies[name].uri,
+                    name: this.maybeDependencies[name].name,
+                    compiled: this.maybeDependencies[name].compiled,
                     alias: npmReplacement,
                     forced: false
                 });
@@ -698,17 +698,17 @@ export abstract class BaseInfo {
 
         if (name.includes(".")) {
             // lib name => impossible to be a local name
-            this.dependances[name] = {
+            this.dependencies[name] = {
                 fullName: name,
                 uri: "@external",
-                isStrong: isStrongDependance,
+                isStrong: isStrongDependency,
             };
 
             let classExternal = this.build.externalPackageInformation.getNpmUri(name);
             const npmReplacement = this.getNpmReplacementName(name);
             if (classExternal) {
-                this.dependancesLocations[name].npmReplacement = npmReplacement;
-                if (this.loadDependanceContext === undefined)
+                this.dependenciesLocations[name].npmReplacement = npmReplacement;
+                if (this.loadDependencyContext === undefined)
                     this._parserInfo.registerGeneratedImport({
                         uri: classExternal.uri,
                         name: classExternal.name,
@@ -717,7 +717,7 @@ export abstract class BaseInfo {
                         forced: false
                     })
                 else
-                    this.maybeDependances[name] = classExternal;
+                    this.maybeDependencies[name] = classExternal;
             }
             onName(name, npmReplacement);
             return;
@@ -755,7 +755,7 @@ export abstract class BaseInfo {
             }
             finalPathToImport += namespace2.join("/");
 
-            if (this.loadDependanceContext === undefined)
+            if (this.loadDependencyContext === undefined)
                 this._parserInfo.registerGeneratedImport({
                     uri: finalPathToImport,
                     name: nameToImport,
@@ -765,7 +765,7 @@ export abstract class BaseInfo {
                     forced: false
                 })
             else {
-                this.maybeDependances[name] = {
+                this.maybeDependencies[name] = {
                     uri: finalPathToImport,
                     name: nameToImport,
                     compiled: compiled
@@ -777,15 +777,15 @@ export abstract class BaseInfo {
             let fullName = this.parserInfo.internalObjects[name].fullname
             let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
             if (fullName == this.fullName) {
-                isStrongDependance = false;
+                isStrongDependency = false;
             }
-            this.dependances[name] = {
+            this.dependencies[name] = {
                 fullName: "$namespace$" + fullName,
                 uri: '@local',
-                isStrong: isStrongDependance,
+                isStrong: isStrongDependency,
             };
-            GenericServer.debug("add dependance " + name + " : same file");
-            if (this.dependancesLocations[name]) {
+            GenericServer.debug("add dependence " + name + " : same file");
+            if (this.dependenciesLocations[name]) {
                 let replacement = this.build.module + "." + fullName;
                 if (this.isExported != this.parserInfo.internalObjects[name].isExported) {
                     if (!this.isExported) {
@@ -796,12 +796,12 @@ export abstract class BaseInfo {
                     }
                 }
 
-                this.dependancesLocations[name].typeRemplacement = replacement;
-                this.dependancesLocations[name].replacement = fullName;
-                this.dependancesLocations[name].docReplacement = this.build.module + "." + fullName;
+                this.dependenciesLocations[name].typeRemplacement = replacement;
+                this.dependenciesLocations[name].replacement = fullName;
+                this.dependenciesLocations[name].docReplacement = this.build.module + "." + fullName;
                 // no need to use getNpmReplacementName because local content can't change name
-                this.dependancesLocations[name].npmReplacement = name;
-                this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+                this.dependenciesLocations[name].npmReplacement = name;
+                this.dependenciesLocations[name].hotReloadReplacement = hotReloadName;
 
                 registerLocal(fullName, this.parserInfo.internalObjects[name].isCompiled, name)
             }
@@ -814,14 +814,14 @@ export abstract class BaseInfo {
             // it's an imported class
             let fullName = importInfo.fullName
             let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
-            this.dependances[name] = {
+            this.dependencies[name] = {
                 fullName: "$namespace$" + fullName,
                 uri: importInfo.fileUri,
-                isStrong: isStrongDependance,
+                isStrong: isStrongDependency,
             };
-            GenericServer.debug("add dependance " + name + " : imported file");
+            GenericServer.debug("add dependency " + name + " : imported file");
             const npmReplacement = this.getNpmReplacementName([this.build.module, fullName].join("."))
-            if (this.dependancesLocations[name]) {
+            if (this.dependenciesLocations[name]) {
                 let typeRemplacement = this.build.module + "." + fullName;
                 if (this.isExported != importInfo.isExported) {
                     if (!this.isExported) {
@@ -839,11 +839,11 @@ export abstract class BaseInfo {
                 if (splittedLocalFullName.includes(replacementStart)) {
                     remplacement = '_.' + remplacement;
                 }
-                this.dependancesLocations[name].typeRemplacement = typeRemplacement;
-                this.dependancesLocations[name].replacement = remplacement;
-                this.dependancesLocations[name].docReplacement = this.build.module + "." + fullName;;
-                this.dependancesLocations[name].npmReplacement = npmReplacement;
-                this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+                this.dependenciesLocations[name].typeRemplacement = typeRemplacement;
+                this.dependenciesLocations[name].replacement = remplacement;
+                this.dependenciesLocations[name].docReplacement = this.build.module + "." + fullName;;
+                this.dependenciesLocations[name].npmReplacement = npmReplacement;
+                this.dependenciesLocations[name].hotReloadReplacement = hotReloadName;
 
                 registerLocal(fullName, importInfo.willBeCompiled, npmReplacement);
             }
@@ -851,12 +851,12 @@ export abstract class BaseInfo {
             return
         }
         else if (this.parserInfo.waitingImports[name]) {
-            GenericServer.debug("add dependance " + name + " : but waiting import file");
+            GenericServer.debug("add dependency " + name + " : but waiting import file");
             this.parserInfo.waitingImports[name].push((info) => {
                 let fullName = info.fullName;
                 let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
                 const npmReplacement = this.getNpmReplacementName([this.build.module, fullName].join("."))
-                if (this.dependancesLocations[name]) {
+                if (this.dependenciesLocations[name]) {
                     let replacement = this.build.module + "." + fullName;
                     if (this.isExported != info.isExported) {
                         if (!this.isExported) {
@@ -867,18 +867,18 @@ export abstract class BaseInfo {
                         }
                     }
 
-                    this.dependancesLocations[name].typeRemplacement = replacement;
-                    this.dependancesLocations[name].replacement = fullName;
-                    this.dependancesLocations[name].docReplacement = this.build.module + "." + fullName;;
-                    this.dependancesLocations[name].npmReplacement = npmReplacement;
-                    this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+                    this.dependenciesLocations[name].typeRemplacement = replacement;
+                    this.dependenciesLocations[name].replacement = fullName;
+                    this.dependenciesLocations[name].docReplacement = this.build.module + "." + fullName;;
+                    this.dependenciesLocations[name].npmReplacement = npmReplacement;
+                    this.dependenciesLocations[name].hotReloadReplacement = hotReloadName;
 
                     registerLocal(fullName, info.willBeCompiled, npmReplacement)
                 }
-                this.dependances[name] = {
+                this.dependencies[name] = {
                     fullName: "$namespace$" + fullName,
                     uri: info.fileUri,
-                    isStrong: isStrongDependance
+                    isStrong: isStrongDependency
                 };
                 onName(fullName, npmReplacement);
             })
@@ -887,18 +887,18 @@ export abstract class BaseInfo {
         else if (this.parserInfo.packages[name]) {
             let fullName = this.parserInfo.packages[name].fullname;
             let classExternal = this.build.externalPackageInformation.getNpmUri(fullName);
-            this.dependances[name] = {
+            this.dependencies[name] = {
                 fullName: fullName,
                 uri: "@external",
-                isStrong: isStrongDependance,
+                isStrong: isStrongDependency,
             };
             const npmReplacement = this.getNpmReplacementName(fullName);
-            if (this.dependancesLocations[name]) {
-                this.dependancesLocations[name].typeRemplacement = fullName;
-                this.dependancesLocations[name].replacement = fullName;
-                this.dependancesLocations[name].docReplacement = fullName;
-                this.dependancesLocations[name].npmReplacement = npmReplacement;
-                this.dependancesLocations[name].hotReloadReplacement = fullName;
+            if (this.dependenciesLocations[name]) {
+                this.dependenciesLocations[name].typeRemplacement = fullName;
+                this.dependenciesLocations[name].replacement = fullName;
+                this.dependenciesLocations[name].docReplacement = fullName;
+                this.dependenciesLocations[name].npmReplacement = npmReplacement;
+                this.dependenciesLocations[name].hotReloadReplacement = fullName;
             }
             if (classExternal) {
                 this._parserInfo.registerGeneratedImport({
@@ -914,22 +914,22 @@ export abstract class BaseInfo {
         }
 
         if (this.parserInfo.npmImports[name]) {
-            this.dependances[name] = {
+            this.dependencies[name] = {
                 fullName: name,
                 uri: "@npm",
-                isStrong: isStrongDependance,
+                isStrong: isStrongDependency,
             };
-            GenericServer.debug("add dependance " + name + " : npm");
+            GenericServer.debug("add dependency " + name + " : npm");
             let md5uri = md5(this.parserInfo.npmImports[name].uri);
             const npmReplacement = this.getNpmReplacementName(md5uri + "." + name);
-            if (this.dependancesLocations[name]) {
-                this.dependancesLocations[name].replacement = "npmCompilation['" + md5uri + "']." + name;
-                this.dependancesLocations[name].docReplacement = "npmCompilation['" + md5uri + "']." + name;
+            if (this.dependenciesLocations[name]) {
+                this.dependenciesLocations[name].replacement = "npmCompilation['" + md5uri + "']." + name;
+                this.dependenciesLocations[name].docReplacement = "npmCompilation['" + md5uri + "']." + name;
                 if (npmReplacement != name) {
-                    this.dependancesLocations[name].npmReplacement = npmReplacement;
+                    this.dependenciesLocations[name].npmReplacement = npmReplacement;
                 }
                 // TODO : check how to replace the true by something compiled
-                if (this.loadDependanceContext === undefined)
+                if (this.loadDependencyContext === undefined)
                     this._parserInfo.registerGeneratedImport({
                         uri: this.parserInfo.npmImports[name].uri,
                         name: name,
@@ -938,7 +938,7 @@ export abstract class BaseInfo {
                         forced: false
                     });
                 else {
-                    this.maybeDependances[name] = {
+                    this.maybeDependencies[name] = {
                         uri: this.parserInfo.npmImports[name].uri,
                         name: name,
                         compiled: true
@@ -946,23 +946,23 @@ export abstract class BaseInfo {
                 }
             }
             if (start > 0 && end > 0) {
-                this.dependancesLocations[name].locations[start + "_" + end].isNpm = true;
+                this.dependenciesLocations[name].locations[start + "_" + end].isNpm = true;
             }
             onName(name, npmReplacement);
             return;
         }
-        // should be a lib dependances outside the module
-        this.dependances[name] = {
+        // should be a lib dependencies outside the module
+        this.dependencies[name] = {
             fullName: name,
             uri: "@external",
-            isStrong: isStrongDependance,
+            isStrong: isStrongDependency,
         };
-        GenericServer.debug("add dependance " + name + " : external");
+        GenericServer.debug("add dependency " + name + " : external");
         onName(name, name);
         return;
     }
 
-    protected addDependanceNameCustomCheck(name: string): boolean {
+    protected addDependencyNameCustomCheck(name: string): boolean {
         return true;
     }
 
@@ -971,64 +971,64 @@ export abstract class BaseInfo {
         txt: string,
         start: number,
         end: number,
-        dependancesLocations: { [name: string]: DependanceInfo },
+        dependenciesLocations: { [name: string]: DependencyInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
     ) {
-        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 1);
+        return this._getContent(txt, start, end, dependenciesLocations, compileTransformations, 1);
     }
     public static getContentHotReload(
         txt: string,
         start: number,
         end: number,
-        dependancesLocations: { [name: string]: DependanceInfo },
+        dependenciesLocations: { [name: string]: DependencyInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
-        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 2);
+        return this._getContent(txt, start, end, dependenciesLocations, compileTransformations, 2);
     }
     public static getContentNpm(
         txt: string,
         start: number,
         end: number,
-        dependancesLocations: { [name: string]: DependanceInfo },
+        dependenciesLocations: { [name: string]: DependencyInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
     ) {
-        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 3);
+        return this._getContent(txt, start, end, dependenciesLocations, compileTransformations, 3);
     }
     public static getContentDoc(
         txt: string,
         start: number,
         end: number,
-        dependancesLocations: { [name: string]: DependanceInfo },
+        dependenciesLocations: { [name: string]: DependencyInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
     ) {
-        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 4);
+        return this._getContent(txt, start, end, dependenciesLocations, compileTransformations, 4);
     }
     private static _getContent(
         txt: string,
         start: number,
         end: number,
-        dependancesLocations: { [name: string]: DependanceInfo },
+        dependenciesLocations: { [name: string]: DependencyInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } },
         typeContent: number
     ) {
         let transformations: { newText: string, start: number, end: number }[] = [];
-        for (let depName in dependancesLocations) {
+        for (let depName in dependenciesLocations) {
             let replacement: string | null = null;
             if (typeContent == 1) {
-                replacement = dependancesLocations[depName].replacement;
+                replacement = dependenciesLocations[depName].replacement;
             }
             else if (typeContent == 2) {
-                replacement = dependancesLocations[depName].hotReloadReplacement;
+                replacement = dependenciesLocations[depName].hotReloadReplacement;
             }
             else if (typeContent == 3) {
-                replacement = dependancesLocations[depName].npmReplacement;
+                replacement = dependenciesLocations[depName].npmReplacement;
             }
             else if (typeContent == 4) {
-                replacement = dependancesLocations[depName].docReplacement;
+                replacement = dependenciesLocations[depName].docReplacement;
             }
-            let typeRemplacement = dependancesLocations[depName].typeRemplacement;
+            let typeRemplacement = dependenciesLocations[depName].typeRemplacement;
             if (replacement) {
-                for (let locationKey in dependancesLocations[depName].locations) {
-                    let location = dependancesLocations[depName].locations[locationKey];
+                for (let locationKey in dependenciesLocations[depName].locations) {
+                    let location = dependenciesLocations[depName].locations[locationKey];
                     if (location.start >= start && location.end <= end) {
                         if (location.isType && typeRemplacement && typeContent != 3) {
                             transformations.push({

@@ -1,5 +1,5 @@
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, rmSync, unlinkSync } from 'fs';
-import { AventusConfigBuild, AventusConfigBuildDependance, IncludeType } from '../language-services/json/definition';
+import { AventusConfigBuild, AventusConfigBuildDependency, IncludeType } from '../language-services/json/definition';
 import { join } from 'path';
 import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_I18N_PATH, AVENTUS_DEF_PHP_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
 import { pathToUri } from '../tools';
@@ -13,24 +13,25 @@ import { FilesManager } from '../files/FilesManager';
 import { AventusFile } from '../files/AventusFile';
 import { Extract } from 'unzipper'
 import { Store } from '../store/Store';
+import { ManifestPackage } from '../manifest/ManifestPackage';
 
-type DependanceLoopPart = {
+type DependencyLoopPart = {
 	file: AventusPackageFile,
-	version: DependanceVersion,
+	version: DependencyVersion,
 	uri: string,
-	dependances: string[],
+	dependencies: string[],
 }
-type DependanceLoop = {
-	[name: string]: DependanceLoopPart
+type DependencyLoop = {
+	[name: string]: DependencyLoopPart
 }
-type DependanceVersion = { major: number, minor: number, patch: number }
-export class DependanceManager {
+type DependencyVersion = { major: number, minor: number, patch: number }
+export class DependencyManager {
 	private path: string;
 
-	private static instance: DependanceManager;
-	public static getInstance(): DependanceManager {
+	private static instance: DependencyManager;
+	public static getInstance(): DependencyManager {
 		if (!this.instance) {
-			this.instance = new DependanceManager();
+			this.instance = new DependencyManager();
 		}
 		return this.instance;
 	}
@@ -69,40 +70,40 @@ export class DependanceManager {
 		}
 		return result;
 	}
-	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {
-		let result: { files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] } = {
+	public async loadDependenciesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependencyNeedUris: string[], dependencyFullUris: string[], dependencyUris: string[] }> {
+		let result: { files: AventusPackageFile[], dependencyNeedUris: string[], dependencyFullUris: string[], dependencyUris: string[] } = {
 			files: [],
-			dependanceNeedUris: [],
-			dependanceFullUris: [],
-			dependanceUris: [],
+			dependencyNeedUris: [],
+			dependencyFullUris: [],
+			dependencyUris: [],
 		};
-		let loopResult: DependanceLoop = {};
+		let loopResult: DependencyLoop = {};
 		let includeNames: { [name: string]: IncludeType } = {};
-		for (let name in config.dependances) {
-			const dep = config.dependances[name];
-			let tempDep = await this.loadDependance(name, dep, config, build, loopResult);
+		for (let name in config.dependencies) {
+			const dep = config.dependencies[name];
+			let tempDep = await this.loadDependency(name, dep, config, build, loopResult);
 			if (tempDep) {
 				includeNames[tempDep.name] = dep.include ?? "need";
 			}
-			includeNames = { ...includeNames, ...dep.subDependancesInclude };
+			includeNames = { ...includeNames, ...dep.subDependenciesInclude };
 		}
 
 		if (!loopResult["Aventus@Main"]) {
-			await this.loadDependance("Aventus@Main", {
+			await this.loadDependency("Aventus@Main", {
 				uri: "",
 				npm: "",
 				version: "x.x.x",
 				include: 'need',
-				subDependancesInclude: { ['*']: 'need' }
+				subDependenciesInclude: { ['*']: 'need' }
 			}, config, build, loopResult)
 		}
 		if (build?.buildConfig.i18n !== undefined && !loopResult["Aventus@I18n"]) {
-			await this.loadDependance("Aventus@I18n", {
+			await this.loadDependency("Aventus@I18n", {
 				uri: "",
 				npm: "",
 				version: "x.x.x",
 				include: 'need',
-				subDependancesInclude: { ['*']: 'need' }
+				subDependenciesInclude: { ['*']: 'need' }
 			}, config, build, loopResult)
 		}
 
@@ -120,29 +121,29 @@ export class DependanceManager {
 			let nameTemp = includeNames[name] ? name : "*";
 			if (includeNames[nameTemp]) {
 				if (includeNames[nameTemp] == "full") {
-					result.dependanceFullUris.push(current.uri);
-					result.dependanceUris.push(current.uri);
+					result.dependencyFullUris.push(current.uri);
+					result.dependencyUris.push(current.uri);
 				}
 				else if (includeNames[nameTemp] == "need") {
-					result.dependanceNeedUris.push(current.uri);
-					result.dependanceUris.push(current.uri);
+					result.dependencyNeedUris.push(current.uri);
+					result.dependencyUris.push(current.uri);
 				}
 			}
 			else {
-				result.dependanceNeedUris.push(current.uri);
-				result.dependanceUris.push(current.uri);
+				result.dependencyNeedUris.push(current.uri);
+				result.dependencyUris.push(current.uri);
 			}
 		}
 		return result;
 	}
 
-	private orderLoop(name: string, dep: DependanceLoopPart, allInfo: DependanceLoop, orderedName: string[]) {
+	private orderLoop(name: string, dep: DependencyLoopPart, allInfo: DependencyLoop, orderedName: string[]) {
 		let index = orderedName.indexOf(name);
 		if (index != -1) {
 			return index + 1;
 		}
 		let insertIndex = 0;
-		for (let depName of dep.dependances) {
+		for (let depName of dep.dependencies) {
 			if (allInfo[depName]) {
 				let insertIndexTemp = this.orderLoop(depName, allInfo[depName], allInfo, orderedName);
 				if (insertIndexTemp >= 0 && insertIndexTemp > insertIndex) {
@@ -155,7 +156,7 @@ export class DependanceManager {
 		return orderedName.length;
 	}
 	// TODO manage error during process
-	private async loadDependance(name: string, dep: AventusConfigBuildDependance, config: AventusConfigBuild, build: Build, result: DependanceLoop) {
+	private async loadDependency(name: string, dep: AventusConfigBuildDependency, config: AventusConfigBuild, build: Build, result: DependencyLoop) {
 		let packageFile: AventusPackageFile | undefined;
 		let finalUri: string | undefined;
 		if (this.predefinedPaths[name]) {
@@ -220,50 +221,57 @@ export class DependanceManager {
 				}
 			}
 
-			const setDependance = async (file: AventusPackageFile, uri: string) => {
+			let description = /\/\* description:(.*) \*\//gm.exec(packageFile.file.contentUser);
+			if (description) {
+				packageFile.description = description[1];
+			}
+
+			const setDependency = async (file: AventusPackageFile, uri: string) => {
 				result[file.name] = {
 					file,
 					uri,
 					version: version,
-					dependances: [],
+					dependencies: [],
 				}
 
-				for (let name in file.dependances) {
-					let dep = file.dependances[name];
+				for (let name in file.dependencies) {
+					let dep = file.dependencies[name];
 					if (typeof dep == 'string') {
 						dep = {
 							version: dep
 						}
 					}
 					// include if root package need include
-					let resultDep = await this.loadDependance(name, dep, config, build, result);
+					let resultDep = await this.loadDependency(name, dep, config, build, result);
 					if (resultDep) {
-						if (!result[file.name].dependances.includes(resultDep.name)) {
-							result[file.name].dependances.push(resultDep.name);
+						if (!result[file.name].dependencies.includes(resultDep.name)) {
+							result[file.name].dependencies.push(resultDep.name);
 						}
 
 					}
 				}
 				if (file.name != "Aventus@Main") {
-					// force aventus to be a dependance
-					if (!result[file.name].dependances.includes("Aventus@Main")) {
-						result[file.name].dependances.push("Aventus@Main");
+					// force aventus to be a dependency
+					if (!result[file.name].dependencies.includes("Aventus@Main")) {
+						result[file.name].dependencies.push("Aventus@Main");
 					}
 				}
 			}
 
 			if (!result[packageFile.name]) {
-				await setDependance(packageFile, finalUri);
+				await setDependency(packageFile, finalUri);
 			}
 			else {
 				let usedVersion = result[packageFile.name].version;
 				let versionToUse = this.compareVersion(usedVersion, version, packageFile.name);
 				// we need to change the version used bc the selected version is the second parameter
 				if (versionToUse == version) {
-					await setDependance(packageFile, finalUri);
+					await setDependency(packageFile, finalUri);
 				}
 
 			}
+
+			ManifestPackage.register(packageFile);
 		}
 
 		return packageFile;
@@ -536,7 +544,7 @@ export class DependanceManager {
 		});
 	}
 
-	private parseVersion(versionTxt: string): DependanceVersion {
+	private parseVersion(versionTxt: string): DependencyVersion {
 		let regexVersion = /([0-9xX]+)\.([0-9xX]+)\.([0-9xX]+)/g.exec(versionTxt) ?? [0, -1, -1, -1];
 		let major = isNaN(Number(regexVersion[1])) ? -1 : Number(regexVersion[1]);
 		let minor = isNaN(Number(regexVersion[2])) ? -1 : Number(regexVersion[2]);
@@ -544,7 +552,7 @@ export class DependanceManager {
 		return { major, minor, patch };
 	}
 
-	private compareVersion(v1: DependanceVersion, v2: DependanceVersion, name: string) {
+	private compareVersion(v1: DependencyVersion, v2: DependencyVersion, name: string) {
 		let loop = (step: "major" | "minor" | "patch") => {
 			if (v1[step] == -1) {
 				if (v2[step] == -1) {
@@ -564,7 +572,7 @@ export class DependanceManager {
 				// error
 				let v1Txt = Object.values(v1).join(".");
 				let v2Txt = Object.values(v2).join(".");
-				GenericServer.showErrorMessage(`Can't resolve version for dependance ${name} between ${v1Txt} and ${v2Txt}`);
+				GenericServer.showErrorMessage(`Can't resolve version for dependency ${name} between ${v1Txt} and ${v2Txt}`);
 				return -1;
 			}
 		}
