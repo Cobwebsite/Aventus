@@ -153,8 +153,6 @@ export class TypeInfo {
 		else if (node.kind === SyntaxKind.ExpressionWithTypeArguments) {
 			let expression = node as ExpressionWithTypeArguments;
 			this.kind = "type";
-			// TODO this is wrong bc of generic type <,>
-			// should be ok MAXB 07.07.2024
 			this.value = expression.expression.getText();
 			this.endNonGeneric = expression.expression.getEnd();
 
@@ -292,5 +290,94 @@ export class TypeInfo {
 			let txt = node.getText();
 			// debugger;
 		}
+	}
+
+
+	public getFullTxt(): string {
+		const typeKind: TypeInfoKind[] = []
+		if (
+			this.kind == "any" ||
+			this.kind == "boolean" ||
+			this.kind == "never" ||
+			this.kind == "null" ||
+			this.kind == "number" ||
+			this.kind == "object" ||
+			this.kind == "string" ||
+			this.kind == "symbol" ||
+			this.kind == "this" ||
+			this.kind == "undefined" ||
+			this.kind == "unknown" ||
+			this.kind == "void"
+		)
+			return this.kind
+		if (this.kind == "conditional") {
+			const cond = this.conditionalType!;
+			return `${cond.check.getFullTxt()} extends ${cond.extends.getFullTxt} ? ${cond.true.getFullTxt()} : ${cond.false.getFullTxt()}`
+		}
+		if (this.kind == "constructor") {
+			if (!this.fctType) return this.value;
+			const fct = this.fctType;
+			const params: string[] = [];
+			for (let param in fct.parameters) {
+				params.push(`${param}: ${fct.parameters[param].getFullTxt()}`)
+			}
+			return `${this.value}(${params.join(", ")})`
+		}
+		if (this.kind == "function") {
+			if (!this.fctType) return this.value;
+			const fct = this.fctType;
+			const params: string[] = [];
+			for (let param in fct.parameters) {
+				params.push(`${param}: ${fct.parameters[param].getFullTxt()}`)
+			}
+			return `${this.value}(${params.join(", ")}): ${fct.return.getFullTxt()}`
+		}
+
+		if (this.kind == "indexedAccess") {
+			return `${this.nested[0].getFullTxt()}[${this.nested[1].getFullTxt()}]`
+		}
+		if (this.kind == "infer") {
+			return "infer " + this.value;
+		}
+		if (this.kind == "intersection") {
+			return this.nested.map(p => p.getFullTxt()).join(" & ")
+		}
+		if (this.kind == "union") {
+			return this.nested.map(p => p.getFullTxt()).join(" | ")
+		}
+		if (this.kind == "literal") {
+			return this.value;
+		}
+		if (this.kind == "mappedType") {
+			// { [Key in keyof T]?: any; }
+			const map = this.mappedType!;
+			return `{ [${map.parameterName} in ${map.parameterType.getFullTxt()}]${map.modifier ?? ''}: ${map.type.getFullTxt()}; }`
+		}
+
+		if (this.kind == "mock") {
+			return "any";
+		}
+		if (this.kind == "notype") {
+			return "any";
+		}
+		if (this.kind == "tuple") {
+			return `[${this.nested.map(p => p.getFullTxt()).join(", ")}]`;
+		}
+		if (this.kind == "type") {
+			let name = this.value;
+			if (this.genericValue.length > 0) {
+				name += `<${this.genericValue.map(p => p.getFullTxt()).join(", ")}>`
+			}
+			return name;
+		}
+		if (this.kind == "typeLiteral") {
+			return this.value;
+		}
+
+		if (this.kind == 'typeOperator') {
+			return `typeof ${this.nested[0].getFullTxt()}`
+		}
+
+		return "any"
 	}
 }

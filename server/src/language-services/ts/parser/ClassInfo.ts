@@ -90,7 +90,7 @@ export class ClassInfo extends BaseInfo {
 		return `constructor(${_params}) ` + txt;
 	}
 
-	private node: ClassDeclaration | InterfaceDeclaration;
+	public readonly node: ClassDeclaration | InterfaceDeclaration;
 
 	constructor(node: ClassDeclaration | InterfaceDeclaration, namespaces: string[], parserInfo: ParserTs) {
 		super(node, namespaces, parserInfo, false);

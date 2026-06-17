@@ -1,4 +1,4 @@
-<av-header :editor="this"></av-header>
+<av-header :editor="this" :hasNewContent="this.hasNewContent"></av-header>
 <av-canvas @element="canvasEl" :editor="this"></av-canvas>
 <av-commande-palette :editor="this"></av-commande-palette>
 <av-loader visible="{{this.loading}}"></av-loader>

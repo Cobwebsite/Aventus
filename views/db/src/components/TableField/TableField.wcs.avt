@@ -49,6 +49,14 @@
 	}
 }
 
+:host([locked]) {
+	.field-name-container {
+		.field-name {
+			cursor: default;
+		}
+	}
+}
+
 :host([primary]) {
 	.field-name-container {
 		.field-pk-badge {

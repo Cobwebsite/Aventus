@@ -135,6 +135,16 @@
 :host([locked]) {
 	cursor: default !important;
 
+	.area-header-container {
+		cursor: default;
+	}
+
+	.area-title-container {
+		.area-title-span {
+			cursor: default;
+		}
+	}
+
 	.node-lock-btn {
 		opacity: 0.8;
 	}

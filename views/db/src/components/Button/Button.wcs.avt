@@ -1,0 +1,58 @@
+:host {
+	align-items: center;
+	background-color: var(--bg-header);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	color: var(--text-primary);
+	cursor: pointer;
+	display: flex;
+	font-size: 13px;
+	font-weight: 500;
+	gap: 8px;
+	padding: 8px;
+	transition: all 0.2s ease;
+}
+
+:host([disabled]) {
+	opacity: 0.5;
+}
+
+:host(:not([disabled]):hover) {
+	background-color: var(--border-color);
+	border-color: var(--text-secondary);
+}
+
+
+:host([color="error"]) {
+	background-color: rgba(239, 68, 68, 0.15);
+	border-color: rgba(239, 68, 68, 0.3);
+	color: var(--color-area);
+}
+
+:host([color="error"]:not([disabled]):hover) {
+	background-color: rgba(239, 68, 68, 0.25);
+	border-color: var(--color-area);
+}
+
+:host([color="success"]) {
+	background-color: rgba(16, 185, 129, 0.15);
+	border-color: rgba(16, 185, 129, 0.3);
+	color: #10b981;
+}
+
+:host([color="success"]:not([disabled]):hover) {
+	background-color: rgba(16, 185, 129, 0.3);
+	border-color: #10b981;
+	color: #fff;
+}
+
+:host([color="warning"]) {
+	background-color: rgba(245, 158, 11, 0.1);
+	border-color: rgba(245, 158, 11, 0.25);
+	color: var(--color-pk);
+}
+
+:host([color="warning"]:not([disabled]):hover) {
+	background-color: rgba(245, 158, 11, 0.2);
+	border-color: var(--color-pk);
+}

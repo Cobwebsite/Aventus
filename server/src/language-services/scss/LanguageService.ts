@@ -208,6 +208,9 @@ export class AventusSCSSLanguageService {
         this.externalDocumentation[uri] = doc;
         this.rebuildDefinition();
     }
+    public getExternalDefinition(uri: string): SCSSDoc|undefined {
+        return this.externalDocumentation[uri];
+    }
     public removeExternalDefinition(uri: string): void {
         delete this.externalDocumentation[uri];
         this.rebuildDefinition();
@@ -417,8 +420,8 @@ export class AventusSCSSLanguageService {
                 }
                 const commentTxt = match[1].trim();
                 const array = commentTxt.split("\n");
-                let foundTag = false;
                 for (let item of array) {
+                    let foundTag = false;
                     item = item.replace("*", "").trim();
                     if (item.startsWith("@")) {
                         foundTag = true;
@@ -433,7 +436,7 @@ export class AventusSCSSLanguageService {
                         }
                     }
                     else if (!foundTag) {
-                        result.documentation.push(item)
+                        result.documentation.push(item.trim())
                     }
                 }
                 return result
@@ -466,7 +469,7 @@ export class AventusSCSSLanguageService {
                                     name: externalName
                                 }
                                 if (comment?.documentation) {
-                                    cssProperty.documentation = comment.documentation.join("\n");
+                                    cssProperty.documentation = comment.documentation.join("\n").trim();
                                 }
                                 if (comment?.type) {
                                     cssProperty.type = comment.type

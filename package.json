@@ -99,6 +99,17 @@
 					"light": "./icons/icon.png",
 					"dark": "./icons/icon.png"
 				}
+			},
+			{
+				"id": "Aventus DB",
+				"extensions": [
+					".db.avt"
+				],
+				"configuration": "./syntaxes/i18n-language-configuration.json",
+				"icon": {
+					"light": "./icons/icon.png",
+					"dark": "./icons/icon.png"
+				}
 			}
 		],
 		"grammars": [

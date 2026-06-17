@@ -1,0 +1,7 @@
+{
+    "emmet.extensionsPath": [
+        "./node_modules/@aventusjs/storybook-render/emmet",
+        "c:\\Users\\maxim\\.vscode\\extensions\\cobwebsite.aventus-1.4.1\\lib\\emmet\\aventus.json",
+        "./.aventus/emmet"
+    ]
+}

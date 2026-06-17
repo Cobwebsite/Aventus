@@ -100,6 +100,17 @@ export class ParserTs {
             return currentDoc.importsLocal[name].info;
         }
 
+        if (currentDoc.packages[name]) {
+            const fullname = currentDoc.packages[name].fullname;
+            const packageInfo = currentDoc.build.externalPackageInformation.getByFullName(fullname);
+            if (packageInfo) {
+                let temp = this.parsedDoc[packageInfo.uri].result.getBaseInfo(fullname);
+                if (temp) {
+                    return temp;
+                }
+            }
+        }
+
         for (let uri in this.parsedDoc) {
             let temp = this.parsedDoc[uri].result.getBaseInfo(name);
             if (temp) {
@@ -393,19 +404,21 @@ export class ParserTs {
     private loadClass(node: ClassDeclaration | InterfaceDeclaration) {
         if (node.name) {
             let classInfo = new ClassInfo(node, this.currentNamespace, this);
-            if (this.classes[classInfo.name]) {
+            const saveName = this.isExternal ? classInfo.fullName : classInfo.name;
+
+            if (this.classes[saveName]) {
                 if (classInfo.isInterface) {
-                    this.classes[classInfo.name].mergeClassInfo(classInfo)
+                    this.classes[saveName].mergeClassInfo(classInfo)
                 }
                 else {
-                    classInfo.mergeClassInfo(this.classes[classInfo.name]);
-                    this.classes[classInfo.name] = classInfo;
+                    classInfo.mergeClassInfo(this.classes[saveName]);
+                    this.classes[saveName] = classInfo;
                 }
             }
             else {
-                this.classes[classInfo.name] = classInfo;
+                this.classes[saveName] = classInfo;
             }
-            this.defineStorie(this.classes[classInfo.name]);
+            this.defineStorie(this.classes[saveName]);
 
 
             this.loadDeprecated({ [classInfo.name]: classInfo });
@@ -419,20 +432,24 @@ export class ParserTs {
         if (node.name) {
             let functionInfo = new FunctionInfo(node, this.currentNamespace, this);
             this.defineStorie(functionInfo);
-            this.functions[functionInfo.name] = functionInfo;
+            const saveName = this.isExternal ? functionInfo.fullName : functionInfo.name;
+
+            this.functions[saveName] = functionInfo;
             this.loadDeprecated({ [functionInfo.name]: functionInfo });
         }
     }
     private loadEnum(node: EnumDeclaration) {
         let enumInfo = new EnumInfo(node, this.currentNamespace, this);
         this.defineStorie(enumInfo);
-        this.enums[enumInfo.name] = enumInfo;
+        const saveName = this.isExternal ? enumInfo.fullName : enumInfo.name;
+        this.enums[saveName] = enumInfo;
         this.loadDeprecated({ [enumInfo.name]: enumInfo });
     }
     private loadAlias(node: TypeAliasDeclaration) {
         let aliasInfo = new AliasInfo(node, this.currentNamespace, this);
         this.defineStorie(aliasInfo);
-        this.aliases[aliasInfo.name] = aliasInfo;
+        const saveName = this.isExternal ? aliasInfo.fullName : aliasInfo.name;
+        this.aliases[saveName] = aliasInfo;
         this.loadDeprecated({ [aliasInfo.name]: aliasInfo });
     }
 
@@ -448,7 +465,8 @@ export class ParserTs {
     private loadVariable(node: VariableDeclaration, statement: VariableStatement) {
         let variableInfo = new VariableInfo(node, this.currentNamespace, this, statement);
         this.defineStorie(variableInfo);
-        this.variables[variableInfo.name] = variableInfo;
+        const saveName = this.isExternal ? variableInfo.fullName : variableInfo.name;
+        this.variables[saveName] = variableInfo;
         this.loadDeprecated({ [variableInfo.name]: variableInfo });
     }
 

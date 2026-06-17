@@ -3,6 +3,7 @@ import { getNonce } from '../tool';
 import { normalize } from 'path';
 import { readFileSync } from 'fs';
 import { Communication } from './_Communication';
+import { EOL } from 'os';
 
 export class AventusDBEditor implements CustomTextEditorProvider {
 
@@ -123,7 +124,11 @@ export class AventusDBEditor implements CustomTextEditorProvider {
 	}
 
 	protected triggerChange(value: Schema, document: TextDocument) {
-		const txt = JSON.stringify(value, null, 4);
+		const oldTxt = document.getText();
+		let txt = JSON.stringify(value, null, 4)
+		if (oldTxt == txt) return;
+		txt = txt.replace(/\n/g, EOL);
+		if (oldTxt == txt) return;
 		const edit = new WorkspaceEdit();
 		edit.replace(
 			document.uri,

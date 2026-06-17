@@ -1,0 +1,33 @@
+import { ButtonElement } from "Aventus@UI:Aventus.Form.package.avt";
+
+export class Button extends ButtonElement implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Attribute()
+    public disabled!: boolean;
+
+    @Attribute()
+    public color?: 'success' | 'warning' | 'error';
+    //#endregion
+
+
+    //#region variables
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    //#endregion
+
+}
