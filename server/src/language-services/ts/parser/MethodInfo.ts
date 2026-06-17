@@ -9,6 +9,7 @@ import { DocumentationInfo } from './DocumentationInfo';
 import { BindThisDecorator } from './decorators/BindThisDecorator';
 import { DependenciesDecorator } from './decorators/DependenciesDecorator';
 import { DeprecatedDecorator } from './decorators/DeprecatedDecorator';
+import { TypeInfo } from './TypeInfo';
 
 export class MethodInfo {
     public fullStart: number = 0;
@@ -26,12 +27,14 @@ export class MethodInfo {
     public isStatic: boolean = false;
     public isOverride: boolean = false;
     public isAbstract: boolean = false;
+    public isAsync: boolean = false;
     public isPrivate: boolean = false;
     public isProtected: boolean = false;
     public isBindThis: boolean = false;
     public deprecated: boolean = false;
     public deprecatedMsg: string = "";
     public readonly node: MethodDeclaration;
+    public returnType: TypeInfo;
     public get compiledContent(): string {
         let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependenciesLocations, this._class.compileTransformations);
         return txt;
@@ -56,6 +59,7 @@ export class MethodInfo {
         this.nameEnd = method.name.getEnd();
         this.content = method.getText();
         this.decorators = DecoratorInfo.buildDecorator(method, _class);
+        this.returnType = new TypeInfo(method.type);
 
         let docTemp = new DocumentationInfo(method);
         if (docTemp.hasDoc) {
@@ -138,6 +142,9 @@ export class MethodInfo {
                 }
                 else if (modifier.kind == SyntaxKind.AbstractKeyword) {
                     this.isAbstract = true;
+                }
+                else if (modifier.kind == SyntaxKind.AsyncKeyword) {
+                    this.isAsync = true;
                 }
             }
         }

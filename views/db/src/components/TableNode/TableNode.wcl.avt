@@ -34,6 +34,9 @@ export class TableNode extends Aventus.WebComponent implements Aventus.DefaultCo
 
     @ViewElement()
     protected tableInputRef!: HTMLInputElement;
+    @ViewElement()
+    protected colorPicker!: HTMLInputElement;
+
 
     @Injectable()
     public canvas!: Canvas;
@@ -110,7 +113,17 @@ export class TableNode extends Aventus.WebComponent implements Aventus.DefaultCo
             return;
         }
         this.dragStart.trigger(e, this.table);
-    };
+    }
+
+
+    /**
+     * 
+     */
+    protected changeColor() {
+        if(this.locked) return;
+        this.colorPicker.click();
+    }
+
 
     protected override postCreation(): void {
 
@@ -121,9 +134,11 @@ export class TableNode extends Aventus.WebComponent implements Aventus.DefaultCo
         Watcher.effect(() => {
             this.style.left = this.table.x + 'px';
             this.style.top = this.table.y + 'px';
+            this.style.setProperty("--table-node-color", this.table.color || 'transparent');
         });
         Watcher.effect(() => {
-            this.locked = this.table.locked;
+            if(this.locked != this.table.locked)
+                this.locked = this.table.locked;
         });
 
         Watcher.effect(() => {

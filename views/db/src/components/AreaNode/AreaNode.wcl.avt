@@ -35,7 +35,7 @@ export class AreaNode extends Aventus.WebComponent implements Aventus.DefaultCom
 
     @Injectable()
     public canvas!: Canvas;
-    
+
     //#endregion
 
 
@@ -123,7 +123,8 @@ export class AreaNode extends Aventus.WebComponent implements Aventus.DefaultCom
     protected override postCreation(): void {
 
         Watcher.effect(() => {
-            this.locked = this.area.locked;
+            if(this.locked != this.area.locked)
+                this.locked = this.area.locked;
         });
 
         Watcher.effect(() => {

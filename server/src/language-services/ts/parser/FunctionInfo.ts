@@ -7,7 +7,7 @@ import { TypeInfo } from './TypeInfo';
 
 export class FunctionInfo extends BaseInfo {
 
-	private node: FunctionDeclaration;
+	public readonly node: FunctionDeclaration;
 	constructor(node: FunctionDeclaration, namespaces: string[], parserInfo: ParserTs) {
 		super(node, namespaces, parserInfo);
 		this.node = node;

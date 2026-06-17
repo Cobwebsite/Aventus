@@ -2215,7 +2215,7 @@ this.clearWatchHistory = () => {
         else if (type.kind == "typeOperator" && type.value == "keyof") {
             return type;
         }
-        this.result.diagnostics.push(createErrorTsPos(currentDoc, "Can't use the the type " + type.kind + "(" + type.value + ")" + " as attribute / property", field.nameStart, field.nameEnd, AventusErrorCode.WrongTypeDefinition));
+        this.result.diagnostics.push(createErrorTsPos(currentDoc, "Can't use the the type " + type.kind + " (" + type.value + ")" + " as attribute / property", field.nameStart, field.nameEnd, AventusErrorCode.WrongTypeDefinition));
         return null;
     }
     private validateTypeForProp(currentDoc: TextDocument, field: PropertyInfo): TypeInfo | null {

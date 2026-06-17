@@ -1167,7 +1167,6 @@ export class Build {
                 }
 
                 if (info.compiled != "") {
-                    if (info.classScript.endsWith("ConfigurationFrame")) debugger
                     result.code.push(replaceNotImportAliases(info.compiled, this.project.getConfig()))
                     let exportName = namespaceWithDot + info.classScript;
                     if (!renderInJsByFullname[exportName]) {

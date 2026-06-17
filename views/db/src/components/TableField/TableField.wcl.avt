@@ -18,6 +18,10 @@ export class TableField extends Aventus.WebComponent implements Aventus.DefaultC
 
     @Attribute()
     public pulse!: boolean;
+
+    @Attribute()
+    public locked!: boolean;
+
     //#endregion
 
 

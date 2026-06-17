@@ -15,7 +15,7 @@
 		display: flex;
 		gap: 10px;
 
-		
+
 		.logo-title {
 			color: var(--text-primary);
 			font-family: 'Outfit', sans-serif;
@@ -36,8 +36,7 @@
 			width: 1px;
 		}
 
-		/* Bouton Import */
-		.btn-import {
+		.btn {
 			align-items: center;
 			background-color: var(--bg-header);
 			border: 1px solid var(--border-color);
@@ -61,12 +60,17 @@
 				border-color: rgba(16, 185, 129, 0.3);
 				color: #10b981;
 
-				&:hover {
+				&[disabled="true"] {
+					opacity: 0.5;
+				}
+
+				&:not([disabled="true"]):hover {
 					background-color: rgba(16, 185, 129, 0.3);
 					border-color: #10b981;
 					color: #fff;
 				}
 			}
+
 
 			&.btn-lock {
 				background-color: rgba(245, 158, 11, 0.1);
@@ -89,13 +93,14 @@
 					}
 				}
 			}
+
+			&.btn-update {
+				background-color: rgba(245, 158, 11, 0.2);
+				border-color: var(--color-pk);
+				color: var(--color-pk);
+			}
 		}
 
-		.file {
-			display: none;
-		}
-
-		/* Zoom Controls */
 		.zoom-controls {
 			align-items: center;
 			background-color: var(--bg-header);

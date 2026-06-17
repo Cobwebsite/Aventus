@@ -1,4 +1,8 @@
 :host {
+	--_table-node-color: var(--table-node-color, transparent);
+}
+
+:host {
 	background-color: var(--bg-surface);
 	border: 1px solid var(--border-color);
 	border-radius: 8px;
@@ -21,6 +25,26 @@
 		}
 	}
 
+	.table-header-color-bar {
+		background-color: var(--_table-node-color);
+		cursor: pointer;
+		height: 5px;
+		left: 0;
+		position: absolute;
+		right: 0;
+		top: 0;
+	}
+
+	.table-color-picker {
+		height: 5px;
+		left: 10px;
+		opacity: 0;
+		pointer-events: none;
+		position: absolute;
+		right: 10px;
+		top: 5px;
+	}
+
 
 	.table-header {
 		align-items: center;
@@ -39,12 +63,6 @@
 
 		&:active {
 			background-color: var(--border-color);
-		}
-
-		.table-header-color-bar {
-			border-radius: 2px;
-			height: 12px;
-			width: 6px;
 		}
 	}
 
@@ -95,6 +113,10 @@
 
 	&:hover {
 		border-color: var(--border-color);
+	}
+
+	.table-header-color-bar {
+		cursor: default;
 	}
 
 	.node-lock-btn {

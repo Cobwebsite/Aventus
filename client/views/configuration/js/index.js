@@ -4721,7 +4721,6 @@ let Message=class Message {
     static init() {
         window.addEventListener('message', event => {
             const message = event.data;
-            console.log(message);
         });
     }
     static send(data) {

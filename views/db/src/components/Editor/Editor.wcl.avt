@@ -5,6 +5,9 @@ import type { Canvas } from "../Canvas/Canvas.wcl.avt";
 import type { TableField } from "../TableField/TableField.wcl.avt";
 import { sleep, WatchAction, Watcher } from "Aventus@Main:Aventus.package.avt";
 import { API } from "../../lib/API.lib.avt";
+import { ModalElement } from "Aventus@UI:Aventus.Modal.package.avt";
+import { Toast } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
+import { ToastElement, ToastManager } from "Aventus@UI:Aventus.Toast.package.avt";
 
 export class Editor extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
@@ -26,7 +29,7 @@ export class Editor extends Aventus.WebComponent implements Aventus.DefaultCompo
     * @inheritdoc
     */
     @Watch((target: Editor, action: WatchAction) => {
-        if(action == WatchAction.UPDATED) {
+        if(action == Aventus.WatchAction.UPDATED) {
             target.triggerChange();
         }
     })
@@ -165,19 +168,10 @@ export class Editor extends Aventus.WebComponent implements Aventus.DefaultCompo
      */
     public exportSchema(): void {
         if(!this.schema) return;
-
+        if(!this.isDirty) return;
         try {
             API.save();
         } catch { }
-        // const blob = new Blob([JSON.stringify(this.schema, null, 2)], { type: 'application/json' });
-        // const url = URL.createObjectURL(blob);
-        // const a = document.createElement('a');
-        // a.href = url;
-        // a.download = this.schema.name ? `${this.schema.name}.json` : 'schema.json';
-        // document.body.appendChild(a);
-        // a.click();
-        // document.body.removeChild(a);
-        // URL.revokeObjectURL(url);
     }
     public triggerChange(): void {
         clearTimeout(this.timeout);
@@ -186,7 +180,7 @@ export class Editor extends Aventus.WebComponent implements Aventus.DefaultCompo
                 const schema = Watcher.extract(this.schema)!;
                 API.triggerChange(schema);
             } catch { }
-        }, 1000);
+        }, 300);
     }
     /**
      * @inheritdoc
@@ -452,28 +446,52 @@ export class Editor extends Aventus.WebComponent implements Aventus.DefaultCompo
         });
     }
 
+    public async reloadFile() {
+        if(this.hasNewContent) {
+            const schema = await API.loadSchema();
+            if(schema) {
+                this.loadSchema(schema);
+            }
+        }
+    }
+
     protected async loadFile() {
+        API.init();
         const schema = await API.loadSchema();
         if(schema) {
             this.loadSchema(schema);
         }
 
-        VscodeView.Router.getInstance().addRoute<boolean>({
-            channel: "is_dirty",
-            callback: (data) => {
-                this.isDirty = data;
-            }
+        API.onIsDirtyChange.add((value) => {
+            this.isDirty = value;
         });
 
-        VscodeView.Router.getInstance().addRoute<Schema>({
-            channel: "update_content",
-            callback: (data) => {
-                this.hasNewContent = true;
-            }
+        API.onHasNewContent.add((value) => {
+            this.hasNewContent = true;
         });
+
+    }
+
+    protected configure() {
+        ModalElement.configure({
+            closeWithEsc: true,
+            closeWithClick: false,
+        });
+        ToastManager.configure({
+            defaultPosition: 'top right',
+            defaultToast: Toast
+        });
+        debugger
+        MaterialIcon.Icon.configure({
+            getFontUrl: () => {
+                debugger
+                return "/css/material.css"
+            }
+        })
     }
 
     protected override postCreation(): void {
+        this.configure();
         this.bindShortcut();
         this.loadFile();
     }

@@ -1,0 +1,169 @@
+:root {
+	--bezier-curve: cubic-bezier(0.65, 0, 0.15, 1);
+
+	/*#region color*/
+	/* --surface: oklch(0.2084 0.008 17.911);*/
+	/* --surface-100: oklch(18.522% 0.007 17.911);*/
+	/* --surface-200: oklch(16.203% 0.007 17.911);*/
+	/* --surface-content: oklch(83.768% 0.001 17.911);*/
+
+	--surface: #0d1117;
+	--surface-100: #161b22;
+	--surface-200: #21262d;
+	--surface-content: #e6edf3;
+
+	--primary: oklch(51.06% 0.2301 276.97);
+	--primary-content: oklch(100% 0 0);
+	--accent: oklch(75% 0.183 55.934);
+	--accent-content: oklch(100% 0 0);
+	--neutral: oklch(70% 0.015 286.067);
+	--neutral-content: oklch(100% 0 0);
+	--info: oklch(0.8382 0.111 199.06);
+	--info-content: oklch(100% 0 0);
+	--success: oklch(0.7765 0.1973 144);
+	--success-content: oklch(100% 0 0);
+	--warning: rgb(245, 158, 11);
+	--warning-content: oklch(100% 0 0);
+	--error: oklch(0.6176 0.2245 28);
+	--error-content: oklch(100% 0 0);
+
+
+
+	--primary-100: color-mix(in oklab, var(--primary) 20%, var(--surface));
+	--primary-200: color-mix(in oklab, var(--primary) 40%, var(--surface));
+	--primary-300: color-mix(in oklab, var(--primary) 60%, var(--surface));
+	--primary-400: color-mix(in oklab, var(--primary) 80%, var(--surface));
+	--primary-500: var(--primary);
+	--primary-600: color-mix(in oklab, var(--primary) 80%, var(--surface-content));
+	--primary-700: color-mix(in oklab, var(--primary) 60%, var(--surface-content));
+	--primary-800: color-mix(in oklab, var(--primary) 40%, var(--surface-content));
+	--primary-900: color-mix(in oklab, var(--primary) 20%, var(--surface-content));
+
+	--accent-100: color-mix(in oklab, var(--accent) 20%, var(--surface));
+	--accent-200: color-mix(in oklab, var(--accent) 40%, var(--surface));
+	--accent-300: color-mix(in oklab, var(--accent) 60%, var(--surface));
+	--accent-400: color-mix(in oklab, var(--accent) 80%, var(--surface));
+	--accent-500: var(--accent);
+	--accent-600: color-mix(in oklab, var(--accent) 80%, var(--surface-content));
+	--accent-700: color-mix(in oklab, var(--accent) 60%, var(--surface-content));
+	--accent-800: color-mix(in oklab, var(--accent) 40%, var(--surface-content));
+	--accent-900: color-mix(in oklab, var(--accent) 20%, var(--surface-content));
+
+	--neutral-100: color-mix(in oklab, var(--neutral) 20%, var(--surface));
+	--neutral-200: color-mix(in oklab, var(--neutral) 40%, var(--surface));
+	--neutral-300: color-mix(in oklab, var(--neutral) 60%, var(--surface));
+	--neutral-400: color-mix(in oklab, var(--neutral) 80%, var(--surface));
+	--neutral-500: var(--neutral);
+	--neutral-600: color-mix(in oklab, var(--neutral) 80%, var(--surface-content));
+	--neutral-700: color-mix(in oklab, var(--neutral) 60%, var(--surface-content));
+	--neutral-800: color-mix(in oklab, var(--neutral) 40%, var(--surface-content));
+	--neutral-900: color-mix(in oklab, var(--neutral) 20%, var(--surface-content));
+
+	--info-100: color-mix(in oklab, var(--info) 20%, var(--surface));
+	--info-200: color-mix(in oklab, var(--info) 40%, var(--surface));
+	--info-300: color-mix(in oklab, var(--info) 60%, var(--surface));
+	--info-400: color-mix(in oklab, var(--info) 80%, var(--surface));
+	--info-500: var(--info);
+	--info-600: color-mix(in oklab, var(--info) 80%, var(--surface-content));
+	--info-700: color-mix(in oklab, var(--info) 60%, var(--surface-content));
+	--info-800: color-mix(in oklab, var(--info) 40%, var(--surface-content));
+	--info-900: color-mix(in oklab, var(--info) 20%, var(--surface-content));
+
+	--success-100: color-mix(in oklab, var(--success) 20%, var(--surface));
+	--success-200: color-mix(in oklab, var(--success) 40%, var(--surface));
+	--success-300: color-mix(in oklab, var(--success) 60%, var(--surface));
+	--success-400: color-mix(in oklab, var(--success) 80%, var(--surface));
+	--success-500: var(--success);
+	--success-600: color-mix(in oklab, var(--success) 80%, var(--surface-content));
+	--success-700: color-mix(in oklab, var(--success) 60%, var(--surface-content));
+	--success-800: color-mix(in oklab, var(--success) 40%, var(--surface-content));
+	--success-900: color-mix(in oklab, var(--success) 20%, var(--surface-content));
+
+	--warning-100: color-mix(in oklab, var(--warning) 20%, var(--surface));
+	--warning-200: color-mix(in oklab, var(--warning) 40%, var(--surface));
+	--warning-300: color-mix(in oklab, var(--warning) 60%, var(--surface));
+	--warning-400: color-mix(in oklab, var(--warning) 80%, var(--surface));
+	--warning-500: var(--warning);
+	--warning-600: color-mix(in oklab, var(--warning) 80%, var(--surface-content));
+	--warning-700: color-mix(in oklab, var(--warning) 60%, var(--surface-content));
+	--warning-800: color-mix(in oklab, var(--warning) 40%, var(--surface-content));
+	--warning-900: color-mix(in oklab, var(--warning) 20%, var(--surface-content));
+
+	--error-100: color-mix(in oklab, var(--error) 20%, var(--surface));
+	--error-200: color-mix(in oklab, var(--error) 40%, var(--surface));
+	--error-300: color-mix(in oklab, var(--error) 60%, var(--surface));
+	--error-400: color-mix(in oklab, var(--error) 80%, var(--surface));
+	--error-500: var(--error);
+	--error-600: color-mix(in oklab, var(--error) 80%, var(--surface-content));
+	--error-700: color-mix(in oklab, var(--error) 60%, var(--surface-content));
+	--error-800: color-mix(in oklab, var(--error) 40%, var(--surface-content));
+	--error-900: color-mix(in oklab, var(--error) 20%, var(--surface-content));
+
+
+	--border-color: color-mix(in oklab, var(--surface-content) 10%, transparent);
+	/*#endregion*/
+
+
+	/*#region font*/
+	--font-size-xs: 0.75rem;
+	--font-size-sm: 0.875rem;
+	--font-size: 1rem;
+	--font-size-md: 1.25rem;
+	--font-size-lg: 1.5rem;
+	--font-size-xl: 1.875rem;
+	--font-size-xxl: 2.25rem;
+	/*#endregion*/
+
+	/*#region font*/
+	--line-height-xs: 1rem;
+	--line-height-sm: 1.25rem;
+	--line-height: 1.5rem;
+	--line-height-md: 1.75rem;
+	--line-height-lg: 2rem;
+	--line-height-xl: 2.25rem;
+	--line-height-xxl: 2.5rem;
+	/*#endregion*/
+
+	/*#region radius*/
+	--border-radius-sm: 2px;
+	--border-radius: 4px;
+	--border-radius-md: 6px;
+	--border-radius-lg: 8px;
+	--border-radius-xl: 10px;
+	--border-radius-xxl: 14px;
+	--border-radius-round: 9999px;
+	/*#endregion*/
+
+	/*#region shadow*/
+	--elevation-umbra: rgba(0, 0, 0, 0.2);
+	--elevation-penumbra: rgba(0, 0, 0, 0.14);
+	--elevation-penumbra-2: rgba(0, 0, 0, 0.12);
+	--elevation-0: none;
+	--elevation-1: 0px 2px 1px -1px var(--elevation-umbra), 0px 1px 1px 0px var(--elevation-penumbra), 0px 1px 3px 0px var(--elevation-penumbra-2);
+	--elevation-2: 0px 3px 1px -2px var(--elevation-umbra), 0px 2px 2px 0px var(--elevation-penumbra), 0px 1px 5px 0px var(--elevation-penumbra-2);
+	--elevation-3: 0px 3px 3px -2px var(--elevation-umbra), 0px 3px 4px 0px var(--elevation-penumbra), 0px 1px 8px 0px var(--elevation-penumbra-2);
+	--elevation-4: 0px 2px 4px -1px var(--elevation-umbra), 0px 4px 5px 0px var(--elevation-penumbra), 0px 1px 10px 0px var(--elevation-penumbra-2);
+	--elevation-5: 0px 3px 5px -1px var(--elevation-umbra), 0px 5px 8px 0px var(--elevation-penumbra), 0px 1px 14px 0px var(--elevation-penumbra-2);
+	--elevation-6: 0px 3px 5px -1px var(--elevation-umbra), 0px 6px 10px 0px var(--elevation-penumbra), 0px 1px 18px 0px var(--elevation-penumbra-2);
+	--elevation-7: 0px 4px 5px -2px var(--elevation-umbra), 0px 7px 10px 1px var(--elevation-penumbra), 0px 2px 16px 1px var(--elevation-penumbra-2);
+	--elevation-8: 0px 5px 5px -3px var(--elevation-umbra), 0px 8px 10px 1px var(--elevation-penumbra), 0px 3px 14px 2px var(--elevation-penumbra-2);
+	--elevation-9: 0px 5px 6px -3px var(--elevation-umbra), 0px 9px 12px 1px var(--elevation-penumbra), 0px 3px 16px 2px var(--elevation-penumbra-2);
+	--elevation-10: 0px 6px 6px -3px var(--elevation-umbra), 0px 10px 14px 1px var(--elevation-penumbra), 0px 4px 18px 3px var(--elevation-penumbra-2);
+	--elevation-11: 0px 6px 7px -4px var(--elevation-umbra), 0px 11px 15px 1px var(--elevation-penumbra), 0px 4px 20px 3px var(--elevation-penumbra-2);
+	--elevation-12: 0px 7px 8px -4px var(--elevation-umbra), 0px 12px 17px 2px var(--elevation-penumbra), 0px 5px 22px 4px var(--elevation-penumbra-2);
+	--elevation-13: 0px 7px 8px -4px var(--elevation-umbra), 0px 13px 19px 2px var(--elevation-penumbra), 0px 5px 24px 4px var(--elevation-penumbra-2);
+	--elevation-14: 0px 7px 9px -4px var(--elevation-umbra), 0px 14px 21px 2px var(--elevation-penumbra), 0px 5px 26px 4px var(--elevation-penumbra-2);
+	--elevation-15: 0px 8px 9px -5px var(--elevation-umbra), 0px 15px 22px 2px var(--elevation-penumbra), 0px 6px 28px 5px var(--elevation-penumbra-2);
+	--elevation-16: 0px 8px 10px -5px var(--elevation-umbra), 0px 16px 24px 2px var(--elevation-penumbra), 0px 6px 30px 5px var(--elevation-penumbra-2);
+	--elevation-17: 0px 8px 11px -5px var(--elevation-umbra), 0px 17px 26px 2px var(--elevation-penumbra), 0px 6px 32px 5px var(--elevation-penumbra-2);
+	--elevation-18: 0px 9px 11px -5px var(--elevation-umbra), 0px 18px 28px 2px var(--elevation-penumbra), 0px 7px 34px 6px var(--elevation-penumbra-2);
+	--elevation-19: 0px 9px 12px -6px var(--elevation-umbra), 0px 19px 29px 2px var(--elevation-penumbra), 0px 7px 36px 6px var(--elevation-penumbra-2);
+	--elevation-20: 0px 10px 13px -6px var(--elevation-umbra), 0px 20px 31px 3px var(--elevation-penumbra), 0px 8px 38px 7px var(--elevation-penumbra-2);
+	--elevation-21: 0px 10px 13px -6px var(--elevation-umbra), 0px 21px 33px 3px var(--elevation-penumbra), 0px 8px 40px 7px var(--elevation-penumbra-2);
+	--elevation-22: 0px 10px 14px -6px var(--elevation-umbra), 0px 22px 35px 3px var(--elevation-penumbra), 0px 8px 42px 7px var(--elevation-penumbra-2);
+	--elevation-23: 0px 11px 14px -7px var(--elevation-umbra), 0px 23px 36px 3px var(--elevation-penumbra), 0px 9px 44px 8px var(--elevation-penumbra-2);
+	--elevation-24: 0px 11px 15px -7px var(--elevation-umbra), 0px 24px 38px 3px var(--elevation-penumbra), 0px 9px 46px 8px var(--elevation-penumbra-2);
+	/*#endregion*/
+
+
+}

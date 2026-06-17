@@ -1,3 +1,6 @@
+<div class="table-header-color-bar" @click="changeColor"></div>
+<input type="color" @element="colorPicker" class="table-color-picker" @bind="this.table.color" title="Changer la couleur" />
+
 <!-- Header -->
 <div class="table-header" @mousedown="onMouseDown">
     <!-- Lock Button -->
@@ -6,8 +9,7 @@
         {{ this.locked ? '🔒' : '🔓' }}
     </button>
 
-    <!-- Color Bar -->
-    <div class="table-header-color-bar"></div>
+
 
     <!-- Editable Table Name -->
     <span class="table-title-span" @dblclick="startEditTable">
@@ -20,6 +22,6 @@
 <!-- Fields -->
 <div class="table-fields" @mousedown="prevent">
     for(let field of this.table.fields) { 
-        <av-table-field :field="field" :table="this"></av-table-field>
+        <av-table-field :locked="this.locked" :field="field" :table="this"></av-table-field>
     }
 </div>
