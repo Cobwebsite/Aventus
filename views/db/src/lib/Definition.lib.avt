@@ -8,6 +8,8 @@ export interface Field {
   name: string;
   type: FieldType;
   primaryKey?: boolean;
+  unique?: boolean;
+  nullable?: boolean;
 }
 
 export interface Table {
@@ -24,6 +26,7 @@ export interface Table {
 export interface Relationship {
   id: string;
   name: string;
+  description?: string;
   sourceTableId: string;
   targetTableId: string;
   sourceFieldId: string;

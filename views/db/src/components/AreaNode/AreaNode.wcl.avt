@@ -32,6 +32,11 @@ export class AreaNode extends Aventus.WebComponent implements Aventus.DefaultCom
 
     @ViewElement()
     protected editInput!: HTMLInputElement;
+    @ViewElement()
+    protected colorPicker!: OneMoreUI.Components.Form.ColorPicker;
+    @ViewElement()
+    protected menuEl!: OneMoreUI.Components.Display.Menu;
+
 
     @Injectable()
     public canvas!: Canvas;
@@ -118,10 +123,24 @@ export class AreaNode extends Aventus.WebComponent implements Aventus.DefaultCom
             this.dragStart.trigger(e, this.area);
             return;
         }
-    };
+    }
+
+    /**
+     * 
+     */
+    protected changeColor() {
+        if(this.locked) return;
+        this.colorPicker.presets = this.canvas.editor.getColors();
+        this.colorPicker.show();
+    }
+
 
     protected override postCreation(): void {
-
+         this.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.menuEl.show(e);
+        });
         Watcher.effect(() => {
             if(this.locked != this.area.locked)
                 this.locked = this.area.locked;

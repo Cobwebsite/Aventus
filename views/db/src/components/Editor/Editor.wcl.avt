@@ -6,8 +6,9 @@ import type { TableField } from "../TableField/TableField.wcl.avt";
 import { sleep, WatchAction, Watcher } from "Aventus@Main:Aventus.package.avt";
 import { API } from "../../lib/API.lib.avt";
 import { ModalElement } from "Aventus@UI:Aventus.Modal.package.avt";
-import { Toast } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
+import { Alert, Toast } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
 import { ToastElement, ToastManager } from "Aventus@UI:Aventus.Toast.package.avt";
+import { Process } from "Aventus@UI:Aventus.package.avt";
 
 export class Editor extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
@@ -472,6 +473,20 @@ export class Editor extends Aventus.WebComponent implements Aventus.DefaultCompo
 
     }
 
+    public getColors(): string[] {
+        if(!this.schema) return [];
+        const result: string[] = [];
+        for(let table of this.schema.tables) {
+            if(!result.includes(table.color))
+                result.push(table.color);
+        }
+        for(let area of this.schema.areas) {
+            if(!result.includes(area.color))
+                result.push(area.color);
+        }
+        return result;
+    }
+
     protected configure() {
         ModalElement.configure({
             closeWithEsc: true,
@@ -481,13 +496,23 @@ export class Editor extends Aventus.WebComponent implements Aventus.DefaultCompo
             defaultPosition: 'top right',
             defaultToast: Toast
         });
-        debugger
         MaterialIcon.Icon.configure({
             getFontUrl: () => {
-                debugger
-                return "/css/material.css"
+                const el = document.getElementById("base-style");
+                if(el instanceof HTMLLinkElement) {
+                    return el.href.replace("style.css", "css/material.css");
+                }
+                return "/css/material.css";
             }
-        })
+        });
+        Process.configure({
+            handleErrors: (msg) => {
+                Alert.open({
+                    title: "Execution error",
+                    content: msg,
+                });
+            }
+        });
     }
 
     protected override postCreation(): void {

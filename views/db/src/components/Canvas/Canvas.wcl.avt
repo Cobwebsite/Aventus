@@ -1,7 +1,9 @@
-import { sleep, Watcher } from "Aventus@Main:Aventus.package.avt";
-import type { Area, Table } from "../../lib/Definition.lib.avt";
+import { Animation, sleep, Watcher } from "Aventus@Main:Aventus.package.avt";
+import type { Area, Relationship, Table } from "../../lib/Definition.lib.avt";
 import { Editor } from "../Editor/Editor.wcl.avt";
 import type { TableField } from "../TableField/TableField.wcl.avt";
+import type { TableNode } from "../TableNode/TableNode.wcl.avt";
+import type { AreaNode } from "../AreaNode/AreaNode.wcl.avt";
 
 interface TablePosition {
     table: Table;
@@ -17,6 +19,8 @@ interface AreaPosition {
 
 interface PathInfo {
     el: SVGPathElement,
+    invisiblePathEl?: SVGPathElement,
+    textEl?: SVGTextElement,
     source: TableField,
     target: TableField,
 }
@@ -40,6 +44,8 @@ export class Canvas extends Aventus.WebComponent implements Aventus.DefaultCompo
     protected canvasRef!: HTMLDivElement;
     @ViewElement()
     protected svgEl!: SVGSVGElement;
+    @ViewElement()
+    protected selectorEl!: HTMLDivElement;
 
     @Watch()
     public relationshipPaths: PathInfo[] = [];
@@ -105,6 +111,11 @@ export class Canvas extends Aventus.WebComponent implements Aventus.DefaultCompo
             return;
         }
 
+        if(e.ctrlKey) {
+            this.ctrlSelect(e);
+            return;
+        }
+
         if(!e.shiftKey) {
             this.editor.clearSelection();
         }
@@ -113,6 +124,113 @@ export class Canvas extends Aventus.WebComponent implements Aventus.DefaultCompo
         this.panStartX = e.clientX - this.editor.panX;
         this.panStartY = e.clientY - this.editor.panY;
         this.style.cursor = 'grabbing';
+    }
+
+    protected ctrlSelect(e: MouseEvent) {
+        this.editor.clearSelection();
+        const rect = this.getBoundingClientRect();
+        const transform = (e: MouseEvent) => {
+            return {
+                x: e.pageX - rect.left,
+                y: e.pageY - rect.top,
+            };
+        };
+        const { x, y } = transform(e);
+        let startX = x;
+        let startXRight = rect.width - x;
+        let startY = y;
+        let startYBottom = rect.height - y;
+        const el = this.selectorEl;
+        el.style.left = '';
+        el.style.top = '';
+        el.style.bottom = '';
+        el.style.right = '';
+        el.style.width = '';
+        el.style.height = '';
+        el.style.display = 'block';
+
+        const isRectInside = (rectChild: DOMRect, rectBig: DOMRect) => {
+            return (
+                rectChild.left >= rectBig.left &&
+                rectChild.right <= rectBig.right &&
+                rectChild.top >= rectBig.top &&
+                rectChild.bottom <= rectBig.bottom
+            );
+        };
+        const animation = new Animation({
+            fps: 15,
+            animate: () => {
+                const rect = this.selectorEl.getBoundingClientRect();
+                const tables = this.shadowRoot.querySelectorAll<TableNode>("av-table-node");
+                for(let table of tables) {
+                    const rect2 = table.getBoundingClientRect();
+                    table.selected = isRectInside(rect2, rect);
+                }
+
+                const areas = this.shadowRoot.querySelectorAll<AreaNode>("av-area-node");
+                for(let area of areas) {
+                    const rect2 = area.getBoundingClientRect();
+                    area.selected = isRectInside(rect2, rect);
+                }
+            }
+        });
+        animation.start();
+
+        const mouseMove = (e: MouseEvent) => {
+            const { x, y } = transform(e);
+            if(x >= startX) {
+                let width = x - startX;
+                el.style.width = width + 'px';
+                el.style.left = startX + 'px';
+                el.style.right = '';
+            }
+            else {
+                let width = startX - x;
+                el.style.width = width + 'px';
+                el.style.right = startXRight + 'px';
+                el.style.left = '';
+            }
+
+            if(y >= startY) {
+                let height = y - startY;
+                el.style.height = height + 'px';
+                el.style.top = startY + 'px';
+                el.style.bottom = '';
+            }
+            else {
+                let height = startY - y;
+                el.style.height = height + 'px';
+                el.style.top = '';
+                el.style.bottom = startYBottom + 'px';
+            }
+        };
+        const clearMouse = () => {
+            animation.immediateStop();
+            el.style.display = '';
+            document.removeEventListener("mouseup", clearMouse);
+            document.removeEventListener("mousemove", mouseMove);
+
+            const tables = this.shadowRoot.querySelectorAll<TableNode>("av-table-node");
+            const tablesId: string[] = [];
+            for(let table of tables) {
+                if(table.selected) {
+                    tablesId.push(table.table.id);
+                }
+            }
+
+            const areas = this.shadowRoot.querySelectorAll<AreaNode>("av-area-node");
+            const areasId: string[] = [];
+            for(let area of areas) {
+                if(area.selected) {
+                    areasId.push(area.area.id);
+                }
+            }
+
+            this.editor.selectedTables = tablesId;
+            this.editor.selectedAreas = areasId;
+        };
+        document.addEventListener("mouseup", clearMouse);
+        document.addEventListener("mousemove", mouseMove);
     }
 
     @BindThis()
@@ -215,39 +333,96 @@ export class Canvas extends Aventus.WebComponent implements Aventus.DefaultCompo
             this.needCreatePath = false;
             for(let old of this.relationshipPaths) {
                 old.el.remove();
+                if(old.invisiblePathEl) old.invisiblePathEl.remove();
+                if(old.textEl) old.textEl.remove();
             }
-            this.relationshipPaths = [];
-            for(let rel of this.editor.schema.relationships) {
-                const sourceFieldEl = this.editor.fields[rel.sourceFieldId];
-                const targetFieldEl = this.editor.fields[rel.targetFieldId];
 
-                if(!sourceFieldEl || !targetFieldEl) {
-                    this.needCreatePath = true;
-                    this.createPathLoop++;
-                    if(this.createPathLoop < 50) {
-                        setTimeout(() => {
-                            this.createPaths();
-                        }, 100);
-                    }
+            this.relationshipPaths = [];
+            let pathIdCounter = 0;
+
+            for(let rel of this.editor.schema.relationships) {
+                pathIdCounter++;
+                if(!this.createPath(rel, pathIdCounter)) {
                     return;
                 }
-
-                this.editor.zoomResetEmit();
-                this.editor.loading = false;
-
-                const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                el.setAttribute("marker-end", "url(#arrow)");
-                el.setAttribute("marker-start", "url(#dot)");
-                this.svgEl.appendChild(el);
-
-                this.relationshipPaths.push({
-                    el,
-                    source: sourceFieldEl,
-                    target: targetFieldEl
-                });
             }
+            this.editor.zoomResetEmit();
+            this.editor.loading = false;
             this.updatePaths();
         }
+    }
+
+    private createPath(rel: Relationship, pathIdCounter: number): boolean {
+        const sourceFieldEl = this.editor.fields[rel.sourceFieldId];
+        const targetFieldEl = this.editor.fields[rel.targetFieldId];
+
+        if(!sourceFieldEl || !targetFieldEl) {
+            this.needCreatePath = true;
+            this.createPathLoop++;
+            if(this.createPathLoop < 50) {
+                setTimeout(() => {
+                    this.createPaths();
+                }, 100);
+            }
+            return false;
+        }
+
+
+
+        const pathId = `route-${pathIdCounter}`;
+        const textPathId = `text-path-${pathIdCounter}`;
+
+        const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        el.setAttribute("id", pathId);
+        el.setAttribute("marker-end", "url(#arrow)");
+        el.setAttribute("marker-start", "url(#dot)");
+
+        this.svgEl.appendChild(el);
+
+        let invisiblePathEl: SVGPathElement | undefined = undefined;
+        let textEl: SVGTextElement | undefined = undefined;
+        if(rel.description) {
+
+            invisiblePathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            invisiblePathEl.setAttribute("id", textPathId);
+            invisiblePathEl.setAttribute("fill", "none");
+            invisiblePathEl.setAttribute("stroke", "transparent");
+            this.svgEl.appendChild(invisiblePathEl);
+
+            textEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            const textPathEl = document.createElementNS("http://www.w3.org/2000/svg", "textPath");
+
+            textPathEl.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", `#${textPathId}`);
+            textPathEl.setAttribute("startOffset", "50%");
+            textPathEl.setAttribute("text-anchor", "middle");
+
+            textPathEl.textContent = rel.description;
+
+            textEl.appendChild(textPathEl);
+            el.addEventListener("click", () => {
+                alert("edit rel");
+            });
+            this.svgEl.appendChild(textEl);
+
+
+        }
+        const result = {
+            el,
+            invisiblePathEl,
+            textEl,
+            source: sourceFieldEl,
+            target: targetFieldEl
+        };
+        el.addEventListener("dblclick", () => {
+
+        });
+        if(result.textEl) {
+            el.addEventListener("dblclick", () => {
+
+            });
+        }
+        this.relationshipPaths.push(result);
+        return true;
     }
     /**
     * 
@@ -283,6 +458,16 @@ export class Canvas extends Aventus.WebComponent implements Aventus.DefaultCompo
             const cx2 = x2 + (isSourceLeft ? -controlOffset : controlOffset);
 
             rel.el.setAttribute("d", `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`);
+
+            if(rel.textEl && rel.invisiblePathEl) {
+                if(isSourceLeft) {
+                    rel.invisiblePathEl.setAttribute("d", `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`);
+                    rel.textEl.setAttribute("dy", "-6");
+                } else {
+                    rel.invisiblePathEl.setAttribute("d", `M ${x2} ${y2} C ${cx2} ${y2}, ${cx1} ${y1}, ${x1} ${y1}`);
+                    rel.textEl.setAttribute("dy", "14");
+                }
+            }
         }
 
     }

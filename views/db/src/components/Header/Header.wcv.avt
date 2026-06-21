@@ -6,37 +6,20 @@
 
     if(this.hasNewContent) {
         <av-button color="warning" @click="updateSchema">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-            </svg>
+            <mi-icon icon="refresh"></mi-icon>
         </av-button>
     }
 
     <av-button color="success" @click="exportSchema" disabled="{{ this.disableSave }}">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-            <polyline points="17 21 17 13 7 13 7 21" />
-            <polyline points="7 3 7 8 15 8" />
-        </svg>
+        <mi-icon icon="save"></mi-icon>
     </av-button>
 
     <av-button color="{{ this.editor.allAreLocked ? 'error' : 'warning' }}" @click="toggleLockAll">
         if(this.editor.allAreLocked) {
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
+            <mi-icon icon="lock"></mi-icon>
         }
         else {
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-            </svg>
+            <mi-icon icon="lock_open"></mi-icon>
         }
     </av-button>
 
@@ -44,53 +27,28 @@
     <div class="divider"></div>
 
     <av-button disabled="{{ this.disableUndo }}" @click="undo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7v6h6" />
-            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-        </svg>
+        <mi-icon icon="undo"></mi-icon>
     </av-button>
 
     <av-button disabled="{{ this.disableRedo }}" @click="redo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 7v6h-6" />
-            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3-2.7" />
-        </svg>
+        <mi-icon icon="redo"></mi-icon>
     </av-button>
 
     <av-button @click="triggerSearch">
-         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+        <mi-icon icon="search"></mi-icon>
     </av-button>
 
     <!-- Zoom Controls -->
     <div class="zoom-controls">
         <button class="btn-zoom" title="Zoom arrière" @click="zoomOut">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <mi-icon icon="remove"></mi-icon>
         </button>
         <span class="zoom-level">{{ Math.round(this.editor.scale * 100) }}%</span>
         <button class="btn-zoom" title="Zoom avant" @click="zoomIn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <mi-icon icon="add"></mi-icon>
         </button>
         <button class="btn-zoom" title="Réinitialiser le zoom" @click="zoomResetEmit">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                <path d="M3 21v-5h5" />
-            </svg>
+            <mi-icon icon="sync"></mi-icon>
         </button>
     </div>
 </div>

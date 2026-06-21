@@ -1,6 +1,5 @@
 <div class="table-header-color-bar" @click="changeColor"></div>
-<input type="color" @element="colorPicker" class="table-color-picker" @bind="this.table.color" title="Changer la couleur" />
-
+<om-color-picker @element="colorPicker" class="table-color-picker" @bind="this.table.color"></om-color-picker>
 <!-- Header -->
 <div class="table-header" @mousedown="onMouseDown">
     <!-- Lock Button -->
@@ -25,3 +24,14 @@
         <av-table-field :locked="this.locked" :field="field" :table="this"></av-table-field>
     }
 </div>
+
+<om-menu @element="menuEl">
+    <om-menu-item icon="colors" label="Color" @click="changeColor"></om-menu-item>
+    if(this.locked) {
+        <om-menu-item icon="lock_open" label="Unlock" @click="toggleLock"></om-menu-item>
+    }
+    else {
+        <om-menu-item icon="lock" label="Lock" @click="toggleLock"></om-menu-item>
+    }
+    <om-menu-item icon="edit" label="Rename" @click="startEditTable"></om-menu-item>
+</om-menu>

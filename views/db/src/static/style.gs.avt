@@ -1,11 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
-
-* {
-	box-sizing: border-box;
-	margin: 0;
-	padding: 0;
-}
-
 :root {
 	--bg-main: #0d1117;
 	--bg-surface: #161b22;
@@ -26,7 +18,7 @@ html,
 body {
 	background-color: var(--bg-main);
 	color: var(--text-primary);
-	font-family: 'Inter', system-ui, -apple-system, sans-serif;
+	font-family: "Segoe WPC", "Segoe UI", sans-serif;
 	height: 100%;
 	margin: 0;
 	overflow: hidden;

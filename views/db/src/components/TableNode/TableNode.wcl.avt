@@ -35,7 +35,11 @@ export class TableNode extends Aventus.WebComponent implements Aventus.DefaultCo
     @ViewElement()
     protected tableInputRef!: HTMLInputElement;
     @ViewElement()
-    protected colorPicker!: HTMLInputElement;
+    protected menuEl!: OneMoreUI.Components.Display.Menu;
+    @ViewElement()
+    protected colorPicker!: OneMoreUI.Components.Form.ColorPicker;
+
+
 
 
     @Injectable()
@@ -121,12 +125,17 @@ export class TableNode extends Aventus.WebComponent implements Aventus.DefaultCo
      */
     protected changeColor() {
         if(this.locked) return;
-        this.colorPicker.click();
+        this.colorPicker.presets = this.editor.getColors();
+        this.colorPicker.show();
     }
 
 
     protected override postCreation(): void {
-
+        this.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.menuEl.show(e);
+        });
         Watcher.effect(() => {
             this.selected = this.editor.selectedTables.includes(this.table.id);
         });

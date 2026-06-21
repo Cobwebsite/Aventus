@@ -32,3 +32,5 @@
     💡 Glissez-déposez le fond pour vous déplacer • Utilisez la molette pour zoomer • Glissez le haut d'une table pour
     la déplacer • Étirez le coin inférieur droit des zones pour les redimensionner
 </div>
+
+<div class="canvas-selector" @element="selectorEl"></div>

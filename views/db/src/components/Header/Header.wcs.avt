@@ -35,6 +35,10 @@
 			height: 24px;
 			width: 1px;
 		}
+		
+		mi-icon {
+			font-size: var(--font-size);
+		}
 
 		.btn {
 			align-items: center;
