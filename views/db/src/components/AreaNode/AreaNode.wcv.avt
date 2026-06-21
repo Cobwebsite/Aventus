@@ -14,8 +14,20 @@
     </div>
 
     <!-- Color Picker -->
-    <input type="color" class="area-color-picker" @bind="this.area.color" title="Changer la couleur" />
+    <div class="area-header-color-bar" @click="changeColor"></div>
+    <om-color-picker @element="colorPicker" class="area-color-picker" @bind="this.area.color"></om-color-picker>
 </div>
 
 <!-- Resizer -->
 <div class="area-resizer" @mousedown="onResizeMouseDown"></div>
+
+<om-menu @element="menuEl">
+    <om-menu-item icon="colors" label="Color" @click="changeColor"></om-menu-item>
+    if(this.locked) {
+        <om-menu-item icon="lock_open" label="Unlock" @click="toggleLock"></om-menu-item>
+    }
+    else {
+        <om-menu-item icon="lock" label="Lock" @click="toggleLock"></om-menu-item>
+    }
+    <om-menu-item icon="edit" label="Rename" @click="startEdit"></om-menu-item>
+</om-menu>

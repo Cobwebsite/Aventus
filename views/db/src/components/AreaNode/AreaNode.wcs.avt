@@ -12,6 +12,7 @@
 	min-height: 100px;
 	min-width: 150px;
 	overflow: visible;
+	pointer-events: none;
 	position: absolute;
 	user-select: none;
 	z-index: 2;
@@ -22,6 +23,7 @@
 		display: flex;
 		justify-content: space-between;
 		padding: 12px 14px 4px 14px;
+		pointer-events: all;
 	}
 
 	.area-title-container {
@@ -55,8 +57,8 @@
 		}
 	}
 
-	.area-color-picker {
-		background: transparent;
+	.area-header-color-bar {
+		background-color: var(--area-node-color);
 		border: none;
 		border-radius: 50%;
 		cursor: pointer;
@@ -74,6 +76,21 @@
 			border: 1px solid var(--border-color);
 			border-radius: 50%;
 		}
+	}
+
+	.area-color-picker {
+		border: none;
+		border-radius: 50%;
+		height: 18px;
+		margin: 0;
+		opacity: 0;
+		overflow: hidden;
+		padding: 0;
+		pointer-events: none;
+		position: absolute;
+		right: 14px;
+		top: 14px;
+		width: 18px;
 	}
 
 	.node-lock-btn {
@@ -94,9 +111,6 @@
 		}
 	}
 
-	&:hover {
-		.node-lock-btn {}
-	}
 
 	.area-resizer {
 		align-items: flex-end;
@@ -109,9 +123,11 @@
 		height: 16px;
 		justify-content: flex-end;
 		padding: 2px;
+		pointer-events: all;
 		position: absolute;
 		right: 0;
 		width: 16px;
+
 
 		&::after {
 			border-bottom: 2px solid var(--text-secondary);

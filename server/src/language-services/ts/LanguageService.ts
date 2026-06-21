@@ -404,7 +404,7 @@ export class AventusTsLanguageService {
                                         if (newImport && newImport.length > 1) {
                                             if (!newImport[0].includes(AventusExtension.Package)) {
                                                 if (newImport[1].startsWith(".")) {
-                                                    let finalPath = simplifyPath(newImport[1], tsFile.file.uri);
+                                                    let finalPath = this.simplifyPath(newImport[1], tsFile.file.uri);
                                                     item.detail += "\r\nimport from " + finalPath;
                                                     txtChange.newText = txtChange.newText.replace(newImport[1], finalPath);
                                                 }
@@ -748,7 +748,7 @@ export class AventusTsLanguageService {
                             textChange.newText = textChange.newText.replace(/'/g, '"');
                             let newImport = /"(.*)"/g.exec(textChange.newText);
                             if (newImport && newImport.length > 1) {
-                                let finalPath = simplifyPath(newImport[1], document.uri);
+                                let finalPath = this.simplifyPath(newImport[1], document.uri);
                                 action.description = "Add import from " + finalPath;
                                 textChange.newText = textChange.newText.replace(newImport[1], finalPath);
                             }
@@ -784,7 +784,7 @@ export class AventusTsLanguageService {
                                 textChange.newText = textChange.newText.replace(/'/g, '"');
                                 let newImport = /"(.*)"/g.exec(textChange.newText);
                                 if (newImport && newImport.length > 1) {
-                                    let finalPath = simplifyPath(newImport[1], document.uri);
+                                    let finalPath = this.simplifyPath(newImport[1], document.uri);
                                     textChange.newText = textChange.newText.replace(newImport[1], finalPath);
                                 }
                             }
@@ -816,7 +816,7 @@ export class AventusTsLanguageService {
                                 textChange.newText = textChange.newText.replace(/'/g, '"');
                                 let newImport = /"(.*)"/g.exec(textChange.newText);
                                 if (newImport && newImport.length > 1) {
-                                    let finalPath = simplifyPath(newImport[1], document.uri);
+                                    let finalPath = this.simplifyPath(newImport[1], document.uri);
                                     textChange.newText = textChange.newText.replace(newImport[1], finalPath);
                                 }
                             }
@@ -1525,6 +1525,57 @@ export class AventusTsLanguageService {
         return compilerOptionsCompile;
     }
 
+    public simplifyPath(importPathTxt: string, currentPath: string) {
+        importPathTxt = decodeURIComponent(importPathTxt);
+        if (importPathTxt.startsWith("custom://")) {
+            return importPathTxt;
+        }
+        let currentDir: string[] = [];
+        if (sep === "/") {
+            currentDir = decodeURIComponent(currentPath).replace("file://", "").split("/");
+        }
+        else {
+            currentDir = decodeURIComponent(currentPath).replace("file:///", "").split("/");
+        }
+        currentDir.pop();
+        let currentDirPath = normalize(currentDir.join("/")).split(sep);
+        let finalImportPath = normalize(currentDir.join("/") + "/" + importPathTxt);
+        let importPath = finalImportPath.split(sep);
+        for (let i = 0; i < currentDirPath.length; i++) {
+            if (importPath.length > i) {
+                if (currentDirPath[i] == importPath[i]) {
+                    currentDirPath.splice(i, 1);
+                    importPath.splice(i, 1);
+                    i--;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+        let finalPathToImport = "";
+        for (let i = 0; i < currentDirPath.length; i++) {
+            finalPathToImport += '../';
+        }
+        if (finalPathToImport == "") {
+            finalPathToImport += "./";
+        }
+        finalPathToImport += importPath.join("/");
+
+        let fullPath = normalize(join(...currentDir, finalPathToImport));
+        const aliases = this.build.getAliases();
+        for (let alias in aliases) {
+            let value = aliases[alias];
+            let basePath = normalize(join(this.build.project.getConfigFile().folderPath, value));
+            if (fullPath.startsWith(basePath)) {
+                finalPathToImport = fullPath.replace(basePath, alias).replace(/\\/g, "/");
+                break;
+            }
+        }
+
+        return finalPathToImport;
+    }
+
     private printCatchError(e: any) {
         AventusTsLanguageService.printCatchError(e);
     }
@@ -1753,44 +1804,7 @@ export function convertKind(kind: string): CompletionItemKind {
 }
 
 
-export function simplifyPath(importPathTxt, currentPath) {
-    importPathTxt = decodeURIComponent(importPathTxt);
-    if (importPathTxt.startsWith("custom://")) {
-        return importPathTxt;
-    }
-    let currentDir: string[] = [];
-    if (sep === "/") {
-        currentDir = decodeURIComponent(currentPath).replace("file://", "").split("/");
-    }
-    else {
-        currentDir = decodeURIComponent(currentPath).replace("file:///", "").split("/");
-    }
-    currentDir.pop();
-    let currentDirPath = normalize(currentDir.join("/")).split(sep);
-    let finalImportPath = normalize(currentDir.join("/") + "/" + importPathTxt);
-    let importPath = finalImportPath.split(sep);
-    for (let i = 0; i < currentDirPath.length; i++) {
-        if (importPath.length > i) {
-            if (currentDirPath[i] == importPath[i]) {
-                currentDirPath.splice(i, 1);
-                importPath.splice(i, 1);
-                i--;
-            }
-            else {
-                break;
-            }
-        }
-    }
-    let finalPathToImport = "";
-    for (let i = 0; i < currentDirPath.length; i++) {
-        finalPathToImport += '../';
-    }
-    if (finalPathToImport == "") {
-        finalPathToImport += "./";
-    }
-    finalPathToImport += importPath.join("/");
-    return finalPathToImport;
-}
+
 export function isWhitespaceOnly(str: string) {
     return /^\s*$/.test(str);
 }

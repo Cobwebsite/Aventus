@@ -39,10 +39,14 @@
 				transition: stroke 0.2s, stroke-width 0.2s;
 
 				&:hover {
-					filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+					filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.6));
 					stroke: var(--color-accent);
-					stroke-width: 3px;
 				}
+			}
+			text {
+				font-size: 12px;
+				fill: #8892b0;
+				pointer-events: stroke;
 			}
 		}
 	}
@@ -63,5 +67,12 @@
 		transform: translateX(-50%);
 		white-space: nowrap;
 		z-index: 5;
+	}
+
+	.canvas-selector {
+		background-color: rgba(59, 130, 246, 0.3);
+		border: 2px solid rgb(59, 130, 246);
+		display: none;
+		position: absolute;
 	}
 }
