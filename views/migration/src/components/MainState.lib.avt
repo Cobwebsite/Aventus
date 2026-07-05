@@ -1,0 +1,122 @@
+import type { Mapping, Schema } from "../lib/Definition.lib.avt";
+import { Dynamic } from "../lib/Dynamic.lib.avt";
+import type { CompareSchemasResult } from "../lib/Generator.lib.avt";
+
+export class MainState {
+
+    public static get instance(): MainState {
+        return Aventus.Instance.get(MainState);
+    }
+
+    @Dynamic()
+    public accessor step: number = 0;
+
+    public oldSchema: Schema = {
+        "name": "DemoSchemaA",
+        "databaseType": "sqlite",
+        "tables": [
+            {
+                "id": "t1",
+                "name": "Club",
+                "fields": [
+                    { "id": "f1_1", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
+                    { "id": "f1_2", "name": "Name", "type": { "id": "varchar", "name": "varchar(255)" } },
+                    { "id": "f1_3", "name": "Logo", "type": { "id": "varchar", "name": "varchar(255)" }, "nullable": true },
+                    { "id": "f1_4", "name": "CreatedDate", "type": { "id": "datetime", "name": "datetime" } },
+                    { "id": "f1_5", "name": "UpdatedDate", "type": { "id": "datetime", "name": "datetime" } }
+                ]
+            },
+            {
+                "id": "t2",
+                "name": "Role",
+                "fields": [
+                    { "id": "f2_1", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
+                    { "id": "f2_2", "name": "Name", "type": { "id": "varchar", "name": "varchar(255)" } },
+                    { "id": "f2_3", "name": "ClubId", "type": { "id": "int", "name": "int" } },
+                    { "id": "f2_4", "name": "CreatedDate", "type": { "id": "datetime", "name": "datetime" } },
+                    { "id": "f2_5", "name": "UpdatedDate", "type": { "id": "datetime", "name": "datetime" } }
+                ]
+            }
+        ],
+        "relationships": [
+            {
+                "id": "r1",
+                "name": "Role_Club",
+                "sourceTableId": "t2",
+                "sourceFieldId": "f2_3",
+                "targetTableId": "t1",
+                "targetFieldId": "f1_1"
+            }
+        ]
+    };
+    public newSchema: Schema = {
+        "name": "DemoSchemaB",
+        "databaseType": "sqlite",
+        "tables": [
+            {
+                "id": "t1",
+                "name": "Club",
+                "fields": [
+                    { "id": "f1_1", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
+                    { "id": "f1_2_new", "name": "Nom", "type": { "id": "varchar", "name": "varchar(255)" } },
+                    { "id": "f1_3", "name": "Logo", "type": { "id": "varchar", "name": "varchar(255)" }, "nullable": true },
+                    { "id": "f1_4", "name": "CreatedDate", "type": { "id": "datetime", "name": "datetime" } },
+                    { "id": "f1_5", "name": "UpdatedDate", "type": { "id": "datetime", "name": "datetime" } }
+                ]
+            },
+            {
+                "id": "t2",
+                "name": "Role",
+                "fields": [
+                    { "id": "f2_1", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
+                    { "id": "f2_2", "name": "Name", "type": { "id": "varchar", "name": "varchar(255)" } },
+                    { "id": "f2_3", "name": "ClubId", "type": { "id": "int", "name": "int" } },
+                    { "id": "f2_4", "name": "CreatedDate", "type": { "id": "datetime", "name": "datetime" } },
+                    { "id": "f2_5", "name": "UpdatedDate", "type": { "id": "datetime", "name": "datetime" } }
+                ]
+            },
+            {
+                "id": "t3",
+                "name": "User",
+                "fields": [
+                    { "id": "f3_1", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
+                    { "id": "f3_2", "name": "Email", "type": { "id": "varchar", "name": "varchar(255)" }, "unique": true },
+                    { "id": "f3_3", "name": "Password", "type": { "id": "varchar", "name": "varchar(255)" } },
+                    { "id": "f3_4", "name": "RoleId", "type": { "id": "int", "name": "int" } },
+                    { "id": "f3_5", "name": "CreatedDate", "type": { "id": "datetime", "name": "datetime" } },
+                    { "id": "f3_6", "name": "UpdatedDate", "type": { "id": "datetime", "name": "datetime" } }
+                ]
+            }
+        ],
+        "relationships": [
+            {
+                "id": "r1",
+                "name": "Role_Club",
+                "sourceTableId": "t2",
+                "sourceFieldId": "f2_3",
+                "targetTableId": "t1",
+                "targetFieldId": "f1_1"
+            },
+            {
+                "id": "r2",
+                "name": "User_Role",
+                "sourceTableId": "t3",
+                "sourceFieldId": "f3_4",
+                "targetTableId": "t2",
+                "targetFieldId": "f2_1"
+            }
+        ]
+    };
+
+    public mappings: Mapping = {
+        tables: {},
+        fields: {}
+    };
+
+    public comparison: CompareSchemasResult = {
+        addedTables: [],
+        deletedTables: [],
+        renamedTables: [],
+        tableComparisons: [],
+    };
+}

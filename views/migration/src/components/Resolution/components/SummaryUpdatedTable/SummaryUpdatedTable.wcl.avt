@@ -1,0 +1,31 @@
+import type { ProcessFieldsResult } from "../../../../lib/Generator.lib.avt";
+
+export class SummaryUpdatedTable extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property()
+    public is_rename!: boolean;
+    //#endregion
+
+
+    //#region variables
+    @Injectable()
+    public change!: ProcessFieldsResult;
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    
+    //#endregion
+
+}

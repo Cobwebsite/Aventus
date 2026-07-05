@@ -1,0 +1,4 @@
+<av-header @element="headerEl"></av-header>
+<om-scrollable floating_scroll>
+    <av-body @element="bodyEl"></av-body>
+</om-scrollable>

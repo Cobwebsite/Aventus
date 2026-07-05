@@ -1,0 +1,27 @@
+<div class="section-header">
+    <h2>Importer les Schémas</h2>
+    <p>Déposez ou collez les fichiers de schémas JSON (DiagramObject) correspondants à l'ancienne et à la nouvelle
+        version de votre modèle.</p>
+</div>
+<div class="schemas-grid">
+    <!-- Old Schema Card -->
+    <div class="schema-card">
+        <div class="card-header">
+            <h3>Ancien Schéma (Source)</h3>
+            <span class="badge badge-old">Version A</span>
+        </div>
+        <textarea class="code-textarea" @element="jsonOld" placeholder="Collez le JSON de l'ancien schéma ici..."></textarea>
+    </div>
+
+    <!-- New Schema Card -->
+    <div class="schema-card">
+        <div class="card-header">
+            <h3>Nouveau Schéma (Cible)</h3>
+            <span class="badge badge-new">Version B</span>
+        </div>
+        <textarea class="code-textarea" @element="jsonNew" placeholder="Collez le JSON du nouveau schéma ici..."></textarea>
+    </div>
+</div>
+<div class="action-footer">
+    <om-button @click="analyzeAndCompare">Comparer les Schémas</om-button>
+</div>

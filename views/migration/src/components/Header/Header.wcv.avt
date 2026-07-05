@@ -1,0 +1,14 @@
+<div class="logo-area">
+    <div class="logo-icon"></div>
+    <div class="logo-text">
+        <h1>Aventus</h1>
+        <span>Migration Assistant</span>
+    </div>
+</div>
+<nav class="app-nav">
+    <button class="nav-btn" active="{{ MainState.instance.step == 0 }}">1. Schémas</button>
+    <button class="nav-btn" active="{{ MainState.instance.step == 1 }}">2. Résolution & Diff</button>
+    <button class="nav-btn" active="{{ MainState.instance.step == 2 }}">3. Migration C#</button>
+</nav>
+<div class="header-actions">
+</div>

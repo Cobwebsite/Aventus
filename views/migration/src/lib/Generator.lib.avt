@@ -1,0 +1,176 @@
+import type { Field, Mapping, Schema, Table } from "./Definition.lib.avt";
+
+type RenamedTable = { old: Table, new: Table, oldName: string, newName: string; };
+type CommonTable = { old: Table, new: Table, name: string; };
+type RenamedField = { old: Field, new: Field, oldName: string, newName: string; };
+type CommonField = { old: Field, new: Field, name: string; };
+type FieldChange = {
+    nullable?: { old: boolean | undefined, new: boolean | undefined; };
+    unique?: { old: boolean | undefined, new: boolean | undefined; };
+    type?: { old: string, new: string; };
+};
+type ModifiedField = {
+    old: Field,
+    new: Field,
+    name: string;
+    changes: FieldChange;
+};
+
+export type ProcessFieldsResult = {
+    oldTableName: string;
+    newTableName: string;
+    isRename: boolean;
+    addedFields: Field[];
+    deletedFields: Field[];
+    renamedFields: RenamedField[];
+    modifiedFields: ModifiedField[];
+    hasChanges: boolean;
+};
+
+export type CompareSchemasResult = {
+    addedTables: Table[];
+    deletedTables: Table[];
+    renamedTables: RenamedTable[];
+    tableComparisons: ProcessFieldsResult[];
+};
+
+
+export class Generator {
+    public static compareSchemas(oldSchema: Schema, newSchema: Schema, mappings: Mapping): CompareSchemasResult {
+        const oldTables = oldSchema.tables || [];
+        const newTables = newSchema.tables || [];
+
+        const oldTablesMap = new Map(oldTables.map(t => [t.name, t]));
+        const newTablesMap = new Map(newTables.map(t => [t.name, t]));
+
+        const mappedOldTables = new Set(Object.keys(mappings.tables));
+        const mappedNewTables = new Set(Object.values(mappings.tables));
+
+        const addedTables: Table[] = [];
+        const deletedTables: Table[] = [];
+        const renamedTables: RenamedTable[] = [];
+        const commonTables: CommonTable[] = [];
+
+        for(const t of newTables) {
+            if(!oldTablesMap.has(t.name) && !mappedNewTables.has(t.name)) {
+                addedTables.push(t);
+            }
+        }
+
+        for(const t of oldTables) {
+            if(!newTablesMap.has(t.name) && !mappedOldTables.has(t.name)) {
+                deletedTables.push(t);
+            }
+        }
+
+        for(const [oldName, newName] of Object.entries(mappings.tables)) {
+            const oldT = oldTablesMap.get(oldName);
+            const newT = newTablesMap.get(newName);
+            if(oldT && newT) {
+                renamedTables.push({ old: oldT, new: newT, oldName, newName });
+            }
+        }
+
+        for(const t of newTables) {
+            if(oldTablesMap.has(t.name)) {
+                commonTables.push({ old: oldTablesMap.get(t.name)!, new: t, name: t.name });
+            }
+        }
+
+        const tableComparisons: ProcessFieldsResult[] = [];
+
+        const processFields = (oldTable: Table, newTable: Table, isRename: boolean, oldTableName: string, newTableName: string) => {
+            const oldFields = oldTable.fields || [];
+            const newFields = newTable.fields || [];
+
+            const oldFieldsMap = new Map(oldFields.map(f => [f.name, f]));
+            const newFieldsMap = new Map(newFields.map(f => [f.name, f]));
+
+            const fieldMappings = mappings.fields[newTableName] || {}; // Key is newTableName
+            const mappedOldFields = new Set(Object.keys(fieldMappings));
+            const mappedNewFields = new Set(Object.values(fieldMappings));
+
+            const addedFields: Field[] = [];
+            const deletedFields: Field[] = [];
+            const renamedFields: RenamedField[] = [];
+            const commonFields: CommonField[] = [];
+            const modifiedFields: ModifiedField[] = [];
+
+            for(const f of newFields) {
+                if(!oldFieldsMap.has(f.name) && !mappedNewFields.has(f.name)) {
+                    addedFields.push(f);
+                }
+            }
+
+            for(const f of oldFields) {
+                if(!newFieldsMap.has(f.name) && !mappedOldFields.has(f.name)) {
+                    deletedFields.push(f);
+                }
+            }
+
+            for(const [oldFName, newFName] of Object.entries(fieldMappings)) {
+                const oldF = oldFieldsMap.get(oldFName);
+                const newF = newFieldsMap.get(newFName);
+                if(oldF && newF) {
+                    renamedFields.push({ old: oldF, new: newF, oldName: oldFName, newName: newFName });
+                }
+            }
+
+            for(const f of newFields) {
+                if(oldFieldsMap.has(f.name)) {
+                    commonFields.push({ old: oldFieldsMap.get(f.name)!, new: f, name: f.name });
+                }
+            }
+
+            const checkChanges = (oldF: Field, newF: Field, name: string) => {
+                const changes: FieldChange = {};
+                if(oldF.nullable !== newF.nullable) {
+                    changes.nullable = { old: oldF.nullable, new: newF.nullable };
+                }
+                if(oldF.unique !== newF.unique) {
+                    changes.unique = { old: oldF.unique, new: newF.unique };
+                }
+                if(oldF.type.name !== newF.type.name) {
+                    changes.type = { old: oldF.type.name, new: newF.type.name };
+                }
+                if(Object.keys(changes).length > 0) {
+                    modifiedFields.push({ old: oldF, new: newF, name, changes });
+                }
+            };
+
+            for(const cf of commonFields) {
+                checkChanges(cf.old, cf.new, cf.name);
+            }
+            for(const rf of renamedFields) {
+                checkChanges(rf.old, rf.new, rf.newName);
+            }
+
+            return {
+                oldTableName,
+                newTableName,
+                isRename,
+                addedFields,
+                deletedFields,
+                renamedFields,
+                modifiedFields,
+                hasChanges: addedFields.length > 0 || deletedFields.length > 0 || renamedFields.length > 0 || modifiedFields.length > 0
+            };
+        };
+
+        for(const ct of commonTables) {
+            tableComparisons.push(processFields(ct.old, ct.new, false, ct.name, ct.name));
+        }
+        for(const rt of renamedTables) {
+            tableComparisons.push(processFields(rt.old, rt.new, true, rt.oldName, rt.newName));
+        }
+
+        return {
+            addedTables,
+            deletedTables,
+            renamedTables,
+            tableComparisons
+        };
+    }
+
+
+}

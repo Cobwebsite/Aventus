@@ -1,0 +1,10 @@
+:host {
+	padding: 2.5rem 2rem;
+	width: 100%;
+
+	.content {
+		margin: 0 auto;
+		max-width: 1600px;
+		width: 100%;
+	}
+}

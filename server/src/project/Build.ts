@@ -70,7 +70,8 @@ export type LocalCodeResult = {
     codeRenderInJs: AventusPackageTsFileExport[],
     codeNotRenderInJs: AventusPackageTsFileExportNoCode[],
 
-    htmlDoc: HTMLDoc
+    htmlDoc: HTMLDoc,
+    useDecorator: boolean,
 };
 
 export class Build {
@@ -407,6 +408,7 @@ export class Build {
     }
     private _buildStringModule(namespace: string, codeBefore: string[], code: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, codeAfter: string[], stylesheets: string[]) {
         let finalTxt = '';
+
         let splittedNames = namespace.split(".");
         finalTxt += codeBefore.join(EOL) + EOL;
         if (code.length > 0) {
@@ -498,22 +500,11 @@ export class Build {
     /**
      * Write the code inside the exported .js
      */
-    private async writeBuildCode(localCode: {
-        code: string[],
-        codeNoNamespaceBefore: string[],
-        codeNoNamespaceAfter: string[],
-        classesName: {
-            [name: string]: {
-                type: InfoType,
-                isExported: boolean,
-                convertibleName: string
-            }
-        },
-        stylesheets: { [name: string]: string }
-    },
+    private async writeBuildCode(
+        localCode: LocalCodeResult,
         libSrc: { lib: string, code: string }[],
         outputs: { [lib: string]: { path: string, compressed?: boolean } }[],
-        compressed?: boolean
+        compressed?: boolean,
     ): Promise<BuildErrors> {
         let result: BuildErrors = []
         if (outputs && outputs.length > 0) {
@@ -521,13 +512,51 @@ export class Build {
             for (let name in localCode.stylesheets) {
                 stylesheets.push(`Aventus.Style.store("${name}", \`${localCode.stylesheets[name]}\`)`)
             }
+            let decoratorTxt = ''
+            if (localCode.useDecorator) {
+                decoratorTxt += `var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
+    function accept(f) { if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected"); return f; }
+    var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
+    var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
+    var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
+    var _, done = false;
+    for (var i = decorators.length - 1; i >= 0; i--) {
+        var context = {};
+        for (var p in contextIn) context[p] = p === "access" ? {} : contextIn[p];
+        for (var p in contextIn.access) context.access[p] = contextIn.access[p];
+        context.addInitializer = function (f) { if (done) throw new TypeError("Cannot add initializers after decoration has completed"); extraInitializers.push(accept(f || null)); };
+        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
+        if (kind === "accessor") {
+            if (result === void 0) continue;
+            if (result === null || typeof result !== "object") throw new TypeError("Object expected");
+            if (_ = accept(result.get)) descriptor.get = _;
+            if (_ = accept(result.set)) descriptor.set = _;
+            if (_ = accept(result.init)) initializers.unshift(_);
+        }
+        else if (_ = accept(result)) {
+            if (kind === "field") initializers.unshift(_);
+            else descriptor[key] = _;
+        }
+    }
+    if (target) Object.defineProperty(target, contextIn.name, descriptor);
+    done = true;
+};
+var __runInitializers = (this && this.__runInitializers) || function (thisArg, initializers, value) {
+    var useValue = arguments.length > 2;
+    for (var i = 0; i < initializers.length; i++) {
+        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
+    }
+    return useValue ? value : void 0;
+};
+`
+            }
             let moduleTxt = this._buildStringModule(
                 this.buildConfig.module,
                 localCode.codeNoNamespaceBefore,
                 localCode.code,
                 localCode.classesName,
                 localCode.codeNoNamespaceAfter,
-                stylesheets
+                stylesheets,
             );
             let npmResult = await this.npmBuilder.compile();
             result = [...result, ...npmResult.errors];
@@ -538,7 +567,7 @@ export class Build {
                     let outputFile = outputInfo[lib].path;
                     if (!outputFiles[outputFile]) {
                         outputFiles[outputFile] = {
-                            code: '',
+                            code: decoratorTxt,
                             compressed: ('compressed' in outputInfo[lib] ? outputInfo[lib].compressed : compressed) ?? false
                         };
                     }
@@ -1007,7 +1036,8 @@ export class Build {
             codeNotRenderInJs: [],
             npm: {},
             npmsrc: {},
-            htmlDoc: {}
+            htmlDoc: {},
+            useDecorator: false
         }
 
         let renderInJsByFullname: { [fullname: string]: AventusPackageTsFileExport } = {}
@@ -1074,6 +1104,9 @@ export class Build {
         }
 
         for (let info of toCompile) {
+            if (info.useDecorator) {
+                result.useDecorator = true;
+            }
             if (this.noNamespaceUri[info.uri]) {
                 if (info.compiled != "") {
                     let noNamespace: "after" | "before";
@@ -1799,6 +1832,7 @@ export class Build {
             for (let name in stylesheetsInfo) {
                 stylesheets.push(`Aventus.Style.store("${name}", \`${stylesheetsInfo[name]}\`)`);
             }
+            // TODO correct use decorator for lib
             let codeModule = this._buildStringModule(libInfo.namespace, libInfo.before, libInfo.code, libInfo.classesName, libInfo.after, stylesheets);
             if (libInfo.namespace == "Aventus" && libInfo.classesName['I18n']) {
                 if (this.buildConfig.i18n && this.buildConfig.i18n.autoRegister !== false) {

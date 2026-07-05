@@ -1132,6 +1132,7 @@ export class AventusTsLanguageService {
                 uri: file.file.uri,
                 src: ""
             },
+            useDecorator: false,
         }
         try {
             let additionContent = "";
@@ -1176,9 +1177,16 @@ export class AventusTsLanguageService {
                 txtHotReload = element.type + " " + element.compiledContentHotReload;
             }
 
-
+            if (element.name == "MainState") {
+                debugger
+            }
             txt = this.removeComments(txt);
-            const transpiled = transpile(txt, compilerOptionsCompile);
+            let transpiled = transpile(txt, compilerOptionsCompile);
+            if (element.useNormalDecorator) {
+                const regex = new RegExp("^var(\\s|\\S)*?let " + element.name + " = ", "gm")
+                transpiled = transpiled.replace(regex, "")
+                result.useDecorator = true;
+            }
             result.compiled = transpiled + additionContent;
 
             if (HttpServer.isRunning) {
@@ -1618,7 +1626,8 @@ export type CompileTsResult = {
     convertibleName: string,
     tagName?: string,
     npm: CompileTsResultNpm;
-    slots?: SlotsInfo
+    slots?: SlotsInfo,
+    useDecorator: boolean
 }
 
 
@@ -1632,7 +1641,6 @@ const compilerOptionsRead: CompilerOptions = {
     target: ScriptTarget.ES2025,
     moduleDetection: ModuleDetectionKind.Force,
     moduleResolution: ModuleResolutionKind.NodeNext,
-    experimentalDecorators: true,
     noImplicitOverride: true,
     strictPropertyInitialization: true,
     noImplicitReturns: true,
@@ -1652,7 +1660,6 @@ const compilerOptionsCompile: CompilerOptions = {
     target: ScriptTarget.ES2025,
     moduleDetection: ModuleDetectionKind.Auto,
     moduleResolution: ModuleResolutionKind.NodeNext,
-    experimentalDecorators: true,
     noImplicitOverride: true,
     strictPropertyInitialization: true,
     noImplicitReturns: true,

@@ -1,0 +1,50 @@
+<h4>Champs Renommés</h4>
+<p class="card-desc">Sélectionnez une table pour associer ses anciens champs supprimés à ses nouveaux
+    champs ajoutés.</p>
+<div class="table-selector-wrapper">
+    <label>Table :</label>
+    <om-select @bind="this.mappingFieldTable">
+        <om-option value="">-- Choisir une table --</om-option>
+        for(let table of this.tableComparisons) {
+            <om-option value="{{ table.newTableName }}">{{ table.isRename ? `${table.oldTableName} ➔ ${table.newTableName}` : table.newTableName }}</om-option>
+        }
+    </om-select>
+</div>
+<div class="mapping-list">
+    if(!this.mappingFieldTable) {
+        <p>Sélectionnez une table ci-dessus.</p>
+    }
+    else if(Object.keys(this.fieldsMapping).length == 0){
+        <p>Aucune association pour cette table.</p>
+    }
+    else {
+        for(const oldF in this.fieldsMapping) {
+            <div class="mapping-item">
+                <span class="mapping-names">
+                    <span>{{ oldF }}</span>
+                    <span class="mapping-arrow">➔</span>
+                    <span>{{ this.fieldsMapping[oldF] }}</span>
+                </span>
+                <button class="mapping-delete" @click="removeFieldMapping" data-field="{{ oldF }}">✕</button>
+            </div>
+        }
+    }
+</div>
+if(!this.mappingFieldTable) {
+    <div class="mapping-adder">
+        <om-select>
+            <om-option value="">-- Champ Supprimé --</om-option>
+            for(let field of this.mappingFieldTableInfo.deletedFields) {
+                <om-option value="{{ field.name }}">{{ field.name }}</om-option>
+            }
+        </om-select>
+        <span class="arrow-indicator">➔</span>
+        <om-select>
+            <om-option value="">-- Champ Ajouté --</om-option>
+            for(let field of this.mappingFieldTableInfo.addedFields) {
+                <om-option value="{{ field.name }}">{{ field.name }}</om-option>
+            }
+        </om-select>
+        <om-button @click="addFieldMapping">Lier</om-button>
+    </div>
+}

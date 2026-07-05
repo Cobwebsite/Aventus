@@ -669,5 +669,7 @@ export class ClassInfo extends BaseInfo {
 			...classInfo.propertiesStatic,
 			...this.propertiesStatic
 		};
+
+		this.useNormalDecorator = classInfo.useNormalDecorator;
 	}
 }

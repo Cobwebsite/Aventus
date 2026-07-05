@@ -1,0 +1,8 @@
+<div class="empty-state">
+    <span class="empty-icon">✨</span>
+    <p>Aucune différence structurelle détectée entre les deux schémas.</p>
+</div>
+
+<av-summary-new></av-summary-new>
+<av-summary-deleted></av-summary-deleted>
+<av-summary-updated></av-summary-updated>

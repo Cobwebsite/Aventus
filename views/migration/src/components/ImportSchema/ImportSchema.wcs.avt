@@ -1,0 +1,41 @@
+:host {
+
+	.schemas-grid {
+		display: grid;
+		gap: 2rem;
+		grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+		margin-bottom: 2rem;
+
+		.schema-card {
+			background: var(--surface-100);
+			border: 1px solid var(--border-color);
+			border-radius: var(--border-radius-lg);
+			box-shadow: var(--elevation-2);
+			display: flex;
+			flex-direction: column;
+			gap: 1.25rem;
+			padding: 1.5rem;
+
+			.code-textarea {
+				background: rgba(15, 23, 42, 0.5);
+				border: 1px solid var(--border-color);
+				border-radius: var(--border-radius-md);
+				color: var(--primary-content);
+				font-size: 0.85rem;
+				height: 350px;
+				outline: none;
+				padding: 1rem;
+				resize: vertical;
+				transition: border-color 0.2s ease;
+				width: 100%;
+			}
+
+			.code-textarea:focus {
+				border-color: var(--info);
+			}
+
+		}
+	}
+
+
+}

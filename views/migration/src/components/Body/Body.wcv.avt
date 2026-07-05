@@ -1,0 +1,8 @@
+<div class="content">
+    if(MainState.instance.step == 0) {
+        <av-import-schema @element="importEl"></av-import-schema>
+    }
+    else if(MainState.instance.step == 1) {
+        <av-resolution></av-resolution>
+    }
+</div>

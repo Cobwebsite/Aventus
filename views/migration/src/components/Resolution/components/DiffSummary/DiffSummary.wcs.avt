@@ -1,0 +1,11 @@
+:host {
+	.empty-state {
+		display: none;
+	}
+}
+
+:host(:not([has_diff])) {
+	.empty-state {
+		display: flex;
+	}
+}

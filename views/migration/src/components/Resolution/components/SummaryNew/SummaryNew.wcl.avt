@@ -1,0 +1,32 @@
+import type { CompareSchemasResult } from "../../../../lib/Generator.lib.avt";
+import { MainState } from "../../../MainState.lib.avt";
+
+export class SummaryNew extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+	//#region static
+	
+	//#endregion
+	
+	
+	//#region props
+	
+	//#endregion
+	
+	
+	//#region variables
+	public get comparison(): CompareSchemasResult {
+        return MainState.instance.comparison;
+    }
+	//#endregion
+	
+	
+	//#region constructor
+	
+	//#endregion
+	
+	
+	//#region methods
+	
+	//#endregion
+	
+}

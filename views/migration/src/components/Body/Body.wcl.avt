@@ -1,0 +1,33 @@
+import type { ImportSchema } from "../ImportSchema/ImportSchema.wcl.avt";
+import { MainState } from "../MainState.lib.avt";
+
+export class Body extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    public readonly importEl?: ImportSchema;
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    protected override postCreation(): void {
+
+    }
+    //#endregion
+
+}
