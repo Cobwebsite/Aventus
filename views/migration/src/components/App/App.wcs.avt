@@ -1,0 +1,15 @@
+:host {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+
+	av-header {
+		flex-shrink: 0;
+	}
+
+	om-scrollable {
+		flex-grow: 1;
+		min-height: 0;
+		width: 100%;
+	}
+}

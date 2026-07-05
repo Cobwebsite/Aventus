@@ -1,0 +1,64 @@
+import type { ProcessFieldsResult } from "../../../../lib/Generator.lib.avt";
+import { MainState } from "../../../MainState.lib.avt";
+
+export class RenamedField extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @Watch()
+    protected mappingFieldTable?: string;
+
+    public get tableComparisons(): ProcessFieldsResult[] {
+        return MainState.instance.comparison.tableComparisons;
+    }
+    public get mappingFieldTableInfo(): ProcessFieldsResult {
+        const el = this.tableComparisons.find(p => p.newTableName == this.mappingFieldTable);
+        if(!el) return {
+            addedFields: [],
+            deletedFields: [],
+            hasChanges: false,
+            isRename: false,
+            modifiedFields: [],
+            newTableName: '',
+            oldTableName: '',
+            renamedFields: []
+        };
+        return el;
+    }
+
+    public get fieldsMapping(): Record<string, string> {
+        return MainState.instance.mappings.fields[this.mappingFieldTable!];
+    }
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    /**
+     * 
+     */
+    protected addFieldMapping() {
+    }
+
+    /**
+     * 
+     */
+    protected removeFieldMapping() {
+    }
+    //#endregion
+
+}

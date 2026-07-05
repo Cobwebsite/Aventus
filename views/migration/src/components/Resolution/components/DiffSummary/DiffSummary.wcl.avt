@@ -1,0 +1,38 @@
+import { Watcher } from "Aventus@Main:Aventus.package.avt";
+import { MainState } from "../../../MainState.lib.avt";
+
+export class DiffSummary extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Attribute()
+    public has_diff!: boolean;
+    //#endregion
+
+
+    //#region variables
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    protected override postCreation(): void {
+
+        Watcher.effect(() => {
+            const comp = MainState.instance.comparison;
+			this.has_diff = comp.addedTables.length > 0 || comp.deletedTables.length > 0 || comp.renamedTables.length > 0;
+        });
+
+    }
+    //#endregion
+
+}

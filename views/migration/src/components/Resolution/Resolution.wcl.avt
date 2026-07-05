@@ -1,0 +1,69 @@
+import { BaseContent } from "../BaseContent/BaseContent.wcl.avt";
+import { MainState } from "../MainState.lib.avt";
+import type { CompareSchemasResult, ProcessFieldsResult } from "../../lib/Generator.lib.avt";
+import type { Select } from "OneMoreUI:OneMoreUI.Components.Form.Select.package.avt";
+
+export class Resolution extends BaseContent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+
+
+
+    public get comparison(): CompareSchemasResult {
+        return MainState.instance.comparison;
+    }
+    public get tableComparisons(): ProcessFieldsResult[] {
+        return this.comparison.tableComparisons;
+    }
+    public get tables(): Record<string, string> {
+        return MainState.instance.mappings.tables;
+    }
+
+
+    
+
+
+    
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    /**
+     * 
+     */
+    protected back() {
+        MainState.instance.step = 0;
+    }
+
+
+    /**
+     * 
+     */
+    protected prepareMigrationGeneration() {
+        MainState.instance.step = 2;
+    }
+
+
+
+
+    
+
+    //#endregion
+
+}

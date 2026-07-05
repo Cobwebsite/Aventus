@@ -5,6 +5,34 @@ import { FunctionDeclaration } from '../../scss/helper/CSSNode';
 import { GenericServer } from '../../../GenericServer';
 import { BaseInfo } from './BaseInfo';
 
+const eraseableDecorator = [
+    "BindThis",
+    "Convertible",
+    "Debugger",
+    "DefaultStateActive",
+    "DefaultStateInactive",
+    "Dependencies",
+    "Deprecated",
+    "Effect",
+    "ForeignKey",
+    "I18n",
+    "Injectable",
+    "Internal",
+    "InternalProtected",
+    "NoCompile",
+    "OverrideView",
+    "Property",
+    "Required",
+    "Signal",
+    "StateActive",
+    "StateChange",
+    "StateInactive",
+    "Storybook",
+    "StoryValue",
+    "TagName",
+    "ViewElement",
+    "Watch",
+];
 export class DecoratorInfo {
     public name: string = "";
     public content: string = "";
@@ -37,11 +65,17 @@ export class DecoratorInfo {
                     info.contentStart = e.getStart();
                     info.contentEnd = e.getEnd();
                     if (baseInfo) {
-                        baseInfo.compileTransformations[info.start + "_" + info.end] = {
-                            newText: "",
-                            start: info.start,
-                            end: info.end
+                        if (eraseableDecorator.includes(info.name)) {
+                            baseInfo.compileTransformations[info.start + "_" + info.end] = {
+                                newText: "",
+                                start: info.start,
+                                end: info.end
+                            }
                         }
+                        else {
+                            baseInfo.useNormalDecorator = true;
+                        }
+
                     }
                     for (let argument of call.arguments) {
                         let arg = getArg(argument);

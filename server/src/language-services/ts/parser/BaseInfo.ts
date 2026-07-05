@@ -100,6 +100,7 @@ export abstract class BaseInfo {
     public fullName: string = "";
     public namespace: string = "";
     public decorators: DecoratorInfo[] = [];
+    public useNormalDecorator: boolean = false;
 
     public storieContent?: IStoryExport;
     public storieInject: {

@@ -1,0 +1,60 @@
+// export function Dynamic() {
+//     return function (initialValue: unknown, context: ClassFieldDecoratorContext) {
+//         debugger;
+//         context.addInitializer(function (this: any) {
+//             debugger;
+//             // Ici, 'this' est l'instance de ta classe !
+//             console.log("Instance créée :", this);
+//         });
+//     };
+// }
+
+import { Watcher } from "Aventus@Main:Aventus.package.avt";
+
+type callback = (target: any, value: any) => void;
+
+export function Dynamic(cb?: callback): AvAccessorDecorator {
+    return function (target: ClassAccessorDecoratorTarget<any, any>, context: ClassAccessorDecoratorContext): void | ClassAccessorDecoratorResult<any, any> {
+        if(context.kind !== "accessor") {
+            throw new Error("Le décorateur @Dynamic requiert le mot-clé 'accessor'.");
+        }
+
+        const field = context.name.toString();
+        const instanceRefs = new WeakMap<any, Record<string, any>>();
+
+        return {
+            init(initialValue: any) {
+                if(!instanceRefs.has(this)) {
+                    instanceRefs.set(this, Watcher.get({
+                        [field]: initialValue
+                    }, (action, path, value) => {
+                        if(cb && path.startsWith(field)) {
+                            cb(this, value);
+                        }
+                    }));
+                }
+                else {
+                    instanceRefs.get(this)![field] = initialValue;
+                }
+
+                return initialValue;
+            },
+
+            get() {
+                return instanceRefs.get(this)![field];
+            },
+
+            set(newValue: any) {
+                instanceRefs.get(this)![field] = newValue;
+            }
+        };
+    };
+}
+
+// export function Dynamic2(config?: OverrideViewConfig) {
+//     return function (originalClass: Function, context: ClassDecoratorContext): any {
+//         debugger;
+
+//         return originalClass;
+//     };
+// };

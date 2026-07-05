@@ -1,0 +1,33 @@
+import type { Body } from "../Body/Body.wcl.avt";
+import type { Header } from "../Header/Header.wcl.avt";
+
+export class App extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    public readonly headerEl!: Header;
+    @ViewElement()
+    public readonly bodyEl!: Body;
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    //#endregion
+
+}

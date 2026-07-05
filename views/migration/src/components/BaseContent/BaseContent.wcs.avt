@@ -1,0 +1,47 @@
+:host {
+	width: 100%;
+
+	.section-header {
+		margin-bottom: 2rem;
+
+		h2 {
+			font-size: 1.75rem;
+			font-weight: 600;
+			letter-spacing: -0.02em;
+			margin: 0;
+			margin-bottom: 0.5rem;
+		}
+
+		p {
+			color: var(--neutral);
+			margin: 0;
+			max-width: 800px;
+		}
+	}
+
+	.card-header {
+		align-items: center;
+		display: flex;
+		justify-content: space-between;
+
+		h3 {
+			font-size: 1.15rem;
+			font-weight: 600;
+			margin: 0;
+		}
+	}
+
+	
+
+	.action-footer {
+		border-top: 1px solid var(--border-color);
+		display: flex;
+		gap: 1rem;
+		justify-content: flex-end;
+		margin-top: 2rem;
+		padding-top: 1.5rem;
+	}
+
+
+
+}

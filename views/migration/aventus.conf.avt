@@ -1,0 +1,42 @@
+{
+	"module": "migration",
+	"componentPrefix": "av",
+	"hideWarnings": true,
+	"build": [
+		{
+			"name": "Main",
+			"src": [
+				"./src/components/*",
+				"./src/lib/*"
+			],
+			"dependencies": {
+				"Aventus@UI": {},
+				"OneMoreUI": {
+					"isLocal": true
+				},
+				"VscodeView@Main": {
+					"isLocal": true,
+					"include": "full"
+				}
+			},
+			"compile": [
+				{
+					"output": [
+						"../../client/views/migration/index.js",
+						"./dist/index.js"
+					]
+				}
+			]
+		}
+	],
+	"static": [
+		{
+			"name": "Main",
+			"input": "./src/static",
+			"output": [
+				"../../client/views/migration",
+				"./dist"
+			]
+		}
+	]
+}

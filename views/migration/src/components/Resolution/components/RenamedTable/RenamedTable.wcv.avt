@@ -1,0 +1,35 @@
+ <h4>Tables Renommées</h4>
+<p class="card-desc">Si une table a été renommée, associez son ancien nom au nouveau.</p>
+<div class="mapping-list">
+    if(Object.keys(this.tables).length == 0) {
+        <p class="no-table">Aucune association de table.</p>
+    }
+    else {
+        for(let oldName in this.tables) {
+            <div class="mapping-item">
+                <span class="mapping-names">
+                    <span>{{ oldName }}</span>
+                    <span class="mapping-arrow">➔</span>
+                    <span>{{ this.tables[oldName] }}</span>
+                </span>
+                <button class="mapping-delete" @click="removeTableMapping" data-name="{{ oldName }}">✕</button>
+            </div>
+        }
+    }
+</div>
+<div class="mapping-adder">
+    <om-select @element="oldTableSelect">
+        <om-option value="">-- Table Supprimée --</om-option>
+        for(let deletedTable of this.comparison.deletedTables) {
+            <om-option value="{{ deletedTable.name }}">{{ deletedTable.name }}</om-option>
+        }
+    </om-select>
+    <span class="arrow-indicator">➔</span>
+    <om-select @element="newTableSelect">
+        <om-option value="">-- Table Ajoutée --</om-option>
+        for(let addedTable of this.comparison.addedTables) {
+            <om-option value="{{ addedTable.name }}">{{ addedTable.name }}</om-option>
+        }
+    </om-select>
+    <om-button @click="addTableMapping" color="success">Lier</om-button>
+</div>

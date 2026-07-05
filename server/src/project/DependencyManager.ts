@@ -19,7 +19,8 @@ type DependencyLoopPart = {
 	file: AventusPackageFile,
 	version: DependencyVersion,
 	uri: string,
-	dependencies: string[],
+	include: IncludeType,
+	dependencies: { name: string, include: IncludeType }[],
 }
 type DependencyLoop = {
 	[name: string]: DependencyLoopPart
@@ -85,8 +86,14 @@ export class DependencyManager {
 			if (tempDep) {
 				includeNames[tempDep.name] = dep.include ?? "need";
 			}
-			includeNames = { ...includeNames, ...dep.subDependenciesInclude };
 		}
+
+		for (let name in loopResult) {
+			if (!includeNames[name]) {
+				includeNames[name] = loopResult[name].include;
+			}
+		}
+
 
 		if (!loopResult["Aventus@Main"]) {
 			await this.loadDependency("Aventus@Main", {
@@ -118,21 +125,16 @@ export class DependencyManager {
 			let current = loopResult[name];
 			current.file.loadWebComponents();
 			result.files.push(current.file);
-			let nameTemp = includeNames[name] ? name : "*";
-			if (includeNames[nameTemp]) {
-				if (includeNames[nameTemp] == "full") {
-					result.dependencyFullUris.push(current.uri);
-					result.dependencyUris.push(current.uri);
-				}
-				else if (includeNames[nameTemp] == "need") {
-					result.dependencyNeedUris.push(current.uri);
-					result.dependencyUris.push(current.uri);
-				}
+			let includeType = includeNames[name] ?? "need";
+			if (includeType == "full") {
+				result.dependencyFullUris.push(current.uri);
+				result.dependencyUris.push(current.uri);
 			}
-			else {
+			else if (includeType == "need") {
 				result.dependencyNeedUris.push(current.uri);
 				result.dependencyUris.push(current.uri);
 			}
+
 		}
 		return result;
 	}
@@ -144,8 +146,8 @@ export class DependencyManager {
 		}
 		let insertIndex = 0;
 		for (let depName of dep.dependencies) {
-			if (allInfo[depName]) {
-				let insertIndexTemp = this.orderLoop(depName, allInfo[depName], allInfo, orderedName);
+			if (allInfo[depName.name]) {
+				let insertIndexTemp = this.orderLoop(depName.name, allInfo[depName.name], allInfo, orderedName);
 				if (insertIndexTemp >= 0 && insertIndexTemp > insertIndex) {
 					insertIndex = insertIndexTemp;
 				}
@@ -230,6 +232,7 @@ export class DependencyManager {
 				result[file.name] = {
 					file,
 					uri,
+					include: dep.include ?? 'need',
 					version: version,
 					dependencies: [],
 				}
@@ -244,16 +247,31 @@ export class DependencyManager {
 					// include if root package need include
 					let resultDep = await this.loadDependency(name, dep, config, build, result);
 					if (resultDep) {
-						if (!result[file.name].dependencies.includes(resultDep.name)) {
-							result[file.name].dependencies.push(resultDep.name);
+						const item = result[file.name].dependencies.find(p => p.name == resultDep.name);
+						let type: IncludeType = "need"
+						if (dep.subDependenciesInclude && dep.subDependenciesInclude[resultDep.name]) {
+							type = dep.subDependenciesInclude[resultDep.name]
 						}
-
+						if (!item) {
+							result[file.name].dependencies.push({ name: resultDep.name, include: type })
+						}
+						else {
+							if (item.include == 'none' && type != 'none') {
+								item.include = type;
+							}
+							else if (item.include == 'need' && type == 'full') {
+								item.include = type;
+							}
+						}
 					}
 				}
 				if (file.name != "Aventus@Main") {
 					// force aventus to be a dependency
-					if (!result[file.name].dependencies.includes("Aventus@Main")) {
-						result[file.name].dependencies.push("Aventus@Main");
+					if (!result[file.name].dependencies.find(p => p.name == "Aventus@Main")) {
+						result[file.name].dependencies.push({
+							name: "Aventus@Main",
+							include: "need"
+						});
 					}
 				}
 			}

@@ -1,0 +1,52 @@
+import type { Select } from "OneMoreUI:OneMoreUI.Components.Form.Select.package.avt";
+import { MainState } from "../../../MainState.lib.avt";
+import type { CompareSchemasResult } from "../../../../lib/Generator.lib.avt";
+
+export class RenamedTable extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected oldTableSelect!: Select;
+    @ViewElement()
+    protected newTableSelect!: Select;
+
+	public get comparison(): CompareSchemasResult {
+        return MainState.instance.comparison;
+    }
+    
+    public get tables(): Record<string, string> {
+        return MainState.instance.mappings.tables;
+    }
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    /**
+     * 
+     */
+    protected removeTableMapping() {
+    }
+
+    /**
+     * 
+     */
+    protected addTableMapping() {
+    }
+    //#endregion
+
+}

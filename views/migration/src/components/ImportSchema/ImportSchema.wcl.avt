@@ -1,0 +1,43 @@
+import { Generator } from "../../lib/Generator.lib.avt";
+import { BaseContent } from "../BaseContent/BaseContent.wcl.avt";
+import { MainState } from "../MainState.lib.avt";
+
+export class ImportSchema extends BaseContent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    public readonly jsonOld!: HTMLTextAreaElement;
+    @ViewElement()
+    public readonly jsonNew!: HTMLTextAreaElement;
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    /**
+     * 
+     */
+    protected analyzeAndCompare() {
+        Generator.compareSchemas(MainState.instance.oldSchema, MainState.instance.newSchema, MainState.instance.mappings)
+        MainState.instance.step = 1;
+        // throw new Error("Method not implemented.");
+    }
+
+    //#endregion
+
+}

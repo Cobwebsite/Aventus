@@ -2388,6 +2388,43 @@ class ElementExtension {
 
     type ConstructorConstraint<T> = Function & { prototype: T; };
 
+    type AvClassDecorator = <Class extends Function & { prototype: any; }>(
+        value: Class,
+        context: ClassDecoratorContext<Class>
+    ) => Class | void;
+
+    type AvClassComponentDecorator = <Class extends ConstructorConstraint<Aventus.WebComponent>>(
+        value: Class,
+        context: ClassDecoratorContext<Class>
+    ) => Class | void;
+
+    type AvGetterDecorator = <This, Return>(
+        value: (this: This) => Return,
+        context: ClassGetterDecoratorContext<This, Return>
+    ) => ((this: This) => Return) | void;
+
+    type AvSetterDecorator = <This, Value>(
+        value: (this: This, value: Value) => void,
+        context: ClassSetterDecoratorContext<This, Value>
+    ) => ((this: This, value: Value) => void) | void;
+
+    type AvFieldDecorator = <This, Value>(
+        value: undefined,
+        context: ClassFieldDecoratorContext<This, Value>
+    ) => ((this: This, initialValue: Value) => Value) | void;
+
+    type AvPropertyDecorator = AvGetterDecorator & AvSetterDecorator & AvFieldDecorator
+
+    type AvAccessorDecorator = <This, Value>(
+        value: ClassAccessorDecoratorTarget<This, Value>,
+        context: ClassAccessorDecoratorContext<This, Value>
+    ) => ClassAccessorDecoratorResult<This, Value> | void;
+
+    type AvMethodDecorator = <This, Args extends any[], Return>(
+        target: (this: This, ...args: Args) => Return,
+        context: ClassMethodDecoratorContext<This, (this: This, ...args: Args) => Return>
+    ) => ((this: This, ...args: Args) => Return) | void;
+
     interface DebuggerConfig {
         /** Write the compiled file inside ./compiled.js */
         writeCompiled?: boolean,
@@ -2419,91 +2456,91 @@ class ElementExtension {
     /**
      * Add an attribute inside on your component
      */
-    function Attribute();
+    function Attribute(): AvPropertyDecorator;
     /**
      * Add an attribute inside on your component with changes analyze
      */
-    function Property();
+    function Property(): AvPropertyDecorator;
     /**
      * Add an attribute inside on your component with changes analyze
      */
-    function Property<T>(onChange: (component: T) => void);
+    function Property<T>(onChange: (component: T) => void): AvPropertyDecorator;
     /**
      * Add an attribute inside on your component with changes analyze
      */
-    function Signal();
+    function Signal(): AvPropertyDecorator;
     /**
      * Add an attribute inside on your component with changes analyze
      */
-    function Signal<T>(onChange: (component: T) => void);
+    function Signal<T>(onChange: (component: T) => void): AvPropertyDecorator;
     /**
      * Add a property inside a watcher to be notify of changing
      */
-    function Watch();
+    function Watch(): AvPropertyDecorator;
     /**
      * Add a property inside a watcher to be notify of changing
      */
-    function Watch<T>(onChange: (component: T, action: Aventus.WatchAction, path: string, value: any) => void);
+    function Watch<T>(onChange: (component: T, action: Aventus.WatchAction, path: string, value: any) => void): AvPropertyDecorator;
     /**
      * Allow injection autocompletion
      */
-    function Injectable();
+    function Injectable(): AvPropertyDecorator;
     /**
      * Add a function inside a watcher to be notify of changing
      */
-    function Effect(options?: { autoInit?: boolean; });
+    function Effect(options?: { autoInit?: boolean; }): AvMethodDecorator;
     /**
      * Signal that this variable is a link to your shadowroot
      */
-    function ViewElement(config?: ViewElementConfig);
+    function ViewElement(config?: ViewElementConfig): AvPropertyDecorator;
     /**
      * Add foreign key reference
      */
-    function ForeignKey(ref: ConstructorConstraint<Aventus.IData>);
+    function ForeignKey(ref: ConstructorConstraint<Aventus.IData>): AvPropertyDecorator;
     /**
      * Define a public property that will be transformed to private once compiled
      */
-    function Internal();
+    function Internal(): AvPropertyDecorator & AvMethodDecorator;
     /**
      * Define a public property that will be transformed to protected once compiled
      */
-    function InternalProtected();
+    function InternalProtected(): AvPropertyDecorator & AvMethodDecorator;
 
-    function StateActive(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, slugs: Aventus.StateSlug) => void)>) => void;
-    function DefaultStateActive(manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager);
-    function StateInactive(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, nextState: Aventus.State, slugs: Aventus.StateSlug) => void)>) => void;
-    function DefaultStateInactive(manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager);
-    function StateChange(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, nextState: Aventus.State, slugs: Aventus.StateSlug) => boolean | Promise<boolean>)>) => void;
+    function StateActive(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): AvMethodDecorator;
+    function DefaultStateActive(manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): AvMethodDecorator;
+    function StateInactive(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): AvMethodDecorator;
+    function DefaultStateInactive(manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): AvMethodDecorator;
+    function StateChange(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): AvMethodDecorator;
 
     /**
      * Clear parent view and use your
      */
-    function OverrideView(config?: OverrideViewConfig): (<T extends ConstructorConstraint<Aventus.WebComponent>> (ConstructorConstraint: T) => T);
+    function OverrideView(config?: OverrideViewConfig): AvClassComponentDecorator;
     /**
      * use a custom TagName
      */
-    function TagName(name: string): (<T extends ConstructorConstraint<Aventus.WebComponent>> (ConstructorConstraint: T) => T);
+    function TagName(name: string): AvClassComponentDecorator;
     /**
      * Force to be required inside export
      */
-    function Required(): (ConstructorConstraint: Function) => void;
+    function Required(): AvMethodDecorator;
     /**
      * Add debbuger action function for your component
      */
-    function Debugger(config: DebuggerConfig): (ConstructorConstraint: Function) => void;
+    function Debugger(config: DebuggerConfig): AvClassComponentDecorator;
 
 
-    function Dependencies(info: DependenciesConfig[]): (ConstructorConstraint: Function) => void;
+    function Dependencies(info: DependenciesConfig[]): AvClassDecorator;
 
     /**
      * Register the element inside the Converter instance
      * Your object must have a static type named as the parameter
      */
-    function Convertible(name: string = "Fullname"): (ConstructorConstraint: Function) => void;
+    function Convertible(name: string = "Fullname"): AvClassDecorator;
 
-    function BindThis(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
+    function BindThis(): AvMethodDecorator;
 
-    function NoCompile(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
+    function NoCompile(): AvMethodDecorator;
 
     interface StorybookConfig {
         /** Define what must be exported to storybook */
@@ -2529,7 +2566,7 @@ class ElementExtension {
     /**
      * Export a story for this component
      */
-    function Storybook(info?: StorybookConfig);
+    function Storybook(info?: StorybookConfig): AvClassDecorator;
 
     function NoStory();
     function AddToStory();

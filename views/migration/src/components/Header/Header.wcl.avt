@@ -1,0 +1,31 @@
+import type { Schema } from "../../lib/Definition.lib.avt";
+import { App } from "../App/App.wcl.avt";
+import { MainState } from "../MainState.lib.avt";
+
+export class Header extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    //#endregion
+
+}

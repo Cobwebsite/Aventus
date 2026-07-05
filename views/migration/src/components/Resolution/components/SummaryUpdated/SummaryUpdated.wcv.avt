@@ -1,0 +1,5 @@
+for(let table of this.tableComparisons) {
+    if(table.hasChanges) {
+        <av-summary-updated-table :change="table"></av-summary-updated-table>
+    }
+}

@@ -1,0 +1,13 @@
+@import './_onemoreui.gs.avt';
+
+html,
+body {
+	background-color: var(--surface);
+	color: var(--surface-content);
+	font-family: "Segoe WPC", "Segoe UI", sans-serif;
+	height: 100%;
+	margin: 0;
+	overflow: hidden;
+	padding: 0;
+	width: 100%;
+}
