@@ -5,4 +5,7 @@
     else if(MainState.instance.step == 1) {
         <av-resolution></av-resolution>
     }
+    else if(MainState.instance.step == 2) {
+        <av-migration-writter></av-migration-writter>
+    }
 </div>

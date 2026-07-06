@@ -1,0 +1,51 @@
+<div class="section-header">
+    <h2>Code de Migration C# Généré</h2>
+    <p>Voici la classe de migration AventusSharp générée. Copiez ce code dans votre projet ou téléchargez le fichier.
+    </p>
+</div>
+
+<div class="output-grid">
+    <!-- Config Panel -->
+    <div class="config-panel">
+        <div class="panel-header">
+            <h3>Configuration</h3>
+        </div>
+        <div class="panel-body">
+            <div class="form-group">
+                <om-input label="Nom de la migration :" :value="this.migrationName"></om-input>
+                <small>Identifiant unique de la migration (ex: 0001_update).</small>
+            </div>
+            <div class="form-group">
+                <om-input label="Nom de la classe C# :" :value="this.migrationClassName"></om-input>
+                <small>Nom valide pour la classe C# héritant de <code>Migration</code>.</small>
+            </div>
+            <div class="quick-stats">
+                <h4>Statistiques :</h4>
+                <ul>
+                    <li>Tables créées : <span id="stat-created-tables">0</span></li>
+                    <li>Tables renommées : <span id="stat-renamed-tables">0</span></li>
+                    <li>Tables supprimées : <span id="stat-deleted-tables">0</span></li>
+                    <li>Modifications appliquées : <span id="stat-modified-tables">0</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Code Display Panel -->
+    <div class="code-panel">
+        <div class="panel-header">
+            <h3>Code Source C#</h3>
+            <div class="code-actions">
+                <om-button outline>Copier</om-button>
+                <om-button>Télécharger</om-button>
+            </div>
+        </div>
+        <div class="code-viewport">
+            <pre><code @element="csharpOutput"></code></pre>
+        </div>
+    </div>
+</div>
+
+<div class="action-footer">
+    <om-button @click="back">Retour</om-button>
+</div>

@@ -12,10 +12,10 @@
 	--surface-200: #21262d;
 	--surface-content: #e6edf3;
 
-	--primary: #0a0647;
-	--primary-content: oklch(100% 0 0);
-	--accent: #6d43c7;
-	--accent-content: oklch(100% 0 0);
+	--primary: #2561c2;
+	--primary-content: #e2e2e2;
+	--accent: #2b813a;
+	--accent-content: #ececec;
 	--neutral: oklch(70% 0.015 286.067);
 	--neutral-content: oklch(100% 0 0);
 	--info: oklch(0.8382 0.111 199.06);

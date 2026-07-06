@@ -1,41 +1,100 @@
 export interface FieldType {
-  id: string;
-  name: string;
+    id: string;
+    name: string;
 }
 
 export interface Field {
-  id: string;
-  name: string;
-  type: FieldType;
-  primaryKey?: boolean;
-  unique?: boolean;
-  nullable?: boolean;
+    id: string;
+    name: string;
+    type: FieldType;
+    primaryKey?: boolean;
+    unique?: boolean;
+    nullable?: boolean;
 }
 
 export interface Table {
-  id: string;
-  name: string;
-  fields: Field[];
+    id: string;
+    name: string;
+    fields: Field[];
 }
 
 export interface Relationship {
-  id: string;
-  name: string;
-  description?: string;
-  sourceTableId: string;
-  targetTableId: string;
-  sourceFieldId: string;
-  targetFieldId: string;
+    id: string;
+    name: string;
+    description?: string;
+    sourceTableId: string;
+    targetTableId: string;
+    sourceFieldId: string;
+    targetFieldId: string;
 }
 
 export interface Schema {
-  name: string;
-  databaseType: string;
-  tables: Table[];
-  relationships: Relationship[];
+    name: string;
+    databaseType: string;
+    tables: Table[];
+    relationships: Relationship[];
 }
 
 export interface Mapping {
-  tables: Record<string, string> // "OldTableName": "NewTableName"
-  fields: Record<string, Record<string, string>>, // "TableName": { "OldFieldName": "NewFieldName" } - Note: TableName refers to the NEW table name if renamed
+    tables: Record<string, string>; // "OldTableName": "NewTableName"
+    fields: Record<string, Record<string, string>>, // "TableName": { "OldFieldName": "NewFieldName" } - Note: TableName refers to the NEW table name if renamed
 }
+
+export const schemaValidation = {
+    type: "object",
+    required: ["name", "databaseType", "tables", "relationships"],
+    properties: {
+        name: { type: "string" },
+        databaseType: { type: "string" },
+        tables: {
+            type: "array",
+            items: {
+                type: "object",
+                required: ["id", "name", "fields"],
+                properties: {
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    fields: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            required: ["id", "name", "type"],
+                            properties: {
+                                id: { type: "string" },
+                                name: { type: "string" },
+                                type: {
+                                    type: "object",
+                                    required: ["id", "name"],
+                                    properties: {
+                                        id: { type: "string" },
+                                        name: { type: "string" }
+                                    }
+                                },
+                                primaryKey: { type: "boolean" },
+                                unique: { type: "boolean" },
+                                nullable: { type: "boolean" }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        relationships: {
+            type: "array",
+            items: {
+                type: "object",
+                required: ["id", "name", "sourceTableId", "targetTableId", "sourceFieldId", "targetFieldId"],
+                properties: {
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    description: { type: "string" },
+                    sourceTableId: { type: "string" },
+                    targetTableId: { type: "string" },
+                    sourceFieldId: { type: "string" },
+                    targetFieldId: { type: "string" }
+                }
+            }
+        }
+    }
+};
+

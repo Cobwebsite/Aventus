@@ -1,0 +1,46 @@
+import Ajv, { type ValidateFunction } from "ajv";
+import { schemaValidation, type Schema } from "./Definition.lib.avt";
+
+
+
+export class Validator {
+
+    private static compiled: ValidateFunction<{
+        [x: string]: {};
+    }>;
+    public static init() {
+        if(!this.compiled) {
+            const ajv = new Ajv({ allErrors: true }); // allErrors permet d'avoir tous les retours d'un coup
+            this.compiled = ajv.compile(schemaValidation);
+        }
+    }
+
+    public static validate(txt: string): { valid: false, msg: string; } | { valid: true, data: Schema; } {
+        this.init();
+
+        let parsed;
+        try {
+            parsed = JSON.parse(txt);
+        } catch(e: any) {
+            return {
+                valid: false,
+                msg: `Syntaxe error : ${e.message}`
+            };
+        }
+
+        const isValid = this.compiled(parsed);
+
+        if(!isValid) {
+            const errors = this.compiled.errors?.map(err => `${err.instancePath} ${err.message}`).join(", ");
+            return {
+                valid: false,
+                msg: `Invalid Structure : ${errors}`
+            };
+        }
+
+        return {
+            valid: true,
+            data: parsed as Schema
+        };
+    }
+}
