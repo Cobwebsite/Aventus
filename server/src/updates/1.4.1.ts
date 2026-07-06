@@ -1,4 +1,4 @@
-import { existsSync, fstatSync, lstatSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import { GenericServer } from '../GenericServer';
 import { join } from 'path';
 

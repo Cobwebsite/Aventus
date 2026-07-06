@@ -6645,179 +6645,6 @@ __as1(_, 'ResourceLoader', ResourceLoader);
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
-var VscodeView;
-(VscodeView||(VscodeView = {}));
-(function (VscodeView) {
-const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
-const moduleName = `VscodeView`;
-const _ = {};
-
-
-let _n;
-var ErrorCode;
-(function (ErrorCode) {
-    ErrorCode[ErrorCode["unknow"] = 0] = "unknow";
-    ErrorCode[ErrorCode["differentChannel"] = 1] = "differentChannel";
-    ErrorCode[ErrorCode["timeout"] = 2] = "timeout";
-})(ErrorCode || (ErrorCode = {}));
-__as1(_, 'ErrorCode', ErrorCode);
-
-let Error=class Error extends Aventus.GenericError {
-}
-Error.Namespace=`VscodeView`;
-Error.$schema={...(Aventus.GenericError?.$schema ?? {}), };
-Aventus.Converter.register(Error.Fullname, Error);
-__as1(_, 'Error', Error);
-
-let Router=class Router {
-    static get isVscode() {
-        return 'acquireVsCodeApi' in window;
-    }
-    static getInstance() {
-        return Aventus.Instance.get(Router);
-    }
-    routes = {};
-    waitingList = {};
-    vscode;
-    constructor() {
-        this.vscode = acquireVsCodeApi();
-        window.addEventListener('message', (e) => this.onMessage(e));
-    }
-    addRoute(route) {
-        if (!this.routes.hasOwnProperty(route.channel)) {
-            this.routes[route.channel] = [];
-        }
-        for (let info of this.routes[route.channel]) {
-            if (info.callback == route.callback) {
-                return;
-            }
-        }
-        const { params, regex } = Aventus.Uri.prepare(route.channel);
-        let prepared = {
-            callback: route.callback,
-            channel: route.channel,
-            regex,
-            params
-        };
-        this.routes[route.channel].push(prepared);
-    }
-    removeRoute(route) {
-        for (let i = 0; i < this.routes[route.channel].length; i++) {
-            let info = this.routes[route.channel][i];
-            if (info.callback == route.callback) {
-                this.routes[route.channel].splice(i, 1);
-                i--;
-            }
-        }
-    }
-    onMessage(event) {
-        let response = event.data;
-        let data = {};
-        try {
-            data = Aventus.Converter.transform(response.data);
-        }
-        catch (e) {
-            console.error(e);
-        }
-        for (let channel in this.routes) {
-            let current = this.routes[channel];
-            for (let info of current) {
-                let params = Aventus.Uri.getParams(info, response.channel);
-                if (params) {
-                    let valueCb = data;
-                    if (data instanceof Aventus.ResultWithError) {
-                        valueCb = data.result;
-                    }
-                    else if (data instanceof Aventus.VoidWithError) {
-                        valueCb = undefined;
-                    }
-                    info.callback(valueCb, params, response.uid);
-                }
-            }
-        }
-        if (response.uid) {
-            if (this.waitingList.hasOwnProperty(response.uid)) {
-                this.waitingList[response.uid](response.channel, data);
-                delete this.waitingList[response.uid];
-            }
-        }
-    }
-    send(options) {
-        let result = new Aventus.VoidWithError();
-        try {
-            let message = {
-                channel: options.channel,
-            };
-            if (options.uid) {
-                message.uid = options.uid;
-            }
-            if (options.body) {
-                message.data = options.body;
-            }
-            this.vscode.postMessage(message);
-        }
-        catch (e) {
-            result.errors.push(new Error(ErrorCode.unknow, e));
-        }
-        return result;
-    }
-    sendWithResponse(options) {
-        return new Promise(async (resolve) => {
-            let result = new Aventus.ResultWithError();
-            try {
-                let _uid = options.uid ? options.uid : Aventus.uuidv4();
-                options.uid = _uid;
-                let timeoutInfo;
-                this.waitingList[_uid] = (channel, data) => {
-                    clearTimeout(timeoutInfo);
-                    if (channel.toLowerCase() != options.channel.toLowerCase()) {
-                        result.errors.push(new Error(ErrorCode.differentChannel, `We sent a message on ${options.channel} but we receive on ${channel}`));
-                        resolve(result);
-                    }
-                    else {
-                        if (data instanceof Aventus.VoidWithError) {
-                            for (let error of data.errors) {
-                                result.errors.push(error);
-                            }
-                            if (data instanceof Aventus.ResultWithError) {
-                                result.result = data.result;
-                            }
-                        }
-                        else {
-                            result.result = data;
-                        }
-                        resolve(result);
-                    }
-                };
-                if (options.timeout !== undefined) {
-                    timeoutInfo = setTimeout(() => {
-                        delete this.waitingList[_uid];
-                        result.errors.push(new Error(ErrorCode.timeout, "No message received after " + options.timeout + "ms"));
-                        resolve(result);
-                    }, options.timeout);
-                }
-                let sendMessageResult = this.send(options);
-                if (!sendMessageResult.success) {
-                    for (let error of sendMessageResult.errors) {
-                        result.errors.push(error);
-                    }
-                    resolve(result);
-                }
-            }
-            catch (e) {
-                result.errors.push(new Error(ErrorCode.unknow, e));
-                resolve(result);
-            }
-        });
-    }
-}
-Router.Namespace=`VscodeView`;
-__as1(_, 'Router', Router);
-
-
-for(let key in _) { VscodeView[key] = _[key] }
-})(VscodeView);
-
 var MaterialIcon;
 (MaterialIcon||(MaterialIcon = {}));
 (function (MaterialIcon) {
@@ -6930,8 +6757,8 @@ const Icon = class Icon extends Aventus.WebComponent {
     }
     static configure(config) {
         this.config = {
-            ...this.config,
             ...config,
+            ...this.config
         };
     }
 }
@@ -8831,6 +8658,155 @@ Components.Form.FormElement = class FormElement extends Aventus.Form.FormElement
 Components.Form.FormElement.Namespace=`OneMoreUI.Components.Form`;
 __as1(_.Components.Form, 'FormElement', Components.Form.FormElement);
 
+Components.Form.Input = class Input extends Components.Form.FormElement {
+    static get observedAttributes() {return ["name", "label", "icon", "placeholder", "value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'is_focus'() { return this.getBoolAttr('is_focus') }
+    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }    get 'name'() { return this.getStringProp('name') }
+    set 'name'(val) { this.setStringAttr('name', val) }get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }get 'placeholder'() { return this.getStringProp('placeholder') }
+    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }get 'value'() { return this.getStringProp('value') }
+    set 'value'(val) { this.setStringAttr('value', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
+    target.onValueChange(target.value);
+})); }
+    static __style = `:host{--_input-bg: var(--input-bg, var(--form-element-bg));--_input-fg: var(--input-fg, var(--form-element-fg));--_input-border: var(--input-border, var(--form-element-border));--_input-border-radius: var(--input-border-radius, var(--form-element-border-radius))}:host{width:100%}:host label{display:none;font-size:var(--font-size-sm);font-weight:500;line-height:var(--line-height-sm)}:host .input{align-items:center;background-color:var(--_input-bg);border-radius:var(--_input-border-radius);display:flex;gap:.5rem;height:100%;margin-top:0;overflow:hidden;padding:.5rem 1rem;position:relative;width:100%}:host .input .icon{color:color-mix(in oklab, var(--_input-fg) 40%, transparent);display:none;font-size:var(--font-size)}:host .input input{background-color:rgba(0,0,0,0);border:none;color:var(--_input-fg);display:block;flex-grow:1;font-size:var(--font-size);height:var(--line-height);margin:0;min-width:0;outline:none;padding:0}:host .input input::placeholder{color:color-mix(in oklab, var(--_input-fg) 40%, transparent)}:host .input::after{border:var(--_input-border);border-radius:var(--_input-border-radius);content:"";display:block;inset:0px;pointer-events:none;position:absolute}:host .errors{color:var(--error);display:none;flex-direction:column;font-size:var(--font-size-sm);gap:.25rem;line-height:var(--line-height-sm);margin:.5rem;margin-bottom:0}:host([is_focus]) .input{border-color:var(--primary)}:host([is_focus]) .input::after{border-color:var(--primary);border-width:2px}:host([has_errors]) .input::after{border-color:var(--error)}:host([has_errors]) .errors{display:flex}:host([icon]:not([icon=""])) .input .icon{display:block}:host([label]:not([label=""])) label{display:flex}:host([label]:not([label=""])) .input{height:auto;margin-top:.5rem}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) label{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input{background-color:color-mix(in oklab, var(--surface-content) 10%, transparent)}:host([disabled]) .input input{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input::after{border:none}`;
+    __getStatic() {
+        return Input;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Input.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        slots: { 'prepend':`<slot name="prepend">        <mi-icon class="icon" _id="input_1"></mi-icon>    </slot>`,'append':`<slot name="append">    </slot>` }, 
+        blocks: { 'default':`<label _id="input_0"></label><div class="input">    <slot name="prepend">        <mi-icon class="icon" _id="input_1"></mi-icon>    </slot>    <input autocomplete="off" _id="input_2" />    <slot name="append">    </slot></div><div class="errors">    <template _id="input_3"></template></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "iconEl",
+      "ids": [
+        "input_1"
+      ]
+    },
+    {
+      "name": "inputEl",
+      "ids": [
+        "input_2"
+      ]
+    }
+  ],
+  "content": {
+    "input_0°for": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod1())}`,
+      "once": true
+    },
+    "input_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod2())}`,
+      "once": true
+    },
+    "input_1°icon": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod3())}`,
+      "once": true
+    },
+    "input_2°id": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod1())}`,
+      "once": true
+    },
+    "input_2°name": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod1())}`,
+      "once": true
+    },
+    "input_2°placeholder": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod4())}`,
+      "once": true
+    },
+    "input_2°tabindex": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod6())}`
+    }
+  },
+  "injection": [
+    {
+      "id": "input_2",
+      "injectionName": "value",
+      "inject": (c) => c.comp.__2d86810f2ba04f242547809ce401a43bmethod5(),
+      "once": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "focus",
+      "id": "input_2",
+      "fct": (e, c) => c.comp.onFocus(e)
+    },
+    {
+      "eventName": "blur",
+      "id": "input_2",
+      "fct": (e, c) => c.comp.onBlur(e)
+    },
+    {
+      "eventName": "input",
+      "id": "input_2",
+      "fct": (e, c) => c.comp.onInputChanged(e)
+    }
+  ]
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`         <div _id="input_4"></div>    `);templ0.setActions({
+  "content": {
+    "input_4°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod7(c.data.error))}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'input_3',
+                    template: templ0,
+                simple:{data: "this.errors",item:"error"}}); }
+    getClassName() {
+        return "Input";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }if(!this.hasAttribute('name')){ this['name'] = undefined; }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_focus');this.__upgradeProperty('name');this.__upgradeProperty('label');this.__upgradeProperty('icon');this.__upgradeProperty('placeholder');this.__upgradeProperty('value'); }
+    __listBoolProps() { return ["is_focus"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    onFocus() {
+        this.is_focus = true;
+        this.errors = [];
+    }
+    onBlur() {
+        this.is_focus = false;
+    }
+    onInputChanged() {
+        this.triggerChange(this.inputEl.value);
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod1() {
+        return this.name;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod2() {
+        return this.label;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod3() {
+        return this.icon;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod4() {
+        return this.placeholder;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod6() {
+        return this.disabled ? -1 : 0;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod7(error) {
+        return error;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod5() {
+        return this.value;
+    }
+}
+Components.Form.Input.Namespace=`OneMoreUI.Components.Form`;
+Components.Form.Input.Tag=`om-input`;
+__as1(_.Components.Form, 'Input', Components.Form.Input);
+if(!window.customElements.get('om-input')){window.customElements.define('om-input', Components.Form.Input);Aventus.WebComponentInstance.registerDefinition(Components.Form.Input);}
+
 Components.Form.Select.BaseSelect.OptionsContainer = class OptionsContainer extends Aventus.WebComponent {
     get 'open'() { return this.getBoolAttr('open') }
     set 'open'(val) { this.setBoolAttr('open', val) }get 'transition'() { return this.getBoolAttr('transition') }
@@ -9492,8 +9468,67 @@ const _ = {};
 
 
 let _n;
+let schemaValidation= {
+    type: "object",
+    required: ["name", "databaseType", "tables", "relationships"],
+    properties: {
+        name: { type: "string" },
+        databaseType: { type: "string" },
+        tables: {
+            type: "array",
+            items: {
+                type: "object",
+                required: ["id", "name", "fields"],
+                properties: {
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    fields: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            required: ["id", "name", "type"],
+                            properties: {
+                                id: { type: "string" },
+                                name: { type: "string" },
+                                type: {
+                                    type: "object",
+                                    required: ["id", "name"],
+                                    properties: {
+                                        id: { type: "string" },
+                                        name: { type: "string" }
+                                    }
+                                },
+                                primaryKey: { type: "boolean" },
+                                unique: { type: "boolean" },
+                                nullable: { type: "boolean" }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        relationships: {
+            type: "array",
+            items: {
+                type: "object",
+                required: ["id", "name", "sourceTableId", "targetTableId", "sourceFieldId", "targetFieldId"],
+                properties: {
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    description: { type: "string" },
+                    sourceTableId: { type: "string" },
+                    targetTableId: { type: "string" },
+                    sourceFieldId: { type: "string" },
+                    targetFieldId: { type: "string" }
+                }
+            }
+        }
+    }
+};
+__as1(_, 'schemaValidation', schemaValidation);
+
 const BaseContent = class BaseContent extends Aventus.WebComponent {
-    static __style = `:host{width:100%}:host .section-header{margin-bottom:2rem}:host .section-header h2{font-size:1.75rem;font-weight:600;letter-spacing:-0.02em;margin:0;margin-bottom:.5rem}:host .section-header p{color:var(--neutral);margin:0;max-width:800px}:host .card-header{align-items:center;display:flex;justify-content:space-between}:host .card-header h3{font-size:1.15rem;font-weight:600;margin:0}:host .action-footer{border-top:1px solid var(--border-color);display:flex;gap:1rem;justify-content:flex-end;margin-top:2rem;padding-top:1.5rem}`;
+    static __style = `:host{width:100%}:host .section-header{margin-bottom:2rem}:host .section-header h2{font-size:1.75rem;font-weight:600;letter-spacing:-0.02em;margin:0;margin-bottom:.5rem}:host .section-header p{color:var(--neutral);margin:0;max-width:800px}:host .card-header{align-items:center;display:flex;justify-content:space-between}:host .card-header h3{font-size:1.15rem;font-weight:600;margin:0}:host .action-footer{border-top:1px solid var(--border-color);display:flex;gap:1rem;justify-content:flex-end;margin-top:2rem;padding-top:1.5rem}:host .action-footer om-button{--button-bg: var(--primary)}`;
     __getStatic() {
         return BaseContent;
     }
@@ -9882,6 +9917,43 @@ let Dynamic=function Dynamic(cb) {
 }
 __as1(_, 'Dynamic', Dynamic);
 
+let Validator=class Validator {
+    static compiled;
+    static init() {
+        if (!this.compiled) {
+            const ajv = new Ajv({ allErrors: true });
+            this.compiled = ajv.compile(schemaValidation);
+        }
+    }
+    static validate(txt) {
+        this.init();
+        let parsed;
+        try {
+            parsed = JSON.parse(txt);
+        }
+        catch (e) {
+            return {
+                valid: false,
+                msg: `Syntaxe error : ${e.message}`
+            };
+        }
+        const isValid = this.compiled(parsed);
+        if (!isValid) {
+            const errors = this.compiled.errors?.map(err => `${err.instancePath} ${err.message}`).join(", ");
+            return {
+                valid: false,
+                msg: `Invalid Structure : ${errors}`
+            };
+        }
+        return {
+            valid: true,
+            data: parsed
+        };
+    }
+}
+Validator.Namespace=`migration`;
+__as1(_, 'Validator', Validator);
+
 const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebComponent {
     static get observedAttributes() {return ["is_rename"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'is_rename'() { return this.getBoolProp('is_rename') }
@@ -10119,6 +10191,1665 @@ let MainState=(() => {
                 }
             ]
         });
+        oldSchema2 = {
+            "name": "spalio",
+            "databaseType": "mysql",
+            "tables": [
+                {
+                    "id": "bill",
+                    "name": "bill",
+                    "fields": [
+                        {
+                            "id": "bill.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "bill.Montant",
+                            "name": "Montant",
+                            "type": {
+                                "id": "float",
+                                "name": "float"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "bill.MontantPaye",
+                            "name": "MontantPaye",
+                            "type": {
+                                "id": "float",
+                                "name": "float"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "bill.DateEmission",
+                            "name": "DateEmission",
+                            "type": {
+                                "id": "date",
+                                "name": "date"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "bill.DateEcheance",
+                            "name": "DateEcheance",
+                            "type": {
+                                "id": "date",
+                                "name": "date"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "billline",
+                    "name": "billline",
+                    "fields": [
+                        {
+                            "id": "billline.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "billline.Label",
+                            "name": "Label",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "billline.Quantity",
+                            "name": "Quantity",
+                            "type": {
+                                "id": "float",
+                                "name": "float"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "billline.Montant",
+                            "name": "Montant",
+                            "type": {
+                                "id": "float",
+                                "name": "float"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "billline.BillId",
+                            "name": "BillId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "club",
+                    "name": "club",
+                    "fields": [
+                        {
+                            "id": "club.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "club.Name",
+                            "name": "Name",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "club.Logo",
+                            "name": "Logo",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "club.PrimaryColor",
+                            "name": "PrimaryColor",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "club.Address",
+                            "name": "Address",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "club.City",
+                            "name": "City",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "club.ZipCode",
+                            "name": "ZipCode",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "club.Licence",
+                            "name": "Licence",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "club.AvailableUsers",
+                            "name": "AvailableUsers",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "club.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "club.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "clubmodule",
+                    "name": "clubmodule",
+                    "fields": [
+                        {
+                            "id": "clubmodule.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "clubmodule.Club",
+                            "name": "Club",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "clubmodule.Module",
+                            "name": "Module",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "clubmodule.IsActive",
+                            "name": "IsActive",
+                            "type": {
+                                "id": "bit",
+                                "name": "bit"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "clubmodule.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "clubmodule.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "clubuserpack",
+                    "name": "clubuserpack",
+                    "fields": [
+                        {
+                            "id": "clubuserpack.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "clubuserpack.Club",
+                            "name": "Club",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "clubuserpack.Pack",
+                            "name": "Pack",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "clubuserpack.IsActive",
+                            "name": "IsActive",
+                            "type": {
+                                "id": "bit",
+                                "name": "bit"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "clubuserpack.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "clubuserpack.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "conversation",
+                    "name": "conversation",
+                    "fields": [
+                        {
+                            "id": "conversation.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "conversation.Name",
+                            "name": "Name",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "conversation.Icon",
+                            "name": "Icon",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "conversation.IsGroup",
+                            "name": "IsGroup",
+                            "type": {
+                                "id": "bit",
+                                "name": "bit"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "conversationuser",
+                    "name": "conversationuser",
+                    "fields": [
+                        {
+                            "id": "conversationuser.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "conversationuser.ConversationId",
+                            "name": "ConversationId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "conversationuser.UserId",
+                            "name": "UserId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "familymember",
+                    "name": "familymember",
+                    "fields": [
+                        {
+                            "id": "familymember.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "familymember.FirstName",
+                            "name": "FirstName",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "familymember.LastName",
+                            "name": "LastName",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "familymember.BirthDate",
+                            "name": "BirthDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "familymember.Email",
+                            "name": "Email",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "familymember.Phone",
+                            "name": "Phone",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "familymember.ReferenceMember",
+                            "name": "ReferenceMember",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "function",
+                    "name": "function",
+                    "fields": [
+                        {
+                            "id": "function.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "function.Name",
+                            "name": "Name",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "function.ClubId",
+                            "name": "ClubId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "function.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "function.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "licence",
+                    "name": "licence",
+                    "fields": [
+                        {
+                            "id": "licence.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "licence.Kind",
+                            "name": "Kind",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "licence.QtyUser",
+                            "name": "QtyUser",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "licence.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "licence.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "material",
+                    "name": "material",
+                    "fields": [
+                        {
+                            "id": "material.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "material.Nom",
+                            "name": "Nom",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "material.ClubId",
+                            "name": "ClubId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "member",
+                    "name": "member",
+                    "fields": [
+                        {
+                            "id": "member.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "member.FirstName",
+                            "name": "FirstName",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "member.LastName",
+                            "name": "LastName",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "member.BirthDate",
+                            "name": "BirthDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "member.Email",
+                            "name": "Email",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "member.Phone",
+                            "name": "Phone",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "member.Address",
+                            "name": "Address",
+                            "type": {
+                                "id": "text",
+                                "name": "text"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "member.Settings",
+                            "name": "Settings",
+                            "type": {
+                                "id": "longtext",
+                                "name": "longtext"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "member.UserId",
+                            "name": "UserId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "member.Club",
+                            "name": "Club",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "member.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "member.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "message",
+                    "name": "message",
+                    "fields": [
+                        {
+                            "id": "message.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "message.Content",
+                            "name": "Content",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "message.ConversationId",
+                            "name": "ConversationId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "migrationtable",
+                    "name": "migrationtable",
+                    "fields": [
+                        {
+                            "id": "migrationtable.Name",
+                            "name": "Name",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "migrationtable.Date",
+                            "name": "Date",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "module",
+                    "name": "module",
+                    "fields": [
+                        {
+                            "id": "module.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "module.Kind",
+                            "name": "Kind",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "module.Price",
+                            "name": "Price",
+                            "type": {
+                                "id": "float",
+                                "name": "float"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "module.IsActive",
+                            "name": "IsActive",
+                            "type": {
+                                "id": "bit",
+                                "name": "bit"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "movement",
+                    "name": "movement",
+                    "fields": [
+                        {
+                            "id": "movement.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "permission",
+                    "name": "permission",
+                    "fields": [
+                        {
+                            "id": "permission.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "permission.Name",
+                            "name": "Name",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "permission.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "permission.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "permissionrole",
+                    "name": "permissionrole",
+                    "fields": [
+                        {
+                            "id": "permissionrole.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "permissionrole.Role",
+                            "name": "Role",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "permissionrole.Permission",
+                            "name": "Permission",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "role",
+                    "name": "role",
+                    "fields": [
+                        {
+                            "id": "role.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "role.Name",
+                            "name": "Name",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "role.ClubId",
+                            "name": "ClubId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "role.IsAdmin",
+                            "name": "IsAdmin",
+                            "type": {
+                                "id": "bit",
+                                "name": "bit"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "role.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "role.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "team",
+                    "name": "team",
+                    "fields": [
+                        {
+                            "id": "team.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "team.Name",
+                            "name": "Name",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "team.Color",
+                            "name": "Color",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "team.ClubId",
+                            "name": "ClubId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "team.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "team.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "teammember",
+                    "name": "teammember",
+                    "fields": [
+                        {
+                            "id": "teammember.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "teammember.TeamId",
+                            "name": "TeamId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "teammember.MemberId",
+                            "name": "MemberId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "teammember.FunctionId",
+                            "name": "FunctionId",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "teammember.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "teammember.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "user",
+                    "name": "user",
+                    "fields": [
+                        {
+                            "id": "user.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "user.Email",
+                            "name": "Email",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "user.Password",
+                            "name": "Password",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "user.IsSuperAdmin",
+                            "name": "IsSuperAdmin",
+                            "type": {
+                                "id": "bit",
+                                "name": "bit"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "user.Role",
+                            "name": "Role",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": true
+                        },
+                        {
+                            "id": "user.CreatedDate",
+                            "name": "CreatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "user.UpdatedDate",
+                            "name": "UpdatedDate",
+                            "type": {
+                                "id": "datetime",
+                                "name": "datetime"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "userpack",
+                    "name": "userpack",
+                    "fields": [
+                        {
+                            "id": "userpack.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "userpack.Name",
+                            "name": "Name",
+                            "type": {
+                                "id": "varchar",
+                                "name": "varchar"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "userpack.QtyUser",
+                            "name": "QtyUser",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "userpack.Price",
+                            "name": "Price",
+                            "type": {
+                                "id": "float",
+                                "name": "float"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "userpack.IsActive",
+                            "name": "IsActive",
+                            "type": {
+                                "id": "bit",
+                                "name": "bit"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        },
+                        {
+                            "id": "userpack.MonthValidity",
+                            "name": "MonthValidity",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": false,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                },
+                {
+                    "id": "variation",
+                    "name": "variation",
+                    "fields": [
+                        {
+                            "id": "variation.Id",
+                            "name": "Id",
+                            "type": {
+                                "id": "int",
+                                "name": "int"
+                            },
+                            "primaryKey": true,
+                            "unique": false,
+                            "nullable": false
+                        }
+                    ]
+                }
+            ],
+            "relationships": [
+                {
+                    "id": "7c3f1440-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_BillId_BillLine_Bill",
+                    "sourceTableId": "billline",
+                    "targetTableId": "bill",
+                    "sourceFieldId": "billline.BillId",
+                    "targetFieldId": "bill.Id"
+                },
+                {
+                    "id": "7c3f1466-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_Licence_Club_Licence",
+                    "sourceTableId": "club",
+                    "targetTableId": "licence",
+                    "sourceFieldId": "club.Licence",
+                    "targetFieldId": "licence.Id"
+                },
+                {
+                    "id": "7c3f1475-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_Club_ClubModule_Club",
+                    "sourceTableId": "clubmodule",
+                    "targetTableId": "club",
+                    "sourceFieldId": "clubmodule.Club",
+                    "targetFieldId": "club.Id"
+                },
+                {
+                    "id": "7c3f147d-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_Module_ClubModule_Module",
+                    "sourceTableId": "clubmodule",
+                    "targetTableId": "module",
+                    "sourceFieldId": "clubmodule.Module",
+                    "targetFieldId": "module.Id"
+                },
+                {
+                    "id": "7c3f1499-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_Club_ClubUserPack_Club",
+                    "sourceTableId": "clubuserpack",
+                    "targetTableId": "club",
+                    "sourceFieldId": "clubuserpack.Club",
+                    "targetFieldId": "club.Id"
+                },
+                {
+                    "id": "7c3f149e-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_Pack_ClubUserPack_UserPack",
+                    "sourceTableId": "clubuserpack",
+                    "targetTableId": "userpack",
+                    "sourceFieldId": "clubuserpack.Pack",
+                    "targetFieldId": "userpack.Id"
+                },
+                {
+                    "id": "7c3f14a8-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_ConversationId_ConversationUser_Conversation",
+                    "sourceTableId": "conversationuser",
+                    "targetTableId": "conversation",
+                    "sourceFieldId": "conversationuser.ConversationId",
+                    "targetFieldId": "conversation.Id"
+                },
+                {
+                    "id": "7c3f14af-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_UserId_ConversationUser_User",
+                    "sourceTableId": "conversationuser",
+                    "targetTableId": "user",
+                    "sourceFieldId": "conversationuser.UserId",
+                    "targetFieldId": "user.Id"
+                },
+                {
+                    "id": "7c3f14b5-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_ReferenceMember_FamilyMember_Member",
+                    "sourceTableId": "familymember",
+                    "targetTableId": "member",
+                    "sourceFieldId": "familymember.ReferenceMember",
+                    "targetFieldId": "member.Id"
+                },
+                {
+                    "id": "7c3f14c5-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_ClubId_Function_Club",
+                    "sourceTableId": "function",
+                    "targetTableId": "club",
+                    "sourceFieldId": "function.ClubId",
+                    "targetFieldId": "club.Id"
+                },
+                {
+                    "id": "7c3f14cc-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_ClubId_Material_Club",
+                    "sourceTableId": "material",
+                    "targetTableId": "club",
+                    "sourceFieldId": "material.ClubId",
+                    "targetFieldId": "club.Id"
+                },
+                {
+                    "id": "7c3f14d1-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_Club_Member_Club",
+                    "sourceTableId": "member",
+                    "targetTableId": "club",
+                    "sourceFieldId": "member.Club",
+                    "targetFieldId": "club.Id"
+                },
+                {
+                    "id": "7c3f14d6-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_UserId_Member_User",
+                    "sourceTableId": "member",
+                    "targetTableId": "user",
+                    "sourceFieldId": "member.UserId",
+                    "targetFieldId": "user.Id"
+                },
+                {
+                    "id": "7c3f14db-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_ConversationId_Message_Conversation",
+                    "sourceTableId": "message",
+                    "targetTableId": "conversation",
+                    "sourceFieldId": "message.ConversationId",
+                    "targetFieldId": "conversation.Id"
+                },
+                {
+                    "id": "7c3f14e3-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_Permission_PermissionRole_Permission",
+                    "sourceTableId": "permissionrole",
+                    "targetTableId": "permission",
+                    "sourceFieldId": "permissionrole.Permission",
+                    "targetFieldId": "permission.Id"
+                },
+                {
+                    "id": "7c3f14e9-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_Role_PermissionRole_Role",
+                    "sourceTableId": "permissionrole",
+                    "targetTableId": "role",
+                    "sourceFieldId": "permissionrole.Role",
+                    "targetFieldId": "role.Id"
+                },
+                {
+                    "id": "7c3f14ef-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_ClubId_Role_Club",
+                    "sourceTableId": "role",
+                    "targetTableId": "club",
+                    "sourceFieldId": "role.ClubId",
+                    "targetFieldId": "club.Id"
+                },
+                {
+                    "id": "7c3f14f4-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_ClubId_Team_Club",
+                    "sourceTableId": "team",
+                    "targetTableId": "club",
+                    "sourceFieldId": "team.ClubId",
+                    "targetFieldId": "club.Id"
+                },
+                {
+                    "id": "7c3f14f9-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_FunctionId_TeamMember_Function",
+                    "sourceTableId": "teammember",
+                    "targetTableId": "function",
+                    "sourceFieldId": "teammember.FunctionId",
+                    "targetFieldId": "function.Id"
+                },
+                {
+                    "id": "7c3f1508-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_MemberId_TeamMember_Member",
+                    "sourceTableId": "teammember",
+                    "targetTableId": "member",
+                    "sourceFieldId": "teammember.MemberId",
+                    "targetFieldId": "member.Id"
+                },
+                {
+                    "id": "7c3f150d-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_TeamId_TeamMember_Team",
+                    "sourceTableId": "teammember",
+                    "targetTableId": "team",
+                    "sourceFieldId": "teammember.TeamId",
+                    "targetFieldId": "team.Id"
+                },
+                {
+                    "id": "7c3f1513-790f-11f1-a7b7-5cb47e319925",
+                    "name": "FK_Role_User_Role",
+                    "sourceTableId": "user",
+                    "targetTableId": "role",
+                    "sourceFieldId": "user.Role",
+                    "targetFieldId": "role.Id"
+                }
+            ]
+        };
         newSchema = {
             "name": "DemoSchemaB",
             "databaseType": "sqlite",
@@ -10191,6 +11922,405 @@ let MainState=(() => {
 })();
 MainState.Namespace=`migration`;
 __as1(_, 'MainState', MainState);
+
+const MigrationWritter = class MigrationWritter extends BaseContent {
+    get 'migrationName'() {
+						return this.__watch["migrationName"];
+					}
+					set 'migrationName'(val) {
+						this.__watch["migrationName"] = val;
+					}get 'migrationClassName'() {
+						return this.__watch["migrationClassName"];
+					}
+					set 'migrationClassName'(val) {
+						this.__watch["migrationClassName"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("migrationName");this.__addWatchesActions("migrationClassName");    super.__registerWatchesActions();
+}
+    static __style = `:host{width:100%}:host .output-grid{align-items:start;display:grid;gap:2rem;grid-template-columns:1fr 2fr}:host .output-grid .config-panel{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2)}:host .output-grid .config-panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:1.25rem 1.5rem}:host .output-grid .config-panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .output-grid .config-panel .panel-body{display:flex;flex-direction:column;gap:1.5rem;padding:1.5rem}:host .output-grid .config-panel .panel-body .quick-stats{border-top:1px solid var(--border-color);margin-top:1rem;padding-top:1.25rem}:host .output-grid .config-panel .panel-body .quick-stats h4{color:var(--text-secondary);font-size:.9rem;font-weight:600;margin:0;margin-bottom:.75rem}:host .output-grid .config-panel .panel-body .quick-stats ul{display:flex;flex-direction:column;gap:.4rem;list-style:none;margin:0;padding:0}:host .output-grid .config-panel .panel-body .quick-stats ul li{color:var(--neutral);display:flex;font-size:.85rem;justify-content:space-between}:host .output-grid .config-panel .panel-body .quick-stats ul li span{color:var(--primary-content);font-weight:600}:host .output-grid .code-panel{background:#0b0f19;border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);overflow:hidden}:host .output-grid .code-panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:1.25rem 1.5rem}:host .output-grid .code-panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .output-grid .code-panel .panel-header .code-actions{display:flex;gap:.5rem}:host .output-grid .code-panel .code-viewport{max-height:600px;overflow-x:auto;padding:1.5rem}:host .output-grid .code-panel .code-viewport pre{color:#e2e8f0;font-family:var(--font-mono);font-size:.85rem;line-height:1.6}`;
+    __getStatic() {
+        return MigrationWritter;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(MigrationWritter.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="section-header">    <h2>Code de Migration C# Généré</h2>    <p>Voici la classe de migration AventusSharp générée. Copiez ce code dans votre projet ou téléchargez le fichier.    </p></div><div class="output-grid">    <div class="config-panel">        <div class="panel-header">            <h3>Configuration</h3>        </div>        <div class="panel-body">            <div class="form-group">                <om-input label="Nom de la migration :" _id="migrationwritter_0"></om-input>                <small>Identifiant unique de la migration (ex: 0001_update).</small>            </div>            <div class="form-group">                <om-input label="Nom de la classe C# :" _id="migrationwritter_1"></om-input>                <small>Nom valide pour la classe C# héritant de <code>Migration</code>.</small>            </div>            <div class="quick-stats">                <h4>Statistiques :</h4>                <ul>                    <li>Tables créées : <span id="stat-created-tables">0</span></li>                    <li>Tables renommées : <span id="stat-renamed-tables">0</span></li>                    <li>Tables supprimées : <span id="stat-deleted-tables">0</span></li>                    <li>Modifications appliquées : <span id="stat-modified-tables">0</span></li>                </ul>            </div>        </div>    </div>    <div class="code-panel">        <div class="panel-header">            <h3>Code Source C#</h3>            <div class="code-actions">                <om-button outline>Copier</om-button>                <om-button>Télécharger</om-button>            </div>        </div>        <div class="code-viewport">            <pre><code _id="migrationwritter_2"></code></pre>        </div>    </div></div><div class="action-footer">    <om-button _id="migrationwritter_3">Retour</om-button></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "csharpOutput",
+      "ids": [
+        "migrationwritter_2"
+      ]
+    }
+  ],
+  "injection": [
+    {
+      "id": "migrationwritter_0",
+      "injectionName": "value",
+      "inject": (c) => c.comp.__9a8036ed8f626c8a9e612affd1701bf1method0(),
+      "once": true
+    },
+    {
+      "id": "migrationwritter_1",
+      "injectionName": "value",
+      "inject": (c) => c.comp.__9a8036ed8f626c8a9e612affd1701bf1method1(),
+      "once": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "click",
+      "id": "migrationwritter_3",
+      "fct": (e, c) => c.comp.back(e)
+    }
+  ]
+}); }
+    getClassName() {
+        return "MigrationWritter";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["migrationName"] = "0001_update";w["migrationClassName"] = "Migration_0001_update"; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('migrationName');this.__correctGetter('migrationClassName'); }
+    back() {
+        MainState.instance.step = 1;
+    }
+    generateMigrationCode(migrationName, className) {
+        const state = MainState.instance;
+        const comp = state.comparison;
+        const oldSchema = state.oldSchema;
+        const newSchema = state.newSchema;
+        const mappings = state.mappings;
+        let sb = [];
+        sb.push("using AventusSharp.Data.Migrations;");
+        sb.push("using AventusSharp.Data.Attributes;");
+        sb.push("using System;");
+        sb.push("");
+        sb.push(`public class ${className} : Migration`);
+        sb.push("{");
+        sb.push("    public override string GetName()");
+        sb.push("    {");
+        sb.push(`        return "${migrationName}";`);
+        sb.push("    }");
+        sb.push("");
+        sb.push("    public override void Up()");
+        sb.push("    {");
+        // 1. Rename tables
+        for (const rt of comp.renamedTables) {
+            sb.push(`        RenameModel<${rt.newName}>("${rt.oldName}");`);
+        }
+        if (comp.renamedTables.length > 0) {
+            sb.push("");
+        }
+        // 2. Create added tables
+        for (const table of comp.addedTables) {
+            const chainLines = [];
+            chainLines.push(`CreateModel<${table.name}>()`);
+            const fields = table.fields || [];
+            const hasCreatedDate = fields.some(f => f.name.toLowerCase() === "createddate" || f.name.toLowerCase() === "created_at");
+            const hasUpdatedDate = fields.some(f => f.name.toLowerCase() === "updateddate" || f.name.toLowerCase() === "updated_at");
+            const hasTimestamps = hasCreatedDate && hasUpdatedDate;
+            for (const field of fields) {
+                if (hasTimestamps && (field.name.toLowerCase() === "createddate" || field.name.toLowerCase() === "created_at" || field.name.toLowerCase() === "updateddate" || field.name.toLowerCase() === "updated_at")) {
+                    continue;
+                }
+                if (field.primaryKey) {
+                    chainLines.push(`AddPrimary("${field.name}")`);
+                }
+                else {
+                    const referencedTable = this.getReferencedTableJS(table, field, newSchema);
+                    if (referencedTable) {
+                        const refOptionsStr = this.formatRefOptionsJS(field.nullable);
+                        chainLines.push(`AddRef<${referencedTable}>("${field.name}"${refOptionsStr})`);
+                    }
+                    else {
+                        const { csharpType, sizeOption } = this.parseTypeAndSizeJS(field.type.name);
+                        const optionsStr = this.formatOptionsJS(field.nullable, field.unique, sizeOption);
+                        chainLines.push(`AddProperty<${csharpType}>("${field.name}"${optionsStr})`);
+                    }
+                }
+            }
+            if (hasTimestamps) {
+                chainLines.push("AddTimestamp()");
+            }
+            sb.push("        " + chainLines[0]);
+            for (let i = 1; i < chainLines.length; i++) {
+                sb.push("            ." + chainLines[i]);
+            }
+            sb[sb.length - 1] += ";";
+            sb.push("");
+        }
+        // 3. Update existing tables
+        for (const tc of comp.tableComparisons) {
+            if (!tc.hasChanges)
+                continue;
+            const chainLines = [];
+            chainLines.push(`SelectModel<${tc.newTableName}>()`);
+            // Rename properties
+            for (const rf of tc.renamedFields) {
+                const { csharpType } = this.parseTypeAndSizeJS(rf.new.type.name);
+                chainLines.push(`RenameProperty<${csharpType}>("${rf.oldName}", "${rf.newName}")`);
+            }
+            // Remove properties
+            for (const df of tc.deletedFields) {
+                const { csharpType } = this.parseTypeAndSizeJS(df.type.name);
+                chainLines.push(`RemoveProperty<${csharpType}>("${df.name}")`);
+            }
+            // Add properties
+            for (const af of tc.addedFields) {
+                const newTableObj = newSchema.tables.find(t => t.name === tc.newTableName);
+                const referencedTable = this.getReferencedTableJS(newTableObj, af, newSchema);
+                if (referencedTable) {
+                    const refOptionsStr = this.formatRefOptionsJS(af.nullable);
+                    chainLines.push(`AddRef<${referencedTable}>("${af.name}"${refOptionsStr})`);
+                }
+                else {
+                    const { csharpType, sizeOption } = this.parseTypeAndSizeJS(af.type.name);
+                    const optionsStr = this.formatOptionsJS(af.nullable, af.unique, sizeOption);
+                    chainLines.push(`AddProperty<${csharpType}>("${af.name}"${optionsStr})`);
+                }
+            }
+            // Modified properties
+            for (const mf of tc.modifiedFields) {
+                const newTableObj = newSchema.tables.find(t => t.name === tc.newTableName);
+                const referencedTable = this.getReferencedTableJS(newTableObj, mf.new, newSchema);
+                if (referencedTable) {
+                    const refOptionsStr = this.formatRefOptionsJS(mf.new.nullable);
+                    chainLines.push(`AddRef<${referencedTable}>("${mf.name}"${refOptionsStr})`);
+                }
+                else {
+                    const { csharpType, sizeOption } = this.parseTypeAndSizeJS(mf.new.type.name);
+                    const optionsStr = this.formatOptionsJS(mf.new.nullable, mf.new.unique, sizeOption);
+                    chainLines.push(`AddProperty<${csharpType}>("${mf.name}"${optionsStr})`);
+                }
+            }
+            if (chainLines.length > 1) {
+                sb.push("        " + chainLines[0]);
+                for (let i = 1; i < chainLines.length; i++) {
+                    sb.push("            ." + chainLines[i]);
+                }
+                sb[sb.length - 1] += ";";
+                sb.push("");
+            }
+        }
+        // 4. Delete models
+        for (const dt of comp.deletedTables) {
+            sb.push(`        DeleteModel<${dt.name}>();`);
+        }
+        if (comp.deletedTables.length > 0) {
+            sb.push("");
+        }
+        sb.push("    }");
+        sb.push("");
+        sb.push("    public override void Down()");
+        sb.push("    {");
+        // 1. Delete models created in Up
+        for (const table of comp.addedTables) {
+            sb.push(`        DeleteModel<${table.name}>();`);
+        }
+        if (comp.addedTables.length > 0) {
+            sb.push("");
+        }
+        // 2. Recreate models deleted in Up
+        for (const table of comp.deletedTables) {
+            const chainLines = [];
+            chainLines.push(`CreateModel<${table.name}>()`);
+            const fields = table.fields || [];
+            const hasCreatedDate = fields.some(f => f.name.toLowerCase() === "createddate" || f.name.toLowerCase() === "created_at");
+            const hasUpdatedDate = fields.some(f => f.name.toLowerCase() === "updateddate" || f.name.toLowerCase() === "updated_at");
+            const hasTimestamps = hasCreatedDate && hasUpdatedDate;
+            for (const field of fields) {
+                if (hasTimestamps && (field.name.toLowerCase() === "createddate" || field.name.toLowerCase() === "created_at" || field.name.toLowerCase() === "updateddate" || field.name.toLowerCase() === "updated_at")) {
+                    continue;
+                }
+                if (field.primaryKey) {
+                    chainLines.push(`AddPrimary("${field.name}")`);
+                }
+                else {
+                    const referencedTable = this.getReferencedTableJS(table, field, oldSchema);
+                    if (referencedTable) {
+                        const refOptionsStr = this.formatRefOptionsJS(field.nullable);
+                        chainLines.push(`AddRef<${referencedTable}>("${field.name}"${refOptionsStr})`);
+                    }
+                    else {
+                        const { csharpType, sizeOption } = this.parseTypeAndSizeJS(field.type.name);
+                        const optionsStr = this.formatOptionsJS(field.nullable, field.unique, sizeOption);
+                        chainLines.push(`AddProperty<${csharpType}>("${field.name}"${optionsStr})`);
+                    }
+                }
+            }
+            if (hasTimestamps) {
+                chainLines.push("AddTimestamp()");
+            }
+            sb.push("        " + chainLines[0]);
+            for (let i = 1; i < chainLines.length; i++) {
+                sb.push("            ." + chainLines[i]);
+            }
+            sb[sb.length - 1] += ";";
+            sb.push("");
+        }
+        // 3. Rename models back
+        for (const rt of comp.renamedTables) {
+            sb.push(`        RenameModel<${rt.oldName}>("${rt.newName}");`);
+        }
+        if (comp.renamedTables.length > 0) {
+            sb.push("");
+        }
+        // 4. Revert modifications on existing tables
+        for (const tc of comp.tableComparisons) {
+            if (!tc.hasChanges)
+                continue;
+            const chainLines = [];
+            chainLines.push(`SelectModel<${tc.oldTableName}>()`);
+            // Invert rename properties (new to old)
+            for (const rf of tc.renamedFields) {
+                const { csharpType } = this.parseTypeAndSizeJS(rf.old.type.name);
+                chainLines.push(`RenameProperty<${csharpType}>("${rf.newName}", "${rf.oldName}")`);
+            }
+            // Re-add removed properties
+            for (const df of tc.deletedFields) {
+                const oldTableObj = oldSchema.tables.find(t => t.name === tc.oldTableName);
+                const referencedTable = this.getReferencedTableJS(oldTableObj, df, oldSchema);
+                if (referencedTable) {
+                    const refOptionsStr = this.formatRefOptionsJS(df.nullable);
+                    chainLines.push(`AddRef<${referencedTable}>("${df.name}"${refOptionsStr})`);
+                }
+                else {
+                    const { csharpType, sizeOption } = this.parseTypeAndSizeJS(df.type.name);
+                    const optionsStr = this.formatOptionsJS(df.nullable, df.unique, sizeOption);
+                    chainLines.push(`AddProperty<${csharpType}>("${df.name}"${optionsStr})`);
+                }
+            }
+            // Remove added properties
+            for (const af of tc.addedFields) {
+                const { csharpType } = this.parseTypeAndSizeJS(af.type.name);
+                chainLines.push(`RemoveProperty<${csharpType}>("${af.name}")`);
+            }
+            // Revert modified properties back to old values
+            for (const mf of tc.modifiedFields) {
+                const oldTableObj = oldSchema.tables.find(t => t.name === tc.oldTableName);
+                const referencedTable = this.getReferencedTableJS(oldTableObj, mf.old, oldSchema);
+                if (referencedTable) {
+                    const refOptionsStr = this.formatRefOptionsJS(mf.old.nullable);
+                    chainLines.push(`AddRef<${referencedTable}>("${mf.name}"${refOptionsStr})`);
+                }
+                else {
+                    const { csharpType, sizeOption } = this.parseTypeAndSizeJS(mf.old.type.name);
+                    const optionsStr = this.formatOptionsJS(mf.old.nullable, mf.old.unique, sizeOption);
+                    chainLines.push(`AddProperty<${csharpType}>("${mf.name}"${optionsStr})`);
+                }
+            }
+            if (chainLines.length > 1) {
+                sb.push("        " + chainLines[0]);
+                for (let i = 1; i < chainLines.length; i++) {
+                    sb.push("            ." + chainLines[i]);
+                }
+                sb[sb.length - 1] += ";";
+                sb.push("");
+            }
+        }
+        sb.push("    }");
+        sb.push("}");
+        return sb.join("\n");
+    }
+    getReferencedTableJS(table, field, schema) {
+        if (!schema.relationships)
+            return null;
+        if (!table)
+            return null;
+        for (const r of schema.relationships) {
+            const sourceFieldName = r.sourceFieldId.includes('.') ? r.sourceFieldId.split('.').pop() : r.sourceFieldId;
+            if (r.sourceTableId === table.id && (r.sourceFieldId === field.id || sourceFieldName === field.name)) {
+                const targetTable = schema.tables.find(t => t.id === r.targetTableId);
+                if (targetTable)
+                    return targetTable.name;
+            }
+            const targetFieldName = r.targetFieldId.includes('.') ? r.targetFieldId.split('.').pop() : r.targetFieldId;
+            if (r.targetTableId === table.id && (r.targetFieldId === field.id || targetFieldName === field.name)) {
+                const sourceTable = schema.tables.find(t => t.id === r.sourceTableId);
+                if (sourceTable) {
+                    const srcFieldName = r.sourceFieldId.includes('.') ? r.sourceFieldId.split('.').pop() : r.sourceFieldId;
+                    const srcField = sourceTable.fields.find(f => f.id === r.sourceFieldId || f.name === srcFieldName);
+                    if (srcField && srcField.primaryKey) {
+                        return sourceTable.name;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    getCSharpTypeJS(dbType) {
+        dbType = dbType.toLowerCase().trim();
+        if (dbType.includes("int") || dbType === "integer" || dbType === "serial")
+            return "int";
+        if (dbType.includes("char") || dbType.includes("text") || dbType === "string" || dbType === "uuid")
+            return "string";
+        if (dbType === "bool" || dbType === "boolean" || dbType === "bit")
+            return "bool";
+        if (dbType === "datetime" || dbType === "timestamp" || dbType === "date" || dbType === "time")
+            return "DateTime";
+        if (dbType === "float" || dbType === "double" || dbType === "real")
+            return "double";
+        if (dbType === "decimal" || dbType === "numeric")
+            return "decimal";
+        return "string";
+    }
+    parseTypeAndSizeJS(typeName) {
+        typeName = typeName.toLowerCase().trim();
+        const match = typeName.match(/^varchar\((\d+)\)$/);
+        if (match) {
+            const length = parseInt(match[1]);
+            if (length === 255)
+                return { csharpType: "string", sizeOption: null };
+            return { csharpType: "string", sizeOption: `new Size(${length})` };
+        }
+        if (typeName === "text")
+            return { csharpType: "string", sizeOption: "new Size(SizeEnum.Text)" };
+        if (typeName === "mediumtext")
+            return { csharpType: "string", sizeOption: "new Size(SizeEnum.MediumText)" };
+        if (typeName === "longtext")
+            return { csharpType: "string", sizeOption: "new Size(SizeEnum.LongText)" };
+        return { csharpType: this.getCSharpTypeJS(typeName), sizeOption: null };
+    }
+    formatOptionsJS(nullable, unique, sizeOption) {
+        const parts = [];
+        if (nullable)
+            parts.push("Nullable = true");
+        if (unique)
+            parts.push("Unique = true");
+        if (sizeOption)
+            parts.push(`Size = ${sizeOption}`);
+        if (parts.length === 0)
+            return "";
+        return ", new() { " + parts.join(", ") + " }";
+    }
+    formatRefOptionsJS(nullable) {
+        if (nullable)
+            return ", new() { Nullable = true }";
+        return "";
+    }
+    postCreation() {
+        super.postCreation();
+        Aventus.Watcher.effect(() => {
+            this.csharpOutput.innerHTML = this.generateMigrationCode(this.migrationName, this.migrationClassName);
+        });
+    }
+    __9a8036ed8f626c8a9e612affd1701bf1method0() {
+        return this.migrationName;
+    }
+    __9a8036ed8f626c8a9e612affd1701bf1method1() {
+        return this.migrationClassName;
+    }
+}
+MigrationWritter.Namespace=`migration`;
+MigrationWritter.Tag=`av-migration-writter`;
+__as1(_, 'MigrationWritter', MigrationWritter);
+if(!window.customElements.get('av-migration-writter')){window.customElements.define('av-migration-writter', MigrationWritter);Aventus.WebComponentInstance.registerDefinition(MigrationWritter);}
 
 const SummaryDeleted = class SummaryDeleted extends Aventus.WebComponent {
     get comparison() {
@@ -10299,7 +12429,7 @@ __as1(_, 'SummaryNew', SummaryNew);
 if(!window.customElements.get('av-summary-new')){window.customElements.define('av-summary-new', SummaryNew);Aventus.WebComponentInstance.registerDefinition(SummaryNew);}
 
 const Header = class Header extends Aventus.WebComponent {
-    static __style = `:host{align-items:center;backdrop-filter:blur(16px);background:rgba(15,23,42,.8);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:1.25rem 2rem;position:sticky;top:0;z-index:100}:host .logo-area{align-items:center;display:flex;gap:.75rem}:host .logo-area .logo-icon{background:var(--accent);border-radius:var(--border-radius-lg);height:2.5rem;position:relative;width:2.5rem}:host .logo-area .logo-icon::after{background:var(--surface);border-radius:50%;content:"";height:50%;left:25%;position:absolute;top:25%;width:50%}:host .logo-area .logo-text h1{background:var(--accent);-webkit-background-clip:text;font-size:1.25rem;font-weight:700;letter-spacing:-0.02em;-webkit-text-fill-color:rgba(0,0,0,0);margin:0}:host .logo-area .logo-text span{color:var(--neutral-500);font-size:.75rem;letter-spacing:.05em;text-transform:uppercase}:host .app-nav{background:hsla(0,0%,100%,.03);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;gap:.5rem;padding:.35rem}:host .app-nav .nav-btn{background:rgba(0,0,0,0);border:none;border-radius:var(--border-radius-lg);color:var(--surface-content);cursor:pointer;font-weight:500;padding:.5rem 1.25rem;transition:all .2s ease}:host .app-nav .nav-btn:hover{background:hsla(0,0%,100%,.05)}:host .app-nav .nav-btn[active=true]{background:var(--accent);box-shadow:var(--elevation-2)}`;
+    static __style = `:host{align-items:center;backdrop-filter:blur(16px);background:rgba(15,23,42,.8);border-bottom:1px solid var(--border-color);display:flex;justify-content:center;padding:1.25rem 2rem;top:0;z-index:100}:host .app-nav{background:hsla(0,0%,100%,.03);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;gap:.5rem;padding:.35rem}:host .app-nav .nav-btn{background:rgba(0,0,0,0);border:none;border-radius:var(--border-radius-lg);color:var(--surface-content);cursor:pointer;font-weight:500;padding:.5rem 1.25rem;transition:all .2s ease}:host .app-nav .nav-btn:hover{background:hsla(0,0%,100%,.05)}:host .app-nav .nav-btn[active=true]{background:var(--primary);color:var(--primary-content);box-shadow:var(--elevation-2)}`;
     __getStatic() {
         return Header;
     }
@@ -10310,7 +12440,7 @@ const Header = class Header extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="logo-area">    <div class="logo-icon"></div>    <div class="logo-text">        <h1>Aventus</h1>        <span>Migration Assistant</span>    </div></div><nav class="app-nav">    <button class="nav-btn" _id="header_0">1. Schémas</button>    <button class="nav-btn" _id="header_1">2. Résolution & Diff</button>    <button class="nav-btn" _id="header_2">3. Migration C#</button></nav><div class="header-actions"></div>` }
+        blocks: { 'default':`<nav class="app-nav">    <button class="nav-btn" _id="header_0">1. Schémas</button>    <button class="nav-btn" _id="header_1">2. Résolution & Diff</button>    <button class="nav-btn" _id="header_2">3. Migration C#</button></nav>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
@@ -10674,7 +12804,7 @@ const Body = class Body extends Aventus.WebComponent {
         blocks: { 'default':`<div class="content">    <template _id="body_0"></template></div>` }
     });
 }
-    get importEl () { return this.shadowRoot.querySelector('[_id="body_1"]'); }    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-import-schema _id="body_1"></av-import-schema>    `);const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <av-resolution></av-resolution>    `);this.__getStatic().__template.addIf({
+    get importEl () { return this.shadowRoot.querySelector('[_id="body_1"]'); }    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-import-schema _id="body_1"></av-import-schema>    `);const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <av-resolution></av-resolution>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`        <av-migration-writter></av-migration-writter>    `);this.__getStatic().__template.addIf({
                     anchorId: 'body_0',
                     parts: [{once: true,
                     condition: (c) => c.comp.__2be0ec9db9ae5e5eba9b8fde6955e867method0(),
@@ -10682,6 +12812,9 @@ const Body = class Body extends Aventus.WebComponent {
                 },{once: true,
                     condition: (c) => c.comp.__2be0ec9db9ae5e5eba9b8fde6955e867method1(),
                     template: templ1
+                },{once: true,
+                    condition: (c) => c.comp.__2be0ec9db9ae5e5eba9b8fde6955e867method2(),
+                    template: templ2
                 }]
             }); }
     getClassName() {
@@ -10694,6 +12827,9 @@ const Body = class Body extends Aventus.WebComponent {
     }
     __2be0ec9db9ae5e5eba9b8fde6955e867method1() {
         return MainState.instance.step == 1;
+    }
+    __2be0ec9db9ae5e5eba9b8fde6955e867method2() {
+        return MainState.instance.step == 2;
     }
 }
 Body.Namespace=`migration`;

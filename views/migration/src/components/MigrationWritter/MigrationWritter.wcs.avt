@@ -1,0 +1,117 @@
+:host {
+	width: 100%;
+
+	.output-grid {
+		align-items: start;
+		display: grid;
+		gap: 2rem;
+		grid-template-columns: 1fr 2fr;
+
+		.config-panel {
+			background: var(--surface-100);
+			border: 1px solid var(--border-color);
+			border-radius: var(--border-radius-lg);
+			box-shadow: var(--elevation-2);
+
+			.panel-header {
+				align-items: center;
+				background: rgba(255, 255, 255, 0.02);
+				border-bottom: 1px solid var(--border-color);
+				display: flex;
+				justify-content: space-between;
+				padding: 1.25rem 1.5rem;
+
+				h3 {
+					font-size: 1.1rem;
+					font-weight: 600;
+					margin: 0;
+				}
+			}
+
+			.panel-body {
+				display: flex;
+				flex-direction: column;
+				gap: 1.5rem;
+				padding: 1.5rem;
+
+				.quick-stats {
+					border-top: 1px solid var(--border-color);
+					margin-top: 1rem;
+					padding-top: 1.25rem;
+
+					h4 {
+						color: var(--text-secondary);
+						font-size: 0.9rem;
+						font-weight: 600;
+						margin: 0;
+						margin-bottom: 0.75rem;
+					}
+
+					ul {
+						display: flex;
+						flex-direction: column;
+						gap: 0.4rem;
+						list-style: none;
+                        margin: 0;
+                        padding: 0;
+
+						li {
+							color: var(--neutral);
+							display: flex;
+							font-size: 0.85rem;
+							justify-content: space-between;
+
+							span {
+								color: var(--primary-content);
+								font-weight: 600;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		.code-panel {
+			background: #0b0f19;
+			border: 1px solid var(--border-color);
+			border-radius: var(--border-radius-lg);
+			box-shadow: var(--elevation-2);
+			overflow: hidden;
+
+			.panel-header {
+				align-items: center;
+				background: rgba(255, 255, 255, 0.02);
+				border-bottom: 1px solid var(--border-color);
+				display: flex;
+				justify-content: space-between;
+				padding: 1.25rem 1.5rem;
+
+				h3 {
+					font-size: 1.1rem;
+					font-weight: 600;
+					margin: 0;
+				}
+
+				.code-actions {
+					display: flex;
+					gap: 0.5rem;
+				}
+			}
+
+			.code-viewport {
+				max-height: 600px;
+				overflow-x: auto;
+				padding: 1.5rem;
+
+				pre {
+					color: #e2e8f0;
+					font-family: var(--font-mono);
+					font-size: 0.85rem;
+					line-height: 1.6;
+				}
+			}
+		}
+	}
+
+
+}

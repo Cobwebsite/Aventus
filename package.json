@@ -887,6 +887,7 @@
 	},
 	"dependencies": {
 		"@inquirer/core": "^11.1.9",
+		"ajv": "^8.20.0",
 		"archiver": "^7.0.1",
 		"chokidar": "^5.0.0",
 		"commander": "^14.0.3",

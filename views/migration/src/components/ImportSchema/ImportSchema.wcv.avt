@@ -4,7 +4,6 @@
         version de votre modèle.</p>
 </div>
 <div class="schemas-grid">
-    <!-- Old Schema Card -->
     <div class="schema-card">
         <div class="card-header">
             <h3>Ancien Schéma (Source)</h3>
@@ -13,7 +12,6 @@
         <textarea class="code-textarea" @element="jsonOld" placeholder="Collez le JSON de l'ancien schéma ici..."></textarea>
     </div>
 
-    <!-- New Schema Card -->
     <div class="schema-card">
         <div class="card-header">
             <h3>Nouveau Schéma (Cible)</h3>
