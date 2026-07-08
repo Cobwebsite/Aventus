@@ -1,0 +1,38 @@
+<block name="header">
+    Create database coonnection
+</block>
+<av-row>
+    <av-col size="12">
+        <om-select label="Database kind" @bind="this.formNewDb.Type">
+            <om-option value="mysql">Mysql</om-option>
+            <om-option value="mssql">Mssql</om-option>
+            <om-option value="postgresql">Postgresql</om-option>
+            <om-option value="sqlite">Sqlite</om-option>
+        </om-select>
+    </av-col>
+
+    if(this.formNewDb.Type != "sqlite") {
+        <av-col size="12">
+            <om-input label="Hostname" @bind="this.formNewDb.Host"></om-input>
+        </av-col>
+        <av-col size="12">
+            <om-input label="Username" @bind="this.formNewDb.Username"></om-input>
+        </av-col>
+        <av-col size="12">
+            <om-password label="Password" @bind="this.formNewDb.Password"></om-password>
+        </av-col>
+        <av-col size="12">
+            <om-input label="Database" @bind="this.formNewDb.Database"></om-input>
+        </av-col>
+    }
+    else {
+        <av-col size="12">
+            <om-input label="File path" @bind="this.formNewDb.Host"></om-input>
+        </av-col>
+    }
+</av-row>
+
+<block name="footer">
+    <om-button color="error" outline>Cancel</om-button>
+    <om-button color="success">Save</om-button>
+</block>

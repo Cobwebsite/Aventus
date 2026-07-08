@@ -6645,6 +6645,179 @@ __as1(_, 'ResourceLoader', ResourceLoader);
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
+var VscodeView;
+(VscodeView||(VscodeView = {}));
+(function (VscodeView) {
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
+const moduleName = `VscodeView`;
+const _ = {};
+
+
+let _n;
+var ErrorCode;
+(function (ErrorCode) {
+    ErrorCode[ErrorCode["unknow"] = 0] = "unknow";
+    ErrorCode[ErrorCode["differentChannel"] = 1] = "differentChannel";
+    ErrorCode[ErrorCode["timeout"] = 2] = "timeout";
+})(ErrorCode || (ErrorCode = {}));
+__as1(_, 'ErrorCode', ErrorCode);
+
+let Error=class Error extends Aventus.GenericError {
+}
+Error.Namespace=`VscodeView`;
+Error.$schema={...(Aventus.GenericError?.$schema ?? {}), };
+Aventus.Converter.register(Error.Fullname, Error);
+__as1(_, 'Error', Error);
+
+let Router=class Router {
+    static get isVscode() {
+        return 'acquireVsCodeApi' in window;
+    }
+    static getInstance() {
+        return Aventus.Instance.get(Router);
+    }
+    routes = {};
+    waitingList = {};
+    vscode;
+    constructor() {
+        this.vscode = acquireVsCodeApi();
+        window.addEventListener('message', (e) => this.onMessage(e));
+    }
+    addRoute(route) {
+        if (!this.routes.hasOwnProperty(route.channel)) {
+            this.routes[route.channel] = [];
+        }
+        for (let info of this.routes[route.channel]) {
+            if (info.callback == route.callback) {
+                return;
+            }
+        }
+        const { params, regex } = Aventus.Uri.prepare(route.channel);
+        let prepared = {
+            callback: route.callback,
+            channel: route.channel,
+            regex,
+            params
+        };
+        this.routes[route.channel].push(prepared);
+    }
+    removeRoute(route) {
+        for (let i = 0; i < this.routes[route.channel].length; i++) {
+            let info = this.routes[route.channel][i];
+            if (info.callback == route.callback) {
+                this.routes[route.channel].splice(i, 1);
+                i--;
+            }
+        }
+    }
+    onMessage(event) {
+        let response = event.data;
+        let data = {};
+        try {
+            data = Aventus.Converter.transform(response.data);
+        }
+        catch (e) {
+            console.error(e);
+        }
+        for (let channel in this.routes) {
+            let current = this.routes[channel];
+            for (let info of current) {
+                let params = Aventus.Uri.getParams(info, response.channel);
+                if (params) {
+                    let valueCb = data;
+                    if (data instanceof Aventus.ResultWithError) {
+                        valueCb = data.result;
+                    }
+                    else if (data instanceof Aventus.VoidWithError) {
+                        valueCb = undefined;
+                    }
+                    info.callback(valueCb, params, response.uid);
+                }
+            }
+        }
+        if (response.uid) {
+            if (this.waitingList.hasOwnProperty(response.uid)) {
+                this.waitingList[response.uid](response.channel, data);
+                delete this.waitingList[response.uid];
+            }
+        }
+    }
+    send(options) {
+        let result = new Aventus.VoidWithError();
+        try {
+            let message = {
+                channel: options.channel,
+            };
+            if (options.uid) {
+                message.uid = options.uid;
+            }
+            if (options.body) {
+                message.data = options.body;
+            }
+            this.vscode.postMessage(message);
+        }
+        catch (e) {
+            result.errors.push(new Error(ErrorCode.unknow, e));
+        }
+        return result;
+    }
+    sendWithResponse(options) {
+        return new Promise(async (resolve) => {
+            let result = new Aventus.ResultWithError();
+            try {
+                let _uid = options.uid ? options.uid : Aventus.uuidv4();
+                options.uid = _uid;
+                let timeoutInfo;
+                this.waitingList[_uid] = (channel, data) => {
+                    clearTimeout(timeoutInfo);
+                    if (channel.toLowerCase() != options.channel.toLowerCase()) {
+                        result.errors.push(new Error(ErrorCode.differentChannel, `We sent a message on ${options.channel} but we receive on ${channel}`));
+                        resolve(result);
+                    }
+                    else {
+                        if (data instanceof Aventus.VoidWithError) {
+                            for (let error of data.errors) {
+                                result.errors.push(error);
+                            }
+                            if (data instanceof Aventus.ResultWithError) {
+                                result.result = data.result;
+                            }
+                        }
+                        else {
+                            result.result = data;
+                        }
+                        resolve(result);
+                    }
+                };
+                if (options.timeout !== undefined) {
+                    timeoutInfo = setTimeout(() => {
+                        delete this.waitingList[_uid];
+                        result.errors.push(new Error(ErrorCode.timeout, "No message received after " + options.timeout + "ms"));
+                        resolve(result);
+                    }, options.timeout);
+                }
+                let sendMessageResult = this.send(options);
+                if (!sendMessageResult.success) {
+                    for (let error of sendMessageResult.errors) {
+                        result.errors.push(error);
+                    }
+                    resolve(result);
+                }
+            }
+            catch (e) {
+                result.errors.push(new Error(ErrorCode.unknow, e));
+                resolve(result);
+            }
+        });
+    }
+}
+Router.Namespace=`VscodeView`;
+__as1(_, 'Router', Router);
+
+
+for(let key in _) { VscodeView[key] = _[key] }
+})(VscodeView);
+
 var MaterialIcon;
 (MaterialIcon||(MaterialIcon = {}));
 (function (MaterialIcon) {
@@ -6757,8 +6930,8 @@ const Icon = class Icon extends Aventus.WebComponent {
     }
     static configure(config) {
         this.config = {
+            ...this.config,
             ...config,
-            ...this.config
         };
     }
 }
@@ -6809,11 +6982,225 @@ const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] 
 const moduleName = `Aventus`;
 const _ = {};
 
+let Layout = {};
+_.Layout = Aventus.Layout ?? {};
 let Lib = {};
 _.Lib = Aventus.Lib ?? {};
 let Form = {};
 _.Form = Aventus.Form ?? {};
+let Modal = {};
+_.Modal = Aventus.Modal ?? {};
 let _n;
+const Img = class Img extends Aventus.WebComponent {
+    static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'cache'() { return this.getBoolAttr('cache') }
+    set 'cache'(val) { this.setBoolAttr('cache', val) }    get 'src'() { return this.getStringProp('src') }
+    set 'src'(val) { this.setStringAttr('src', val) }get 'mode'() { return this.getStringProp('mode') }
+    set 'mode'(val) { this.setStringAttr('mode', val) }    isCalculing;
+    maxCalculateSize = 10;
+    ratio = 1;
+    resizeObserver;
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("src", ((target) => {
+    target.onSrcChanged();
+}));this.__addPropertyActions("mode", ((target) => {
+    if (target.src != "") {
+        target.calculateSize();
+    }
+})); }
+    static __style = `:host{--internal-img-color: var(--img-color);--internal-img-stroke-color: var(--img-stroke-color, var(--internal-img-color));--internal-img-fill-color: var(--img-fill-color, var(--internal-img-color));--internal-img-color-transition: var(--img-color-transition, none)}:host{display:inline-block;overflow:hidden;font-size:0}:host *{box-sizing:border-box}:host img{opacity:0;transition:filter .3s linear}:host .svg{display:none;height:100%;width:100%}:host .svg svg{height:100%;width:100%}:host([src$=".svg"]) img{display:none}:host([src$=".svg"]) .svg{display:flex}:host([src$=".svg"]) .svg svg{transition:var(--internal-img-color-transition);stroke:var(--internal-img-stroke-color);fill:var(--internal-img-fill-color)}:host([display_bigger]) img{cursor:pointer}:host([display_bigger]) img:hover{filter:brightness(50%)}`;
+    __getStatic() {
+        return Img;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Img.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<img _id="img_0" /><div class="svg" _id="img_1"></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "imgEl",
+      "ids": [
+        "img_0"
+      ]
+    },
+    {
+      "name": "svgEl",
+      "ids": [
+        "img_1"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "Img";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }if(!this.hasAttribute('src')){ this['src'] = undefined; }if(!this.hasAttribute('mode')){ this['mode'] = "contains"; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');this.__upgradeProperty('src');this.__upgradeProperty('mode'); }
+    __listBoolProps() { return ["cache"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    calculateSize(attempt = 0) {
+        if (this.isCalculing || !this.imgEl || !this.svgEl) {
+            return;
+        }
+        if (this.src == "") {
+            return;
+        }
+        this.isCalculing = true;
+        if (getComputedStyle(this).display == 'none') {
+            return;
+        }
+        if (attempt == this.maxCalculateSize) {
+            this.isCalculing = false;
+            return;
+        }
+        let element = this.imgEl;
+        if (this.src?.endsWith(".svg")) {
+            element = this.svgEl;
+        }
+        this.style.width = '';
+        this.style.height = '';
+        element.style.width = '';
+        element.style.height = '';
+        if (element.offsetWidth == 0 && element.offsetHeight == 0) {
+            setTimeout(() => {
+                this.isCalculing = false;
+                this.calculateSize(attempt + 1);
+            }, 100);
+            return;
+        }
+        let style = getComputedStyle(this);
+        let addedY = Number(style.paddingTop.replace("px", "")) + Number(style.paddingBottom.replace("px", "")) + Number(style.borderTopWidth.replace("px", "")) + Number(style.borderBottomWidth.replace("px", ""));
+        let addedX = Number(style.paddingLeft.replace("px", "")) + Number(style.paddingRight.replace("px", "")) + Number(style.borderLeftWidth.replace("px", "")) + Number(style.borderRightWidth.replace("px", ""));
+        let availableHeight = this.offsetHeight - addedY;
+        let availableWidth = this.offsetWidth - addedX;
+        let sameWidth = (element.offsetWidth == availableWidth);
+        let sameHeight = (element.offsetHeight == availableHeight);
+        this.ratio = element.offsetWidth / element.offsetHeight;
+        if (sameWidth && !sameHeight) {
+            // height is set
+            element.style.width = (availableHeight * this.ratio) + 'px';
+            element.style.height = availableHeight + 'px';
+        }
+        else if (!sameWidth && sameHeight) {
+            // width is set
+            element.style.width = availableWidth + 'px';
+            element.style.height = (availableWidth / this.ratio) + 'px';
+        }
+        else if (!sameWidth && !sameHeight) {
+            if (this.mode == "stretch") {
+                element.style.width = '100%';
+                element.style.height = '100%';
+            }
+            else if (this.mode == "contains") {
+                // suppose this height is max
+                let newWidth = (availableHeight * this.ratio);
+                if (newWidth <= availableWidth) {
+                    //we can apply this value
+                    element.style.width = newWidth + 'px';
+                    element.style.height = availableHeight + 'px';
+                }
+                else {
+                    element.style.width = availableWidth + 'px';
+                    element.style.height = (availableWidth / this.ratio) + 'px';
+                }
+            }
+            else if (this.mode == "cover") {
+                // suppose this height is min
+                let newWidth = (availableHeight * this.ratio);
+                if (newWidth >= availableWidth) {
+                    //we can apply this value
+                    element.style.width = newWidth + 'px';
+                    element.style.height = availableHeight + 'px';
+                }
+                else {
+                    element.style.width = availableWidth + 'px';
+                    element.style.height = (availableWidth / this.ratio) + 'px';
+                }
+            }
+        }
+        //center img
+        let diffTop = (this.offsetHeight - element.offsetHeight - addedY) / 2;
+        let diffLeft = (this.offsetWidth - element.offsetWidth - addedX) / 2;
+        element.style.transform = "translate(" + diffLeft + "px, " + diffTop + "px)";
+        element.style.opacity = '1';
+        this.isCalculing = false;
+    }
+    async onSrcChanged() {
+        if (!this.src || !this.svgEl || !this.imgEl) {
+            return;
+        }
+        if (this.src.endsWith(".svg")) {
+            let svgContent = await Aventus.ResourceLoader.load(this.src);
+            this.svgEl.innerHTML = svgContent;
+            this.calculateSize();
+        }
+        else if (this.cache) {
+            let base64 = await Aventus.ResourceLoader.load({
+                url: this.src,
+                type: 'img'
+            });
+            this.imgEl.setAttribute("src", base64);
+            this.calculateSize();
+        }
+        else {
+            this.imgEl.setAttribute("src", this.src);
+            this.calculateSize();
+        }
+    }
+    postDestruction() {
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = undefined;
+    }
+    postCreation() {
+        this.resizeObserver = new Aventus.ResizeObserver({
+            fps: 10,
+            callback: () => {
+                this.calculateSize();
+            }
+        });
+        this.resizeObserver.observe(this);
+    }
+}
+Img.Namespace=`Aventus`;
+Img.Tag=`av-img`;
+__as1(_, 'Img', Img);
+if(!window.customElements.get('av-img')){window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);}
+
+Layout.Row = class Row extends Aventus.WebComponent {
+    static __style = `:host{--_col-gap: var(--col-gap, 0px);--_col-gap-y: var(--col-gap-y, var(--_col-gap));--_col-gap-x: var(--col-gap-x, var(--_col-gap))}:host{container-name:row;container-type:inline-size;display:flex;flex-direction:row;flex-wrap:wrap;gap:var(--_col-gap-y) var(--_col-gap-x);width:100%}`;
+    constructor() {
+        super();
+        this.style.containerName = "row";
+        this.style.containerType = "inline-size";
+    }
+    __getStatic() {
+        return Row;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Row.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Row";
+    }
+}
+Layout.Row.Namespace=`Aventus.Layout`;
+Layout.Row.Tag=`av-row`;
+__as1(_.Layout, 'Row', Layout.Row);
+if(!window.customElements.get('av-row')){window.customElements.define('av-row', Layout.Row);Aventus.WebComponentInstance.registerDefinition(Layout.Row);}
+
 (function (SpecialTouch) {
     SpecialTouch[SpecialTouch["Backspace"] = 0] = "Backspace";
     SpecialTouch[SpecialTouch["Insert"] = 1] = "Insert";
@@ -8015,6 +8402,191 @@ Lib.ShortcutManager=class ShortcutManager {
 Lib.ShortcutManager.Namespace=`Aventus.Lib`;
 __as1(_.Lib, 'ShortcutManager', Lib.ShortcutManager);
 
+Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
+    get 'options'() {
+						return this.__watch["options"];
+					}
+					set 'options'(val) {
+						this.__watch["options"] = val;
+					}    static defaultCloseWithEsc = true;
+    static defaultCloseWithClick = true;
+    static defaultRejectValue = null;
+    cb;
+    pressManagerClickClose;
+    pressManagerPrevent;
+    __registerWatchesActions() {
+    this.__addWatchesActions("options", ((target, action, path, value) => {
+    target.onOptionsChanged();
+}));    super.__registerWatchesActions();
+}
+    static __style = `:host{align-items:center;display:flex;inset:0;justify-content:center;position:fixed;z-index:60}:host .modal{background-color:#fff;padding:1.5rem;position:relative}`;
+    constructor() {
+        super();
+        this.options = this.configure();
+        if (this.options.closeWithClick === undefined)
+            this.options.closeWithClick = Modal.ModalElement.defaultCloseWithClick;
+        if (this.options.closeWithEsc === undefined)
+            this.options.closeWithEsc = Modal.ModalElement.defaultCloseWithEsc;
+        if (!Object.hasOwn(this.options, "rejectValue")) {
+            this.options.rejectValue = Modal.ModalElement.defaultRejectValue;
+        }
+        if (this.constructor == ModalElement) {
+            throw "can't instanciate an abstract class";
+        }
+        this.close = this.close.bind(this);
+        this.reject = this.reject.bind(this);
+        this.resolve = this.resolve.bind(this);
+    }
+    __getStatic() {
+        return ModalElement;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(ModalElement.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="modal" _id="modalelement_0">	<slot></slot></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "modalEl",
+      "ids": [
+        "modalelement_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "ModalElement";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["options"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('options'); }
+    onOptionsChanged() { }
+    init(cb) {
+        this.cb = cb;
+        if (this.options.closeWithEsc) {
+            Lib.ShortcutManager.subscribe(Lib.SpecialTouch.Escape, this.reject, { replaceTemp: true });
+        }
+        if (this.options.closeWithClick) {
+            this.pressManagerClickClose = new Aventus.PressManager({
+                element: this,
+                onPress: () => {
+                    this.reject();
+                }
+            });
+            this.pressManagerPrevent = new Aventus.PressManager({
+                element: this.modalEl,
+                onPress: () => { }
+            });
+        }
+    }
+    show(element) {
+        return Modal.ModalElement._show(this, element);
+    }
+    close() {
+        Lib.ShortcutManager.unsubscribe(Lib.SpecialTouch.Escape, this.reject);
+        this.pressManagerClickClose?.destroy();
+        this.pressManagerPrevent?.destroy();
+        this.remove();
+    }
+    reject(no_close) {
+        if (this.cb) {
+            this.cb(this.options.rejectValue ?? null);
+        }
+        if (no_close !== true) {
+            this.close();
+        }
+    }
+    resolve(response, no_close) {
+        if (this.cb) {
+            this.cb(response);
+        }
+        if (no_close !== true) {
+            this.close();
+        }
+    }
+    static configure(options) {
+        if (options.closeWithClick !== undefined)
+            this.defaultCloseWithClick = options.closeWithClick;
+        if (options.closeWithEsc !== undefined)
+            this.defaultCloseWithEsc = options.closeWithEsc;
+        if (!Object.hasOwn(options, "rejectValue")) {
+            this.defaultRejectValue = options.rejectValue;
+        }
+    }
+    static _show(modal, element) {
+        return new Promise((resolve) => {
+            modal.init((response) => {
+                resolve(response);
+            });
+            if (!element) {
+                element = document.body;
+            }
+            element.appendChild(modal);
+        });
+    }
+}
+Modal.ModalElement.Namespace=`Aventus.Modal`;
+__as1(_.Modal, 'ModalElement', Modal.ModalElement);
+
+Layout.Col = class Col extends Aventus.WebComponent {
+    get 'use_container'() { return this.getBoolAttr('use_container') }
+    set 'use_container'(val) { this.setBoolAttr('use_container', val) }get 'size'() { return this.getNumberAttr('size') }
+    set 'size'(val) { this.setNumberAttr('size', val) }get 'size_xs'() { return this.getNumberAttr('size_xs') }
+    set 'size_xs'(val) { this.setNumberAttr('size_xs', val) }get 'size_sm'() { return this.getNumberAttr('size_sm') }
+    set 'size_sm'(val) { this.setNumberAttr('size_sm', val) }get 'size_md'() { return this.getNumberAttr('size_md') }
+    set 'size_md'(val) { this.setNumberAttr('size_md', val) }get 'size_lg'() { return this.getNumberAttr('size_lg') }
+    set 'size_lg'(val) { this.setNumberAttr('size_lg', val) }get 'size_xl'() { return this.getNumberAttr('size_xl') }
+    set 'size_xl'(val) { this.setNumberAttr('size_xl', val) }get 'offset'() { return this.getNumberAttr('offset') }
+    set 'offset'(val) { this.setNumberAttr('offset', val) }get 'offset_xs'() { return this.getNumberAttr('offset_xs') }
+    set 'offset_xs'(val) { this.setNumberAttr('offset_xs', val) }get 'offset_sm'() { return this.getNumberAttr('offset_sm') }
+    set 'offset_sm'(val) { this.setNumberAttr('offset_sm', val) }get 'offset_md'() { return this.getNumberAttr('offset_md') }
+    set 'offset_md'(val) { this.setNumberAttr('offset_md', val) }get 'offset_lg'() { return this.getNumberAttr('offset_lg') }
+    set 'offset_lg'(val) { this.setNumberAttr('offset_lg', val) }get 'offset_xl'() { return this.getNumberAttr('offset_xl') }
+    set 'offset_xl'(val) { this.setNumberAttr('offset_xl', val) }get 'offset_right'() { return this.getNumberAttr('offset_right') }
+    set 'offset_right'(val) { this.setNumberAttr('offset_right', val) }get 'offset_right_xs'() { return this.getNumberAttr('offset_right_xs') }
+    set 'offset_right_xs'(val) { this.setNumberAttr('offset_right_xs', val) }get 'offset_right_sm'() { return this.getNumberAttr('offset_right_sm') }
+    set 'offset_right_sm'(val) { this.setNumberAttr('offset_right_sm', val) }get 'offset_right_md'() { return this.getNumberAttr('offset_right_md') }
+    set 'offset_right_md'(val) { this.setNumberAttr('offset_right_md', val) }get 'offset_right_lg'() { return this.getNumberAttr('offset_right_lg') }
+    set 'offset_right_lg'(val) { this.setNumberAttr('offset_right_lg', val) }get 'offset_right_xl'() { return this.getNumberAttr('offset_right_xl') }
+    set 'offset_right_xl'(val) { this.setNumberAttr('offset_right_xl', val) }get 'center'() { return this.getBoolAttr('center') }
+    set 'center'(val) { this.setBoolAttr('center', val) }    static use_container = false;
+    static __style = `:host{--_col-padding: var(--col-padding, 8px)}:host{display:flex;padding:var(--internal-col-padding)}:host([center]){justify-content:center}:host([size="0"]){width:0}:host([offset="0"]){margin-left:0}:host([offset_right="0"]){margin-right:0}:host([size="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([offset="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([offset_right="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([size="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([offset="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([offset_right="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([size="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([offset="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([offset_right="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([size="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([offset="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([offset_right="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([size="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([offset="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([offset_right="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([size="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([offset="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([offset_right="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([size="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([offset="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([offset_right="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([size="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([offset="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([offset_right="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([size="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([offset="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([offset_right="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([size="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([offset="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([offset_right="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([size="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([offset="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([offset_right="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([size="12"]){width:100%}:host([offset="12"]){margin-left:100%}:host([offset_right="12"]){margin-right:100%}@container row (min-width: 300px){:host([use_container][size_xs="0"]){width:0}:host([use_container][offset_xs="0"]){margin-left:0}:host([use_container][offset_right_xs="0"]){margin-right:0}:host([use_container][size_xs="0"]){display:none}:host([use_container][size_xs="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_xs="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_right_xs="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][size_xs="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_xs="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_right_xs="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][size_xs="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_xs="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_right_xs="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][size_xs="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_xs="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_right_xs="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][size_xs="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_xs="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_xs="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][size_xs="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_xs="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_right_xs="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][size_xs="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_xs="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_xs="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_xs="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_xs="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_xs="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][size_xs="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_xs="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_xs="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_xs="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_xs="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_xs="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][size_xs="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_xs="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_xs="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_xs="12"]){width:100%}:host([use_container][offset_xs="12"]){margin-left:100%}:host([use_container][offset_right_xs="12"]){margin-right:100%}}@media screen and (min-width: 300px){:host(:not([use_container])[size_xs="0"]){width:0}:host(:not([use_container])[offset_xs="0"]){margin-left:0}:host(:not([use_container])[offset_right_xs="0"]){margin-right:0}:host(:not([use_container])[size_xs="0"]){display:none}:host(:not([use_container])[size_xs="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_xs="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_xs="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[size_xs="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_xs="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_xs="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[size_xs="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_xs="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_xs="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[size_xs="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_xs="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_xs="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[size_xs="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_xs="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_xs="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_xs="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_xs="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_xs="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[size_xs="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_xs="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_xs="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_xs="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_xs="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_xs="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_xs="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_xs="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_xs="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_xs="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_xs="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_xs="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_xs="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_xs="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_xs="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_xs="12"]){width:100%}:host(:not([use_container])[offset_xs="12"]){margin-left:100%}:host(:not([use_container])[offset_right_xs="12"]){margin-right:100%}}@container row (min-width: 540px){:host([use_container][size_sm="0"]){width:0}:host([use_container][offset_sm="0"]){margin-left:0}:host([use_container][offset_right_sm="0"]){margin-right:0}:host([use_container][size_sm="0"]){display:none}:host([use_container][size_sm="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_sm="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_right_sm="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][size_sm="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_sm="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_right_sm="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][size_sm="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_sm="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_right_sm="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][size_sm="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_sm="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_right_sm="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][size_sm="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_sm="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_sm="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][size_sm="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_sm="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_right_sm="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][size_sm="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_sm="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_sm="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_sm="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_sm="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_sm="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][size_sm="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_sm="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_sm="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_sm="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_sm="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_sm="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][size_sm="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_sm="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_sm="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_sm="12"]){width:100%}:host([use_container][offset_sm="12"]){margin-left:100%}:host([use_container][offset_right_sm="12"]){margin-right:100%}}@media screen and (min-width: 540px){:host(:not([use_container])[size_sm="0"]){width:0}:host(:not([use_container])[offset_sm="0"]){margin-left:0}:host(:not([use_container])[offset_right_sm="0"]){margin-right:0}:host(:not([use_container])[size_sm="0"]){display:none}:host(:not([use_container])[size_sm="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_sm="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_sm="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[size_sm="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_sm="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_sm="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[size_sm="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_sm="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_sm="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[size_sm="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_sm="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_sm="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[size_sm="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_sm="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_sm="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_sm="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_sm="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_sm="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[size_sm="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_sm="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_sm="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_sm="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_sm="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_sm="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_sm="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_sm="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_sm="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_sm="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_sm="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_sm="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_sm="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_sm="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_sm="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_sm="12"]){width:100%}:host(:not([use_container])[offset_sm="12"]){margin-left:100%}:host(:not([use_container])[offset_right_sm="12"]){margin-right:100%}}@container row (min-width: 720px){:host([use_container][size_md="0"]){width:0}:host([use_container][offset_md="0"]){margin-left:0}:host([use_container][offset_right_md="0"]){margin-right:0}:host([use_container][size_md="0"]){display:none}:host([use_container][size_md="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_md="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_right_md="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][size_md="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_md="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_right_md="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][size_md="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_md="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_right_md="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][size_md="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_md="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_right_md="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][size_md="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_md="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_md="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][size_md="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_md="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_right_md="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][size_md="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_md="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_md="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_md="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_md="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_md="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][size_md="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_md="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_md="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_md="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_md="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_md="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][size_md="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_md="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_md="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_md="12"]){width:100%}:host([use_container][offset_md="12"]){margin-left:100%}:host([use_container][offset_right_md="12"]){margin-right:100%}}@media screen and (min-width: 720px){:host(:not([use_container])[size_md="0"]){width:0}:host(:not([use_container])[offset_md="0"]){margin-left:0}:host(:not([use_container])[offset_right_md="0"]){margin-right:0}:host(:not([use_container])[size_md="0"]){display:none}:host(:not([use_container])[size_md="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_md="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_md="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[size_md="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_md="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_md="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[size_md="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_md="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_md="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[size_md="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_md="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_md="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[size_md="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_md="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_md="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_md="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_md="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_md="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[size_md="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_md="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_md="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_md="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_md="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_md="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_md="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_md="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_md="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_md="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_md="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_md="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_md="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_md="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_md="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_md="12"]){width:100%}:host(:not([use_container])[offset_md="12"]){margin-left:100%}:host(:not([use_container])[offset_right_md="12"]){margin-right:100%}}@container row (min-width: 960px){:host([use_container][size_lg="0"]){width:0}:host([use_container][offset_lg="0"]){margin-left:0}:host([use_container][offset_right_lg="0"]){margin-right:0}:host([use_container][size_lg="0"]){display:none}:host([use_container][size_lg="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_lg="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_right_lg="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][size_lg="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_lg="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_right_lg="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][size_lg="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_lg="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_right_lg="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][size_lg="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_lg="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_right_lg="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][size_lg="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_lg="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_lg="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][size_lg="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_lg="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_right_lg="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][size_lg="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_lg="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_lg="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_lg="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_lg="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_lg="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][size_lg="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_lg="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_lg="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_lg="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_lg="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_lg="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][size_lg="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_lg="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_lg="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_lg="12"]){width:100%}:host([use_container][offset_lg="12"]){margin-left:100%}:host([use_container][offset_right_lg="12"]){margin-right:100%}}@media screen and (min-width: 960px){:host(:not([use_container])[size_lg="0"]){width:0}:host(:not([use_container])[offset_lg="0"]){margin-left:0}:host(:not([use_container])[offset_right_lg="0"]){margin-right:0}:host(:not([use_container])[size_lg="0"]){display:none}:host(:not([use_container])[size_lg="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_lg="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_lg="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[size_lg="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_lg="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_lg="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[size_lg="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_lg="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_lg="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[size_lg="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_lg="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_lg="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[size_lg="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_lg="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_lg="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_lg="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_lg="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_lg="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[size_lg="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_lg="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_lg="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_lg="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_lg="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_lg="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_lg="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_lg="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_lg="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_lg="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_lg="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_lg="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_lg="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_lg="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_lg="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_lg="12"]){width:100%}:host(:not([use_container])[offset_lg="12"]){margin-left:100%}:host(:not([use_container])[offset_right_lg="12"]){margin-right:100%}}@container row (min-width: 1140px){:host([use_container][size_xl="0"]){width:0}:host([use_container][offset_xl="0"]){margin-left:0}:host([use_container][offset_right_xl="0"]){margin-right:0}:host([use_container][size_xl="0"]){display:none}:host([use_container][size_xl="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_xl="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_right_xl="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][size_xl="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_xl="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_right_xl="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][size_xl="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_xl="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_right_xl="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][size_xl="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_xl="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_right_xl="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][size_xl="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_xl="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_xl="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][size_xl="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_xl="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_right_xl="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][size_xl="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_xl="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_xl="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_xl="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_xl="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_xl="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][size_xl="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_xl="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_xl="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_xl="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_xl="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_xl="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][size_xl="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_xl="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_xl="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_xl="12"]){width:100%}:host([use_container][offset_xl="12"]){margin-left:100%}:host([use_container][offset_right_xl="12"]){margin-right:100%}}@media screen and (min-width: 1140px){:host(:not([use_container])[size_xl="0"]){width:0}:host(:not([use_container])[offset_xl="0"]){margin-left:0}:host(:not([use_container])[offset_right_xl="0"]){margin-right:0}:host(:not([use_container])[size_xl="0"]){display:none}:host(:not([use_container])[size_xl="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_xl="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_xl="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[size_xl="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_xl="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_xl="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[size_xl="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_xl="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_xl="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[size_xl="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_xl="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_xl="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[size_xl="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_xl="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_xl="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_xl="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_xl="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_xl="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[size_xl="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_xl="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_xl="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_xl="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_xl="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_xl="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_xl="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_xl="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_xl="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_xl="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_xl="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_xl="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_xl="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_xl="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_xl="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_xl="12"]){width:100%}:host(:not([use_container])[offset_xl="12"]){margin-left:100%}:host(:not([use_container])[offset_right_xl="12"]){margin-right:100%}}`;
+    __getStatic() {
+        return Col;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Col.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Col";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('use_container') && Layout.Col.use_container) {this.setAttribute('use_container' ,'true'); }if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('use_container');this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('center'); }
+    __listBoolProps() { return ["use_container","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    static configure(options) {
+        if (options.use_container !== undefined)
+            this.use_container = options.use_container;
+    }
+}
+Layout.Col.Namespace=`Aventus.Layout`;
+Layout.Col.Tag=`av-col`;
+__as1(_.Layout, 'Col', Layout.Col);
+if(!window.customElements.get('av-col')){window.customElements.define('av-col', Layout.Col);Aventus.WebComponentInstance.registerDefinition(Layout.Col);}
+
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
@@ -8030,6 +8602,8 @@ let Components = {};
 _.Components = OneMoreUI.Components ?? {};
 Components.Display = {};
 _.Components.Display = OneMoreUI.Components?.Display ?? {};
+Components.Interaction = {};
+_.Components.Interaction = OneMoreUI.Components?.Interaction ?? {};
 let Libs = {};
 _.Libs = OneMoreUI.Libs ?? {};
 Components.Form = {};
@@ -8515,6 +9089,50 @@ Components.Display.Scrollable.Tag=`om-scrollable`;
 __as1(_.Components.Display, 'Scrollable', Components.Display.Scrollable);
 if(!window.customElements.get('om-scrollable')){window.customElements.define('om-scrollable', Components.Display.Scrollable);Aventus.WebComponentInstance.registerDefinition(Components.Display.Scrollable);}
 
+Components.Interaction.Modal = class Modal extends Aventus.Modal.ModalElement {
+    static __style = `:host{backdrop-filter:blur(4px);background-color:rgba(0,0,0,.4)}:host .modal{background-color:var(--surface);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-3);display:flex;flex-direction:column;gap:1.5rem;max-height:calc(100% - 4rem);max-width:calc(100% - 40px);min-width:min(400px,100% - 40px);padding:1.5rem}:host .modal .modal-header{align-items:center;border-bottom:1px solid var(--border-color);display:flex;flex-shrink:0;gap:1rem;padding:.5rem;padding-top:0rem}:host .modal .modal-header .icon{aspect-ratio:1;display:flex;font-size:var(--font-size-lg);margin-left:.5rem;width:21px}:host .modal .modal-header .title{font-size:var(--font-size-md);font-weight:500;line-height:var(--line-height-md)}:host .modal .modal-header:empty{display:none}:host .modal .modal-content{--scrollbar-content-padding: 0 0.5rem;flex-grow:1;flex-shrink:1;min-height:0}:host .modal .modal-footer{align-items:center;display:flex;flex-shrink:0;gap:1rem;justify-content:flex-end;margin-top:.5rem}:host .modal .modal-footer:empty{display:none}`;
+    constructor() {
+        super();
+        if (this.constructor == Modal) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return Modal;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Modal.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        slots: { 'header':`<slot name="header"></slot>`,'default':`<slot></slot>`,'footer':`<slot name="footer"></slot>` }, 
+        blocks: { 'default':`<div class="modal-header">    <slot name="header"></slot></div><om-scrollable class="modal-content" flex>    <slot></slot></om-scrollable><div class="modal-footer">    <slot name="footer"></slot></div>` }
+    });
+}
+    getClassName() {
+        return "Modal";
+    }
+    init(cb) {
+        this.cb = cb;
+        if (this.options.closeWithEsc) {
+            Aventus.Lib.ShortcutManager.subscribe(Aventus.Lib.SpecialTouch.Escape, this.reject, { replaceTemp: true });
+        }
+        if (this.options.closeWithClick) {
+            this.addEventListener("click", () => {
+                this.reject();
+            });
+            this.modalEl.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        }
+    }
+}
+Components.Interaction.Modal.Namespace=`OneMoreUI.Components.Interaction`;
+__as1(_.Components.Interaction, 'Modal', Components.Interaction.Modal);
+
 Libs.Style=class Style {
     static getVariable(prop, el) {
         const computed = getComputedStyle(el);
@@ -8806,6 +9424,90 @@ Components.Form.Input.Namespace=`OneMoreUI.Components.Form`;
 Components.Form.Input.Tag=`om-input`;
 __as1(_.Components.Form, 'Input', Components.Form.Input);
 if(!window.customElements.get('om-input')){window.customElements.define('om-input', Components.Form.Input);Aventus.WebComponentInstance.registerDefinition(Components.Form.Input);}
+
+Components.Form.Password = class Password extends Components.Form.Input {
+    get 'iconEye'() {
+						return this.__signals["iconEye"].value;
+					}
+					set 'iconEye'(val) {
+						this.__signals["iconEye"].value = val;
+					}    __registerSignalsActions() { this.__signals["iconEye"] = null; super.__registerSignalsActions();  }
+    static __style = `:host .icon-visibility{color:color-mix(in oklab, var(--_input-fg) 60%, transparent);cursor:pointer;font-size:var(--font-size)}`;
+    constructor() {
+        super();
+        this.toggleVisibility = this.toggleVisibility.bind(this);
+    }
+    __getStatic() {
+        return Password;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Password.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'append':`    <mi-icon class="icon-visibility" tabindex="0" _id="password_0"></mi-icon>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "password_0°icon": {
+      "fct": (c) => `${c.print(c.comp.__17ed1e2c85a5f0157a52fd5e530f8741method0())}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "password_0",
+      "fct": (e, c) => c.comp.toggleVisibility(e)
+    },
+    {
+      "eventName": "focus",
+      "id": "password_0",
+      "fct": (e, c) => c.comp.addToggle(e)
+    },
+    {
+      "eventName": "blur",
+      "id": "password_0",
+      "fct": (e, c) => c.comp.removeToggle(e)
+    }
+  ]
+}); }
+    getClassName() {
+        return "Password";
+    }
+    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["iconEye"] = "visibility"; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('iconEye'); }
+    addToggle() {
+        Aventus.Lib.ShortcutManager.subscribe(" ", this.toggleVisibility, { replaceTemp: true });
+    }
+    removeToggle() {
+        Aventus.Lib.ShortcutManager.unsubscribe(" ", this.toggleVisibility);
+    }
+    toggleVisibility() {
+        if (this.inputEl.type == "password") {
+            this.iconEye = "visibility_off";
+            this.inputEl.type = "text";
+        }
+        else {
+            this.iconEye = "visibility";
+            this.inputEl.type = "password";
+        }
+    }
+    postCreation() {
+        super.postCreation();
+        this.inputEl.type = "password";
+    }
+    __17ed1e2c85a5f0157a52fd5e530f8741method0() {
+        return this.iconEye;
+    }
+}
+Components.Form.Password.Namespace=`OneMoreUI.Components.Form`;
+Components.Form.Password.Tag=`om-password`;
+__as1(_.Components.Form, 'Password', Components.Form.Password);
+if(!window.customElements.get('om-password')){window.customElements.define('om-password', Components.Form.Password);Aventus.WebComponentInstance.registerDefinition(Components.Form.Password);}
 
 Components.Form.Select.BaseSelect.OptionsContainer = class OptionsContainer extends Aventus.WebComponent {
     get 'open'() { return this.getBoolAttr('open') }
@@ -9454,6 +10156,137 @@ Components.Form.Button.Namespace=`OneMoreUI.Components.Form`;
 Components.Form.Button.Tag=`om-button`;
 __as1(_.Components.Form, 'Button', Components.Form.Button);
 if(!window.customElements.get('om-button')){window.customElements.define('om-button', Components.Form.Button);Aventus.WebComponentInstance.registerDefinition(Components.Form.Button);}
+
+Components.Interaction.Confirm = class Confirm extends Components.Interaction.Modal {
+    static defaultConfig = {
+        title: "",
+        content: "",
+        btnTrueTxt: "Confirm",
+        btnFalseTxt: "Cancel",
+    };
+    static __style = `:host .modal{max-width:800px}:host .modal .modal-header .icon[color=primary]{color:var(--primary)}:host .modal .modal-header .icon[color=accent]{color:var(--accent)}:host .modal .modal-header .icon[color=neutral]{color:var(--neutral)}:host .modal .modal-header .icon[color=info]{color:var(--info)}:host .modal .modal-header .icon[color=success]{color:var(--success)}:host .modal .modal-header .icon[color=warning]{color:var(--warning)}:host .modal .modal-header .icon[color=error]{color:var(--error)}`;
+    __getStatic() {
+        return Confirm;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Confirm.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'header':`    <template _id="confirm_0"></template>    <div class="title" _id="confirm_2"></div>`,'footer':`    <om-button outline color="neutral" _id="confirm_4"></om-button>    <om-button _id="confirm_5"></om-button>`,'default':`<div _id="confirm_3"></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "confirm_2°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__61c5a242fda45972560e4f9803ea00f5method3())}`,
+      "once": true
+    },
+    "confirm_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__61c5a242fda45972560e4f9803ea00f5method4())}`,
+      "once": true
+    },
+    "confirm_4°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__61c5a242fda45972560e4f9803ea00f5method5())}`,
+      "once": true
+    },
+    "confirm_5°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__61c5a242fda45972560e4f9803ea00f5method6())}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "confirm_4",
+      "fct": (e, c) => c.comp.close(e)
+    },
+    {
+      "eventName": "click",
+      "id": "confirm_5",
+      "fct": (e, c) => c.comp.validate(e)
+    }
+  ]
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <mi-icon class="icon" _id="confirm_1"></mi-icon>    `);templ0.setActions({
+  "content": {
+    "confirm_1°icon": {
+      "fct": (c) => `${c.print(c.comp.__61c5a242fda45972560e4f9803ea00f5method1())}`,
+      "once": true
+    },
+    "confirm_1°color": {
+      "fct": (c) => `${c.print(c.comp.__61c5a242fda45972560e4f9803ea00f5method2())}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addIf({
+                    anchorId: 'confirm_0',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__61c5a242fda45972560e4f9803ea00f5method0(),
+                    template: templ0
+                }]
+            }); }
+    getClassName() {
+        return "Confirm";
+    }
+    determineIcon() {
+        if (this.options.icon)
+            return;
+        if (this.options.type == "error")
+            this.options.icon = "error";
+        else if (this.options.type == "warning")
+            this.options.icon = "warning";
+        else if (this.options.type == "success")
+            this.options.icon = "done_all";
+        else if (this.options.type == "info")
+            this.options.icon = "info";
+    }
+    configure() {
+        return Components.Interaction.Confirm.defaultConfig;
+    }
+    validate() {
+        this.resolve(true);
+    }
+    postCreation() {
+        super.postCreation();
+        this.determineIcon();
+    }
+    __61c5a242fda45972560e4f9803ea00f5method1() {
+        return this.options.icon;
+    }
+    __61c5a242fda45972560e4f9803ea00f5method2() {
+        return this.options.type;
+    }
+    __61c5a242fda45972560e4f9803ea00f5method3() {
+        return this.options.title;
+    }
+    __61c5a242fda45972560e4f9803ea00f5method4() {
+        return this.options.content;
+    }
+    __61c5a242fda45972560e4f9803ea00f5method5() {
+        return this.options.btnFalseTxt;
+    }
+    __61c5a242fda45972560e4f9803ea00f5method6() {
+        return this.options.btnTrueTxt;
+    }
+    __61c5a242fda45972560e4f9803ea00f5method0() {
+        return this.options.icon;
+    }
+    static configure(options) {
+        this.defaultConfig = { ...this.defaultConfig, ...options };
+    }
+    static async open(options) {
+        const confirm = new Components.Interaction.Confirm();
+        confirm.options = { ...confirm.options, ...options };
+        confirm.determineIcon();
+        return await confirm.show();
+    }
+}
+Components.Interaction.Confirm.Namespace=`OneMoreUI.Components.Interaction`;
+Components.Interaction.Confirm.Tag=`om-confirm`;
+__as1(_.Components.Interaction, 'Confirm', Components.Interaction.Confirm);
+if(!window.customElements.get('om-confirm')){window.customElements.define('om-confirm', Components.Interaction.Confirm);Aventus.WebComponentInstance.registerDefinition(Components.Interaction.Confirm);}
 
 
 for(let key in _) { OneMoreUI[key] = _[key] }
@@ -12477,6 +13310,181 @@ Header.Tag=`av-header`;
 __as1(_, 'Header', Header);
 if(!window.customElements.get('av-header')){window.customElements.define('av-header', Header);Aventus.WebComponentInstance.registerDefinition(Header);}
 
+const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Components.Interaction.Modal {
+    get 'formNewDb'() {
+						return this.__watch["formNewDb"];
+					}
+					set 'formNewDb'(val) {
+						this.__watch["formNewDb"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("formNewDb");    super.__registerWatchesActions();
+}
+    static __style = `:host .modal{width:600px}:host .modal av-row{--col-gap-x: 1rem;--col-gap-y: 0.5rem}`;
+    __getStatic() {
+        return CreateDatabaseModal;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(CreateDatabaseModal.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'header':`    Create database coonnection`,'footer':`    <om-button color="error" outline>Cancel</om-button>    <om-button color="success">Save</om-button>`,'default':`<av-row>    <av-col size="12">        <om-select label="Database kind" _id="createdatabasemodal_0">            <om-option value="mysql">Mysql</om-option>            <om-option value="mssql">Mssql</om-option>            <om-option value="postgresql">Postgresql</om-option>            <om-option value="sqlite">Sqlite</om-option>        </om-select>    </av-col>    <template _id="createdatabasemodal_1"></template></av-row>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "bindings": [
+    {
+      "id": "createdatabasemodal_0",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method1(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method2(v),
+      "once": true,
+      "isCallback": true
+    }
+  ]
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-col size="12">            <om-input label="Hostname" _id="createdatabasemodal_2"></om-input>        </av-col>        <av-col size="12">            <om-input label="Username" _id="createdatabasemodal_3"></om-input>        </av-col>        <av-col size="12">            <om-password label="Password" _id="createdatabasemodal_4"></om-password>        </av-col>        <av-col size="12">            <om-input label="Database" _id="createdatabasemodal_5"></om-input>        </av-col>    `);templ0.setActions({
+  "bindings": [
+    {
+      "id": "createdatabasemodal_2",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method3(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method4(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "createdatabasemodal_3",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method5(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method6(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "createdatabasemodal_4",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method7(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method8(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "createdatabasemodal_5",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method9(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method10(v),
+      "once": true,
+      "isCallback": true
+    }
+  ]
+});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <av-col size="12">            <om-input label="File path" _id="createdatabasemodal_6"></om-input>        </av-col>    `);templ1.setActions({
+  "bindings": [
+    {
+      "id": "createdatabasemodal_6",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method11(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method12(v),
+      "once": true,
+      "isCallback": true
+    }
+  ]
+});this.__getStatic().__template.addIf({
+                    anchorId: 'createdatabasemodal_1',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method0(),
+                    template: templ0
+                },{once: true,
+                    condition: (c) => true,
+                    template: templ1
+                }]
+            }); }
+    getClassName() {
+        return "CreateDatabaseModal";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["formNewDb"] = {        Database: "Spalio2",        Host: "localhost",        Password: "",        Type: "mysql",        Username: "root"    }; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('formNewDb'); }
+    configure() {
+        return {
+            closeWithClick: false,
+        };
+    }
+    __dce7836a7f0affea31f87e4387ff3630method0() {
+        return this.formNewDb.Type != "sqlite";
+    }
+    __dce7836a7f0affea31f87e4387ff3630method1() {
+        return this.formNewDb.Type;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method2(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Type = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method3() {
+        return this.formNewDb.Host;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method4(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Host = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method5() {
+        return this.formNewDb.Username;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method6(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Username = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method7() {
+        return this.formNewDb.Password;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method8(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Password = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method9() {
+        return this.formNewDb.Database;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method10(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Database = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method11() {
+        return this.formNewDb.Host;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method12(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Host = v;
+        }
+    }
+}
+CreateDatabaseModal.Namespace=`migration`;
+CreateDatabaseModal.Tag=`av-create-database-modal`;
+__as1(_, 'CreateDatabaseModal', CreateDatabaseModal);
+if(!window.customElements.get('av-create-database-modal')){window.customElements.define('av-create-database-modal', CreateDatabaseModal);Aventus.WebComponentInstance.registerDefinition(CreateDatabaseModal);}
+
 let Generator=class Generator {
     static compareSchemas(oldSchema, newSchema, mappings) {
         const oldTables = oldSchema.tables || [];
@@ -12597,7 +13605,7 @@ Generator.Namespace=`migration`;
 __as1(_, 'Generator', Generator);
 
 const ImportSchema = class ImportSchema extends BaseContent {
-    static __style = `:host .schemas-grid{display:grid;gap:2rem;grid-template-columns:repeat(auto-fit, minmax(450px, 1fr));margin-bottom:2rem}:host .schemas-grid .schema-card{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);display:flex;flex-direction:column;gap:1.25rem;padding:1.5rem}:host .schemas-grid .schema-card .code-textarea{background:rgba(15,23,42,.5);border:1px solid var(--border-color);border-radius:var(--border-radius-md);color:var(--primary-content);font-size:.85rem;height:350px;outline:none;padding:1rem;resize:vertical;transition:border-color .2s ease;width:100%}:host .schemas-grid .schema-card .code-textarea:focus{border-color:var(--info)}`;
+    static __style = `:host .schemas-grid{display:grid;gap:2rem;grid-template-columns:repeat(auto-fit, minmax(450px, 1fr));margin-bottom:2rem}:host .schemas-grid .schema-card{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);display:flex;flex-direction:column;gap:1.25rem;padding:1.5rem}:host .schemas-grid .schema-card .card-header{align-items:flex-start;display:flex;flex-direction:column}:host .schemas-grid .schema-card .card-header p{color:var(--neutral);margin:0;font-size:var(--font-size-sm)}:host .schemas-grid .schema-card .list{border:1px solid var(--border-color);border-radius:var(--border-radius-md);display:flex;flex-direction:column}:host .schemas-grid .schema-card .list .database{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;gap:1rem;overflow:hidden;padding:.5rem 1rem;transition:background-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database av-img{flex-shrink:0;height:30px;width:30px}:host .schemas-grid .schema-card .list .database div{flex-grow:1}:host .schemas-grid .schema-card .list .database mi-icon{color:var(--error);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database mi-icon:hover{color:var(--error-600)}:host .schemas-grid .schema-card .list .database:first-child{border-top:none}:host .schemas-grid .schema-card .list .database[active]{background-color:hsla(0,0%,100%,.1)}:host .schemas-grid .schema-card .list .database:not([active]):hover{background-color:hsla(0,0%,100%,.05)}:host .schemas-grid .schema-card .list .add{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;justify-content:center;padding:.5rem 1rem}:host .schemas-grid .schema-card .list .add mi-icon{color:var(--success);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .add mi-icon:hover{color:var(--success-600)}:host .schemas-grid .schema-card .or{display:flex;font-size:var(--font-size-lg);font-weight:bold;justify-content:center;letter-spacing:2px}:host .schemas-grid .schema-card .import-file{align-items:center;border:2px dashed var(--border-color);border-radius:var(--border-radius-md);cursor:pointer;display:flex;flex-direction:column;gap:1rem;padding:2rem 1rem;transition:border-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .import-file mi-icon{font-size:var(--font-size-xl)}:host .schemas-grid .schema-card .import-file:hover{border-color:var(--surface-content)}:host .schemas-grid .schema-card .code-textarea{background:rgba(15,23,42,.5);border:1px solid var(--border-color);border-radius:var(--border-radius-md);color:var(--primary-content);font-size:.85rem;height:350px;outline:none;padding:1rem;resize:vertical;transition:border-color .2s ease;width:100%}:host .schemas-grid .schema-card .code-textarea:focus{border-color:var(--info)}`;
     __getStatic() {
         return ImportSchema;
     }
@@ -12608,25 +13616,21 @@ const ImportSchema = class ImportSchema extends BaseContent {
     }
     __getHtml() {super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="section-header">    <h2>Importer les Schémas</h2>    <p>Déposez ou collez les fichiers de schémas JSON (DiagramObject) correspondants à l'ancienne et à la nouvelle        version de votre modèle.</p></div><div class="schemas-grid">    <div class="schema-card">        <div class="card-header">            <h3>Ancien Schéma (Source)</h3>            <span class="badge badge-old">Version A</span>        </div>        <textarea class="code-textarea" placeholder="Collez le JSON de l'ancien schéma ici..." _id="importschema_0"></textarea>    </div>    <div class="schema-card">        <div class="card-header">            <h3>Nouveau Schéma (Cible)</h3>            <span class="badge badge-new">Version B</span>        </div>        <textarea class="code-textarea" placeholder="Collez le JSON du nouveau schéma ici..." _id="importschema_1"></textarea>    </div></div><div class="action-footer">    <om-button _id="importschema_2">Comparer les Schémas</om-button></div>` }
+        blocks: { 'default':`<div class="section-header">    <h2>Data Sources</h2>    <p>Provide data source or schema to generate the migration</p></div><div class="schemas-grid">    <div class="schema-card">        <div class="card-header">            <h3>Database Source</h3>            <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>        </div>        <div class="list">            <div class="database">                <av-img src="/img/mysql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete" _id="importschema_0"></mi-icon>            </div>            <div class="database">                <av-img src="/img/mssql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="database">                <av-img src="/img/postgresql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="database">                <av-img src="/img/sqlite.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="add" _id="importschema_1">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.database.avt)</span>        </div>    </div>    <div class="schema-card">        <div class="card-header">            <h3>Database Final</h3>            <p>Provide the final data source model.</p>        </div>        <div class="list">            <div class="database">                <av-img src="/img/mysql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="database">                <av-img src="/img/mssql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="database">                <av-img src="/img/postgresql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="database">                <av-img src="/img/sqlite.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="add">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.database.avt)</span>        </div>    </div></div><div class="action-footer">    <om-button _id="importschema_2">Comparer les Schémas</om-button></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
+  "events": [
     {
-      "name": "jsonOld",
-      "ids": [
-        "importschema_0"
-      ]
+      "eventName": "click",
+      "id": "importschema_0",
+      "fct": (e, c) => c.comp.deleteDatabase(e)
     },
     {
-      "name": "jsonNew",
-      "ids": [
-        "importschema_1"
-      ]
-    }
-  ],
-  "events": [
+      "eventName": "click",
+      "id": "importschema_1",
+      "fct": (e, c) => c.comp.createDatabase(e)
+    },
     {
       "eventName": "click",
       "id": "importschema_2",
@@ -12636,6 +13640,17 @@ const ImportSchema = class ImportSchema extends BaseContent {
 }); }
     getClassName() {
         return "ImportSchema";
+    }
+    deleteDatabase() {
+        OneMoreUI.Components.Interaction.Confirm.open({
+            title: "Delete database",
+            content: "Do you want to delete the database X?",
+            type: "error"
+        });
+    }
+    async createDatabase() {
+        const modal = new CreateDatabaseModal();
+        await modal.show();
     }
     analyzeAndCompare() {
         Generator.compareSchemas(MainState.instance.oldSchema, MainState.instance.newSchema, MainState.instance.mappings);
