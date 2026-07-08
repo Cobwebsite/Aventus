@@ -1,6 +1,17 @@
+import { Confirm } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
 import { Generator } from "../../lib/Generator.lib.avt";
 import { BaseContent } from "../BaseContent/BaseContent.wcl.avt";
+import { CreateDatabaseModal } from "../CreateDatabaseModal/CreateDatabaseModal.wcl.avt";
 import { MainState } from "../MainState.lib.avt";
+
+
+type FormType = {
+    Type: string,
+    Host: string,
+    Username: string,
+    Password: string,
+    Database: string,
+};
 
 export class ImportSchema extends BaseContent implements Aventus.DefaultComponent {
 
@@ -15,10 +26,7 @@ export class ImportSchema extends BaseContent implements Aventus.DefaultComponen
 
 
     //#region variables
-    @ViewElement()
-    public readonly jsonOld!: HTMLTextAreaElement;
-    @ViewElement()
-    public readonly jsonNew!: HTMLTextAreaElement;
+
     //#endregion
 
 
@@ -29,11 +37,31 @@ export class ImportSchema extends BaseContent implements Aventus.DefaultComponen
 
     //#region methods
 
+
+    /**
+     * 
+     */
+    protected deleteDatabase() {
+        Confirm.open({
+            title: "Delete database",
+            content: "Do you want to delete the database X?",
+            type: "error"
+        })
+    }
+
+    /**
+     * 
+     */
+    protected async createDatabase() {
+        const modal = new CreateDatabaseModal();
+        await modal.show();
+    }
+
     /**
      * 
      */
     protected analyzeAndCompare() {
-        Generator.compareSchemas(MainState.instance.oldSchema, MainState.instance.newSchema, MainState.instance.mappings)
+        Generator.compareSchemas(MainState.instance.oldSchema, MainState.instance.newSchema, MainState.instance.mappings);
         MainState.instance.step = 1;
         // throw new Error("Method not implemented.");
     }

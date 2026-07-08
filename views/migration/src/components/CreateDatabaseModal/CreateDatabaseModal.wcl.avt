@@ -1,0 +1,51 @@
+import { Modal } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
+
+type FormType = {
+    Type: string,
+    Host: string,
+    Username: string,
+    Password: string,
+    Database: string,
+};
+export class CreateDatabaseModal extends Modal<FormType> implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @Watch()
+    public formNewDb: FormType = {
+        Database: "Spalio2",
+        Host: "localhost",
+        Password: "",
+        Type: "mysql",
+        Username: "root"
+    };
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    /**
+     * @inheritdoc
+     */
+    public override configure(): Aventus.Modal.ModalOptions<FormType> {
+        return {
+			closeWithClick: false,
+		};
+    }
+
+    //#endregion
+
+}

@@ -1,0 +1,190 @@
+import { VoidWithError } from "Aventus@Main:Aventus.package.avt";
+import { Error, ErrorCode } from "./Error.lib.avt";
+
+export interface Route<T = any> {
+    channel: string;
+    callback: (data: T, params: Aventus.UriParamsValue, uid?: string) => void;
+}
+
+export type InternalRoute = Route & Aventus.PreparedUri;
+
+export interface Options<T = any> {
+    channel: string,
+    body?: T,
+    timeout?: number,
+    uid?: string;
+}
+export interface Message {
+    channel: string;
+    data?: any;
+    uid?: string;
+}
+
+export class Router {
+
+    public static get isVscode(): boolean {
+        return 'acquireVsCodeApi' in window;
+    }
+
+    public static getInstance(): Router {
+        return Aventus.Instance.get(Router);
+    }
+
+    private routes: { [key: string]: InternalRoute[]; } = {};
+    protected waitingList: { [uuid: string]: (channel: string, data: any) => void; } = {};
+    private vscode: any;
+
+    public constructor() {
+        // @ts-ignore
+        this.vscode = acquireVsCodeApi();
+        window.addEventListener('message', (e) => this.onMessage(e));
+    }
+
+    public addRoute<T = any>(route: Route<T>): void {
+        if(!this.routes.hasOwnProperty(route.channel)) {
+            this.routes[route.channel] = [];
+        }
+
+        // prevent double subscribe 
+        for(let info of this.routes[route.channel]) {
+            if(info.callback == route.callback) {
+                return;
+            }
+        }
+
+        const { params, regex } = Aventus.Uri.prepare(route.channel);
+        let prepared: InternalRoute = {
+            callback: route.callback,
+            channel: route.channel,
+            regex,
+            params
+        };
+        this.routes[route.channel].push(prepared);
+    }
+
+    public removeRoute<T = any>(route: Route<T>): void {
+        for(let i = 0; i < this.routes[route.channel].length; i++) {
+            let info = this.routes[route.channel][i];
+            if(info.callback == route.callback) {
+                this.routes[route.channel].splice(i, 1);
+                i--;
+            }
+        }
+    }
+
+    protected onMessage(event: MessageEvent<any>) {
+        let response: {
+            channel: string,
+            data: string,
+            uid?: string;
+        } = event.data;
+
+        let data: any = {};
+        try {
+            data = Aventus.Converter.transform(response.data);
+        } catch(e) {
+            console.error(e);
+        }
+        for(let channel in this.routes) {
+            let current = this.routes[channel];
+            for(let info of current) {
+                let params = Aventus.Uri.getParams(info, response.channel);
+                if(params) {
+                    let valueCb = data;
+                    if(data instanceof Aventus.ResultWithError) {
+                        valueCb = data.result;
+                    }
+                    else if(data instanceof Aventus.VoidWithError) {
+                        valueCb = undefined;
+                    }
+                    info.callback(valueCb, params, response.uid);
+                }
+            }
+        }
+
+        if(response.uid) {
+            if(this.waitingList.hasOwnProperty(response.uid)) {
+                this.waitingList[response.uid](response.channel, data);
+                delete this.waitingList[response.uid];
+            }
+        }
+    }
+
+    public send(options: Options): VoidWithError {
+        let result = new VoidWithError();
+
+        try {
+            let message: Message = {
+                channel: options.channel,
+            };
+            if(options.uid) {
+                message.uid = options.uid;
+            }
+
+            if(options.body) {
+                message.data = options.body;
+            }
+
+            this.vscode.postMessage(message);
+        }
+        catch(e) {
+            result.errors.push(new Error(ErrorCode.unknow, e));
+        }
+
+
+        return result;
+    }
+
+    public sendWithResponse<T>(options: Options): Promise<Aventus.ResultWithError<Aventus.ExtractFromError<T>>> {
+        return new Promise<Aventus.ResultWithError<Aventus.ExtractFromError<T>>>(async (resolve) => {
+            let result = new Aventus.ResultWithError<Aventus.ExtractFromError<T>>();
+            try {
+                let _uid = options.uid ? options.uid : Aventus.uuidv4();
+                options.uid = _uid;
+                // No need to have an event listening bc the waiting list is trigger event if no event is listening
+                let timeoutInfo: number | undefined;
+                this.waitingList[_uid] = (channel, data) => {
+                    clearTimeout(timeoutInfo);
+                    if(channel.toLowerCase() != options.channel.toLowerCase()) {
+                        result.errors.push(new Error(ErrorCode.differentChannel, `We sent a message on ${options.channel} but we receive on ${channel}`));
+                        resolve(result);
+                    }
+                    else {
+                        if(data instanceof Aventus.VoidWithError) {
+                            for(let error of data.errors) {
+                                result.errors.push(error);
+                            }
+                            if(data instanceof Aventus.ResultWithError) {
+                                result.result = data.result;
+                            }
+                        }
+                        else {
+                            result.result = data;
+                        }
+                        resolve(result);
+                    }
+                };
+                if(options.timeout !== undefined) {
+                    timeoutInfo = setTimeout(() => {
+                        delete this.waitingList[_uid];
+
+                        result.errors.push(new Error(ErrorCode.timeout, "No message received after " + options.timeout + "ms"));
+                        resolve(result);
+                    }, options.timeout);
+                }
+
+                let sendMessageResult = this.send(options);
+
+                if(!sendMessageResult.success) {
+                    for(let error of sendMessageResult.errors) {
+                        result.errors.push(error);
+                    }
+                    resolve(result);
+                }
+            } catch(e) {
+                result.errors.push(new Error(ErrorCode.unknow, e));
+                resolve(result);
+            }
+        });
+    }
+}

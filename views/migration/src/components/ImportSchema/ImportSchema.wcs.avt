@@ -16,6 +16,114 @@
 			gap: 1.25rem;
 			padding: 1.5rem;
 
+			.card-header {
+				align-items: flex-start;
+				display: flex;
+				flex-direction: column;
+
+				p {
+					color: var(--neutral);
+					margin: 0;
+					font-size: var(--font-size-sm);
+				}
+			}
+
+			.list {
+				border: 1px solid var(--border-color);
+				border-radius: var(--border-radius-md);
+				display: flex;
+				flex-direction: column;
+
+				.database {
+					align-items: center;
+					border-top: 1px solid var(--border-color);
+					cursor: pointer;
+					display: flex;
+					gap: 1rem;
+					overflow: hidden;
+					padding: 0.5rem 1rem;
+					transition: background-color 0.2s var(--bezier-curve);
+
+					av-img {
+						flex-shrink: 0;
+						height: 30px;
+						width: 30px;
+					}
+
+					div {
+						flex-grow: 1;
+					}
+
+					mi-icon {
+						color: var(--error);
+						transition: color 0.2s var(--bezier-curve);
+					}
+
+					mi-icon:hover {
+						color: var(--error-600);
+					}
+				}
+
+				.database:first-child {
+					border-top: none;
+				}
+
+				.database[active] {
+					background-color: rgba(255, 255, 255, 0.1);
+				}
+
+				.database:not([active]):hover {
+					background-color: rgba(255, 255, 255, 0.05);
+				}
+
+				.add {
+					align-items: center;
+					border-top: 1px solid var(--border-color);
+					cursor: pointer;
+					display: flex;
+					justify-content: center;
+					padding: 0.5rem 1rem;
+
+					mi-icon {
+						color: var(--success);
+						transition: color 0.2s var(--bezier-curve);
+					}
+
+					mi-icon:hover {
+						color: var(--success-600);
+					}
+				}
+			}
+
+			.or {
+				display: flex;
+				font-size: var(--font-size-lg);
+				font-weight: bold;
+				justify-content: center;
+				letter-spacing: 2px;
+			}
+
+			.import-file {
+				align-items: center;
+				border: 2px dashed var(--border-color);
+				border-radius: var(--border-radius-md);
+				cursor: pointer;
+				display: flex;
+				flex-direction: column;
+				gap: 1rem;
+				padding: 2rem 1rem;
+				transition: border-color 0.2s var(--bezier-curve);
+
+				mi-icon {
+					font-size: var(--font-size-xl);
+				}
+			}
+
+			.import-file:hover {
+				border-color: var(--surface-content);
+			}
+
+			
 			.code-textarea {
 				background: rgba(15, 23, 42, 0.5);
 				border: 1px solid var(--border-color);

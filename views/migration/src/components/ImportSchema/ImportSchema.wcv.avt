@@ -1,23 +1,84 @@
 <div class="section-header">
-    <h2>Importer les Schémas</h2>
-    <p>Déposez ou collez les fichiers de schémas JSON (DiagramObject) correspondants à l'ancienne et à la nouvelle
-        version de votre modèle.</p>
+    <h2>Data Sources</h2>
+    <p>Provide data source or schema to generate the migration</p>
 </div>
 <div class="schemas-grid">
     <div class="schema-card">
         <div class="card-header">
-            <h3>Ancien Schéma (Source)</h3>
-            <span class="badge badge-old">Version A</span>
+            <h3>Database Source</h3>
+            <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>
         </div>
-        <textarea class="code-textarea" @element="jsonOld" placeholder="Collez le JSON de l'ancien schéma ici..."></textarea>
+        <div class="list">
+            <div class="database">
+                <av-img src="/img/mysql.svg"></av-img>
+                <div>Saplio2 (localhost)</div>
+                <mi-icon icon="delete" @click="deleteDatabase"></mi-icon>
+            </div>
+            <div class="database">
+                <av-img src="/img/mssql.svg"></av-img>
+                <div>Saplio2 (localhost)</div>
+                <mi-icon icon="delete"></mi-icon>
+            </div>
+            <div class="database">
+                <av-img src="/img/postgresql.svg"></av-img>
+                <div>Saplio2 (localhost)</div>
+                <mi-icon icon="delete"></mi-icon>
+            </div>
+            <div class="database">
+                <av-img src="/img/sqlite.svg"></av-img>
+                <div>Saplio2 (localhost)</div>
+                <mi-icon icon="delete"></mi-icon>
+            </div>
+            <div class="add" @click="createDatabase">
+                <mi-icon icon="add"></mi-icon>
+            </div>
+        </div>
+        <div class="or">
+            OR
+        </div>
+        <div class="import-file">
+            <mi-icon icon="upload"></mi-icon>
+            <span>Import schema file (*.database.avt)</span>
+        </div>
     </div>
 
     <div class="schema-card">
         <div class="card-header">
-            <h3>Nouveau Schéma (Cible)</h3>
-            <span class="badge badge-new">Version B</span>
+            <h3>Database Final</h3>
+            <p>Provide the final data source model.</p>
         </div>
-        <textarea class="code-textarea" @element="jsonNew" placeholder="Collez le JSON du nouveau schéma ici..."></textarea>
+        <div class="list">
+            <div class="database">
+                <av-img src="/img/mysql.svg"></av-img>
+                <div>Saplio2 (localhost)</div>
+                <mi-icon icon="delete"></mi-icon>
+            </div>
+            <div class="database">
+                <av-img src="/img/mssql.svg"></av-img>
+                <div>Saplio2 (localhost)</div>
+                <mi-icon icon="delete"></mi-icon>
+            </div>
+            <div class="database">
+                <av-img src="/img/postgresql.svg"></av-img>
+                <div>Saplio2 (localhost)</div>
+                <mi-icon icon="delete"></mi-icon>
+            </div>
+            <div class="database">
+                <av-img src="/img/sqlite.svg"></av-img>
+                <div>Saplio2 (localhost)</div>
+                <mi-icon icon="delete"></mi-icon>
+            </div>
+            <div class="add">
+                <mi-icon icon="add"></mi-icon>
+            </div>
+        </div>
+        <div class="or">
+            OR
+        </div>
+        <div class="import-file">
+            <mi-icon icon="upload"></mi-icon>
+            <span>Import schema file (*.database.avt)</span>
+        </div>
     </div>
 </div>
 <div class="action-footer">
