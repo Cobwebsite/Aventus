@@ -9,7 +9,7 @@ import { Watcher } from "../lib/Watcher.lib.avt";
 @Storybook({
     prefix: "Tools"
 })
-export function compareObject(obj1: any, obj2: any): boolean {
+export function compareObject(obj1: any, obj2: any, tableOrder: boolean = true): boolean {
     if(Array.isArray(obj1)) {
         // array
         if(!Array.isArray(obj2)) {
@@ -19,18 +19,28 @@ export function compareObject(obj1: any, obj2: any): boolean {
         if(obj1.length !== obj2.length) {
             return false;
         }
-        for(let i = 0; i < obj1.length; i++) {
-            let foundElement = false;
-            for(let j = 0; j < obj2.length; j++) {
-                if(compareObject(obj1[i], obj2[j])) {
-                    obj2.splice(j, 1);
-                    foundElement = true;
-                    break;
+        if(tableOrder) {
+            for(let i = 0; i < obj1.length; i++) {
+                if(!compareObject(obj1[i], obj2[i])) {
+                    return false;
                 }
             }
-            if(!foundElement) {
-                // can't find entry in obj2
-                return false;
+            return true;
+        }
+        else {
+            for(let i = 0; i < obj1.length; i++) {
+                let foundElement = false;
+                for(let j = 0; j < obj2.length; j++) {
+                    if(compareObject(obj1[i], obj2[j])) {
+                        obj2.splice(j, 1);
+                        foundElement = true;
+                        break;
+                    }
+                }
+                if(!foundElement) {
+                    // can't find entry in obj2
+                    return false;
+                }
             }
         }
         // all entries founded
