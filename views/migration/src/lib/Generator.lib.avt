@@ -1,3 +1,4 @@
+import { MainState } from "../components/MainState.lib.avt";
 import type { Field, Mapping, Schema, Table } from "./Definition.lib.avt";
 
 type RenamedTable = { old: Table, new: Table, oldName: string, newName: string; };
@@ -36,7 +37,10 @@ export type CompareSchemasResult = {
 
 
 export class Generator {
-    public static compareSchemas(oldSchema: Schema, newSchema: Schema, mappings: Mapping): CompareSchemasResult {
+    public static compareSchemas(): void {
+        MainState.instance.comparison = this._compareSchemas(MainState.instance.oldSchema, MainState.instance.newSchema, MainState.instance.mappings);
+    }
+    private static _compareSchemas(oldSchema: Schema, newSchema: Schema, mappings: Mapping): CompareSchemasResult {
         const oldTables = oldSchema.tables || [];
         const newTables = newSchema.tables || [];
 

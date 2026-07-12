@@ -1,8 +1,8 @@
- <h4>Tables Renommées</h4>
+<h4>Tables Renommées</h4>
 <p class="card-desc">Si une table a été renommée, associez son ancien nom au nouveau.</p>
 <div class="mapping-list">
     if(Object.keys(this.tables).length == 0) {
-        <p class="no-table">Aucune association de table.</p>
+        <div class="no-table">Aucune association de table.</div>
     }
     else {
         for(let oldName in this.tables) {
@@ -31,5 +31,5 @@
             <om-option value="{{ addedTable.name }}">{{ addedTable.name }}</om-option>
         }
     </om-select>
-    <om-button @click="addTableMapping" color="success">Lier</om-button>
+    <om-button @click="addTableMapping">Lier</om-button>
 </div>

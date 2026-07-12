@@ -1,0 +1,2213 @@
+import type { Schema } from "./Definition.lib.avt";
+
+export const defaultSchema = {
+    "name": "spalio2",
+    "databaseType": "mysql",
+    "tables": [
+        {
+            "id": "bill",
+            "name": "bill",
+            "fields": [
+                {
+                    "id": "bill.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "bill.Montant",
+                    "name": "Montant",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "bill.MontantPaye",
+                    "name": "MontantPaye",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "bill.DateEmission",
+                    "name": "DateEmission",
+                    "type": {
+                        "id": "date",
+                        "name": "date"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "bill.DateEcheance",
+                    "name": "DateEcheance",
+                    "type": {
+                        "id": "date",
+                        "name": "date"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "billline",
+            "name": "billline",
+            "fields": [
+                {
+                    "id": "billline.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "billline.Label",
+                    "name": "Label",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "billline.Quantity",
+                    "name": "Quantity",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "billline.Montant",
+                    "name": "Montant",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "billline.BillId",
+                    "name": "BillId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "club",
+            "name": "club",
+            "fields": [
+                {
+                    "id": "club.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "club.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "club.Logo",
+                    "name": "Logo",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "club.PrimaryColor",
+                    "name": "PrimaryColor",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "club.Address",
+                    "name": "Address",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "club.City",
+                    "name": "City",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "club.ZipCode",
+                    "name": "ZipCode",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "club.Licence",
+                    "name": "Licence",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "club.AvailableUsers",
+                    "name": "AvailableUsers",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "club.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "club.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "clubmodule",
+            "name": "clubmodule",
+            "fields": [
+                {
+                    "id": "clubmodule.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubmodule.Club",
+                    "name": "Club",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubmodule.Module",
+                    "name": "Module",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubmodule.IsActive",
+                    "name": "IsActive",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubmodule.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubmodule.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "clubuserpack",
+            "name": "clubuserpack",
+            "fields": [
+                {
+                    "id": "clubuserpack.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubuserpack.Club",
+                    "name": "Club",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubuserpack.Pack",
+                    "name": "Pack",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubuserpack.IsActive",
+                    "name": "IsActive",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubuserpack.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubuserpack.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "conversation",
+            "name": "conversation",
+            "fields": [
+                {
+                    "id": "conversation.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "conversation.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "conversation.Icon",
+                    "name": "Icon",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "conversation.IsGroup",
+                    "name": "IsGroup",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "conversationuser",
+            "name": "conversationuser",
+            "fields": [
+                {
+                    "id": "conversationuser.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "conversationuser.ConversationId",
+                    "name": "ConversationId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "conversationuser.UserId",
+                    "name": "UserId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "familymember",
+            "name": "familymember",
+            "fields": [
+                {
+                    "id": "familymember.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "familymember.FirstName",
+                    "name": "FirstName",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "familymember.LastName",
+                    "name": "LastName",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "familymember.BirthDate",
+                    "name": "BirthDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "familymember.Email",
+                    "name": "Email",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "familymember.Phone",
+                    "name": "Phone",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "familymember.ReferenceMember",
+                    "name": "ReferenceMember",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "function",
+            "name": "function",
+            "fields": [
+                {
+                    "id": "function.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "function.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "function.ClubId",
+                    "name": "ClubId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "function.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "function.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "genericorderitem",
+            "name": "genericorderitem",
+            "fields": [
+                {
+                    "id": "genericorderitem.__type",
+                    "name": "__type",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.OrderId",
+                    "name": "OrderId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.Product",
+                    "name": "Product",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.Quantity",
+                    "name": "Quantity",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "licence",
+            "name": "licence",
+            "fields": [
+                {
+                    "id": "licence.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "licence.Kind",
+                    "name": "Kind",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "licence.QtyUser",
+                    "name": "QtyUser",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "licence.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "licence.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "material",
+            "name": "material",
+            "fields": [
+                {
+                    "id": "material.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "material.Nom",
+                    "name": "Nom",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "material.ClubId",
+                    "name": "ClubId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "materialvariation",
+            "name": "materialvariation",
+            "fields": [
+                {
+                    "id": "materialvariation.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "member",
+            "name": "member",
+            "fields": [
+                {
+                    "id": "member.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.FirstName",
+                    "name": "FirstName",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.LastName",
+                    "name": "LastName",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.BirthDate",
+                    "name": "BirthDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "member.Email",
+                    "name": "Email",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "member.Phone",
+                    "name": "Phone",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "member.Address",
+                    "name": "Address",
+                    "type": {
+                        "id": "text",
+                        "name": "text"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "member.Settings",
+                    "name": "Settings",
+                    "type": {
+                        "id": "longtext",
+                        "name": "longtext"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.UserId",
+                    "name": "UserId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.Club",
+                    "name": "Club",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.Image",
+                    "name": "Image",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "member.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "message",
+            "name": "message",
+            "fields": [
+                {
+                    "id": "message.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "message.Content",
+                    "name": "Content",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "message.ConversationId",
+                    "name": "ConversationId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "message.OwnerId",
+                    "name": "OwnerId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "migrationtable",
+            "name": "migrationtable",
+            "fields": [
+                {
+                    "id": "migrationtable.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "migrationtable.Date",
+                    "name": "Date",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "module",
+            "name": "module",
+            "fields": [
+                {
+                    "id": "module.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "module.Kind",
+                    "name": "Kind",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "module.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "module.IsActive",
+                    "name": "IsActive",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "movement",
+            "name": "movement",
+            "fields": [
+                {
+                    "id": "movement.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "order",
+            "name": "order",
+            "fields": [
+                {
+                    "id": "order.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "order.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "order.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "order.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "orderitem",
+            "name": "orderitem",
+            "fields": [
+                {
+                    "id": "orderitem.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "orderitemticket",
+            "name": "orderitemticket",
+            "fields": [
+                {
+                    "id": "orderitemticket.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "orderitemticket.MemberId",
+                    "name": "MemberId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "permission",
+            "name": "permission",
+            "fields": [
+                {
+                    "id": "permission.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "permission.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "permission.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "permission.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "permissionrole",
+            "name": "permissionrole",
+            "fields": [
+                {
+                    "id": "permissionrole.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "permissionrole.Role",
+                    "name": "Role",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "permissionrole.Permission",
+                    "name": "Permission",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "product",
+            "name": "product",
+            "fields": [
+                {
+                    "id": "product.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "product.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "product.Description",
+                    "name": "Description",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "product.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "product.Type",
+                    "name": "Type",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "productvariation",
+            "name": "productvariation",
+            "fields": [
+                {
+                    "id": "productvariation.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariation.Product",
+                    "name": "Product",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariation.Sku",
+                    "name": "Sku",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariation.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariation.Stock",
+                    "name": "Stock",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "productvariationattribute",
+            "name": "productvariationattribute",
+            "fields": [
+                {
+                    "id": "productvariationattribute.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariationattribute.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariationattribute.Value",
+                    "name": "Value",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariationattribute.VariationValueId",
+                    "name": "VariationValueId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "productvariationattribute.Product",
+                    "name": "Product",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "role",
+            "name": "role",
+            "fields": [
+                {
+                    "id": "role.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "role.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "role.ClubId",
+                    "name": "ClubId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "role.IsAdmin",
+                    "name": "IsAdmin",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "role.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "role.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "team",
+            "name": "team",
+            "fields": [
+                {
+                    "id": "team.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "team.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "team.Color",
+                    "name": "Color",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "team.ClubId",
+                    "name": "ClubId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "team.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "team.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "teammember",
+            "name": "teammember",
+            "fields": [
+                {
+                    "id": "teammember.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "teammember.TeamId",
+                    "name": "TeamId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "teammember.MemberId",
+                    "name": "MemberId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "teammember.FunctionId",
+                    "name": "FunctionId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "teammember.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "teammember.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "user",
+            "name": "user",
+            "fields": [
+                {
+                    "id": "user.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "user.Email",
+                    "name": "Email",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "user.Password",
+                    "name": "Password",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "user.IsSuperAdmin",
+                    "name": "IsSuperAdmin",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "user.Role",
+                    "name": "Role",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "user.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "user.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "userpack",
+            "name": "userpack",
+            "fields": [
+                {
+                    "id": "userpack.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "userpack.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "userpack.QtyUser",
+                    "name": "QtyUser",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "userpack.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "userpack.IsActive",
+                    "name": "IsActive",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "userpack.MonthValidity",
+                    "name": "MonthValidity",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "variationattributegroup",
+            "name": "variationattributegroup",
+            "fields": [
+                {
+                    "id": "variationattributegroup.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "variationattributegroup.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "variationattributevalue",
+            "name": "variationattributevalue",
+            "fields": [
+                {
+                    "id": "variationattributevalue.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "variationattributevalue.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "variationattributevalue.Order",
+                    "name": "Order",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "variationattributevalue.GroupId",
+                    "name": "GroupId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        }
+    ],
+    "relationships": [
+        {
+            "id": "8e8cbe84-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_BillId_BillLine_Bill",
+            "sourceTableId": "billline",
+            "targetTableId": "bill",
+            "sourceFieldId": "billline.BillId",
+            "targetFieldId": "bill.Id"
+        },
+        {
+            "id": "8e8cbeae-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Licence_Club_Licence",
+            "sourceTableId": "club",
+            "targetTableId": "licence",
+            "sourceFieldId": "club.Licence",
+            "targetFieldId": "licence.Id"
+        },
+        {
+            "id": "8e8cbebb-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Club_ClubModule_Club",
+            "sourceTableId": "clubmodule",
+            "targetTableId": "club",
+            "sourceFieldId": "clubmodule.Club",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbec4-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Module_ClubModule_Module",
+            "sourceTableId": "clubmodule",
+            "targetTableId": "module",
+            "sourceFieldId": "clubmodule.Module",
+            "targetFieldId": "module.Id"
+        },
+        {
+            "id": "8e8cbed6-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Club_ClubUserPack_Club",
+            "sourceTableId": "clubuserpack",
+            "targetTableId": "club",
+            "sourceFieldId": "clubuserpack.Club",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbedc-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Pack_ClubUserPack_UserPack",
+            "sourceTableId": "clubuserpack",
+            "targetTableId": "userpack",
+            "sourceFieldId": "clubuserpack.Pack",
+            "targetFieldId": "userpack.Id"
+        },
+        {
+            "id": "8e8cbee8-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ConversationId_ConversationUser_Conversation",
+            "sourceTableId": "conversationuser",
+            "targetTableId": "conversation",
+            "sourceFieldId": "conversationuser.ConversationId",
+            "targetFieldId": "conversation.Id"
+        },
+        {
+            "id": "8e8cbef5-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_UserId_ConversationUser_User",
+            "sourceTableId": "conversationuser",
+            "targetTableId": "user",
+            "sourceFieldId": "conversationuser.UserId",
+            "targetFieldId": "user.Id"
+        },
+        {
+            "id": "8e8cbefc-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ReferenceMember_FamilyMember_Member",
+            "sourceTableId": "familymember",
+            "targetTableId": "member",
+            "sourceFieldId": "familymember.ReferenceMember",
+            "targetFieldId": "member.Id"
+        },
+        {
+            "id": "8e8cbf0d-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ClubId_Function_Club",
+            "sourceTableId": "function",
+            "targetTableId": "club",
+            "sourceFieldId": "function.ClubId",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbf14-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_OrderId_GenericOrderItem_Order",
+            "sourceTableId": "genericorderitem",
+            "targetTableId": "order",
+            "sourceFieldId": "genericorderitem.OrderId",
+            "targetFieldId": "order.Id"
+        },
+        {
+            "id": "8e8cbf19-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Product_GenericOrderItem_ProductVariation",
+            "sourceTableId": "genericorderitem",
+            "targetTableId": "productvariation",
+            "sourceFieldId": "genericorderitem.Product",
+            "targetFieldId": "productvariation.Id"
+        },
+        {
+            "id": "8e8cbf21-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ClubId_Material_Club",
+            "sourceTableId": "material",
+            "targetTableId": "club",
+            "sourceFieldId": "material.ClubId",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbf27-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Club_Member_Club",
+            "sourceTableId": "member",
+            "targetTableId": "club",
+            "sourceFieldId": "member.Club",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbf2c-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_UserId_Member_User",
+            "sourceTableId": "member",
+            "targetTableId": "user",
+            "sourceFieldId": "member.UserId",
+            "targetFieldId": "user.Id"
+        },
+        {
+            "id": "8e8cbf31-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ConversationId_Message_Conversation",
+            "sourceTableId": "message",
+            "targetTableId": "conversation",
+            "sourceFieldId": "message.ConversationId",
+            "targetFieldId": "conversation.Id"
+        },
+        {
+            "id": "8e8cbf38-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_OwnerId_Message_User",
+            "sourceTableId": "message",
+            "targetTableId": "user",
+            "sourceFieldId": "message.OwnerId",
+            "targetFieldId": "user.Id"
+        },
+        {
+            "id": "8e8cbf41-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Id_OrderItem_GenericOrderItem",
+            "sourceTableId": "orderitem",
+            "targetTableId": "genericorderitem",
+            "sourceFieldId": "orderitem.Id",
+            "targetFieldId": "genericorderitem.Id"
+        },
+        {
+            "id": "8e8cbf48-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Id_OrderItemTicket_GenericOrderItem",
+            "sourceTableId": "orderitemticket",
+            "targetTableId": "genericorderitem",
+            "sourceFieldId": "orderitemticket.Id",
+            "targetFieldId": "genericorderitem.Id"
+        },
+        {
+            "id": "8e8cbf55-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_MemberId_OrderItemTicket_Member",
+            "sourceTableId": "orderitemticket",
+            "targetTableId": "member",
+            "sourceFieldId": "orderitemticket.MemberId",
+            "targetFieldId": "member.Id"
+        },
+        {
+            "id": "8e8cbf5c-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Permission_PermissionRole_Permission",
+            "sourceTableId": "permissionrole",
+            "targetTableId": "permission",
+            "sourceFieldId": "permissionrole.Permission",
+            "targetFieldId": "permission.Id"
+        },
+        {
+            "id": "8e8cbf62-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Role_PermissionRole_Role",
+            "sourceTableId": "permissionrole",
+            "targetTableId": "role",
+            "sourceFieldId": "permissionrole.Role",
+            "targetFieldId": "role.Id"
+        },
+        {
+            "id": "8e8cbf68-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Product_ProductVariation_Product",
+            "sourceTableId": "productvariation",
+            "targetTableId": "product",
+            "sourceFieldId": "productvariation.Product",
+            "targetFieldId": "product.Id"
+        },
+        {
+            "id": "8e8cbf6e-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "5b24884630f401a90170b1cae45279e04e1a0e3ca03d7937fe2e80941ef4ad58",
+            "sourceTableId": "productvariationattribute",
+            "targetTableId": "variationattributevalue",
+            "sourceFieldId": "productvariationattribute.VariationValueId",
+            "targetFieldId": "variationattributevalue.Id"
+        },
+        {
+            "id": "8e8cbf77-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Product_ProductVariationAttribute_ProductVariation",
+            "sourceTableId": "productvariationattribute",
+            "targetTableId": "productvariation",
+            "sourceFieldId": "productvariationattribute.Product",
+            "targetFieldId": "productvariation.Id"
+        },
+        {
+            "id": "8e8cbf7e-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ClubId_Role_Club",
+            "sourceTableId": "role",
+            "targetTableId": "club",
+            "sourceFieldId": "role.ClubId",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbf83-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ClubId_Team_Club",
+            "sourceTableId": "team",
+            "targetTableId": "club",
+            "sourceFieldId": "team.ClubId",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbf89-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_FunctionId_TeamMember_Function",
+            "sourceTableId": "teammember",
+            "targetTableId": "function",
+            "sourceFieldId": "teammember.FunctionId",
+            "targetFieldId": "function.Id"
+        },
+        {
+            "id": "8e8cbf8e-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_MemberId_TeamMember_Member",
+            "sourceTableId": "teammember",
+            "targetTableId": "member",
+            "sourceFieldId": "teammember.MemberId",
+            "targetFieldId": "member.Id"
+        },
+        {
+            "id": "8e8cbf94-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_TeamId_TeamMember_Team",
+            "sourceTableId": "teammember",
+            "targetTableId": "team",
+            "sourceFieldId": "teammember.TeamId",
+            "targetFieldId": "team.Id"
+        },
+        {
+            "id": "8e8cbf99-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Role_User_Role",
+            "sourceTableId": "user",
+            "targetTableId": "role",
+            "sourceFieldId": "user.Role",
+            "targetFieldId": "role.Id"
+        },
+        {
+            "id": "8e8cbfa0-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_GroupId_VariationAttributeValue_VariationAttributeGroup",
+            "sourceTableId": "variationattributevalue",
+            "targetTableId": "variationattributegroup",
+            "sourceFieldId": "variationattributevalue.GroupId",
+            "targetFieldId": "variationattributegroup.Id"
+        }
+    ]
+} as Schema;

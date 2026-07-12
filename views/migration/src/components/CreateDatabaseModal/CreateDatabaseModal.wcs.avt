@@ -4,7 +4,7 @@
 
 		av-row {
 			--col-gap-x: 1rem;
-			--col-gap-y: 0.5rem;
+			--col-gap-y: 1rem;
 		}
 
 	}

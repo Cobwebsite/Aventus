@@ -1,8 +1,12 @@
-import { Confirm } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
+import { Alert, Confirm } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
 import { Generator } from "../../lib/Generator.lib.avt";
 import { BaseContent } from "../BaseContent/BaseContent.wcl.avt";
 import { CreateDatabaseModal } from "../CreateDatabaseModal/CreateDatabaseModal.wcl.avt";
 import { MainState } from "../MainState.lib.avt";
+import { Api } from "../../lib/Api.lib.avt";
+import type { DatabaseModel } from "../../data/DatabaseModel.lib.avt";
+import { compareObject, Watcher } from "Aventus@Main:Aventus.package.avt";
+import { AskPasswordModal } from "../AskPasswordModal/AskPasswordModal.wcl.avt";
 
 
 type FormType = {
@@ -26,7 +30,16 @@ export class ImportSchema extends BaseContent implements Aventus.DefaultComponen
 
 
     //#region variables
+    @Watch()
+    public databasesSource: DatabaseModel[] = [];
 
+    @Watch()
+    public databasesTarget: DatabaseModel[] = [];
+
+    @Watch()
+    public dbSource?: DatabaseModel = undefined;
+    @Watch()
+    public dbTarget?: DatabaseModel = undefined;
     //#endregion
 
 
@@ -41,29 +54,158 @@ export class ImportSchema extends BaseContent implements Aventus.DefaultComponen
     /**
      * 
      */
-    protected deleteDatabase() {
-        Confirm.open({
-            title: "Delete database",
-            content: "Do you want to delete the database X?",
-            type: "error"
-        })
+    protected selectDatabaseSource(e: Event) {
+        const el = e.currentTarget;
+        if(el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesSource[index];
+            this.dbSource = db;
+        }
+    }
+    /**
+    * 
+    */
+    protected selectDatabaseTarget(e: Event) {
+        const el = e.currentTarget;
+        if(el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesTarget[index];
+            this.dbTarget = db;
+        }
     }
 
     /**
      * 
      */
-    protected async createDatabase() {
+    protected async deleteDatabaseSource(e: Event) {
+        const el = e.currentTarget;
+        if(el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesSource[index];
+            const result = await Confirm.open({
+                title: "Delete database",
+                content: "Do you want to delete the database " + db.Database + "?",
+                type: "error"
+            });
+            if(result) {
+                if(compareObject(db, this.dbSource)) {
+                    this.dbSource = undefined;
+                }
+                this.databasesSource = await Api.deleteDatabase('source', Watcher.extract(db));
+            }
+        }
+
+    }
+
+    protected async deleteDatabaseTarget(e: Event) {
+        const el = e.currentTarget;
+        if(el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesTarget[index];
+            const result = await Confirm.open({
+                title: "Delete database",
+                content: "Do you want to delete the database " + db.Database + "?",
+                type: "error"
+            });
+            if(result) {
+                if(compareObject(db, this.dbTarget)) {
+                    this.dbTarget = undefined;
+                }
+                this.databasesTarget = await Api.deleteDatabase('target', Watcher.extract(db));
+            }
+        }
+    }
+
+    /**
+     * 
+     */
+    protected async createDatabaseSource() {
         const modal = new CreateDatabaseModal();
-        await modal.show();
+        const result = await modal.show();
+        if(result) {
+            this.databasesSource = await Api.setDatabase('source', result);
+        }
+    }
+
+    protected async createDatabaseTarget() {
+        const modal = new CreateDatabaseModal();
+        const result = await modal.show();
+        if(result) {
+            this.databasesTarget = await Api.setDatabase('target', result);
+        }
+    }
+
+    protected async loadData() {
+        const db = await Api.getDatabases();
+        this.databasesSource = db?.source ?? [];
+        this.databasesTarget = db?.target ?? [];
+    }
+
+    protected getIcon(db: DatabaseModel) {
+        if(db.Type == "mysql") return Api.wwwroot + "img/mysql.svg";
+        if(db.Type == "mssql") return Api.wwwroot + "img/mssql.svg";
+        if(db.Type == "postgresql") return Api.wwwroot + "img/postgresql.svg";
+        if(db.Type == "sqlite") return Api.wwwroot + "img/sqlite.svg";
+
+        return "";
     }
 
     /**
      * 
      */
-    protected analyzeAndCompare() {
-        Generator.compareSchemas(MainState.instance.oldSchema, MainState.instance.newSchema, MainState.instance.mappings);
+    protected async analyzeAndCompare() {
+        // if(this.dbTarget) {
+        //     if(!this.dbTarget.SavePassword && this.dbTarget.Password === undefined) {
+        //         const modal = new AskPasswordModal();
+        //         modal.dbName = this.dbTarget.Database;
+        //         const result = await modal.show();
+        //         if(result === null) return;
+        //         this.dbTarget.Password = result;
+        //     }
+
+        //     const schema = await Api.getSchema(this.dbTarget);
+        //     if(!schema) return;
+        //     MainState.instance.newSchema = schema;
+        // }
+        // else {
+        //     Alert.open({
+        //         title: "Missing data",
+        //         type: "error",
+        //         content: "You must select a final database or provide a schema"
+        //     });
+        //     return;
+        // }
+
+        // if(this.dbSource) {
+        //     if(!this.dbSource.SavePassword && this.dbSource.Password === undefined) {
+        //         const modal = new AskPasswordModal();
+        //         modal.dbName = this.dbSource.Database;
+        //         const result = await modal.show();
+        //         if(result === null) return;
+        //         this.dbSource.Password = result;
+        //     }
+
+        //     const schema = await Api.getSchema(this.dbSource);
+        //     if(!schema) return;
+        //     MainState.instance.oldSchema = schema;
+        // }
+        // else {
+        //     MainState.instance.oldSchema = {
+        //         databaseType: MainState.instance.newSchema.databaseType,
+        //         name: MainState.instance.newSchema.name,
+        //         relationships: [],
+        //         tables: [],
+        //     };
+        // }
+
+        Generator.compareSchemas();
         MainState.instance.step = 1;
-        // throw new Error("Method not implemented.");
+    }
+
+
+    protected override postCreation(): void {
+        super.postCreation();
+        this.loadData();
     }
 
     //#endregion

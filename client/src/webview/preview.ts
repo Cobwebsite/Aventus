@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { normalize } from 'path';
 import { ExtensionContext, Uri, ViewColumn, Webview, WebviewPanel, window } from 'vscode';
+import { getNonce } from '../tool';
 
 export class AventusPeview {
 
@@ -29,13 +30,4 @@ export class AventusPeview {
         txt = txt.replace(/\$csp/g, webview.cspSource);
         webview.html = txt
     }
-}
-
-function getNonce() {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
 }

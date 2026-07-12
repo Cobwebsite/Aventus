@@ -1,7 +1,7 @@
 for(let addedTable of this.comparison.addedTables) {
-    <div class="diff-table-group" style="border-color: rgba(16, 185, 129, 0.4)">
-        <div class="diff-table-header" style="background: rgba(16, 185, 129, 0.05)">
-            <span class="diff-table-title" style="color: var(--color-success)">Table Ajoutée : {{ addedTable.name }}</span>
+    <div class="diff-table-group">
+        <div class="diff-table-header">
+            <span class="diff-table-title">Table Ajoutée : {{ addedTable.name }}</span>
             <span class="badge badge-new">Nouveau</span>
         </div>
         <div class="diff-table-body">
@@ -9,7 +9,7 @@ for(let addedTable of this.comparison.addedTables) {
                 <div class="diff-item">
                     <span class="diff-tag diff-tag-add">+</span>
                     <span>{{ addedTableField.name }}</span>
-                    <span class="diff-item-detail">{{ `${addedTableField.type.name}${addedTableField.nullable ? ', null' : ''}${addedTableField.primaryKey ? ', PK' : ''})` }}</span>
+                    <span class="diff-item-detail">{{ `(${addedTableField.type.name}${addedTableField.nullable ? ', null' : ''}${addedTableField.primaryKey ? ', PK' : ''})` }}</span>
                 </div>
             }
         </div>

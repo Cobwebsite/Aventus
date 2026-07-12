@@ -1,3 +1,4 @@
+import { Api } from "../../lib/Api.lib.avt";
 import type { Body } from "../Body/Body.wcl.avt";
 import type { Header } from "../Header/Header.wcl.avt";
 
@@ -27,7 +28,18 @@ export class App extends Aventus.WebComponent implements Aventus.DefaultComponen
 
 
     //#region methods
-
+    protected override postCreation(): void {
+        Api.init();
+        MaterialIcon.Icon.configure({
+            getFontUrl: () => {
+                const el = document.getElementById("base-style");
+                if(el instanceof HTMLLinkElement) {
+                    return el.href.replace("style.css", "css/material.css");
+                }
+                return "/css/material.css";
+            }
+        });
+    }
     //#endregion
 
 }

@@ -1,6 +1,7 @@
 {
   "html": {
     "snippets": {
+      "block": "<block>${1}</block>",
       "av-progress-circle": "<av-progress-circle>${1}</av-progress-circle>",
       "av-router-link": "<av-router-link>${1}</av-router-link>",
       "av-link": "<av-link>${1}</av-link>",

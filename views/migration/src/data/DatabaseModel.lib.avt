@@ -1,0 +1,15 @@
+export type DatabaseModel = {
+    UUID: string,
+    Type: "mysql" | "mssql" | "postgresql" | "sqlite",
+    Host: string,
+    Path: string,
+    Username: string,
+    Password?: string,
+    SavePassword: boolean,
+    Database: string,
+};
+
+export type Databases = {
+    source: DatabaseModel[],
+    target: DatabaseModel[],
+};

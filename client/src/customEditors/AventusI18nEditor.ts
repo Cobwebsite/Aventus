@@ -62,7 +62,7 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 
 		this.setHtmlForWebview(this.context, panel.webview);
 
-		const comm = new Communication(document, panel.webview);
+		const comm = new Communication(panel.webview);
 
 		let prevent = false;
 		let version = -1;

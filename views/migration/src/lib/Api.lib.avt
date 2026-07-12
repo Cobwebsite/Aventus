@@ -1,0 +1,138 @@
+import { ActionGuard, Mutex, Watcher } from "Aventus@Main:Aventus.package.avt";
+import type { DatabaseModel, Databases } from "../data/DatabaseModel.lib.avt";
+import { Process } from "Aventus@UI:Aventus.package.avt";
+import type { Schema } from "./Definition.lib.avt";
+import { defaultSchema } from "./DefaultSchema.lib.avt";
+
+
+export class Api {
+    private static guard: ActionGuard = new ActionGuard();
+    private static databases?: {
+        source: DatabaseModel[],
+        target: DatabaseModel[],
+    };
+
+    public static wwwroot: string = "/";
+
+    public static init() {
+        if(VscodeView.Router.isVscode) {
+            const el = document.getElementById("base-style");
+            if(el instanceof HTMLLinkElement) {
+                this.wwwroot = el.href.replace("style.css", "");
+            }
+        }
+    }
+
+    public static async getDatabases(): Promise<Databases> {
+        return await this.guard.run(["getDatabases"], async () => {
+            if(this.databases != undefined) return {
+                source: [...this.databases.source],
+                target: [...this.databases.target],
+            };
+
+            if(VscodeView.Router.isVscode) {
+                const result = await Process.execute(VscodeView.Router.getInstance().sendWithResponse<Databases>({
+                    channel: "getDatabases"
+                }));
+                this.databases = result ?? { source: [], target: [] };
+            }
+            else {
+                const txt = localStorage.getItem("databases");
+                this.databases = txt ? JSON.parse(txt) as Databases : { source: [], target: [] };;
+            }
+
+            return {
+                source: [...this.databases.source],
+                target: [...this.databases.target],
+            };
+        });
+    }
+
+
+    public static async setDatabase(type: keyof Databases, model: DatabaseModel): Promise<DatabaseModel[]> {
+        model = Watcher.extract(model);
+        if(!this.databases) {
+            this.databases = {
+                source: [],
+                target: []
+            };
+        }
+        this.databases[type].push(model);
+        this.databases[type].sort((a, b) => a.Database.localeCompare(b.Database));
+
+        if(VscodeView.Router.isVscode) {
+            await VscodeView.Router.getInstance().send({
+                channel: "setDatabases",
+                body: this.databases
+            });
+        }
+        else {
+            const clones = JSON.parse(JSON.stringify(this.databases)) as Databases;
+            for(let clone of clones[type]) {
+                if(!clone.SavePassword) {
+                    delete clone.Password;
+                }
+            }
+            localStorage.setItem('databases', JSON.stringify(clones));
+        }
+
+        return this.databases[type];
+    }
+
+    public static async deleteDatabase(type: keyof Databases, model: DatabaseModel): Promise<DatabaseModel[]> {
+        model = Watcher.extract(model);
+        if(!this.databases) {
+            return [];
+        }
+
+        const index = this.databases[type].indexOf(model);
+        if(index == -1) return this.databases[type];
+
+        this.databases[type].splice(index, 1);
+
+        if(VscodeView.Router.isVscode) {
+            await VscodeView.Router.getInstance().send({
+                channel: "setDatabases",
+                body: this.databases
+            });
+        }
+        else {
+            const clones = JSON.parse(JSON.stringify(this.databases)) as Databases;
+            for(let clone of clones[type]) {
+                if(!clone.SavePassword) {
+                    delete clone.Password;
+                }
+            }
+            localStorage.setItem('databases', JSON.stringify(clones));
+        }
+        return this.databases[type];
+    }
+
+    public static async testConnection(model: DatabaseModel): Promise<boolean> {
+        model = Watcher.extract(model);
+        return await this.guard.run(["testConnection"], async () => {
+            if(VscodeView.Router.isVscode) {
+                const result = await Process.execute(VscodeView.Router.getInstance().sendWithResponse<boolean>({
+                    channel: "testConnection",
+                    body: model
+                }));
+                return result ?? false;
+            }
+            return true;
+        });
+    }
+
+    public static async getSchema(model: DatabaseModel): Promise<Schema | undefined> {
+        model = Watcher.extract(model);
+        return await this.guard.run(["getSchema"], async () => {
+            if(VscodeView.Router.isVscode) {
+                const result = await Process.execute(VscodeView.Router.getInstance().sendWithResponse<Schema>({
+                    channel: "getSchema",
+                    body: model
+                }));
+                return result;
+            }
+            return defaultSchema;
+        });
+    }
+}

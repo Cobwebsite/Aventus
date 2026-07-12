@@ -525,6 +525,9 @@ export class Watcher {
                                 };
                             }
                         }
+                        // else if(prop == 'find') {
+                        //    // TODO
+                        // }
                         else {
                             result = element.bind(target);
                         }
@@ -819,7 +822,11 @@ export class Watcher {
 
             dones.push(proxyData.baseData);
             let aliasesDone: any[] = [];
-            for(let name in proxyData.callbacks) {
+            const callbacks = { ...proxyData.callbacks };
+            for(let name in callbacks) {
+                callbacks[name] = [...callbacks[name]];
+            }
+            for(let name in callbacks) {
                 let pathToSend = rootPath;
                 if(name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
@@ -847,7 +854,7 @@ export class Watcher {
                     });
                 }
 
-                let cbs = [...proxyData.callbacks[name]];
+                let cbs = callbacks[name];
                 for(let cb of cbs) {
                     try {
                         cb(WatchAction[type] as any, pathToSend, value, dones);

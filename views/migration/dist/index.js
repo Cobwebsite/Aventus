@@ -71,6 +71,68 @@ const _ = {};
 
 
 let _n;
+let uuidv4=function uuidv4() {
+    let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
+    return uid;
+}
+__as1(_, 'uuidv4', uuidv4);
+
+let ActionGuard=class ActionGuard {
+    /**
+     * Map to store actions that are currently running.
+     * @type {Map<any[], ((res: any) => void)[]>}
+     * @private
+     */
+    runningAction = new Map();
+    run(keys, action) {
+        return new Promise(async (resolve) => {
+            if (typeof keys == 'function') {
+                action = keys;
+                keys = [];
+            }
+            if (!action) {
+                throw "No action inside the Mutex.run";
+            }
+            let actions = undefined;
+            let runningKeys = Array.from(this.runningAction.keys());
+            for (let runningKey of runningKeys) {
+                if (runningKey.length == keys.length) {
+                    let found = true;
+                    for (let i = 0; i < keys.length; i++) {
+                        if (runningKey[i] != keys[i]) {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        actions = this.runningAction.get(runningKey);
+                        break;
+                    }
+                }
+            }
+            if (actions) {
+                actions.push((res) => {
+                    resolve(res);
+                });
+            }
+            else {
+                this.runningAction.set(keys, []);
+                let res = await action();
+                let actions = this.runningAction.get(keys);
+                if (actions) {
+                    for (let action of actions) {
+                        action(res);
+                    }
+                }
+                this.runningAction.delete(keys);
+                resolve(res);
+            }
+        });
+    }
+}
+ActionGuard.Namespace=`Aventus`;
+__as1(_, 'ActionGuard', ActionGuard);
+
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
 __as1(_, 'DragElementXYType', DragElementXYType);
 
@@ -786,7 +848,7 @@ let Callback=class Callback {
 Callback.Namespace=`Aventus`;
 __as1(_, 'Callback', Callback);
 
-let compareObject=function compareObject(obj1, obj2) {
+let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -795,17 +857,27 @@ let compareObject=function compareObject(obj1, obj2) {
         if (obj1.length !== obj2.length) {
             return false;
         }
-        for (let i = 0; i < obj1.length; i++) {
-            let foundElement = false;
-            for (let j = 0; j < obj2.length; j++) {
-                if (compareObject(obj1[i], obj2[j])) {
-                    obj2.splice(j, 1);
-                    foundElement = true;
-                    break;
+        if (tableOrder) {
+            for (let i = 0; i < obj1.length; i++) {
+                if (!compareObject(obj1[i], obj2[i])) {
+                    return false;
                 }
             }
-            if (!foundElement) {
-                return false;
+            return true;
+        }
+        else {
+            for (let i = 0; i < obj1.length; i++) {
+                let foundElement = false;
+                for (let j = 0; j < obj2.length; j++) {
+                    if (compareObject(obj1[i], obj2[j])) {
+                        obj2.splice(j, 1);
+                        foundElement = true;
+                        break;
+                    }
+                }
+                if (!foundElement) {
+                    return false;
+                }
             }
         }
         return true;
@@ -1789,7 +1861,11 @@ let Watcher=class Watcher {
             }
             dones.push(proxyData.baseData);
             let aliasesDone = [];
-            for (let name in proxyData.callbacks) {
+            const callbacks = { ...proxyData.callbacks };
+            for (let name in callbacks) {
+                callbacks[name] = [...callbacks[name]];
+            }
+            for (let name in callbacks) {
                 let pathToSend = rootPath;
                 if (name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
@@ -1814,7 +1890,7 @@ let Watcher=class Watcher {
                         path: pathToSend
                     });
                 }
-                let cbs = [...proxyData.callbacks[name]];
+                let cbs = callbacks[name];
                 for (let cb of cbs) {
                     try {
                         cb(WatchAction[type], pathToSend, value, dones);
@@ -3608,6 +3684,8 @@ let TemplateInstance=class TemplateInstance {
             let regexArray = new RegExp("^\\[(\\d+?)\\]$");
             let regexObject = new RegExp("^([^\\.]*)$");
             let sub = (action, path, value) => {
+                if (this.isDestroyed)
+                    return;
                 if (path == "") {
                     this.renderLoopSimple(loop, simple);
                     return;
@@ -3778,6 +3856,8 @@ let TemplateInstance=class TemplateInstance {
             });
             computeds.push(computed);
             computed.subscribe(() => {
+                if (this.isDestroyed)
+                    return;
                 calculateActive();
             });
             this.computeds.push(computed);
@@ -8534,6 +8614,39 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
 Modal.ModalElement.Namespace=`Aventus.Modal`;
 __as1(_.Modal, 'ModalElement', Modal.ModalElement);
 
+let Process=class Process {
+    /**
+     * Static handler for processing generic errors.
+     */
+    static handleErrors;
+    /**
+     * Configures the Process utility with custom error handling.
+     */
+    static configure(config) {
+        this.handleErrors = config.handleErrors;
+    }
+    static async execute(prom) {
+        const queryResult = await prom;
+        return await this.parseErrors(queryResult);
+    }
+    static async parseErrors(result) {
+        if (result.errors.length > 0) {
+            if (this.handleErrors) {
+                let msg = result.errors.map(p => p.message.replace(/\n/g, '<br/>')).join("<br/>");
+                this.handleErrors(msg, result.errors);
+            }
+            return undefined;
+        }
+        if (result instanceof Aventus.ResultWithError)
+            return result.result;
+        if (result instanceof Aventus.VoidWithError)
+            return result.success;
+        return undefined;
+    }
+}
+Process.Namespace=`Aventus`;
+__as1(_, 'Process', Process);
+
 Layout.Col = class Col extends Aventus.WebComponent {
     get 'use_container'() { return this.getBoolAttr('use_container') }
     set 'use_container'(val) { this.setBoolAttr('use_container', val) }get 'size'() { return this.getNumberAttr('size') }
@@ -9275,6 +9388,111 @@ Components.Form.FormElement = class FormElement extends Aventus.Form.FormElement
 }
 Components.Form.FormElement.Namespace=`OneMoreUI.Components.Form`;
 __as1(_.Components.Form, 'FormElement', Components.Form.FormElement);
+
+Components.Form.Checkbox = class Checkbox extends Components.Form.FormElement {
+    static get observedAttributes() {return ["label", "checked"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'left_label'() { return this.getBoolAttr('left_label') }
+    set 'left_label'(val) { this.setBoolAttr('left_label', val) }    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }get 'checked'() { return this.getBoolProp('checked') }
+    set 'checked'(val) { this.setBoolAttr('checked', val) }    get 'value'() {
+						return this.__watch["value"];
+					}
+					set 'value'(val) {
+						this.__watch["value"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("value", ((target) => {
+    target.checked = target.value;
+}));    super.__registerWatchesActions();
+}
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("checked", ((target) => {
+    target.value = target.checked;
+})); }
+    static __style = `:host{--_checkbox-size: var(--checkbox-size, 1.5rem);--_checkbox-height: var(--checkbox-height, var(--_checkbox-size));--_checkbox-width: var(--checkbox-width, var(--_checkbox-size));--_checkbox-border-radius: var(--checkbox-border-radius, var(--border-radius));--_checkbox-border: var(--checkbox-border, 1px solid var(--border-color));--_checkbox-border-active: var(--checkbox-border-active, var(--primary-600));--_checkbox-background: var(--checkbox-background, transparent);--_checkbox-background-active: var(--checkbox-background-active, var(--primary));--_checkbox-tick-color: var(--checkbox-tick-color, var(--primary-content));--_checkbox-tick-size: var(--checkbox-tick-size, 2px);--_checkbox-tick-padding: var(--checkbox-tick-padding, 20%);--_checkbox-font-size-label: var(--checkbox-font-size-label, var(--font-size-sm));--_checkbox-margin-label: var(--checkbox-margin-label, 1rem)}:host{align-items:center;display:flex;outline:none}:host .label:not(:empty){cursor:pointer;font-size:var(--_checkbox-font-size-label);margin-left:var(--_checkbox-margin-label);user-select:none}:host .square{align-items:center;background-color:var(--_checkbox-background);border:var(--_checkbox-border);border-radius:var(--_checkbox-border-radius);cursor:pointer;display:flex;flex-shrink:0;height:var(--_checkbox-height);justify-content:center;position:relative;transition:border .2s var(--bezier-curve),background-color .2s var(--bezier-curve);width:var(--_checkbox-width)}:host .square svg{height:calc(100% - var(--_checkbox-tick-padding));margin-top:1px;opacity:0;stroke:var(--_checkbox-tick-color);stroke-width:var(--_checkbox-tick-size);visibility:hidden;width:calc(100% - var(--_checkbox-tick-padding))}:host .square:focus-visible{outline:2px solid var(--primary)}:host([checked]) .square{background-color:var(--_checkbox-background-active);border-color:var(--_checkbox-border-active)}:host([checked]) .square svg{opacity:1;visibility:visible}:host([checked]) .square svg .tick{animation:dash .2s linear forwards;animation-delay:.1s;stroke-dasharray:100;stroke-dashoffset:100}:host([left_label]) .label:not(:empty){margin-left:0;margin-right:var(--_checkbox-margin-label);order:1}:host([left_label]) .square{order:2}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) .label{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .square{background-color:color-mix(in oklab, var(--surface-content) 10%, transparent)}:host([disabled]) .square svg{stroke:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}@keyframes dash{to{stroke-dashoffset:70}}`;
+    constructor() {
+        super();
+        this.toggleChecked = this.toggleChecked.bind(this);
+    }
+    __getStatic() {
+        return Checkbox;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Checkbox.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="square" _id="checkbox_0">    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">        <polyline fill="none" points="3.7 14.3 9.6 19 20.3 5" stroke-linecap="round" stroke-linejoin="round" class="tick"></polyline>    </svg></div><div class="label" _id="checkbox_1"></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "checkbox_0°tabindex": {
+      "fct": (c) => `${c.print(c.comp.__e89e389cce67389d127fd9c3f9aba9d5method0())}`
+    },
+    "checkbox_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__e89e389cce67389d127fd9c3f9aba9d5method1())}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "focus",
+      "id": "checkbox_0",
+      "fct": (e, c) => c.comp.onFocus(e)
+    },
+    {
+      "eventName": "blur",
+      "id": "checkbox_0",
+      "fct": (e, c) => c.comp.onBlur(e)
+    }
+  ]
+}); }
+    getClassName() {
+        return "Checkbox";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('left_label')) { this.attributeChangedCallback('left_label', false, false); }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = false; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('left_label');this.__upgradeProperty('label');this.__upgradeProperty('checked');this.__correctGetter('value'); }
+    __listBoolProps() { return ["left_label","checked"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    /**
+     * Toggles the checked state of the checkbox and triggers a change event.
+     */
+    toggleChecked() {
+        this.triggerChange(!this.checked);
+    }
+    onFocus() {
+        if (!this.disabled) {
+            this.removeErrors();
+            Aventus.Lib.ShortcutManager.subscribe(" ", this.toggleChecked, { replaceTemp: true });
+        }
+    }
+    onBlur() {
+        if (!this.disabled) {
+            Aventus.Lib.ShortcutManager.unsubscribe(" ", this.toggleChecked);
+        }
+    }
+    removeErrors() {
+        this.errors = [];
+    }
+    postCreation() {
+        super.postCreation();
+        this.addEventListener("click", () => {
+            this.removeErrors();
+            this.triggerChange(!this.checked);
+        });
+    }
+    __e89e389cce67389d127fd9c3f9aba9d5method0() {
+        return this.disabled ? -1 : 0;
+    }
+    __e89e389cce67389d127fd9c3f9aba9d5method1() {
+        return this.label;
+    }
+}
+Components.Form.Checkbox.Namespace=`OneMoreUI.Components.Form`;
+Components.Form.Checkbox.Tag=`om-checkbox`;
+__as1(_.Components.Form, 'Checkbox', Components.Form.Checkbox);
+if(!window.customElements.get('om-checkbox')){window.customElements.define('om-checkbox', Components.Form.Checkbox);Aventus.WebComponentInstance.registerDefinition(Components.Form.Checkbox);}
 
 Components.Form.Input = class Input extends Components.Form.FormElement {
     static get observedAttributes() {return ["name", "label", "icon", "placeholder", "value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -10157,6 +10375,124 @@ Components.Form.Button.Tag=`om-button`;
 __as1(_.Components.Form, 'Button', Components.Form.Button);
 if(!window.customElements.get('om-button')){window.customElements.define('om-button', Components.Form.Button);Aventus.WebComponentInstance.registerDefinition(Components.Form.Button);}
 
+Components.Interaction.Alert = class Alert extends Components.Interaction.Modal {
+    static defaultConfig = {
+        title: "",
+        content: "",
+        btnTxt: "Ok",
+    };
+    static __style = `:host .modal{max-width:800px}:host .modal .modal-header .icon[color=primary]{color:var(--primary)}:host .modal .modal-header .icon[color=accent]{color:var(--accent)}:host .modal .modal-header .icon[color=neutral]{color:var(--neutral)}:host .modal .modal-header .icon[color=info]{color:var(--info)}:host .modal .modal-header .icon[color=success]{color:var(--success)}:host .modal .modal-header .icon[color=warning]{color:var(--warning)}:host .modal .modal-header .icon[color=error]{color:var(--error)}`;
+    __getStatic() {
+        return Alert;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Alert.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'header':`    <template _id="alert_0"></template>    <div class="title" _id="alert_2"></div>`,'footer':`    <om-button _id="alert_4"></om-button>`,'default':`<div _id="alert_3"></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "alert_2°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod3())}`,
+      "once": true
+    },
+    "alert_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod4())}`,
+      "once": true
+    },
+    "alert_4°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod5())}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "alert_4",
+      "fct": (e, c) => c.comp.done(e)
+    }
+  ]
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <mi-icon class="icon" _id="alert_1"></mi-icon>    `);templ0.setActions({
+  "content": {
+    "alert_1°icon": {
+      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod1())}`,
+      "once": true
+    },
+    "alert_1°color": {
+      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod2())}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addIf({
+                    anchorId: 'alert_0',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__18e1eef5fce2e718728d07198f6800camethod0(),
+                    template: templ0
+                }]
+            }); }
+    getClassName() {
+        return "Alert";
+    }
+    determineIcon() {
+        if (this.options.icon)
+            return;
+        if (this.options.type == "error")
+            this.options.icon = "error";
+        else if (this.options.type == "warning")
+            this.options.icon = "warning";
+        else if (this.options.type == "success")
+            this.options.icon = "done_all";
+        else if (this.options.type == "info")
+            this.options.icon = "info";
+    }
+    configure() {
+        return Components.Interaction.Alert.defaultConfig;
+    }
+    done() {
+        this.resolve();
+    }
+    postCreation() {
+        super.postCreation();
+        this.determineIcon();
+    }
+    __18e1eef5fce2e718728d07198f6800camethod1() {
+        return this.options.icon;
+    }
+    __18e1eef5fce2e718728d07198f6800camethod2() {
+        return this.options.type;
+    }
+    __18e1eef5fce2e718728d07198f6800camethod3() {
+        return this.options.title;
+    }
+    __18e1eef5fce2e718728d07198f6800camethod4() {
+        return this.options.content;
+    }
+    __18e1eef5fce2e718728d07198f6800camethod5() {
+        return this.options.btnTxt;
+    }
+    __18e1eef5fce2e718728d07198f6800camethod0() {
+        return this.options.icon;
+    }
+    static configure(options) {
+        this.defaultConfig = { ...this.defaultConfig, ...options };
+    }
+    static async open(options) {
+        const alert = new Components.Interaction.Alert();
+        alert.options = { ...alert.options, ...options };
+        alert.determineIcon();
+        return await alert.show();
+    }
+}
+Components.Interaction.Alert.Namespace=`OneMoreUI.Components.Interaction`;
+Components.Interaction.Alert.Tag=`om-alert`;
+__as1(_.Components.Interaction, 'Alert', Components.Interaction.Alert);
+if(!window.customElements.get('om-alert')){window.customElements.define('om-alert', Components.Interaction.Alert);Aventus.WebComponentInstance.registerDefinition(Components.Interaction.Alert);}
+
 Components.Interaction.Confirm = class Confirm extends Components.Interaction.Modal {
     static defaultConfig = {
         title: "",
@@ -10360,6 +10696,98 @@ let schemaValidation= {
 };
 __as1(_, 'schemaValidation', schemaValidation);
 
+const AskPasswordModal = class AskPasswordModal extends OneMoreUI.Components.Interaction.Modal {
+    get 'dbName'() {
+						return this.__watch["dbName"];
+					}
+					set 'dbName'(val) {
+						this.__watch["dbName"] = val;
+					}get 'password'() {
+						return this.__watch["password"];
+					}
+					set 'password'(val) {
+						this.__watch["password"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("dbName");this.__addWatchesActions("password");    super.__registerWatchesActions();
+}
+    static __style = ``;
+    __getStatic() {
+        return AskPasswordModal;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(AskPasswordModal.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'header':`    <div _id="askpasswordmodal_0"></div>`,'footer':`    <om-button outline _id="askpasswordmodal_2">Cancel</om-button>    <om-button color="primary" _id="askpasswordmodal_3">Save</om-button>`,'default':`<av-row>    <av-col size="12">        <om-password label="Password" _id="askpasswordmodal_1"></om-password>    </av-col></av-row>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "askpasswordmodal_0°@HTML": {
+      "fct": (c) => `Password for : ${c.print(c.comp.__b81c90e6f66c2ba4c6741d56d0a77587method0())}`,
+      "once": true
+    }
+  },
+  "bindings": [
+    {
+      "id": "askpasswordmodal_1",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__b81c90e6f66c2ba4c6741d56d0a77587method1(),
+      "extract": (c, v) => c.comp.__b81c90e6f66c2ba4c6741d56d0a77587method2(v),
+      "once": true,
+      "isCallback": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "click",
+      "id": "askpasswordmodal_2",
+      "fct": (e, c) => c.comp.reject(e)
+    },
+    {
+      "eventName": "click",
+      "id": "askpasswordmodal_3",
+      "fct": (e, c) => c.comp.save(e)
+    }
+  ]
+}); }
+    getClassName() {
+        return "AskPasswordModal";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["dbName"] = "";w["password"] = ""; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('dbName');this.__correctGetter('password'); }
+    configure() {
+        return {
+            closeWithEsc: true,
+            closeWithClick: false,
+        };
+    }
+    save() {
+        this.resolve(this.password);
+    }
+    __b81c90e6f66c2ba4c6741d56d0a77587method0() {
+        return this.dbName;
+    }
+    __b81c90e6f66c2ba4c6741d56d0a77587method1() {
+        return this.password;
+    }
+    __b81c90e6f66c2ba4c6741d56d0a77587method2(v) {
+        if (this) {
+            this.password = v;
+        }
+    }
+}
+AskPasswordModal.Namespace=`migration`;
+AskPasswordModal.Tag=`av-ask-password-modal`;
+__as1(_, 'AskPasswordModal', AskPasswordModal);
+if(!window.customElements.get('av-ask-password-modal')){window.customElements.define('av-ask-password-modal', AskPasswordModal);Aventus.WebComponentInstance.registerDefinition(AskPasswordModal);}
+
 const BaseContent = class BaseContent extends Aventus.WebComponent {
     static __style = `:host{width:100%}:host .section-header{margin-bottom:2rem}:host .section-header h2{font-size:1.75rem;font-weight:600;letter-spacing:-0.02em;margin:0;margin-bottom:.5rem}:host .section-header p{color:var(--neutral);margin:0;max-width:800px}:host .card-header{align-items:center;display:flex;justify-content:space-between}:host .card-header h3{font-size:1.15rem;font-weight:600;margin:0}:host .action-footer{border-top:1px solid var(--border-color);display:flex;gap:1rem;justify-content:flex-end;margin-top:2rem;padding-top:1.5rem}:host .action-footer om-button{--button-bg: var(--primary)}`;
     __getStatic() {
@@ -10385,203 +10813,6 @@ BaseContent.Tag=`av-base-content`;
 __as1(_, 'BaseContent', BaseContent);
 if(!window.customElements.get('av-base-content')){window.customElements.define('av-base-content', BaseContent);Aventus.WebComponentInstance.registerDefinition(BaseContent);}
 
-const RenamedField = class RenamedField extends Aventus.WebComponent {
-    get 'mappingFieldTable'() {
-						return this.__watch["mappingFieldTable"];
-					}
-					set 'mappingFieldTable'(val) {
-						this.__watch["mappingFieldTable"] = val;
-					}    get tableComparisons() {
-        return MainState.instance.comparison.tableComparisons;
-    }
-    get mappingFieldTableInfo() {
-        const el = this.tableComparisons.find(p => p.newTableName == this.mappingFieldTable);
-        if (!el)
-            return {
-                addedFields: [],
-                deletedFields: [],
-                hasChanges: false,
-                isRename: false,
-                modifiedFields: [],
-                newTableName: '',
-                oldTableName: '',
-                renamedFields: []
-            };
-        return el;
-    }
-    get fieldsMapping() {
-        return MainState.instance.mappings.fields[this.mappingFieldTable];
-    }
-    __registerWatchesActions() {
-    this.__addWatchesActions("mappingFieldTable");    super.__registerWatchesActions();
-}
-    static __style = ``;
-    __getStatic() {
-        return RenamedField;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(RenamedField.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h4>Champs Renommés</h4><p class="card-desc">Sélectionnez une table pour associer ses anciens champs supprimés à ses nouveaux    champs ajoutés.</p><div class="table-selector-wrapper">    <label>Table :</label>    <om-select _id="renamedfield_0">        <om-option value="">-- Choisir une table --</om-option>        <template _id="renamedfield_1"></template>    </om-select></div><div class="mapping-list">    <template _id="renamedfield_3"></template></div><template _id="renamedfield_8"></template>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "bindings": [
-    {
-      "id": "renamedfield_0",
-      "injectionName": "value",
-      "eventNames": [
-        "onChange"
-      ],
-      "inject": (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method7(),
-      "extract": (c, v) => c.comp.__6a9803ce37a6658d333e838def2ebba3method8(v),
-      "once": true,
-      "isCallback": true
-    }
-  ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <om-option _id="renamedfield_2"></om-option>        `);templ0.setActions({
-  "content": {
-    "renamedfield_2°value": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method9(c.data.table))}`,
-      "once": true
-    },
-    "renamedfield_2°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method10(c.data.table))}`
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'renamedfield_1',
-                    template: templ0,
-                simple:{data: "this.tableComparisons",item:"table"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <p>Sélectionnez une table ci-dessus.</p>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`        <p>Aucune association pour cette table.</p>    `);const templ3 = new Aventus.Template(this);templ3.setTemplate(`        <template _id="renamedfield_4"></template>    `);const templ4 = new Aventus.Template(this);templ4.setTemplate(`            <div class="mapping-item">                <span class="mapping-names">                    <span _id="renamedfield_5"></span>                    <span class="mapping-arrow">➔</span>                    <span _id="renamedfield_6"></span>                </span>                <button class="mapping-delete" _id="renamedfield_7">✕</button>            </div>        `);templ4.setActions({
-  "content": {
-    "renamedfield_5°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method11(c.data.oldF))}`,
-      "once": true
-    },
-    "renamedfield_6°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method12(c.data.oldF))}`
-    },
-    "renamedfield_7°data-field": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method11(c.data.oldF))}`,
-      "once": true
-    }
-  },
-  "events": [
-    {
-      "eventName": "click",
-      "id": "renamedfield_7",
-      "fct": (e, c) => c.comp.removeFieldMapping(e)
-    }
-  ]
-});templ3.addLoop({
-                    anchorId: 'renamedfield_4',
-                    template: templ4,
-                simple:{data: "this.fieldsMapping",index:"oldF"}});this.__getStatic().__template.addIf({
-                    anchorId: 'renamedfield_3',
-                    parts: [{once: true,
-                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method1(),
-                    template: templ1
-                },{once: true,
-                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method2(),
-                    template: templ2
-                },{once: true,
-                    condition: (c) => true,
-                    template: templ3
-                }]
-            });const templ5 = new Aventus.Template(this);templ5.setTemplate(`    <div class="mapping-adder">        <om-select>            <om-option value="">-- Champ Supprimé --</om-option>            <template _id="renamedfield_9"></template>        </om-select>        <span class="arrow-indicator">➔</span>        <om-select>            <om-option value="">-- Champ Ajouté --</om-option>            <template _id="renamedfield_11"></template>        </om-select>        <om-button _id="renamedfield_13">Lier</om-button>    </div>`);templ5.setActions({
-  "events": [
-    {
-      "eventName": "click",
-      "id": "renamedfield_13",
-      "fct": (e, c) => c.comp.addFieldMapping(e)
-    }
-  ]
-});const templ6 = new Aventus.Template(this);templ6.setTemplate(`                <om-option _id="renamedfield_10"></om-option>            `);templ6.setActions({
-  "content": {
-    "renamedfield_10°value": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method13(c.data.field))}`,
-      "once": true
-    },
-    "renamedfield_10°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method13(c.data.field))}`,
-      "once": true
-    }
-  }
-});templ5.addLoop({
-                    anchorId: 'renamedfield_9',
-                    template: templ6,
-                simple:{data: "this.mappingFieldTableInfo.deletedFields",item:"field"}});const templ7 = new Aventus.Template(this);templ7.setTemplate(`                <om-option _id="renamedfield_12"></om-option>            `);templ7.setActions({
-  "content": {
-    "renamedfield_12°value": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method13(c.data.field))}`,
-      "once": true
-    },
-    "renamedfield_12°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method13(c.data.field))}`,
-      "once": true
-    }
-  }
-});templ5.addLoop({
-                    anchorId: 'renamedfield_11',
-                    template: templ7,
-                simple:{data: "this.mappingFieldTableInfo.addedFields",item:"field"}});this.__getStatic().__template.addIf({
-                    anchorId: 'renamedfield_8',
-                    parts: [{once: true,
-                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method4(),
-                    template: templ5
-                }]
-            }); }
-    getClassName() {
-        return "RenamedField";
-    }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["mappingFieldTable"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tableComparisons');this.__correctGetter('mappingFieldTableInfo');this.__correctGetter('fieldsMapping');this.__correctGetter('mappingFieldTable'); }
-    addFieldMapping() {
-    }
-    removeFieldMapping() {
-    }
-    __6a9803ce37a6658d333e838def2ebba3method9(table) {
-        return table.newTableName;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method10(table) {
-        return table.isRename ? `${table.oldTableName} ➔ ${table.newTableName}` : table.newTableName;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method11(oldF) {
-        return oldF;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method12(oldF) {
-        return this.fieldsMapping[oldF];
-    }
-    __6a9803ce37a6658d333e838def2ebba3method13(field) {
-        return field.name;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method1() {
-        return !this.mappingFieldTable;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method2() {
-        return Object.keys(this.fieldsMapping).length == 0;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method4() {
-        return !this.mappingFieldTable;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method7() {
-        return this.mappingFieldTable;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method8(v) {
-        if (this) {
-            this.mappingFieldTable = v;
-        }
-    }
-}
-RenamedField.Namespace=`migration`;
-RenamedField.Tag=`av-renamed-field`;
-__as1(_, 'RenamedField', RenamedField);
-if(!window.customElements.get('av-renamed-field')){window.customElements.define('av-renamed-field', RenamedField);Aventus.WebComponentInstance.registerDefinition(RenamedField);}
-
 const RenamedTable = class RenamedTable extends Aventus.WebComponent {
     get comparison() {
         return MainState.instance.comparison;
@@ -10589,7 +10820,7 @@ const RenamedTable = class RenamedTable extends Aventus.WebComponent {
     get tables() {
         return MainState.instance.mappings.tables;
     }
-    static __style = ``;
+    static __style = `:host{width:100%}:host h4{font-size:1rem;font-weight:500;margin:0;margin-bottom:.25rem}:host .card-desc{color:var(--neutral);font-size:.8rem;margin-bottom:1rem}:host .mapping-adder{align-items:center;display:flex;gap:.5rem}:host .mapping-adder om-select{min-width:0}:host .mapping-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}:host .mapping-list .no-table{font-size:var(--font-size-sm);font-style:italic}:host .mapping-list .mapping-item{align-items:center;background:hsla(0,0%,100%,.02);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;font-size:.85rem;justify-content:space-between;padding:.5rem .75rem}:host .mapping-list .mapping-item .mapping-names{align-items:center;display:flex;font-family:var(--font-mono);gap:.5rem}:host .mapping-list .mapping-item .mapping-arrow{color:var(--info)}:host .mapping-list .mapping-item .mapping-delete{background:rgba(0,0,0,0);border:none;border-radius:4px;color:var(--error);cursor:pointer;font-size:1rem;padding:.1rem .3rem}:host .mapping-list .mapping-item .mapping-delete:hover{background:var(--error-600)}:host .table-selector-wrapper{align-items:center;display:flex;gap:.75rem;margin-bottom:1rem}:host .table-selector-wrapper label{flex-shrink:0}`;
     __getStatic() {
         return RenamedTable;
     }
@@ -10600,7 +10831,7 @@ const RenamedTable = class RenamedTable extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h4>Tables Renommées</h4><p class="card-desc">Si une table a été renommée, associez son ancien nom au nouveau.</p><div class="mapping-list">    <template _id="renamedtable_0"></template></div><div class="mapping-adder">    <om-select _id="renamedtable_5">        <om-option value="">-- Table Supprimée --</om-option>        <template _id="renamedtable_6"></template>    </om-select>    <span class="arrow-indicator">➔</span>    <om-select _id="renamedtable_8">        <om-option value="">-- Table Ajoutée --</om-option>        <template _id="renamedtable_9"></template>    </om-select>    <om-button color="success" _id="renamedtable_11">Lier</om-button></div>` }
+        blocks: { 'default':`<h4>Tables Renommées</h4><p class="card-desc">Si une table a été renommée, associez son ancien nom au nouveau.</p><div class="mapping-list">    <template _id="renamedtable_0"></template></div><div class="mapping-adder">    <om-select _id="renamedtable_5">        <om-option value="">-- Table Supprimée --</om-option>        <template _id="renamedtable_6"></template>    </om-select>    <span class="arrow-indicator">➔</span>    <om-select _id="renamedtable_8">        <om-option value="">-- Table Ajoutée --</om-option>        <template _id="renamedtable_9"></template>    </om-select>    <om-button _id="renamedtable_11">Lier</om-button></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
@@ -10653,7 +10884,7 @@ const RenamedTable = class RenamedTable extends Aventus.WebComponent {
 });this.__getStatic().__template.addLoop({
                     anchorId: 'renamedtable_9',
                     template: templ4,
-                simple:{data: "this.comparison.addedTables",item:"addedTable"}});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <p class="no-table">Aucune association de table.</p>    `);const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <template _id="renamedtable_1"></template>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`            <div class="mapping-item">                <span class="mapping-names">                    <span _id="renamedtable_2"></span>                    <span class="mapping-arrow">➔</span>                    <span _id="renamedtable_3"></span>                </span>                <button class="mapping-delete" _id="renamedtable_4">✕</button>            </div>        `);templ2.setActions({
+                simple:{data: "this.comparison.addedTables",item:"addedTable"}});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <div class="no-table">Aucune association de table.</div>    `);const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <template _id="renamedtable_1"></template>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`            <div class="mapping-item">                <span class="mapping-names">                    <span _id="renamedtable_2"></span>                    <span class="mapping-arrow">➔</span>                    <span _id="renamedtable_3"></span>                </span>                <button class="mapping-delete" _id="renamedtable_4">✕</button>            </div>        `);templ2.setActions({
   "content": {
     "renamedtable_2°@HTML": {
       "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod4(c.data.oldName))}`,
@@ -10787,11 +11018,2635 @@ let Validator=class Validator {
 Validator.Namespace=`migration`;
 __as1(_, 'Validator', Validator);
 
+let defaultSchema= {
+    "name": "spalio2",
+    "databaseType": "mysql",
+    "tables": [
+        {
+            "id": "bill",
+            "name": "bill",
+            "fields": [
+                {
+                    "id": "bill.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "bill.Montant",
+                    "name": "Montant",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "bill.MontantPaye",
+                    "name": "MontantPaye",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "bill.DateEmission",
+                    "name": "DateEmission",
+                    "type": {
+                        "id": "date",
+                        "name": "date"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "bill.DateEcheance",
+                    "name": "DateEcheance",
+                    "type": {
+                        "id": "date",
+                        "name": "date"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "billline",
+            "name": "billline",
+            "fields": [
+                {
+                    "id": "billline.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "billline.Label",
+                    "name": "Label",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "billline.Quantity",
+                    "name": "Quantity",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "billline.Montant",
+                    "name": "Montant",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "billline.BillId",
+                    "name": "BillId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "club",
+            "name": "club",
+            "fields": [
+                {
+                    "id": "club.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "club.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "club.Logo",
+                    "name": "Logo",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "club.PrimaryColor",
+                    "name": "PrimaryColor",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "club.Address",
+                    "name": "Address",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "club.City",
+                    "name": "City",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "club.ZipCode",
+                    "name": "ZipCode",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "club.Licence",
+                    "name": "Licence",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "club.AvailableUsers",
+                    "name": "AvailableUsers",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "club.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "club.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "clubmodule",
+            "name": "clubmodule",
+            "fields": [
+                {
+                    "id": "clubmodule.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubmodule.Club",
+                    "name": "Club",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubmodule.Module",
+                    "name": "Module",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubmodule.IsActive",
+                    "name": "IsActive",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubmodule.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubmodule.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "clubuserpack",
+            "name": "clubuserpack",
+            "fields": [
+                {
+                    "id": "clubuserpack.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubuserpack.Club",
+                    "name": "Club",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubuserpack.Pack",
+                    "name": "Pack",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubuserpack.IsActive",
+                    "name": "IsActive",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubuserpack.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "clubuserpack.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "conversation",
+            "name": "conversation",
+            "fields": [
+                {
+                    "id": "conversation.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "conversation.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "conversation.Icon",
+                    "name": "Icon",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "conversation.IsGroup",
+                    "name": "IsGroup",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "conversationuser",
+            "name": "conversationuser",
+            "fields": [
+                {
+                    "id": "conversationuser.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "conversationuser.ConversationId",
+                    "name": "ConversationId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "conversationuser.UserId",
+                    "name": "UserId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "familymember",
+            "name": "familymember",
+            "fields": [
+                {
+                    "id": "familymember.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "familymember.FirstName",
+                    "name": "FirstName",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "familymember.LastName",
+                    "name": "LastName",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "familymember.BirthDate",
+                    "name": "BirthDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "familymember.Email",
+                    "name": "Email",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "familymember.Phone",
+                    "name": "Phone",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "familymember.ReferenceMember",
+                    "name": "ReferenceMember",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "function",
+            "name": "function",
+            "fields": [
+                {
+                    "id": "function.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "function.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "function.ClubId",
+                    "name": "ClubId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "function.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "function.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "genericorderitem",
+            "name": "genericorderitem",
+            "fields": [
+                {
+                    "id": "genericorderitem.__type",
+                    "name": "__type",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.OrderId",
+                    "name": "OrderId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.Product",
+                    "name": "Product",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.Quantity",
+                    "name": "Quantity",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "genericorderitem.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "licence",
+            "name": "licence",
+            "fields": [
+                {
+                    "id": "licence.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "licence.Kind",
+                    "name": "Kind",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "licence.QtyUser",
+                    "name": "QtyUser",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "licence.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "licence.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "material",
+            "name": "material",
+            "fields": [
+                {
+                    "id": "material.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "material.Nom",
+                    "name": "Nom",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "material.ClubId",
+                    "name": "ClubId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "materialvariation",
+            "name": "materialvariation",
+            "fields": [
+                {
+                    "id": "materialvariation.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "member",
+            "name": "member",
+            "fields": [
+                {
+                    "id": "member.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.FirstName",
+                    "name": "FirstName",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.LastName",
+                    "name": "LastName",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.BirthDate",
+                    "name": "BirthDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "member.Email",
+                    "name": "Email",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "member.Phone",
+                    "name": "Phone",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "member.Address",
+                    "name": "Address",
+                    "type": {
+                        "id": "text",
+                        "name": "text"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "member.Settings",
+                    "name": "Settings",
+                    "type": {
+                        "id": "longtext",
+                        "name": "longtext"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.UserId",
+                    "name": "UserId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.Club",
+                    "name": "Club",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.Image",
+                    "name": "Image",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "member.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "member.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "message",
+            "name": "message",
+            "fields": [
+                {
+                    "id": "message.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "message.Content",
+                    "name": "Content",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "message.ConversationId",
+                    "name": "ConversationId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "message.OwnerId",
+                    "name": "OwnerId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "migrationtable",
+            "name": "migrationtable",
+            "fields": [
+                {
+                    "id": "migrationtable.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "migrationtable.Date",
+                    "name": "Date",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "module",
+            "name": "module",
+            "fields": [
+                {
+                    "id": "module.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "module.Kind",
+                    "name": "Kind",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "module.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "module.IsActive",
+                    "name": "IsActive",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "movement",
+            "name": "movement",
+            "fields": [
+                {
+                    "id": "movement.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "order",
+            "name": "order",
+            "fields": [
+                {
+                    "id": "order.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "order.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "order.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "order.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "orderitem",
+            "name": "orderitem",
+            "fields": [
+                {
+                    "id": "orderitem.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "orderitemticket",
+            "name": "orderitemticket",
+            "fields": [
+                {
+                    "id": "orderitemticket.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "orderitemticket.MemberId",
+                    "name": "MemberId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "permission",
+            "name": "permission",
+            "fields": [
+                {
+                    "id": "permission.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "permission.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "permission.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "permission.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "permissionrole",
+            "name": "permissionrole",
+            "fields": [
+                {
+                    "id": "permissionrole.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "permissionrole.Role",
+                    "name": "Role",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "permissionrole.Permission",
+                    "name": "Permission",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "product",
+            "name": "product",
+            "fields": [
+                {
+                    "id": "product.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "product.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "product.Description",
+                    "name": "Description",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "product.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "product.Type",
+                    "name": "Type",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "productvariation",
+            "name": "productvariation",
+            "fields": [
+                {
+                    "id": "productvariation.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariation.Product",
+                    "name": "Product",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariation.Sku",
+                    "name": "Sku",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariation.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariation.Stock",
+                    "name": "Stock",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "productvariationattribute",
+            "name": "productvariationattribute",
+            "fields": [
+                {
+                    "id": "productvariationattribute.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariationattribute.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariationattribute.Value",
+                    "name": "Value",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "productvariationattribute.VariationValueId",
+                    "name": "VariationValueId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "productvariationattribute.Product",
+                    "name": "Product",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "role",
+            "name": "role",
+            "fields": [
+                {
+                    "id": "role.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "role.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "role.ClubId",
+                    "name": "ClubId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "role.IsAdmin",
+                    "name": "IsAdmin",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "role.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "role.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "team",
+            "name": "team",
+            "fields": [
+                {
+                    "id": "team.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "team.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "team.Color",
+                    "name": "Color",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "team.ClubId",
+                    "name": "ClubId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "team.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "team.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "teammember",
+            "name": "teammember",
+            "fields": [
+                {
+                    "id": "teammember.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "teammember.TeamId",
+                    "name": "TeamId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "teammember.MemberId",
+                    "name": "MemberId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "teammember.FunctionId",
+                    "name": "FunctionId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "teammember.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "teammember.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "user",
+            "name": "user",
+            "fields": [
+                {
+                    "id": "user.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "user.Email",
+                    "name": "Email",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "user.Password",
+                    "name": "Password",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "user.IsSuperAdmin",
+                    "name": "IsSuperAdmin",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "user.Role",
+                    "name": "Role",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": true
+                },
+                {
+                    "id": "user.CreatedDate",
+                    "name": "CreatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "user.UpdatedDate",
+                    "name": "UpdatedDate",
+                    "type": {
+                        "id": "datetime",
+                        "name": "datetime"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "userpack",
+            "name": "userpack",
+            "fields": [
+                {
+                    "id": "userpack.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "userpack.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "userpack.QtyUser",
+                    "name": "QtyUser",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "userpack.Price",
+                    "name": "Price",
+                    "type": {
+                        "id": "float",
+                        "name": "float"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "userpack.IsActive",
+                    "name": "IsActive",
+                    "type": {
+                        "id": "bit",
+                        "name": "bit"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "userpack.MonthValidity",
+                    "name": "MonthValidity",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "variationattributegroup",
+            "name": "variationattributegroup",
+            "fields": [
+                {
+                    "id": "variationattributegroup.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "variationattributegroup.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        },
+        {
+            "id": "variationattributevalue",
+            "name": "variationattributevalue",
+            "fields": [
+                {
+                    "id": "variationattributevalue.Id",
+                    "name": "Id",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": true,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "variationattributevalue.Name",
+                    "name": "Name",
+                    "type": {
+                        "id": "varchar",
+                        "name": "varchar"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "variationattributevalue.Order",
+                    "name": "Order",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                },
+                {
+                    "id": "variationattributevalue.GroupId",
+                    "name": "GroupId",
+                    "type": {
+                        "id": "int",
+                        "name": "int"
+                    },
+                    "primaryKey": false,
+                    "unique": false,
+                    "nullable": false
+                }
+            ]
+        }
+    ],
+    "relationships": [
+        {
+            "id": "8e8cbe84-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_BillId_BillLine_Bill",
+            "sourceTableId": "billline",
+            "targetTableId": "bill",
+            "sourceFieldId": "billline.BillId",
+            "targetFieldId": "bill.Id"
+        },
+        {
+            "id": "8e8cbeae-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Licence_Club_Licence",
+            "sourceTableId": "club",
+            "targetTableId": "licence",
+            "sourceFieldId": "club.Licence",
+            "targetFieldId": "licence.Id"
+        },
+        {
+            "id": "8e8cbebb-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Club_ClubModule_Club",
+            "sourceTableId": "clubmodule",
+            "targetTableId": "club",
+            "sourceFieldId": "clubmodule.Club",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbec4-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Module_ClubModule_Module",
+            "sourceTableId": "clubmodule",
+            "targetTableId": "module",
+            "sourceFieldId": "clubmodule.Module",
+            "targetFieldId": "module.Id"
+        },
+        {
+            "id": "8e8cbed6-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Club_ClubUserPack_Club",
+            "sourceTableId": "clubuserpack",
+            "targetTableId": "club",
+            "sourceFieldId": "clubuserpack.Club",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbedc-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Pack_ClubUserPack_UserPack",
+            "sourceTableId": "clubuserpack",
+            "targetTableId": "userpack",
+            "sourceFieldId": "clubuserpack.Pack",
+            "targetFieldId": "userpack.Id"
+        },
+        {
+            "id": "8e8cbee8-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ConversationId_ConversationUser_Conversation",
+            "sourceTableId": "conversationuser",
+            "targetTableId": "conversation",
+            "sourceFieldId": "conversationuser.ConversationId",
+            "targetFieldId": "conversation.Id"
+        },
+        {
+            "id": "8e8cbef5-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_UserId_ConversationUser_User",
+            "sourceTableId": "conversationuser",
+            "targetTableId": "user",
+            "sourceFieldId": "conversationuser.UserId",
+            "targetFieldId": "user.Id"
+        },
+        {
+            "id": "8e8cbefc-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ReferenceMember_FamilyMember_Member",
+            "sourceTableId": "familymember",
+            "targetTableId": "member",
+            "sourceFieldId": "familymember.ReferenceMember",
+            "targetFieldId": "member.Id"
+        },
+        {
+            "id": "8e8cbf0d-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ClubId_Function_Club",
+            "sourceTableId": "function",
+            "targetTableId": "club",
+            "sourceFieldId": "function.ClubId",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbf14-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_OrderId_GenericOrderItem_Order",
+            "sourceTableId": "genericorderitem",
+            "targetTableId": "order",
+            "sourceFieldId": "genericorderitem.OrderId",
+            "targetFieldId": "order.Id"
+        },
+        {
+            "id": "8e8cbf19-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Product_GenericOrderItem_ProductVariation",
+            "sourceTableId": "genericorderitem",
+            "targetTableId": "productvariation",
+            "sourceFieldId": "genericorderitem.Product",
+            "targetFieldId": "productvariation.Id"
+        },
+        {
+            "id": "8e8cbf21-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ClubId_Material_Club",
+            "sourceTableId": "material",
+            "targetTableId": "club",
+            "sourceFieldId": "material.ClubId",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbf27-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Club_Member_Club",
+            "sourceTableId": "member",
+            "targetTableId": "club",
+            "sourceFieldId": "member.Club",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbf2c-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_UserId_Member_User",
+            "sourceTableId": "member",
+            "targetTableId": "user",
+            "sourceFieldId": "member.UserId",
+            "targetFieldId": "user.Id"
+        },
+        {
+            "id": "8e8cbf31-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ConversationId_Message_Conversation",
+            "sourceTableId": "message",
+            "targetTableId": "conversation",
+            "sourceFieldId": "message.ConversationId",
+            "targetFieldId": "conversation.Id"
+        },
+        {
+            "id": "8e8cbf38-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_OwnerId_Message_User",
+            "sourceTableId": "message",
+            "targetTableId": "user",
+            "sourceFieldId": "message.OwnerId",
+            "targetFieldId": "user.Id"
+        },
+        {
+            "id": "8e8cbf41-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Id_OrderItem_GenericOrderItem",
+            "sourceTableId": "orderitem",
+            "targetTableId": "genericorderitem",
+            "sourceFieldId": "orderitem.Id",
+            "targetFieldId": "genericorderitem.Id"
+        },
+        {
+            "id": "8e8cbf48-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Id_OrderItemTicket_GenericOrderItem",
+            "sourceTableId": "orderitemticket",
+            "targetTableId": "genericorderitem",
+            "sourceFieldId": "orderitemticket.Id",
+            "targetFieldId": "genericorderitem.Id"
+        },
+        {
+            "id": "8e8cbf55-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_MemberId_OrderItemTicket_Member",
+            "sourceTableId": "orderitemticket",
+            "targetTableId": "member",
+            "sourceFieldId": "orderitemticket.MemberId",
+            "targetFieldId": "member.Id"
+        },
+        {
+            "id": "8e8cbf5c-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Permission_PermissionRole_Permission",
+            "sourceTableId": "permissionrole",
+            "targetTableId": "permission",
+            "sourceFieldId": "permissionrole.Permission",
+            "targetFieldId": "permission.Id"
+        },
+        {
+            "id": "8e8cbf62-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Role_PermissionRole_Role",
+            "sourceTableId": "permissionrole",
+            "targetTableId": "role",
+            "sourceFieldId": "permissionrole.Role",
+            "targetFieldId": "role.Id"
+        },
+        {
+            "id": "8e8cbf68-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Product_ProductVariation_Product",
+            "sourceTableId": "productvariation",
+            "targetTableId": "product",
+            "sourceFieldId": "productvariation.Product",
+            "targetFieldId": "product.Id"
+        },
+        {
+            "id": "8e8cbf6e-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "5b24884630f401a90170b1cae45279e04e1a0e3ca03d7937fe2e80941ef4ad58",
+            "sourceTableId": "productvariationattribute",
+            "targetTableId": "variationattributevalue",
+            "sourceFieldId": "productvariationattribute.VariationValueId",
+            "targetFieldId": "variationattributevalue.Id"
+        },
+        {
+            "id": "8e8cbf77-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Product_ProductVariationAttribute_ProductVariation",
+            "sourceTableId": "productvariationattribute",
+            "targetTableId": "productvariation",
+            "sourceFieldId": "productvariationattribute.Product",
+            "targetFieldId": "productvariation.Id"
+        },
+        {
+            "id": "8e8cbf7e-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ClubId_Role_Club",
+            "sourceTableId": "role",
+            "targetTableId": "club",
+            "sourceFieldId": "role.ClubId",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbf83-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_ClubId_Team_Club",
+            "sourceTableId": "team",
+            "targetTableId": "club",
+            "sourceFieldId": "team.ClubId",
+            "targetFieldId": "club.Id"
+        },
+        {
+            "id": "8e8cbf89-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_FunctionId_TeamMember_Function",
+            "sourceTableId": "teammember",
+            "targetTableId": "function",
+            "sourceFieldId": "teammember.FunctionId",
+            "targetFieldId": "function.Id"
+        },
+        {
+            "id": "8e8cbf8e-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_MemberId_TeamMember_Member",
+            "sourceTableId": "teammember",
+            "targetTableId": "member",
+            "sourceFieldId": "teammember.MemberId",
+            "targetFieldId": "member.Id"
+        },
+        {
+            "id": "8e8cbf94-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_TeamId_TeamMember_Team",
+            "sourceTableId": "teammember",
+            "targetTableId": "team",
+            "sourceFieldId": "teammember.TeamId",
+            "targetFieldId": "team.Id"
+        },
+        {
+            "id": "8e8cbf99-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_Role_User_Role",
+            "sourceTableId": "user",
+            "targetTableId": "role",
+            "sourceFieldId": "user.Role",
+            "targetFieldId": "role.Id"
+        },
+        {
+            "id": "8e8cbfa0-7db1-11f1-b039-40c2bafe9f7e",
+            "name": "FK_GroupId_VariationAttributeValue_VariationAttributeGroup",
+            "sourceTableId": "variationattributevalue",
+            "targetTableId": "variationattributegroup",
+            "sourceFieldId": "variationattributevalue.GroupId",
+            "targetFieldId": "variationattributegroup.Id"
+        }
+    ]
+};
+__as1(_, 'defaultSchema', defaultSchema);
+
+let Generator=class Generator {
+    static compareSchemas() {
+        MainState.instance.comparison = this._compareSchemas(MainState.instance.oldSchema, MainState.instance.newSchema, MainState.instance.mappings);
+    }
+    static _compareSchemas(oldSchema, newSchema, mappings) {
+        const oldTables = oldSchema.tables || [];
+        const newTables = newSchema.tables || [];
+        const oldTablesMap = new Map(oldTables.map(t => [t.name, t]));
+        const newTablesMap = new Map(newTables.map(t => [t.name, t]));
+        const mappedOldTables = new Set(Object.keys(mappings.tables));
+        const mappedNewTables = new Set(Object.values(mappings.tables));
+        const addedTables = [];
+        const deletedTables = [];
+        const renamedTables = [];
+        const commonTables = [];
+        for (const t of newTables) {
+            if (!oldTablesMap.has(t.name) && !mappedNewTables.has(t.name)) {
+                addedTables.push(t);
+            }
+        }
+        for (const t of oldTables) {
+            if (!newTablesMap.has(t.name) && !mappedOldTables.has(t.name)) {
+                deletedTables.push(t);
+            }
+        }
+        for (const [oldName, newName] of Object.entries(mappings.tables)) {
+            const oldT = oldTablesMap.get(oldName);
+            const newT = newTablesMap.get(newName);
+            if (oldT && newT) {
+                renamedTables.push({ old: oldT, new: newT, oldName, newName });
+            }
+        }
+        for (const t of newTables) {
+            if (oldTablesMap.has(t.name)) {
+                commonTables.push({ old: oldTablesMap.get(t.name), new: t, name: t.name });
+            }
+        }
+        const tableComparisons = [];
+        const processFields = (oldTable, newTable, isRename, oldTableName, newTableName) => {
+            const oldFields = oldTable.fields || [];
+            const newFields = newTable.fields || [];
+            const oldFieldsMap = new Map(oldFields.map(f => [f.name, f]));
+            const newFieldsMap = new Map(newFields.map(f => [f.name, f]));
+            const fieldMappings = mappings.fields[newTableName] || {};
+            const mappedOldFields = new Set(Object.keys(fieldMappings));
+            const mappedNewFields = new Set(Object.values(fieldMappings));
+            const addedFields = [];
+            const deletedFields = [];
+            const renamedFields = [];
+            const commonFields = [];
+            const modifiedFields = [];
+            for (const f of newFields) {
+                if (!oldFieldsMap.has(f.name) && !mappedNewFields.has(f.name)) {
+                    addedFields.push(f);
+                }
+            }
+            for (const f of oldFields) {
+                if (!newFieldsMap.has(f.name) && !mappedOldFields.has(f.name)) {
+                    deletedFields.push(f);
+                }
+            }
+            for (const [oldFName, newFName] of Object.entries(fieldMappings)) {
+                const oldF = oldFieldsMap.get(oldFName);
+                const newF = newFieldsMap.get(newFName);
+                if (oldF && newF) {
+                    renamedFields.push({ old: oldF, new: newF, oldName: oldFName, newName: newFName });
+                }
+            }
+            for (const f of newFields) {
+                if (oldFieldsMap.has(f.name)) {
+                    commonFields.push({ old: oldFieldsMap.get(f.name), new: f, name: f.name });
+                }
+            }
+            const checkChanges = (oldF, newF, name) => {
+                const changes = {};
+                if (oldF.nullable !== newF.nullable) {
+                    changes.nullable = { old: oldF.nullable, new: newF.nullable };
+                }
+                if (oldF.unique !== newF.unique) {
+                    changes.unique = { old: oldF.unique, new: newF.unique };
+                }
+                if (oldF.type.name !== newF.type.name) {
+                    changes.type = { old: oldF.type.name, new: newF.type.name };
+                }
+                if (Object.keys(changes).length > 0) {
+                    modifiedFields.push({ old: oldF, new: newF, name, changes });
+                }
+            };
+            for (const cf of commonFields) {
+                checkChanges(cf.old, cf.new, cf.name);
+            }
+            for (const rf of renamedFields) {
+                checkChanges(rf.old, rf.new, rf.newName);
+            }
+            return {
+                oldTableName,
+                newTableName,
+                isRename,
+                addedFields,
+                deletedFields,
+                renamedFields,
+                modifiedFields,
+                hasChanges: addedFields.length > 0 || deletedFields.length > 0 || renamedFields.length > 0 || modifiedFields.length > 0
+            };
+        };
+        for (const ct of commonTables) {
+            tableComparisons.push(processFields(ct.old, ct.new, false, ct.name, ct.name));
+        }
+        for (const rt of renamedTables) {
+            tableComparisons.push(processFields(rt.old, rt.new, true, rt.oldName, rt.newName));
+        }
+        return {
+            addedTables,
+            deletedTables,
+            renamedTables,
+            tableComparisons
+        };
+    }
+}
+Generator.Namespace=`migration`;
+__as1(_, 'Generator', Generator);
+
+const RenamedField = class RenamedField extends Aventus.WebComponent {
+    get 'mappingFieldTable'() {
+						return this.__watch["mappingFieldTable"];
+					}
+					set 'mappingFieldTable'(val) {
+						this.__watch["mappingFieldTable"] = val;
+					}get 'oldField'() {
+						return this.__watch["oldField"];
+					}
+					set 'oldField'(val) {
+						this.__watch["oldField"] = val;
+					}get 'newField'() {
+						return this.__watch["newField"];
+					}
+					set 'newField'(val) {
+						this.__watch["newField"] = val;
+					}    get tableComparisons() {
+        return MainState.instance.comparison.tableComparisons;
+    }
+    get mappingFieldTableInfo() {
+        for (let table of this.tableComparisons) {
+            if (table.newTableName == this.mappingFieldTable)
+                return table;
+        }
+        return {
+            addedFields: [],
+            deletedFields: [],
+            hasChanges: false,
+            isRename: false,
+            modifiedFields: [],
+            newTableName: '',
+            oldTableName: '',
+            renamedFields: []
+        };
+    }
+    get fieldsMapping() {
+        const table = this.mappingFieldTable;
+        if (!MainState.instance.mappings.fields[table]) {
+            MainState.instance.mappings.fields[table] = {};
+        }
+        return MainState.instance.mappings.fields[table];
+    }
+    __registerWatchesActions() {
+    this.__addWatchesActions("mappingFieldTable", ((target) => {
+    target.oldField = "";
+    target.newField = "";
+}));this.__addWatchesActions("oldField");this.__addWatchesActions("newField");    super.__registerWatchesActions();
+}
+    static __style = `:host{width:100%}:host h4{font-size:1rem;font-weight:500;margin:0;margin-bottom:.25rem}:host .card-desc{color:var(--neutral);font-size:.8rem;margin-bottom:1rem}:host .mapping-adder{align-items:center;display:flex;gap:.5rem}:host .mapping-adder om-select{min-width:0}:host .mapping-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}:host .mapping-list .no-table{font-size:var(--font-size-sm);font-style:italic}:host .mapping-list .mapping-item{align-items:center;background:hsla(0,0%,100%,.02);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;font-size:.85rem;justify-content:space-between;padding:.5rem .75rem}:host .mapping-list .mapping-item .mapping-names{align-items:center;display:flex;font-family:var(--font-mono);gap:.5rem}:host .mapping-list .mapping-item .mapping-arrow{color:var(--info)}:host .mapping-list .mapping-item .mapping-delete{background:rgba(0,0,0,0);border:none;border-radius:4px;color:var(--error);cursor:pointer;font-size:1rem;padding:.1rem .3rem;transition:background-color .2s linear}:host .mapping-list .mapping-item .mapping-delete:hover{background:var(--error-100)}:host .table-selector-wrapper{align-items:center;display:flex;gap:.75rem;margin-bottom:1rem}:host .table-selector-wrapper label{flex-shrink:0}`;
+    __getStatic() {
+        return RenamedField;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RenamedField.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<h4>Champs Renommés</h4><p class="card-desc">Sélectionnez une table pour associer ses anciens champs supprimés à ses nouveaux    champs ajoutés.</p><div class="table-selector-wrapper">    <label>Table :</label>    <om-select _id="renamedfield_0">        <om-option value="">-- Choisir une table --</om-option>        <template _id="renamedfield_1"></template>    </om-select></div><div class="mapping-list">    <template _id="renamedfield_3"></template></div><template _id="renamedfield_8"></template>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "bindings": [
+    {
+      "id": "renamedfield_0",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method7(),
+      "extract": (c, v) => c.comp.__6a9803ce37a6658d333e838def2ebba3method8(v),
+      "once": true,
+      "isCallback": true
+    }
+  ]
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <om-option _id="renamedfield_2"></om-option>        `);templ0.setActions({
+  "content": {
+    "renamedfield_2°value": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method9(c.data.table))}`,
+      "once": true
+    },
+    "renamedfield_2°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method10(c.data.table))}`
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'renamedfield_1',
+                    template: templ0,
+                simple:{data: "this.tableComparisons",item:"table"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <div class="no-table">Sélectionnez une table ci-dessus.</div>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`        <div class="no-table">Aucune association pour cette table.</div>    `);const templ3 = new Aventus.Template(this);templ3.setTemplate(`        <template _id="renamedfield_4"></template>    `);const templ4 = new Aventus.Template(this);templ4.setTemplate(`            <div class="mapping-item">                <span class="mapping-names">                    <span _id="renamedfield_5"></span>                    <span class="mapping-arrow">➔</span>                    <span _id="renamedfield_6"></span>                </span>                <button class="mapping-delete" _id="renamedfield_7">✕</button>            </div>        `);templ4.setActions({
+  "content": {
+    "renamedfield_5°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method11(c.data.oldF))}`,
+      "once": true
+    },
+    "renamedfield_6°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method12(c.data.oldF))}`
+    },
+    "renamedfield_7°data-field": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method11(c.data.oldF))}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "renamedfield_7",
+      "fct": (e, c) => c.comp.removeFieldMapping(e)
+    }
+  ]
+});templ3.addLoop({
+                    anchorId: 'renamedfield_4',
+                    template: templ4,
+                simple:{data: "this.fieldsMapping",index:"oldF"}});this.__getStatic().__template.addIf({
+                    anchorId: 'renamedfield_3',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method1(),
+                    template: templ1
+                },{once: true,
+                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method2(),
+                    template: templ2
+                },{once: true,
+                    condition: (c) => true,
+                    template: templ3
+                }]
+            });const templ5 = new Aventus.Template(this);templ5.setTemplate(`    <div class="mapping-adder">        <om-select _id="renamedfield_9">            <om-option value="">-- Champ Supprimé --</om-option>            <template _id="renamedfield_10"></template>        </om-select>        <span class="arrow-indicator">➔</span>        <om-select _id="renamedfield_12">            <om-option value="">-- Champ Ajouté --</om-option>            <template _id="renamedfield_13"></template>        </om-select>        <om-button _id="renamedfield_15">Lier</om-button>    </div>`);templ5.setActions({
+  "bindings": [
+    {
+      "id": "renamedfield_9",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method13(),
+      "extract": (c, v) => c.comp.__6a9803ce37a6658d333e838def2ebba3method14(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "renamedfield_12",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method16(),
+      "extract": (c, v) => c.comp.__6a9803ce37a6658d333e838def2ebba3method17(v),
+      "once": true,
+      "isCallback": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "click",
+      "id": "renamedfield_15",
+      "fct": (e, c) => c.comp.addFieldMapping(e)
+    }
+  ]
+});const templ6 = new Aventus.Template(this);templ6.setTemplate(`                <om-option _id="renamedfield_11"></om-option>            `);templ6.setActions({
+  "content": {
+    "renamedfield_11°value": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+      "once": true
+    },
+    "renamedfield_11°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+      "once": true
+    }
+  }
+});templ5.addLoop({
+                    anchorId: 'renamedfield_10',
+                    template: templ6,
+                simple:{data: "this.mappingFieldTableInfo.deletedFields",item:"field"}});const templ7 = new Aventus.Template(this);templ7.setTemplate(`                <om-option _id="renamedfield_14"></om-option>            `);templ7.setActions({
+  "content": {
+    "renamedfield_14°value": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+      "once": true
+    },
+    "renamedfield_14°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+      "once": true
+    }
+  }
+});templ5.addLoop({
+                    anchorId: 'renamedfield_13',
+                    template: templ7,
+                simple:{data: "this.mappingFieldTableInfo.addedFields",item:"field"}});this.__getStatic().__template.addIf({
+                    anchorId: 'renamedfield_8',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method4(),
+                    template: templ5
+                }]
+            }); }
+    getClassName() {
+        return "RenamedField";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["mappingFieldTable"] = undefined;w["oldField"] = "";w["newField"] = ""; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tableComparisons');this.__correctGetter('mappingFieldTableInfo');this.__correctGetter('fieldsMapping');this.__correctGetter('mappingFieldTable');this.__correctGetter('oldField');this.__correctGetter('newField'); }
+    addFieldMapping() {
+        if (!this.newField || !this.oldField || !this.mappingFieldTable) {
+            OneMoreUI.Components.Interaction.Alert.open({
+                type: "error",
+                title: "Missing data",
+                content: "Please select a value for the old field and the new field"
+            });
+            return;
+        }
+        const table = this.mappingFieldTable;
+        if (!MainState.instance.mappings.fields[table]) {
+            MainState.instance.mappings.fields[table] = { [this.oldField]: this.newField };
+        }
+        else {
+            MainState.instance.mappings.fields[table][this.oldField] = this.newField;
+        }
+        Generator.compareSchemas();
+    }
+    removeFieldMapping(e) {
+        if (!this.mappingFieldTable)
+            return;
+        if (e.currentTarget instanceof HTMLElement) {
+            const field = e.currentTarget.dataset.field;
+            if (MainState.instance.mappings.fields[this.mappingFieldTable]) {
+                delete MainState.instance.mappings.fields[this.mappingFieldTable][field];
+            }
+        }
+        Generator.compareSchemas();
+    }
+    __6a9803ce37a6658d333e838def2ebba3method9(table) {
+        return table.newTableName;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method10(table) {
+        return table.isRename ? `${table.oldTableName} ➔ ${table.newTableName}` : table.newTableName;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method11(oldF) {
+        return oldF;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method12(oldF) {
+        return this.fieldsMapping[oldF];
+    }
+    __6a9803ce37a6658d333e838def2ebba3method15(field) {
+        return field.name;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method1() {
+        return !this.mappingFieldTable;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method2() {
+        return Object.keys(this.fieldsMapping).length == 0;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method4() {
+        return this.mappingFieldTable;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method7() {
+        return this.mappingFieldTable;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method8(v) {
+        if (this) {
+            this.mappingFieldTable = v;
+        }
+    }
+    __6a9803ce37a6658d333e838def2ebba3method13() {
+        return this.oldField;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method14(v) {
+        if (this) {
+            this.oldField = v;
+        }
+    }
+    __6a9803ce37a6658d333e838def2ebba3method16() {
+        return this.newField;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method17(v) {
+        if (this) {
+            this.newField = v;
+        }
+    }
+}
+RenamedField.Namespace=`migration`;
+RenamedField.Tag=`av-renamed-field`;
+__as1(_, 'RenamedField', RenamedField);
+if(!window.customElements.get('av-renamed-field')){window.customElements.define('av-renamed-field', RenamedField);Aventus.WebComponentInstance.registerDefinition(RenamedField);}
+
 const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebComponent {
     static get observedAttributes() {return ["is_rename"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'is_rename'() { return this.getBoolProp('is_rename') }
-    set 'is_rename'(val) { this.setBoolAttr('is_rename', val) }    change;
-    static __style = ``;
+    set 'is_rename'(val) { this.setBoolAttr('is_rename', val) }    get 'change'() {
+						return this.__watch["change"];
+					}
+					set 'change'(val) {
+						this.__watch["change"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("change", (() => {
+    debugger;
+}));    super.__registerWatchesActions();
+}
+    static __style = `:host{width:100%}:host .diff-table-group{background:rgba(15,23,42,.15);border:1px solid var(--warning);border-radius:var(--border-radius-lg);margin-bottom:1rem;overflow:hidden}:host .diff-table-group .diff-table-header{align-items:center;background:var(--warning-100);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:.75rem 1rem}:host .diff-table-group .diff-table-header .diff-table-title{font-family:var(--font-mono);font-size:.95rem;font-weight:600}:host .diff-table-group .diff-table-header .badge{background-color:var(--warning-200);border:1px solid var(--warning);border-radius:50px;font-size:.75rem;font-weight:600;padding:.25rem .65rem}:host .diff-table-group .diff-table-body{display:flex;flex-direction:column;gap:.5rem;padding:.75rem 1rem}:host .diff-table-group .diff-table-body .diff-item{align-items:center;display:flex;font-family:var(--font-mono);font-size:.85rem;gap:.75rem;padding:.25rem 0}:host .diff-table-group .diff-table-body .diff-item .diff-tag{border-radius:4px;font-family:var(--font-sans);font-size:.7rem;font-weight:600;padding:.1rem .4rem;text-transform:uppercase}:host .diff-table-group .diff-table-body .diff-item .diff-tag-add{background:rgba(16,185,129,.15);color:var(--color-success)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-del{background:rgba(239,68,68,.15);color:var(--color-danger)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-mod{background:rgba(245,158,11,.15);color:var(--color-warning)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-ren{background:rgba(99,102,241,.15);color:var(--accent-indigo)}:host .diff-table-group .diff-table-body .diff-item .diff-item-detail{color:var(--neutral)}:host .diff-table-group .diff-table-body .diff-item .diff-change-old{color:rgba(239,68,68,.7);text-decoration:line-through}:host .diff-table-group .diff-table-body .diff-item .diff-change-new{color:var(--success-400)}:host([is_rename]) .diff-table-group{border:1px solid var(--accent)}:host([is_rename]) .diff-table-group .diff-table-header{background-color:var(--accent-100)}:host([is_rename]) .diff-table-group .diff-table-header .badge{background-color:var(--accent-200);border:1px solid var(--accent)}`;
     __getStatic() {
         return SummaryUpdatedTable;
     }
@@ -10802,7 +13657,7 @@ const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebCompone
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="diff-table-group">    <div class="diff-table-header" style="background: rgba(255, 255, 255, 0.01)">        <span class="diff-table-title" _id="summaryupdatedtable_0"></span>        <span class="badge badge-new" _id="summaryupdatedtable_1"></span>    </div>    <div class="diff-table-body">        <template _id="summaryupdatedtable_2"></template>        <template _id="summaryupdatedtable_5"></template>        <template _id="summaryupdatedtable_7"></template>        <template _id="summaryupdatedtable_10"></template>    </div></div>` }
+        blocks: { 'default':`<div class="diff-table-group">    <div class="diff-table-header">        <span class="diff-table-title" _id="summaryupdatedtable_0"></span>        <span class="badge" _id="summaryupdatedtable_1"></span>    </div>    <div class="diff-table-body">        <template _id="summaryupdatedtable_2"></template>        <template _id="summaryupdatedtable_5"></template>        <template _id="summaryupdatedtable_7"></template>        <template _id="summaryupdatedtable_10"></template>    </div></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
@@ -10910,8 +13765,12 @@ const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebCompone
         return "SummaryUpdatedTable";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_rename')) { this.attributeChangedCallback('is_rename', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_rename'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["change"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_rename');this.__correctGetter('change'); }
     __listBoolProps() { return ["is_rename"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    postCreation() {
+        this.is_rename = true; //this.change.isRename;
+    }
     __49686968742173745148a8d3c31a7eb3method7() {
         return this.change.isRename ? `Table Renommée : ${this.change.oldTableName} ➔ ${this.change.newTableName}` : `Table Modifiée : ${this.change.newTableName}`;
     }
@@ -10925,7 +13784,7 @@ const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebCompone
         return renameField.newName;
     }
     __49686968742173745148a8d3c31a7eb3method11(deletedField) {
-        return deletedField;
+        return deletedField.name;
     }
     __49686968742173745148a8d3c31a7eb3method12(addedField) {
         return addedField.name;
@@ -10973,11 +13832,31 @@ let MainState=(() => {
     let _step_decorators;
     let _step_initializers = [];
     let _step_extraInitializers = [];
+    let _oldSchema_decorators;
+    let _oldSchema_initializers = [];
+    let _oldSchema_extraInitializers = [];
+    let _newSchema_decorators;
+    let _newSchema_initializers = [];
+    let _newSchema_extraInitializers = [];
+    let _mappings_decorators;
+    let _mappings_initializers = [];
+    let _mappings_extraInitializers = [];
+    let _comparison_decorators;
+    let _comparison_initializers = [];
+    let _comparison_extraInitializers = [];
     return class MainState {
         static {
             const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(null) : void 0;
             _step_decorators = [Dynamic()];
+            _oldSchema_decorators = [Dynamic()];
+            _newSchema_decorators = [Dynamic()];
+            _mappings_decorators = [Dynamic()];
+            _comparison_decorators = [Dynamic()];
             __esDecorate(this, null, _step_decorators, { kind: "accessor", name: "step", static: false, private: false, access: { has: obj => "step" in obj, get: obj => obj.step, set: (obj, value) => { obj.step = value; } }, metadata: _metadata }, _step_initializers, _step_extraInitializers);
+            __esDecorate(this, null, _oldSchema_decorators, { kind: "accessor", name: "oldSchema", static: false, private: false, access: { has: obj => "oldSchema" in obj, get: obj => obj.oldSchema, set: (obj, value) => { obj.oldSchema = value; } }, metadata: _metadata }, _oldSchema_initializers, _oldSchema_extraInitializers);
+            __esDecorate(this, null, _newSchema_decorators, { kind: "accessor", name: "newSchema", static: false, private: false, access: { has: obj => "newSchema" in obj, get: obj => obj.newSchema, set: (obj, value) => { obj.newSchema = value; } }, metadata: _metadata }, _newSchema_initializers, _newSchema_extraInitializers);
+            __esDecorate(this, null, _mappings_decorators, { kind: "accessor", name: "mappings", static: false, private: false, access: { has: obj => "mappings" in obj, get: obj => obj.mappings, set: (obj, value) => { obj.mappings = value; } }, metadata: _metadata }, _mappings_initializers, _mappings_extraInitializers);
+            __esDecorate(this, null, _comparison_decorators, { kind: "accessor", name: "comparison", static: false, private: false, access: { has: obj => "comparison" in obj, get: obj => obj.comparison, set: (obj, value) => { obj.comparison = value; } }, metadata: _metadata }, _comparison_initializers, _comparison_extraInitializers);
             if (_metadata) Object.defineProperty(this, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
         }
         static get instance() {
@@ -10986,7 +13865,7 @@ let MainState=(() => {
         #step_accessor_storage = __runInitializers(this, _step_initializers, 0);
         get step() { return this.#step_accessor_storage; }
         set step(value) { this.#step_accessor_storage = value; }
-        oldSchema = (__runInitializers(this, _step_extraInitializers), {
+        #oldSchema_accessor_storage = (__runInitializers(this, _step_extraInitializers), __runInitializers(this, _oldSchema_initializers, {
             "name": "DemoSchemaA",
             "databaseType": "sqlite",
             "tables": [
@@ -11023,1667 +13902,10 @@ let MainState=(() => {
                     "targetFieldId": "f1_1"
                 }
             ]
-        });
-        oldSchema2 = {
-            "name": "spalio",
-            "databaseType": "mysql",
-            "tables": [
-                {
-                    "id": "bill",
-                    "name": "bill",
-                    "fields": [
-                        {
-                            "id": "bill.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "bill.Montant",
-                            "name": "Montant",
-                            "type": {
-                                "id": "float",
-                                "name": "float"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "bill.MontantPaye",
-                            "name": "MontantPaye",
-                            "type": {
-                                "id": "float",
-                                "name": "float"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "bill.DateEmission",
-                            "name": "DateEmission",
-                            "type": {
-                                "id": "date",
-                                "name": "date"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "bill.DateEcheance",
-                            "name": "DateEcheance",
-                            "type": {
-                                "id": "date",
-                                "name": "date"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "billline",
-                    "name": "billline",
-                    "fields": [
-                        {
-                            "id": "billline.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "billline.Label",
-                            "name": "Label",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "billline.Quantity",
-                            "name": "Quantity",
-                            "type": {
-                                "id": "float",
-                                "name": "float"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "billline.Montant",
-                            "name": "Montant",
-                            "type": {
-                                "id": "float",
-                                "name": "float"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "billline.BillId",
-                            "name": "BillId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "club",
-                    "name": "club",
-                    "fields": [
-                        {
-                            "id": "club.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "club.Name",
-                            "name": "Name",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "club.Logo",
-                            "name": "Logo",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "club.PrimaryColor",
-                            "name": "PrimaryColor",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "club.Address",
-                            "name": "Address",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "club.City",
-                            "name": "City",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "club.ZipCode",
-                            "name": "ZipCode",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "club.Licence",
-                            "name": "Licence",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "club.AvailableUsers",
-                            "name": "AvailableUsers",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "club.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "club.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "clubmodule",
-                    "name": "clubmodule",
-                    "fields": [
-                        {
-                            "id": "clubmodule.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "clubmodule.Club",
-                            "name": "Club",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "clubmodule.Module",
-                            "name": "Module",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "clubmodule.IsActive",
-                            "name": "IsActive",
-                            "type": {
-                                "id": "bit",
-                                "name": "bit"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "clubmodule.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "clubmodule.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "clubuserpack",
-                    "name": "clubuserpack",
-                    "fields": [
-                        {
-                            "id": "clubuserpack.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "clubuserpack.Club",
-                            "name": "Club",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "clubuserpack.Pack",
-                            "name": "Pack",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "clubuserpack.IsActive",
-                            "name": "IsActive",
-                            "type": {
-                                "id": "bit",
-                                "name": "bit"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "clubuserpack.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "clubuserpack.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "conversation",
-                    "name": "conversation",
-                    "fields": [
-                        {
-                            "id": "conversation.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "conversation.Name",
-                            "name": "Name",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "conversation.Icon",
-                            "name": "Icon",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "conversation.IsGroup",
-                            "name": "IsGroup",
-                            "type": {
-                                "id": "bit",
-                                "name": "bit"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "conversationuser",
-                    "name": "conversationuser",
-                    "fields": [
-                        {
-                            "id": "conversationuser.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "conversationuser.ConversationId",
-                            "name": "ConversationId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "conversationuser.UserId",
-                            "name": "UserId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "familymember",
-                    "name": "familymember",
-                    "fields": [
-                        {
-                            "id": "familymember.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "familymember.FirstName",
-                            "name": "FirstName",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "familymember.LastName",
-                            "name": "LastName",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "familymember.BirthDate",
-                            "name": "BirthDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "familymember.Email",
-                            "name": "Email",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "familymember.Phone",
-                            "name": "Phone",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "familymember.ReferenceMember",
-                            "name": "ReferenceMember",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "function",
-                    "name": "function",
-                    "fields": [
-                        {
-                            "id": "function.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "function.Name",
-                            "name": "Name",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "function.ClubId",
-                            "name": "ClubId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "function.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "function.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "licence",
-                    "name": "licence",
-                    "fields": [
-                        {
-                            "id": "licence.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "licence.Kind",
-                            "name": "Kind",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "licence.QtyUser",
-                            "name": "QtyUser",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "licence.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "licence.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "material",
-                    "name": "material",
-                    "fields": [
-                        {
-                            "id": "material.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "material.Nom",
-                            "name": "Nom",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "material.ClubId",
-                            "name": "ClubId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "member",
-                    "name": "member",
-                    "fields": [
-                        {
-                            "id": "member.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "member.FirstName",
-                            "name": "FirstName",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "member.LastName",
-                            "name": "LastName",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "member.BirthDate",
-                            "name": "BirthDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "member.Email",
-                            "name": "Email",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "member.Phone",
-                            "name": "Phone",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "member.Address",
-                            "name": "Address",
-                            "type": {
-                                "id": "text",
-                                "name": "text"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "member.Settings",
-                            "name": "Settings",
-                            "type": {
-                                "id": "longtext",
-                                "name": "longtext"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "member.UserId",
-                            "name": "UserId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "member.Club",
-                            "name": "Club",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "member.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "member.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "message",
-                    "name": "message",
-                    "fields": [
-                        {
-                            "id": "message.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "message.Content",
-                            "name": "Content",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "message.ConversationId",
-                            "name": "ConversationId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "migrationtable",
-                    "name": "migrationtable",
-                    "fields": [
-                        {
-                            "id": "migrationtable.Name",
-                            "name": "Name",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "migrationtable.Date",
-                            "name": "Date",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "module",
-                    "name": "module",
-                    "fields": [
-                        {
-                            "id": "module.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "module.Kind",
-                            "name": "Kind",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "module.Price",
-                            "name": "Price",
-                            "type": {
-                                "id": "float",
-                                "name": "float"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "module.IsActive",
-                            "name": "IsActive",
-                            "type": {
-                                "id": "bit",
-                                "name": "bit"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "movement",
-                    "name": "movement",
-                    "fields": [
-                        {
-                            "id": "movement.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "permission",
-                    "name": "permission",
-                    "fields": [
-                        {
-                            "id": "permission.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "permission.Name",
-                            "name": "Name",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "permission.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "permission.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "permissionrole",
-                    "name": "permissionrole",
-                    "fields": [
-                        {
-                            "id": "permissionrole.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "permissionrole.Role",
-                            "name": "Role",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "permissionrole.Permission",
-                            "name": "Permission",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "role",
-                    "name": "role",
-                    "fields": [
-                        {
-                            "id": "role.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "role.Name",
-                            "name": "Name",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "role.ClubId",
-                            "name": "ClubId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "role.IsAdmin",
-                            "name": "IsAdmin",
-                            "type": {
-                                "id": "bit",
-                                "name": "bit"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "role.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "role.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "team",
-                    "name": "team",
-                    "fields": [
-                        {
-                            "id": "team.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "team.Name",
-                            "name": "Name",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "team.Color",
-                            "name": "Color",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "team.ClubId",
-                            "name": "ClubId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "team.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "team.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "teammember",
-                    "name": "teammember",
-                    "fields": [
-                        {
-                            "id": "teammember.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "teammember.TeamId",
-                            "name": "TeamId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "teammember.MemberId",
-                            "name": "MemberId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "teammember.FunctionId",
-                            "name": "FunctionId",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "teammember.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "teammember.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "user",
-                    "name": "user",
-                    "fields": [
-                        {
-                            "id": "user.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "user.Email",
-                            "name": "Email",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "user.Password",
-                            "name": "Password",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "user.IsSuperAdmin",
-                            "name": "IsSuperAdmin",
-                            "type": {
-                                "id": "bit",
-                                "name": "bit"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "user.Role",
-                            "name": "Role",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": true
-                        },
-                        {
-                            "id": "user.CreatedDate",
-                            "name": "CreatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "user.UpdatedDate",
-                            "name": "UpdatedDate",
-                            "type": {
-                                "id": "datetime",
-                                "name": "datetime"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "userpack",
-                    "name": "userpack",
-                    "fields": [
-                        {
-                            "id": "userpack.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "userpack.Name",
-                            "name": "Name",
-                            "type": {
-                                "id": "varchar",
-                                "name": "varchar"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "userpack.QtyUser",
-                            "name": "QtyUser",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "userpack.Price",
-                            "name": "Price",
-                            "type": {
-                                "id": "float",
-                                "name": "float"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "userpack.IsActive",
-                            "name": "IsActive",
-                            "type": {
-                                "id": "bit",
-                                "name": "bit"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        },
-                        {
-                            "id": "userpack.MonthValidity",
-                            "name": "MonthValidity",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": false,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                },
-                {
-                    "id": "variation",
-                    "name": "variation",
-                    "fields": [
-                        {
-                            "id": "variation.Id",
-                            "name": "Id",
-                            "type": {
-                                "id": "int",
-                                "name": "int"
-                            },
-                            "primaryKey": true,
-                            "unique": false,
-                            "nullable": false
-                        }
-                    ]
-                }
-            ],
-            "relationships": [
-                {
-                    "id": "7c3f1440-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_BillId_BillLine_Bill",
-                    "sourceTableId": "billline",
-                    "targetTableId": "bill",
-                    "sourceFieldId": "billline.BillId",
-                    "targetFieldId": "bill.Id"
-                },
-                {
-                    "id": "7c3f1466-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_Licence_Club_Licence",
-                    "sourceTableId": "club",
-                    "targetTableId": "licence",
-                    "sourceFieldId": "club.Licence",
-                    "targetFieldId": "licence.Id"
-                },
-                {
-                    "id": "7c3f1475-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_Club_ClubModule_Club",
-                    "sourceTableId": "clubmodule",
-                    "targetTableId": "club",
-                    "sourceFieldId": "clubmodule.Club",
-                    "targetFieldId": "club.Id"
-                },
-                {
-                    "id": "7c3f147d-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_Module_ClubModule_Module",
-                    "sourceTableId": "clubmodule",
-                    "targetTableId": "module",
-                    "sourceFieldId": "clubmodule.Module",
-                    "targetFieldId": "module.Id"
-                },
-                {
-                    "id": "7c3f1499-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_Club_ClubUserPack_Club",
-                    "sourceTableId": "clubuserpack",
-                    "targetTableId": "club",
-                    "sourceFieldId": "clubuserpack.Club",
-                    "targetFieldId": "club.Id"
-                },
-                {
-                    "id": "7c3f149e-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_Pack_ClubUserPack_UserPack",
-                    "sourceTableId": "clubuserpack",
-                    "targetTableId": "userpack",
-                    "sourceFieldId": "clubuserpack.Pack",
-                    "targetFieldId": "userpack.Id"
-                },
-                {
-                    "id": "7c3f14a8-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_ConversationId_ConversationUser_Conversation",
-                    "sourceTableId": "conversationuser",
-                    "targetTableId": "conversation",
-                    "sourceFieldId": "conversationuser.ConversationId",
-                    "targetFieldId": "conversation.Id"
-                },
-                {
-                    "id": "7c3f14af-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_UserId_ConversationUser_User",
-                    "sourceTableId": "conversationuser",
-                    "targetTableId": "user",
-                    "sourceFieldId": "conversationuser.UserId",
-                    "targetFieldId": "user.Id"
-                },
-                {
-                    "id": "7c3f14b5-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_ReferenceMember_FamilyMember_Member",
-                    "sourceTableId": "familymember",
-                    "targetTableId": "member",
-                    "sourceFieldId": "familymember.ReferenceMember",
-                    "targetFieldId": "member.Id"
-                },
-                {
-                    "id": "7c3f14c5-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_ClubId_Function_Club",
-                    "sourceTableId": "function",
-                    "targetTableId": "club",
-                    "sourceFieldId": "function.ClubId",
-                    "targetFieldId": "club.Id"
-                },
-                {
-                    "id": "7c3f14cc-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_ClubId_Material_Club",
-                    "sourceTableId": "material",
-                    "targetTableId": "club",
-                    "sourceFieldId": "material.ClubId",
-                    "targetFieldId": "club.Id"
-                },
-                {
-                    "id": "7c3f14d1-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_Club_Member_Club",
-                    "sourceTableId": "member",
-                    "targetTableId": "club",
-                    "sourceFieldId": "member.Club",
-                    "targetFieldId": "club.Id"
-                },
-                {
-                    "id": "7c3f14d6-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_UserId_Member_User",
-                    "sourceTableId": "member",
-                    "targetTableId": "user",
-                    "sourceFieldId": "member.UserId",
-                    "targetFieldId": "user.Id"
-                },
-                {
-                    "id": "7c3f14db-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_ConversationId_Message_Conversation",
-                    "sourceTableId": "message",
-                    "targetTableId": "conversation",
-                    "sourceFieldId": "message.ConversationId",
-                    "targetFieldId": "conversation.Id"
-                },
-                {
-                    "id": "7c3f14e3-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_Permission_PermissionRole_Permission",
-                    "sourceTableId": "permissionrole",
-                    "targetTableId": "permission",
-                    "sourceFieldId": "permissionrole.Permission",
-                    "targetFieldId": "permission.Id"
-                },
-                {
-                    "id": "7c3f14e9-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_Role_PermissionRole_Role",
-                    "sourceTableId": "permissionrole",
-                    "targetTableId": "role",
-                    "sourceFieldId": "permissionrole.Role",
-                    "targetFieldId": "role.Id"
-                },
-                {
-                    "id": "7c3f14ef-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_ClubId_Role_Club",
-                    "sourceTableId": "role",
-                    "targetTableId": "club",
-                    "sourceFieldId": "role.ClubId",
-                    "targetFieldId": "club.Id"
-                },
-                {
-                    "id": "7c3f14f4-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_ClubId_Team_Club",
-                    "sourceTableId": "team",
-                    "targetTableId": "club",
-                    "sourceFieldId": "team.ClubId",
-                    "targetFieldId": "club.Id"
-                },
-                {
-                    "id": "7c3f14f9-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_FunctionId_TeamMember_Function",
-                    "sourceTableId": "teammember",
-                    "targetTableId": "function",
-                    "sourceFieldId": "teammember.FunctionId",
-                    "targetFieldId": "function.Id"
-                },
-                {
-                    "id": "7c3f1508-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_MemberId_TeamMember_Member",
-                    "sourceTableId": "teammember",
-                    "targetTableId": "member",
-                    "sourceFieldId": "teammember.MemberId",
-                    "targetFieldId": "member.Id"
-                },
-                {
-                    "id": "7c3f150d-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_TeamId_TeamMember_Team",
-                    "sourceTableId": "teammember",
-                    "targetTableId": "team",
-                    "sourceFieldId": "teammember.TeamId",
-                    "targetFieldId": "team.Id"
-                },
-                {
-                    "id": "7c3f1513-790f-11f1-a7b7-5cb47e319925",
-                    "name": "FK_Role_User_Role",
-                    "sourceTableId": "user",
-                    "targetTableId": "role",
-                    "sourceFieldId": "user.Role",
-                    "targetFieldId": "role.Id"
-                }
-            ]
-        };
-        newSchema = {
+        }));
+        get oldSchema() { return this.#oldSchema_accessor_storage; }
+        set oldSchema(value) { this.#oldSchema_accessor_storage = value; }
+        #newSchema_accessor_storage = (__runInitializers(this, _oldSchema_extraInitializers), __runInitializers(this, _newSchema_initializers, {
             "name": "DemoSchemaB",
             "databaseType": "sqlite",
             "tables": [
@@ -12740,17 +13962,26 @@ let MainState=(() => {
                     "targetFieldId": "f2_1"
                 }
             ]
-        };
-        mappings = {
+        }));
+        get newSchema() { return this.#newSchema_accessor_storage; }
+        set newSchema(value) { this.#newSchema_accessor_storage = value; }
+        #mappings_accessor_storage = (__runInitializers(this, _newSchema_extraInitializers), __runInitializers(this, _mappings_initializers, {
             tables: {},
             fields: {}
-        };
-        comparison = {
+        }));
+        get mappings() { return this.#mappings_accessor_storage; }
+        set mappings(value) { this.#mappings_accessor_storage = value; }
+        #comparison_accessor_storage = (__runInitializers(this, _mappings_extraInitializers), __runInitializers(this, _comparison_initializers, {
             addedTables: [],
             deletedTables: [],
             renamedTables: [],
             tableComparisons: [],
-        };
+        }));
+        get comparison() { return this.#comparison_accessor_storage; }
+        set comparison(value) { this.#comparison_accessor_storage = value; }
+        constructor() {
+            __runInitializers(this, _comparison_extraInitializers);
+        }
     };
 })();
 MainState.Namespace=`migration`;
@@ -13173,25 +14404,35 @@ const SummaryDeleted = class SummaryDeleted extends Aventus.WebComponent {
         blocks: { 'default':`<template _id="summarydeleted_0"></template>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="diff-table-group" style="border-color: rgba(239, 68, 68, 0.4)">        <div class="diff-table-header" style="background: rgba(239, 68, 68, 0.05)">            <span class="diff-table-title" style="color: var(--color-danger)">Table Supprimée : ${t.name}</span>            <span class="badge badge-old">Supprimé</span>        </div>        <div class="diff-table-body">            <template _id="summarydeleted_1"></template>        </div>    </div>`);this.__getStatic().__template.addLoop({
+    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="diff-table-group" style="border-color: rgba(239, 68, 68, 0.4)">        <div class="diff-table-header" style="background: rgba(239, 68, 68, 0.05)">            <span class="diff-table-title" style="color: var(--color-danger)" _id="summarydeleted_1"></span>            <span class="badge badge-old">Supprimé</span>        </div>        <div class="diff-table-body">            <template _id="summarydeleted_2"></template>        </div>    </div>`);templ0.setActions({
+  "content": {
+    "summarydeleted_1°@HTML": {
+      "fct": (c) => `Table Supprimée : ${c.print(c.comp.__83f0ae5284cb63e76d7ef2a50310a4bfmethod2(c.data.deletedTable))}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addLoop({
                     anchorId: 'summarydeleted_0',
                     template: templ0,
-                simple:{data: "this.comparison.deletedTables",item:"deletedTable"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="diff-item">                    <span class="diff-tag diff-tag-del">-</span>                    <span class="diff-change-old" _id="summarydeleted_2"></span>                </div>            `);templ1.setActions({
+                simple:{data: "this.comparison.deletedTables",item:"deletedTable"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="diff-item">                    <span class="diff-tag diff-tag-del">-</span>                    <span class="diff-change-old" _id="summarydeleted_3"></span>                </div>            `);templ1.setActions({
   "content": {
-    "summarydeleted_2°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__83f0ae5284cb63e76d7ef2a50310a4bfmethod2(c.data.deletedTableField))}`,
+    "summarydeleted_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__83f0ae5284cb63e76d7ef2a50310a4bfmethod3(c.data.deletedTableField))}`,
       "once": true
     }
   }
 });templ0.addLoop({
-                    anchorId: 'summarydeleted_1',
+                    anchorId: 'summarydeleted_2',
                     template: templ1,
                 simple:{data: "deletedTable.fields",item:"deletedTableField"}}); }
     getClassName() {
         return "SummaryDeleted";
     }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison'); }
-    __83f0ae5284cb63e76d7ef2a50310a4bfmethod2(deletedTableField) {
+    __83f0ae5284cb63e76d7ef2a50310a4bfmethod2(deletedTable) {
+        return deletedTable.name;
+    }
+    __83f0ae5284cb63e76d7ef2a50310a4bfmethod3(deletedTableField) {
         return deletedTableField.name;
     }
 }
@@ -13204,7 +14445,7 @@ const SummaryNew = class SummaryNew extends Aventus.WebComponent {
     get comparison() {
         return MainState.instance.comparison;
     }
-    static __style = ``;
+    static __style = `:host{width:100%}:host .diff-table-group{background:rgba(15,23,42,.15);border:1px solid var(--success);border-radius:var(--border-radius-lg);margin-bottom:1rem;overflow:hidden}:host .diff-table-group .diff-table-header{align-items:center;background:var(--success-100);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:.75rem 1rem}:host .diff-table-group .diff-table-header .diff-table-title{font-family:var(--font-mono);font-size:.95rem;font-weight:600}:host .diff-table-group .diff-table-header .badge{background:var(--success-200);border:1px solid var(--success);border-radius:50px;color:var(--color-success);font-size:.75rem;font-weight:600;padding:.25rem .65rem}:host .diff-table-group .diff-table-body{display:flex;flex-direction:column;gap:.5rem;padding:.75rem 1rem}:host .diff-table-group .diff-table-body .diff-item{align-items:center;display:flex;font-family:var(--font-mono);font-size:.85rem;gap:.75rem;padding:.25rem 0}:host .diff-table-group .diff-table-body .diff-item .diff-tag{align-items:center;align-items:center;background:var(--success-200);border-radius:4px;display:flex;font-family:var(--font-sans);font-weight:600;height:20px;justify-content:center;line-height:20px;padding-bottom:3px;width:20px}:host .diff-table-group .diff-table-body .diff-item .diff-item-detail{color:var(--neutral)}`;
     __getStatic() {
         return SummaryNew;
     }
@@ -13218,7 +14459,7 @@ const SummaryNew = class SummaryNew extends Aventus.WebComponent {
         blocks: { 'default':`<template _id="summarynew_0"></template>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="diff-table-group" style="border-color: rgba(16, 185, 129, 0.4)">        <div class="diff-table-header" style="background: rgba(16, 185, 129, 0.05)">            <span class="diff-table-title" style="color: var(--color-success)" _id="summarynew_1"></span>            <span class="badge badge-new">Nouveau</span>        </div>        <div class="diff-table-body">            <template _id="summarynew_2"></template>        </div>    </div>`);templ0.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="diff-table-group">        <div class="diff-table-header">            <span class="diff-table-title" _id="summarynew_1"></span>            <span class="badge badge-new">Nouveau</span>        </div>        <div class="diff-table-body">            <template _id="summarynew_2"></template>        </div>    </div>`);templ0.setActions({
   "content": {
     "summarynew_1°@HTML": {
       "fct": (c) => `Table Ajoutée : ${c.print(c.comp.__a902aa746d994c2401ca9ac9dfe3b2aemethod2(c.data.addedTable))}`,
@@ -13253,7 +14494,7 @@ const SummaryNew = class SummaryNew extends Aventus.WebComponent {
         return addedTableField.name;
     }
     __a902aa746d994c2401ca9ac9dfe3b2aemethod4(addedTableField) {
-        return `${addedTableField.type.name}${addedTableField.nullable ? ', null' : ''}${addedTableField.primaryKey ? ', PK' : ''})`;
+        return `(${addedTableField.type.name}${addedTableField.nullable ? ', null' : ''}${addedTableField.primaryKey ? ', PK' : ''})`;
     }
 }
 SummaryNew.Namespace=`migration`;
@@ -13310,6 +14551,125 @@ Header.Tag=`av-header`;
 __as1(_, 'Header', Header);
 if(!window.customElements.get('av-header')){window.customElements.define('av-header', Header);Aventus.WebComponentInstance.registerDefinition(Header);}
 
+let Api=class Api {
+    static guard = new Aventus.ActionGuard();
+    static databases;
+    static wwwroot = "/";
+    static init() {
+        if (VscodeView.Router.isVscode) {
+            const el = document.getElementById("base-style");
+            if (el instanceof HTMLLinkElement) {
+                this.wwwroot = el.href.replace("style.css", "");
+            }
+        }
+    }
+    static async getDatabases() {
+        return await this.guard.run(["getDatabases"], async () => {
+            if (this.databases != undefined)
+                return {
+                    source: [...this.databases.source],
+                    target: [...this.databases.target],
+                };
+            if (VscodeView.Router.isVscode) {
+                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
+                    channel: "getDatabases"
+                }));
+                this.databases = result ?? { source: [], target: [] };
+            }
+            else {
+                const txt = localStorage.getItem("databases");
+                this.databases = txt ? JSON.parse(txt) : { source: [], target: [] };
+                ;
+            }
+            return {
+                source: [...this.databases.source],
+                target: [...this.databases.target],
+            };
+        });
+    }
+    static async setDatabase(type, model) {
+        model = Aventus.Watcher.extract(model);
+        if (!this.databases) {
+            this.databases = {
+                source: [],
+                target: []
+            };
+        }
+        this.databases[type].push(model);
+        this.databases[type].sort((a, b) => a.Database.localeCompare(b.Database));
+        if (VscodeView.Router.isVscode) {
+            await VscodeView.Router.getInstance().send({
+                channel: "setDatabases",
+                body: this.databases
+            });
+        }
+        else {
+            const clones = JSON.parse(JSON.stringify(this.databases));
+            for (let clone of clones[type]) {
+                if (!clone.SavePassword) {
+                    delete clone.Password;
+                }
+            }
+            localStorage.setItem('databases', JSON.stringify(clones));
+        }
+        return this.databases[type];
+    }
+    static async deleteDatabase(type, model) {
+        model = Aventus.Watcher.extract(model);
+        if (!this.databases) {
+            return [];
+        }
+        const index = this.databases[type].indexOf(model);
+        if (index == -1)
+            return this.databases[type];
+        this.databases[type].splice(index, 1);
+        if (VscodeView.Router.isVscode) {
+            await VscodeView.Router.getInstance().send({
+                channel: "setDatabases",
+                body: this.databases
+            });
+        }
+        else {
+            const clones = JSON.parse(JSON.stringify(this.databases));
+            for (let clone of clones[type]) {
+                if (!clone.SavePassword) {
+                    delete clone.Password;
+                }
+            }
+            localStorage.setItem('databases', JSON.stringify(clones));
+        }
+        return this.databases[type];
+    }
+    static async testConnection(model) {
+        model = Aventus.Watcher.extract(model);
+        return await this.guard.run(["testConnection"], async () => {
+            if (VscodeView.Router.isVscode) {
+                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
+                    channel: "testConnection",
+                    body: model
+                }));
+                return result ?? false;
+            }
+            return true;
+        });
+    }
+    static async getSchema(model) {
+        model = Aventus.Watcher.extract(model);
+        return await this.guard.run(["getSchema"], async () => {
+            if (VscodeView.Router.isVscode) {
+                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
+                    channel: "getSchema",
+                    body: model
+                }));
+                return result;
+            }
+            return defaultSchema;
+        });
+    }
+}
+Api.Namespace=`migration`;
+__as1(_, 'Api', Api);
+
 const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Components.Interaction.Modal {
     get 'formNewDb'() {
 						return this.__watch["formNewDb"];
@@ -13319,7 +14679,7 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
 					}    __registerWatchesActions() {
     this.__addWatchesActions("formNewDb");    super.__registerWatchesActions();
 }
-    static __style = `:host .modal{width:600px}:host .modal av-row{--col-gap-x: 1rem;--col-gap-y: 0.5rem}`;
+    static __style = `:host .modal{width:600px}:host .modal av-row{--col-gap-x: 1rem;--col-gap-y: 1rem}`;
     __getStatic() {
         return CreateDatabaseModal;
     }
@@ -13330,7 +14690,7 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
     }
     __getHtml() {super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'header':`    Create database coonnection`,'footer':`    <om-button color="error" outline>Cancel</om-button>    <om-button color="success">Save</om-button>`,'default':`<av-row>    <av-col size="12">        <om-select label="Database kind" _id="createdatabasemodal_0">            <om-option value="mysql">Mysql</om-option>            <om-option value="mssql">Mssql</om-option>            <om-option value="postgresql">Postgresql</om-option>            <om-option value="sqlite">Sqlite</om-option>        </om-select>    </av-col>    <template _id="createdatabasemodal_1"></template></av-row>` }
+        blocks: { 'header':`    Create database coonnection`,'footer':`    <om-button outline _id="createdatabasemodal_8">Cancel</om-button>    <om-button color="primary" _id="createdatabasemodal_9">Save</om-button>`,'default':`<av-row>    <av-col size="12">        <om-select label="Database kind" _id="createdatabasemodal_0">            <om-option value="mysql">Mysql</om-option>            <om-option value="mssql">Mssql</om-option>            <om-option value="postgresql">Postgresql</om-option>            <om-option value="sqlite">Sqlite</om-option>        </om-select>    </av-col>    <template _id="createdatabasemodal_1"></template></av-row>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
@@ -13346,8 +14706,20 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
       "once": true,
       "isCallback": true
     }
+  ],
+  "events": [
+    {
+      "eventName": "click",
+      "id": "createdatabasemodal_8",
+      "fct": (e, c) => c.comp.reject(e)
+    },
+    {
+      "eventName": "click",
+      "id": "createdatabasemodal_9",
+      "fct": (e, c) => c.comp.save(e)
+    }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-col size="12">            <om-input label="Hostname" _id="createdatabasemodal_2"></om-input>        </av-col>        <av-col size="12">            <om-input label="Username" _id="createdatabasemodal_3"></om-input>        </av-col>        <av-col size="12">            <om-password label="Password" _id="createdatabasemodal_4"></om-password>        </av-col>        <av-col size="12">            <om-input label="Database" _id="createdatabasemodal_5"></om-input>        </av-col>    `);templ0.setActions({
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-col size="12">            <om-input label="Hostname" _id="createdatabasemodal_2"></om-input>        </av-col>        <av-col size="12">            <om-input label="Database" _id="createdatabasemodal_3"></om-input>        </av-col>        <av-col size="12">            <om-input label="Username" _id="createdatabasemodal_4"></om-input>        </av-col>        <av-col size="12">            <om-password label="Password" _id="createdatabasemodal_5"></om-password>        </av-col>        <av-col size="12">            <om-checkbox label="Save Password" _id="createdatabasemodal_6"></om-checkbox>        </av-col>    `);templ0.setActions({
   "bindings": [
     {
       "id": "createdatabasemodal_2",
@@ -13392,10 +14764,7 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
       "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method10(v),
       "once": true,
       "isCallback": true
-    }
-  ]
-});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <av-col size="12">            <om-input label="File path" _id="createdatabasemodal_6"></om-input>        </av-col>    `);templ1.setActions({
-  "bindings": [
+    },
     {
       "id": "createdatabasemodal_6",
       "injectionName": "value",
@@ -13404,6 +14773,20 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
       ],
       "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method11(),
       "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method12(v),
+      "once": true,
+      "isCallback": true
+    }
+  ]
+});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <av-col size="12">            <om-input label="File path" _id="createdatabasemodal_7"></om-input>        </av-col>    `);templ1.setActions({
+  "bindings": [
+    {
+      "id": "createdatabasemodal_7",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method13(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method14(v),
       "once": true,
       "isCallback": true
     }
@@ -13421,12 +14804,24 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
     getClassName() {
         return "CreateDatabaseModal";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["formNewDb"] = {        Database: "Spalio2",        Host: "localhost",        Password: "",        Type: "mysql",        Username: "root"    }; }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["formNewDb"] = {        UUID: Aventus.uuidv4(),        Database: "Spalio2",        Host: "localhost",        Password: "",        Path: "",        Type: "mysql",        Username: "root",        SavePassword: false    }; }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('formNewDb'); }
     configure() {
         return {
             closeWithClick: false,
         };
+    }
+    async save() {
+        const form = Aventus.Watcher.extract(this.formNewDb);
+        if (!await Api.testConnection(form)) {
+            OneMoreUI.Components.Interaction.Alert.open({
+                title: "Connection error",
+                type: "error",
+                content: "There is a problem with the credentials provided"
+            });
+            return;
+        }
+        this.resolve(Aventus.Watcher.extract(form));
     }
     __dce7836a7f0affea31f87e4387ff3630method0() {
         return this.formNewDb.Type != "sqlite";
@@ -13448,35 +14843,43 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
         }
     }
     __dce7836a7f0affea31f87e4387ff3630method5() {
-        return this.formNewDb.Username;
-    }
-    __dce7836a7f0affea31f87e4387ff3630method6(v) {
-        if (this.formNewDb) {
-            this.formNewDb.Username = v;
-        }
-    }
-    __dce7836a7f0affea31f87e4387ff3630method7() {
-        return this.formNewDb.Password;
-    }
-    __dce7836a7f0affea31f87e4387ff3630method8(v) {
-        if (this.formNewDb) {
-            this.formNewDb.Password = v;
-        }
-    }
-    __dce7836a7f0affea31f87e4387ff3630method9() {
         return this.formNewDb.Database;
     }
-    __dce7836a7f0affea31f87e4387ff3630method10(v) {
+    __dce7836a7f0affea31f87e4387ff3630method6(v) {
         if (this.formNewDb) {
             this.formNewDb.Database = v;
         }
     }
+    __dce7836a7f0affea31f87e4387ff3630method7() {
+        return this.formNewDb.Username;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method8(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Username = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method9() {
+        return this.formNewDb.Password;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method10(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Password = v;
+        }
+    }
     __dce7836a7f0affea31f87e4387ff3630method11() {
-        return this.formNewDb.Host;
+        return this.formNewDb.SavePassword;
     }
     __dce7836a7f0affea31f87e4387ff3630method12(v) {
         if (this.formNewDb) {
-            this.formNewDb.Host = v;
+            this.formNewDb.SavePassword = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method13() {
+        return this.formNewDb.Path;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method14(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Path = v;
         }
     }
 }
@@ -13485,127 +14888,31 @@ CreateDatabaseModal.Tag=`av-create-database-modal`;
 __as1(_, 'CreateDatabaseModal', CreateDatabaseModal);
 if(!window.customElements.get('av-create-database-modal')){window.customElements.define('av-create-database-modal', CreateDatabaseModal);Aventus.WebComponentInstance.registerDefinition(CreateDatabaseModal);}
 
-let Generator=class Generator {
-    static compareSchemas(oldSchema, newSchema, mappings) {
-        const oldTables = oldSchema.tables || [];
-        const newTables = newSchema.tables || [];
-        const oldTablesMap = new Map(oldTables.map(t => [t.name, t]));
-        const newTablesMap = new Map(newTables.map(t => [t.name, t]));
-        const mappedOldTables = new Set(Object.keys(mappings.tables));
-        const mappedNewTables = new Set(Object.values(mappings.tables));
-        const addedTables = [];
-        const deletedTables = [];
-        const renamedTables = [];
-        const commonTables = [];
-        for (const t of newTables) {
-            if (!oldTablesMap.has(t.name) && !mappedNewTables.has(t.name)) {
-                addedTables.push(t);
-            }
-        }
-        for (const t of oldTables) {
-            if (!newTablesMap.has(t.name) && !mappedOldTables.has(t.name)) {
-                deletedTables.push(t);
-            }
-        }
-        for (const [oldName, newName] of Object.entries(mappings.tables)) {
-            const oldT = oldTablesMap.get(oldName);
-            const newT = newTablesMap.get(newName);
-            if (oldT && newT) {
-                renamedTables.push({ old: oldT, new: newT, oldName, newName });
-            }
-        }
-        for (const t of newTables) {
-            if (oldTablesMap.has(t.name)) {
-                commonTables.push({ old: oldTablesMap.get(t.name), new: t, name: t.name });
-            }
-        }
-        const tableComparisons = [];
-        const processFields = (oldTable, newTable, isRename, oldTableName, newTableName) => {
-            const oldFields = oldTable.fields || [];
-            const newFields = newTable.fields || [];
-            const oldFieldsMap = new Map(oldFields.map(f => [f.name, f]));
-            const newFieldsMap = new Map(newFields.map(f => [f.name, f]));
-            const fieldMappings = mappings.fields[newTableName] || {};
-            const mappedOldFields = new Set(Object.keys(fieldMappings));
-            const mappedNewFields = new Set(Object.values(fieldMappings));
-            const addedFields = [];
-            const deletedFields = [];
-            const renamedFields = [];
-            const commonFields = [];
-            const modifiedFields = [];
-            for (const f of newFields) {
-                if (!oldFieldsMap.has(f.name) && !mappedNewFields.has(f.name)) {
-                    addedFields.push(f);
-                }
-            }
-            for (const f of oldFields) {
-                if (!newFieldsMap.has(f.name) && !mappedOldFields.has(f.name)) {
-                    deletedFields.push(f);
-                }
-            }
-            for (const [oldFName, newFName] of Object.entries(fieldMappings)) {
-                const oldF = oldFieldsMap.get(oldFName);
-                const newF = newFieldsMap.get(newFName);
-                if (oldF && newF) {
-                    renamedFields.push({ old: oldF, new: newF, oldName: oldFName, newName: newFName });
-                }
-            }
-            for (const f of newFields) {
-                if (oldFieldsMap.has(f.name)) {
-                    commonFields.push({ old: oldFieldsMap.get(f.name), new: f, name: f.name });
-                }
-            }
-            const checkChanges = (oldF, newF, name) => {
-                const changes = {};
-                if (oldF.nullable !== newF.nullable) {
-                    changes.nullable = { old: oldF.nullable, new: newF.nullable };
-                }
-                if (oldF.unique !== newF.unique) {
-                    changes.unique = { old: oldF.unique, new: newF.unique };
-                }
-                if (oldF.type.name !== newF.type.name) {
-                    changes.type = { old: oldF.type.name, new: newF.type.name };
-                }
-                if (Object.keys(changes).length > 0) {
-                    modifiedFields.push({ old: oldF, new: newF, name, changes });
-                }
-            };
-            for (const cf of commonFields) {
-                checkChanges(cf.old, cf.new, cf.name);
-            }
-            for (const rf of renamedFields) {
-                checkChanges(rf.old, rf.new, rf.newName);
-            }
-            return {
-                oldTableName,
-                newTableName,
-                isRename,
-                addedFields,
-                deletedFields,
-                renamedFields,
-                modifiedFields,
-                hasChanges: addedFields.length > 0 || deletedFields.length > 0 || renamedFields.length > 0 || modifiedFields.length > 0
-            };
-        };
-        for (const ct of commonTables) {
-            tableComparisons.push(processFields(ct.old, ct.new, false, ct.name, ct.name));
-        }
-        for (const rt of renamedTables) {
-            tableComparisons.push(processFields(rt.old, rt.new, true, rt.oldName, rt.newName));
-        }
-        return {
-            addedTables,
-            deletedTables,
-            renamedTables,
-            tableComparisons
-        };
-    }
-}
-Generator.Namespace=`migration`;
-__as1(_, 'Generator', Generator);
-
 const ImportSchema = class ImportSchema extends BaseContent {
-    static __style = `:host .schemas-grid{display:grid;gap:2rem;grid-template-columns:repeat(auto-fit, minmax(450px, 1fr));margin-bottom:2rem}:host .schemas-grid .schema-card{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);display:flex;flex-direction:column;gap:1.25rem;padding:1.5rem}:host .schemas-grid .schema-card .card-header{align-items:flex-start;display:flex;flex-direction:column}:host .schemas-grid .schema-card .card-header p{color:var(--neutral);margin:0;font-size:var(--font-size-sm)}:host .schemas-grid .schema-card .list{border:1px solid var(--border-color);border-radius:var(--border-radius-md);display:flex;flex-direction:column}:host .schemas-grid .schema-card .list .database{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;gap:1rem;overflow:hidden;padding:.5rem 1rem;transition:background-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database av-img{flex-shrink:0;height:30px;width:30px}:host .schemas-grid .schema-card .list .database div{flex-grow:1}:host .schemas-grid .schema-card .list .database mi-icon{color:var(--error);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database mi-icon:hover{color:var(--error-600)}:host .schemas-grid .schema-card .list .database:first-child{border-top:none}:host .schemas-grid .schema-card .list .database[active]{background-color:hsla(0,0%,100%,.1)}:host .schemas-grid .schema-card .list .database:not([active]):hover{background-color:hsla(0,0%,100%,.05)}:host .schemas-grid .schema-card .list .add{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;justify-content:center;padding:.5rem 1rem}:host .schemas-grid .schema-card .list .add mi-icon{color:var(--success);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .add mi-icon:hover{color:var(--success-600)}:host .schemas-grid .schema-card .or{display:flex;font-size:var(--font-size-lg);font-weight:bold;justify-content:center;letter-spacing:2px}:host .schemas-grid .schema-card .import-file{align-items:center;border:2px dashed var(--border-color);border-radius:var(--border-radius-md);cursor:pointer;display:flex;flex-direction:column;gap:1rem;padding:2rem 1rem;transition:border-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .import-file mi-icon{font-size:var(--font-size-xl)}:host .schemas-grid .schema-card .import-file:hover{border-color:var(--surface-content)}:host .schemas-grid .schema-card .code-textarea{background:rgba(15,23,42,.5);border:1px solid var(--border-color);border-radius:var(--border-radius-md);color:var(--primary-content);font-size:.85rem;height:350px;outline:none;padding:1rem;resize:vertical;transition:border-color .2s ease;width:100%}:host .schemas-grid .schema-card .code-textarea:focus{border-color:var(--info)}`;
+    get 'databasesSource'() {
+						return this.__watch["databasesSource"];
+					}
+					set 'databasesSource'(val) {
+						this.__watch["databasesSource"] = val;
+					}get 'databasesTarget'() {
+						return this.__watch["databasesTarget"];
+					}
+					set 'databasesTarget'(val) {
+						this.__watch["databasesTarget"] = val;
+					}get 'dbSource'() {
+						return this.__watch["dbSource"];
+					}
+					set 'dbSource'(val) {
+						this.__watch["dbSource"] = val;
+					}get 'dbTarget'() {
+						return this.__watch["dbTarget"];
+					}
+					set 'dbTarget'(val) {
+						this.__watch["dbTarget"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("databasesSource");this.__addWatchesActions("databasesTarget");this.__addWatchesActions("dbSource");this.__addWatchesActions("dbTarget");    super.__registerWatchesActions();
+}
+    static __style = `:host .schemas-grid{display:grid;gap:2rem;grid-template-columns:repeat(auto-fit, minmax(450px, 1fr));margin-bottom:2rem}:host .schemas-grid .schema-card{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);display:flex;flex-direction:column;gap:1.25rem;padding:1.5rem}:host .schemas-grid .schema-card .card-header{align-items:flex-start;display:flex;flex-direction:column}:host .schemas-grid .schema-card .card-header p{color:var(--neutral);font-size:var(--font-size-sm);margin:0}:host .schemas-grid .schema-card .list{border:1px solid var(--border-color);border-radius:var(--border-radius-md);display:flex;flex-direction:column}:host .schemas-grid .schema-card .list .database{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;gap:1rem;overflow:hidden;padding:.5rem 1rem;transition:background-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database av-img{flex-shrink:0;height:30px;width:30px}:host .schemas-grid .schema-card .list .database div{flex-grow:1}:host .schemas-grid .schema-card .list .database mi-icon{color:var(--error);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database mi-icon:hover{color:var(--error-600)}:host .schemas-grid .schema-card .list .database:first-child{border-top:none}:host .schemas-grid .schema-card .list .database[active]{background-color:hsla(0,0%,100%,.1)}:host .schemas-grid .schema-card .list .database:not([active]):hover{background-color:hsla(0,0%,100%,.05)}:host .schemas-grid .schema-card .list .add{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;justify-content:center;padding:.5rem 1rem}:host .schemas-grid .schema-card .list .add mi-icon{color:var(--success);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .add mi-icon:hover{color:var(--success-600)}:host .schemas-grid .schema-card .list .add:nth-child(2){border-top:none}:host .schemas-grid .schema-card .or{display:flex;font-size:var(--font-size-lg);font-weight:bold;justify-content:center;letter-spacing:2px}:host .schemas-grid .schema-card .import-file{align-items:center;border:2px dashed var(--border-color);border-radius:var(--border-radius-md);cursor:pointer;display:flex;flex-direction:column;gap:1rem;padding:2rem 1rem;transition:border-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .import-file mi-icon{font-size:var(--font-size-xl)}:host .schemas-grid .schema-card .import-file:hover{border-color:var(--surface-content)}:host .schemas-grid .schema-card .code-textarea{background:rgba(15,23,42,.5);border:1px solid var(--border-color);border-radius:var(--border-radius-md);color:var(--primary-content);font-size:.85rem;height:350px;outline:none;padding:1rem;resize:vertical;transition:border-color .2s ease;width:100%}:host .schemas-grid .schema-card .code-textarea:focus{border-color:var(--info)}`;
     __getStatic() {
         return ImportSchema;
     }
@@ -13616,46 +14923,272 @@ const ImportSchema = class ImportSchema extends BaseContent {
     }
     __getHtml() {super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="section-header">    <h2>Data Sources</h2>    <p>Provide data source or schema to generate the migration</p></div><div class="schemas-grid">    <div class="schema-card">        <div class="card-header">            <h3>Database Source</h3>            <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>        </div>        <div class="list">            <div class="database">                <av-img src="/img/mysql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete" _id="importschema_0"></mi-icon>            </div>            <div class="database">                <av-img src="/img/mssql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="database">                <av-img src="/img/postgresql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="database">                <av-img src="/img/sqlite.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="add" _id="importschema_1">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.database.avt)</span>        </div>    </div>    <div class="schema-card">        <div class="card-header">            <h3>Database Final</h3>            <p>Provide the final data source model.</p>        </div>        <div class="list">            <div class="database">                <av-img src="/img/mysql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="database">                <av-img src="/img/mssql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="database">                <av-img src="/img/postgresql.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="database">                <av-img src="/img/sqlite.svg"></av-img>                <div>Saplio2 (localhost)</div>                <mi-icon icon="delete"></mi-icon>            </div>            <div class="add">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.database.avt)</span>        </div>    </div></div><div class="action-footer">    <om-button _id="importschema_2">Comparer les Schémas</om-button></div>` }
+        blocks: { 'default':`<div class="section-header">    <h2>Data Sources</h2>    <p>Provide data source or schema to generate the migration</p></div><div class="schemas-grid">    <div class="schema-card">        <div class="card-header">            <h3>Database Source</h3>            <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>        </div>        <div class="list">            <template _id="importschema_0"></template>            <div class="add" _id="importschema_5">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.database.avt)</span>        </div>    </div>    <div class="schema-card">        <div class="card-header">            <h3>Database Final</h3>            <p>Provide the final data source model.</p>        </div>        <div class="list">            <template _id="importschema_6"></template>            <div class="add" _id="importschema_11">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.database.avt)</span>        </div>    </div></div><div class="action-footer">    <om-button _id="importschema_12">Comparer les Schémas</om-button></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "events": [
     {
       "eventName": "click",
-      "id": "importschema_0",
-      "fct": (e, c) => c.comp.deleteDatabase(e)
+      "id": "importschema_5",
+      "fct": (e, c) => c.comp.createDatabaseSource(e)
     },
     {
       "eventName": "click",
-      "id": "importschema_1",
-      "fct": (e, c) => c.comp.createDatabase(e)
+      "id": "importschema_11",
+      "fct": (e, c) => c.comp.createDatabaseTarget(e)
     },
     {
       "eventName": "click",
-      "id": "importschema_2",
+      "id": "importschema_12",
       "fct": (e, c) => c.comp.analyzeAndCompare(e)
     }
   ]
-}); }
+});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="database" _id="importschema_1">                    <av-img _id="importschema_2"></av-img>                    <div _id="importschema_3"></div>                    <mi-icon icon="delete" _id="importschema_4"></mi-icon>                </div>            `);templ1.setActions({
+  "content": {
+    "importschema_1°active": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method4(c.data.database))}`,
+      "once": true
+    },
+    "importschema_1°data-index": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
+      "once": true
+    },
+    "importschema_2°src": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method6(c.data.database))}`,
+      "once": true
+    },
+    "importschema_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method7(c.data.database))} (${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method8(c.data.database))})`,
+      "once": true
+    },
+    "importschema_4°data-index": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "importschema_1",
+      "fct": (e, c) => c.comp.selectDatabaseSource(e)
+    },
+    {
+      "eventName": "click",
+      "id": "importschema_4",
+      "fct": (e, c) => c.comp.deleteDatabaseSource(e)
+    }
+  ],
+  "contextEdits": [
+    {
+      "fct": (c) => c.comp.__c9cba54071d54a55cdb77c778f22dba2method1(c.data.i)
+    }
+  ]
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'importschema_0',
+                    template: templ1,
+                simple:{data: "this.databasesSource",index:"i"}});const templ3 = new Aventus.Template(this);templ3.setTemplate(`                <div class="database" _id="importschema_7">                    <av-img _id="importschema_8"></av-img>                    <div _id="importschema_9"></div>                    <mi-icon icon="delete" _id="importschema_10"></mi-icon>                </div>            `);templ3.setActions({
+  "content": {
+    "importschema_7°active": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method9(c.data.database))}`,
+      "once": true
+    },
+    "importschema_7°data-index": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
+      "once": true
+    },
+    "importschema_8°src": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method6(c.data.database))}`,
+      "once": true
+    },
+    "importschema_9°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method7(c.data.database))} (${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method8(c.data.database))})`,
+      "once": true
+    },
+    "importschema_10°data-index": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "importschema_7",
+      "fct": (e, c) => c.comp.selectDatabaseTarget(e)
+    },
+    {
+      "eventName": "click",
+      "id": "importschema_10",
+      "fct": (e, c) => c.comp.deleteDatabaseTarget(e)
+    }
+  ],
+  "contextEdits": [
+    {
+      "fct": (c) => c.comp.__c9cba54071d54a55cdb77c778f22dba2method3(c.data.i)
+    }
+  ]
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'importschema_6',
+                    template: templ3,
+                simple:{data: "this.databasesTarget",index:"i"}}); }
     getClassName() {
         return "ImportSchema";
     }
-    deleteDatabase() {
-        OneMoreUI.Components.Interaction.Confirm.open({
-            title: "Delete database",
-            content: "Do you want to delete the database X?",
-            type: "error"
-        });
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["databasesSource"] = [];w["databasesTarget"] = [];w["dbSource"] = undefined;w["dbTarget"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('databasesSource');this.__correctGetter('databasesTarget');this.__correctGetter('dbSource');this.__correctGetter('dbTarget'); }
+    selectDatabaseSource(e) {
+        const el = e.currentTarget;
+        if (el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesSource[index];
+            this.dbSource = db;
+        }
     }
-    async createDatabase() {
+    selectDatabaseTarget(e) {
+        const el = e.currentTarget;
+        if (el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesTarget[index];
+            this.dbTarget = db;
+        }
+    }
+    async deleteDatabaseSource(e) {
+        const el = e.currentTarget;
+        if (el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesSource[index];
+            const result = await OneMoreUI.Components.Interaction.Confirm.open({
+                title: "Delete database",
+                content: "Do you want to delete the database " + db.Database + "?",
+                type: "error"
+            });
+            if (result) {
+                if (Aventus.compareObject(db, this.dbSource)) {
+                    this.dbSource = undefined;
+                }
+                this.databasesSource = await Api.deleteDatabase('source', Aventus.Watcher.extract(db));
+            }
+        }
+    }
+    async deleteDatabaseTarget(e) {
+        const el = e.currentTarget;
+        if (el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesTarget[index];
+            const result = await OneMoreUI.Components.Interaction.Confirm.open({
+                title: "Delete database",
+                content: "Do you want to delete the database " + db.Database + "?",
+                type: "error"
+            });
+            if (result) {
+                if (Aventus.compareObject(db, this.dbTarget)) {
+                    this.dbTarget = undefined;
+                }
+                this.databasesTarget = await Api.deleteDatabase('target', Aventus.Watcher.extract(db));
+            }
+        }
+    }
+    async createDatabaseSource() {
         const modal = new CreateDatabaseModal();
-        await modal.show();
+        const result = await modal.show();
+        if (result) {
+            this.databasesSource = await Api.setDatabase('source', result);
+        }
     }
-    analyzeAndCompare() {
-        Generator.compareSchemas(MainState.instance.oldSchema, MainState.instance.newSchema, MainState.instance.mappings);
+    async createDatabaseTarget() {
+        const modal = new CreateDatabaseModal();
+        const result = await modal.show();
+        if (result) {
+            this.databasesTarget = await Api.setDatabase('target', result);
+        }
+    }
+    async loadData() {
+        const db = await Api.getDatabases();
+        this.databasesSource = db?.source ?? [];
+        this.databasesTarget = db?.target ?? [];
+    }
+    getIcon(db) {
+        if (db.Type == "mysql")
+            return Api.wwwroot + "img/mysql.svg";
+        if (db.Type == "mssql")
+            return Api.wwwroot + "img/mssql.svg";
+        if (db.Type == "postgresql")
+            return Api.wwwroot + "img/postgresql.svg";
+        if (db.Type == "sqlite")
+            return Api.wwwroot + "img/sqlite.svg";
+        return "";
+    }
+    async analyzeAndCompare() {
+        // if(this.dbTarget) {
+        //     if(!this.dbTarget.SavePassword && this.dbTarget.Password === undefined) {
+        //         const modal = new AskPasswordModal();
+        //         modal.dbName = this.dbTarget.Database;
+        //         const result = await modal.show();
+        //         if(result === null) return;
+        //         this.dbTarget.Password = result;
+        //     }
+        //     const schema = await Api.getSchema(this.dbTarget);
+        //     if(!schema) return;
+        //     MainState.instance.newSchema = schema;
+        // }
+        // else {
+        //     Alert.open({
+        //         title: "Missing data",
+        //         type: "error",
+        //         content: "You must select a final database or provide a schema"
+        //     });
+        //     return;
+        // }
+        // if(this.dbSource) {
+        //     if(!this.dbSource.SavePassword && this.dbSource.Password === undefined) {
+        //         const modal = new AskPasswordModal();
+        //         modal.dbName = this.dbSource.Database;
+        //         const result = await modal.show();
+        //         if(result === null) return;
+        //         this.dbSource.Password = result;
+        //     }
+        //     const schema = await Api.getSchema(this.dbSource);
+        //     if(!schema) return;
+        //     MainState.instance.oldSchema = schema;
+        // }
+        // else {
+        //     MainState.instance.oldSchema = {
+        //         databaseType: MainState.instance.newSchema.databaseType,
+        //         name: MainState.instance.newSchema.name,
+        //         relationships: [],
+        //         tables: [],
+        //     };
+        // }
+        Generator.compareSchemas();
         MainState.instance.step = 1;
-        // throw new Error("Method not implemented.");
+    }
+    postCreation() {
+        super.postCreation();
+        this.loadData();
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method4(database) {
+        return Aventus.compareObject(this.dbSource, database);
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method5(i) {
+        return i;
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method6(database) {
+        return this.getIcon(database);
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method7(database) {
+        return database.Database;
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method8(database) {
+        return database.Host;
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method9(database) {
+        return Aventus.compareObject(this.dbTarget, database);
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method1(i) {
+        return { 'database': this.databasesSource[i] };
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method3(i) {
+        return { 'database': this.databasesTarget[i] };
     }
 }
 ImportSchema.Namespace=`migration`;
@@ -13667,7 +15200,7 @@ const SummaryUpdated = class SummaryUpdated extends Aventus.WebComponent {
     get tableComparisons() {
         return MainState.instance.comparison.tableComparisons;
     }
-    static __style = ``;
+    static __style = `:host{width:100%}`;
     __getStatic() {
         return SummaryUpdated;
     }
@@ -13718,7 +15251,7 @@ if(!window.customElements.get('av-summary-updated')){window.customElements.defin
 
 const DiffSummary = class DiffSummary extends Aventus.WebComponent {
     get 'has_diff'() { return this.getBoolAttr('has_diff') }
-    set 'has_diff'(val) { this.setBoolAttr('has_diff', val) }    static __style = `:host .empty-state{display:none}:host(:not([has_diff])) .empty-state{display:flex}`;
+    set 'has_diff'(val) { this.setBoolAttr('has_diff', val) }    static __style = `:host .empty-state{align-items:center;color:var(--neutral);display:none;flex-direction:column;gap:.75rem;justify-content:center;padding:4rem 2rem;text-align:center}:host .empty-state .empty-icon{font-size:2.5rem}:host(:not([has_diff])) .empty-state{display:flex}`;
     __getStatic() {
         return DiffSummary;
     }
@@ -13760,7 +15293,7 @@ const Resolution = class Resolution extends BaseContent {
     get tables() {
         return MainState.instance.mappings.tables;
     }
-    static __style = `:host .diff-container{align-items:start;display:grid;gap:2rem;grid-template-columns:1fr 1.25fr}:host .diff-container .panel{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);overflow:hidden}:host .diff-container .panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:1.25rem 1.5rem}:host .diff-container .panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .diff-container .panel .panel-body{display:flex;flex-direction:column;gap:1.5rem;padding:1.5rem}:host .diff-container .panel .panel-body .mapping-card{background:var(--surface-200);border:1px solid var(--border-color);border-radius:var(--border-radius-md);padding:1.25rem}:host .diff-container .panel .panel-body .mapping-card h4{font-size:1rem;font-weight:500;margin:0;margin-bottom:.25rem}:host .diff-container .panel .panel-body .mapping-card .card-desc{color:var(--neutral);font-size:.8rem;margin-bottom:1rem}:host .diff-container .panel .panel-body .mapping-card .mapping-adder{align-items:center;display:flex;gap:.5rem}:host .diff-container .panel .panel-body .mapping-card .mapping-adder om-select{min-width:0}:host .diff-container .panel .panel-body .mapping-card .mapping-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}:host .diff-container .panel .panel-body .mapping-card .mapping-list .mapping-item{align-items:center;background:hsla(0,0%,100%,.02);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;font-size:.85rem;justify-content:space-between;padding:.5rem .75rem}:host .diff-container .panel .panel-body .mapping-card .mapping-list .mapping-names{align-items:center;display:flex;font-family:var(--font-mono);gap:.5rem}:host .diff-container .panel .panel-body .mapping-card .mapping-list .mapping-arrow{color:var(--info)}:host .diff-container .panel .panel-body .mapping-card .mapping-list .mapping-delete{background:rgba(0,0,0,0);border:none;border-radius:4px;color:var(--error);cursor:pointer;font-size:1rem;padding:.1rem .3rem}:host .diff-container .panel .panel-body .mapping-card .mapping-list .mapping-delete:hover{background:var(--error-600)}:host .diff-container .panel .panel-body .mapping-card .table-selector-wrapper{align-items:center;display:flex;gap:.75rem;margin-bottom:1rem}:host .diff-container .panel .panel-body .mapping-card .table-selector-wrapper label{flex-shrink:0}`;
+    static __style = `:host .diff-container{align-items:start;display:grid;gap:2rem;grid-template-columns:1fr 1.25fr}:host .diff-container .panel{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);display:flex;flex-direction:column;height:calc(100vh - 120px);overflow:hidden}:host .diff-container .panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;flex-shrink:0;justify-content:space-between;padding:1.25rem 1.5rem}:host .diff-container .panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .diff-container .panel .panel-scroll{flex-grow:1;min-height:0}:host .diff-container .panel .panel-scroll .panel-body{display:flex;flex-direction:column;gap:1.5rem;height:100%;padding:1.5rem}:host .diff-container .panel .panel-scroll .panel-body .mapping-card{background:var(--surface-200);border:1px solid var(--border-color);border-radius:var(--border-radius-md);padding:1.25rem}`;
     __getStatic() {
         return Resolution;
     }
@@ -13771,7 +15304,7 @@ const Resolution = class Resolution extends BaseContent {
     }
     __getHtml() {super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="section-header">    <h2>Résolution des Différences</h2>    <p>Associez les tables et champs renommés pour générer une migration propre utilisant <code>RenameModel</code> et        <code>RenameProperty</code>.    </p></div><div class="diff-container">    <div class="panel resolution-panel">        <div class="panel-header">            <h3>Renommages & Associations</h3>        </div>        <div class="panel-body">            <div class="mapping-card">               <av-renamed-table></av-renamed-table>            </div>            <div class="mapping-card">                <av-renamed-field></av-renamed-field>            </div>        </div>    </div>    <div class="panel diff-preview-panel">        <div class="panel-header">            <h3>Modifications Détectées</h3>        </div>        <div class="panel-body" id="diff-results">           <av-diff-summary></av-diff-summary>        </div>    </div></div><div class="action-footer">    <om-button _id="resolution_0">Retour</om-button>    <om-button _id="resolution_1">Générer la Migration</om-button></div>` }
+        blocks: { 'default':`<div class="section-header">    <h2>Resolution</h2>    <p>Associate tables et renamed field to generate the migration.    </p></div><div class="diff-container">    <div class="panel resolution-panel">        <div class="panel-header">            <h3>Renommages & Associations</h3>        </div>        <om-scrollable class="panel-scroll">            <div class="panel-body">                <div class="mapping-card">                    <av-renamed-table></av-renamed-table>                </div>                <div class="mapping-card">                    <av-renamed-field></av-renamed-field>                </div>            </div>        </om-scrollable>    </div>    <div class="panel diff-preview-panel">        <div class="panel-header">            <h3>Modifications Détectées</h3>        </div>        <om-scrollable class="panel-scroll" id="diff-results">            <div class="panel-body">                <av-diff-summary></av-diff-summary>            </div>        </om-scrollable>    </div></div><div class="action-footer">    <om-button _id="resolution_0">Retour</om-button>    <om-button _id="resolution_1">Générer la Migration</om-button></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
@@ -13805,7 +15338,7 @@ __as1(_, 'Resolution', Resolution);
 if(!window.customElements.get('av-resolution')){window.customElements.define('av-resolution', Resolution);Aventus.WebComponentInstance.registerDefinition(Resolution);}
 
 const Body = class Body extends Aventus.WebComponent {
-    static __style = `:host{padding:2.5rem 2rem;width:100%}:host .content{margin:0 auto;max-width:1600px;width:100%}`;
+    static __style = `:host{padding:2.5rem 2rem;width:100%}:host .content{margin:0 auto;max-width:1600px;width:100%}:host .content .step[active]{animation-name:fadeIn;animation-duration:1s;animation-timing-function:var(--bezier-curve)}:host .content .step:not([active]){display:none}@keyframes fadeIn{0%{opacity:0;visibility:hidden;transform:translateY(30px)}100%{opacity:1;visibility:visible;transform:translateY(0px)}}`;
     __getStatic() {
         return Body;
     }
@@ -13816,22 +15349,33 @@ const Body = class Body extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="content">    <template _id="body_0"></template></div>` }
+        blocks: { 'default':`<div class="content">    <av-import-schema class="step" _id="body_0"></av-import-schema>    <av-resolution class="step" _id="body_1"></av-resolution>    <av-migration-writter class="step" _id="body_2"></av-migration-writter></div>` }
     });
 }
-    get importEl () { return this.shadowRoot.querySelector('[_id="body_1"]'); }    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-import-schema _id="body_1"></av-import-schema>    `);const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <av-resolution></av-resolution>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`        <av-migration-writter></av-migration-writter>    `);this.__getStatic().__template.addIf({
-                    anchorId: 'body_0',
-                    parts: [{once: true,
-                    condition: (c) => c.comp.__2be0ec9db9ae5e5eba9b8fde6955e867method0(),
-                    template: templ0
-                },{once: true,
-                    condition: (c) => c.comp.__2be0ec9db9ae5e5eba9b8fde6955e867method1(),
-                    template: templ1
-                },{once: true,
-                    condition: (c) => c.comp.__2be0ec9db9ae5e5eba9b8fde6955e867method2(),
-                    template: templ2
-                }]
-            }); }
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "importEl",
+      "ids": [
+        "body_0"
+      ]
+    }
+  ],
+  "content": {
+    "body_0°active": {
+      "fct": (c) => `${c.print(c.comp.__2be0ec9db9ae5e5eba9b8fde6955e867method0())}`,
+      "once": true
+    },
+    "body_1°active": {
+      "fct": (c) => `${c.print(c.comp.__2be0ec9db9ae5e5eba9b8fde6955e867method1())}`,
+      "once": true
+    },
+    "body_2°active": {
+      "fct": (c) => `${c.print(c.comp.__2be0ec9db9ae5e5eba9b8fde6955e867method2())}`,
+      "once": true
+    }
+  }
+}); }
     getClassName() {
         return "Body";
     }
@@ -13885,6 +15429,18 @@ const App = class App extends Aventus.WebComponent {
 }); }
     getClassName() {
         return "App";
+    }
+    postCreation() {
+        Api.init();
+        MaterialIcon.Icon.configure({
+            getFontUrl: () => {
+                const el = document.getElementById("base-style");
+                if (el instanceof HTMLLinkElement) {
+                    return el.href.replace("style.css", "css/material.css");
+                }
+                return "/css/material.css";
+            }
+        });
     }
 }
 App.Namespace=`migration`;

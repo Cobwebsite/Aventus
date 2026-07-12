@@ -23,8 +23,8 @@
 
 				p {
 					color: var(--neutral);
-					margin: 0;
 					font-size: var(--font-size-sm);
+					margin: 0;
 				}
 			}
 
@@ -93,6 +93,10 @@
 						color: var(--success-600);
 					}
 				}
+
+				.add:nth-child(2) {
+					border-top: none;
+				}
 			}
 
 			.or {
@@ -123,7 +127,7 @@
 				border-color: var(--surface-content);
 			}
 
-			
+
 			.code-textarea {
 				background: rgba(15, 23, 42, 0.5);
 				border: 1px solid var(--border-color);
