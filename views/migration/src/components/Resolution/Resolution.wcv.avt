@@ -1,37 +1,36 @@
 <div class="section-header">
-    <h2>Résolution des Différences</h2>
-    <p>Associez les tables et champs renommés pour générer une migration propre utilisant <code>RenameModel</code> et
-        <code>RenameProperty</code>.
+    <h2>Resolution</h2>
+    <p>Associate tables et renamed field to generate the migration.
     </p>
 </div>
 
 <div class="diff-container">
-    <!-- Left column: Unresolved Items / Mappings -->
     <div class="panel resolution-panel">
         <div class="panel-header">
             <h3>Renommages & Associations</h3>
         </div>
-        <div class="panel-body">
-            <!-- Table Mappings Card -->
-            <div class="mapping-card">
-               <av-renamed-table></av-renamed-table>
-            </div>
+        <om-scrollable class="panel-scroll">
+            <div class="panel-body">
+                <div class="mapping-card">
+                    <av-renamed-table></av-renamed-table>
+                </div>
 
-            <!-- Field Mappings Card -->
-            <div class="mapping-card">
-                <av-renamed-field></av-renamed-field>
+                <div class="mapping-card">
+                    <av-renamed-field></av-renamed-field>
+                </div>
             </div>
-        </div>
+        </om-scrollable>
     </div>
 
-    <!-- Right column: Dynamic Diff Preview -->
     <div class="panel diff-preview-panel">
         <div class="panel-header">
             <h3>Modifications Détectées</h3>
         </div>
-        <div class="panel-body" id="diff-results">
-           <av-diff-summary></av-diff-summary>
-        </div>
+        <om-scrollable class="panel-scroll" id="diff-results">
+            <div class="panel-body">
+                <av-diff-summary></av-diff-summary>
+            </div>
+        </om-scrollable>
     </div>
 </div>
 

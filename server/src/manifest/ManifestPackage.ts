@@ -33,7 +33,9 @@ export class ManifestPackage {
 	public static write() {
 		const result: EmmetCustomDataSchema = {
 			html: {
-				snippets: {}
+				snippets: {
+					"block": `<block name="\${1}">\${2}</block>`
+				}
 			}
 		};
 		let canWrite: boolean = false;

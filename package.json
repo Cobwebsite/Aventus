@@ -543,6 +543,10 @@
 			{
 				"command": "aventus.template.quick",
 				"title": "Aventus : Run Quick Creation"
+			},
+			{
+				"command": "aventus.migration",
+				"title": "Aventus : Create migration"
 			}
 		],
 		"customEditors": [

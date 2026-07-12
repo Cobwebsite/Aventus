@@ -16,23 +16,26 @@
             <om-input label="Hostname" @bind="this.formNewDb.Host"></om-input>
         </av-col>
         <av-col size="12">
+            <om-input label="Database" @bind="this.formNewDb.Database"></om-input>
+        </av-col>
+        <av-col size="12">
             <om-input label="Username" @bind="this.formNewDb.Username"></om-input>
         </av-col>
         <av-col size="12">
             <om-password label="Password" @bind="this.formNewDb.Password"></om-password>
         </av-col>
         <av-col size="12">
-            <om-input label="Database" @bind="this.formNewDb.Database"></om-input>
+            <om-checkbox label="Save Password" @bind="this.formNewDb.SavePassword"></om-checkbox>
         </av-col>
     }
     else {
         <av-col size="12">
-            <om-input label="File path" @bind="this.formNewDb.Host"></om-input>
+            <om-input label="File path" @bind="this.formNewDb.Path"></om-input>
         </av-col>
     }
 </av-row>
 
 <block name="footer">
-    <om-button color="error" outline>Cancel</om-button>
-    <om-button color="success">Save</om-button>
+    <om-button outline @click="reject">Cancel</om-button>
+    <om-button color="primary" @click="save">Save</om-button>
 </block>

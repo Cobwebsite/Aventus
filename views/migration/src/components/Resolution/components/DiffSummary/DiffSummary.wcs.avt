@@ -1,6 +1,17 @@
 :host {
 	.empty-state {
+		align-items: center;
+		color: var(--neutral);
 		display: none;
+		flex-direction: column;
+		gap: 0.75rem;
+		justify-content: center;
+		padding: 4rem 2rem;
+		text-align: center;
+
+		.empty-icon {
+			font-size: 2.5rem;
+		}
 	}
 }
 

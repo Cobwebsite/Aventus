@@ -6,5 +6,27 @@
 		margin: 0 auto;
 		max-width: 1600px;
 		width: 100%;
+
+		.step[active] {
+			animation-name: fadeIn;
+			animation-duration: 1s;
+			animation-timing-function: var(--bezier-curve);
+		}
+		.step:not([active]) {
+			display: none;
+		}
+	}
+}
+
+@keyframes fadeIn {
+	0% {
+		opacity: 0;
+		visibility: hidden;
+		transform: translateY(30px);
+	}
+	100% {
+		opacity: 1;
+		visibility: visible;
+		transform: translateY(0px);
 	}
 }

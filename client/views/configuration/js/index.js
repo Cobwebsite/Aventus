@@ -701,7 +701,7 @@ let Callback=class Callback {
 Callback.Namespace=`Aventus`;
 __as1(_, 'Callback', Callback);
 
-let compareObject=function compareObject(obj1, obj2) {
+let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -710,17 +710,27 @@ let compareObject=function compareObject(obj1, obj2) {
         if (obj1.length !== obj2.length) {
             return false;
         }
-        for (let i = 0; i < obj1.length; i++) {
-            let foundElement = false;
-            for (let j = 0; j < obj2.length; j++) {
-                if (compareObject(obj1[i], obj2[j])) {
-                    obj2.splice(j, 1);
-                    foundElement = true;
-                    break;
+        if (tableOrder) {
+            for (let i = 0; i < obj1.length; i++) {
+                if (!compareObject(obj1[i], obj2[i])) {
+                    return false;
                 }
             }
-            if (!foundElement) {
-                return false;
+            return true;
+        }
+        else {
+            for (let i = 0; i < obj1.length; i++) {
+                let foundElement = false;
+                for (let j = 0; j < obj2.length; j++) {
+                    if (compareObject(obj1[i], obj2[j])) {
+                        obj2.splice(j, 1);
+                        foundElement = true;
+                        break;
+                    }
+                }
+                if (!foundElement) {
+                    return false;
+                }
             }
         }
         return true;
@@ -1704,7 +1714,11 @@ let Watcher=class Watcher {
             }
             dones.push(proxyData.baseData);
             let aliasesDone = [];
-            for (let name in proxyData.callbacks) {
+            const callbacks = { ...proxyData.callbacks };
+            for (let name in callbacks) {
+                callbacks[name] = [...callbacks[name]];
+            }
+            for (let name in callbacks) {
                 let pathToSend = rootPath;
                 if (name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
@@ -1729,7 +1743,7 @@ let Watcher=class Watcher {
                         path: pathToSend
                     });
                 }
-                let cbs = [...proxyData.callbacks[name]];
+                let cbs = callbacks[name];
                 for (let cb of cbs) {
                     try {
                         cb(WatchAction[type], pathToSend, value, dones);
@@ -3523,6 +3537,8 @@ let TemplateInstance=class TemplateInstance {
             let regexArray = new RegExp("^\\[(\\d+?)\\]$");
             let regexObject = new RegExp("^([^\\.]*)$");
             let sub = (action, path, value) => {
+                if (this.isDestroyed)
+                    return;
                 if (path == "") {
                     this.renderLoopSimple(loop, simple);
                     return;
@@ -3693,6 +3709,8 @@ let TemplateInstance=class TemplateInstance {
             });
             computeds.push(computed);
             computed.subscribe(() => {
+                if (this.isDestroyed)
+                    return;
                 calculateActive();
             });
             this.computeds.push(computed);

@@ -14,7 +14,7 @@
 
 	--primary: #2561c2;
 	--primary-content: #e2e2e2;
-	--accent: #2b813a;
+	--accent: rgb(99, 102, 241);
 	--accent-content: #ececec;
 	--neutral: oklch(70% 0.015 286.067);
 	--neutral-content: oklch(100% 0 0);

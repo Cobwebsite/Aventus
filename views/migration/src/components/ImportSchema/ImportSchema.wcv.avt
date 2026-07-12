@@ -9,12 +9,15 @@
             <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>
         </div>
         <div class="list">
-            <div class="database">
-                <av-img src="/img/mysql.svg"></av-img>
-                <div>Saplio2 (localhost)</div>
-                <mi-icon icon="delete" @click="deleteDatabase"></mi-icon>
-            </div>
-            <div class="database">
+            for(let i = 0; i < this.databasesSource.length; i++) {
+                @Context('database', this.databasesSource[i])
+                <div class="database" active="{{ compareObject(this.dbSource, database) }}" @click="selectDatabaseSource" data-index="{{ i }}">
+                    <av-img src="{{this.getIcon(database)}}"></av-img>
+                    <div>{{ database.Database }} ({{ database.Host }})</div>
+                    <mi-icon icon="delete" @click="deleteDatabaseSource" data-index="{{ i }}"></mi-icon>
+                </div>
+            }
+            <!-- <div class="database">
                 <av-img src="/img/mssql.svg"></av-img>
                 <div>Saplio2 (localhost)</div>
                 <mi-icon icon="delete"></mi-icon>
@@ -28,8 +31,8 @@
                 <av-img src="/img/sqlite.svg"></av-img>
                 <div>Saplio2 (localhost)</div>
                 <mi-icon icon="delete"></mi-icon>
-            </div>
-            <div class="add" @click="createDatabase">
+            </div> -->
+            <div class="add" @click="createDatabaseSource">
                 <mi-icon icon="add"></mi-icon>
             </div>
         </div>
@@ -48,27 +51,15 @@
             <p>Provide the final data source model.</p>
         </div>
         <div class="list">
-            <div class="database">
-                <av-img src="/img/mysql.svg"></av-img>
-                <div>Saplio2 (localhost)</div>
-                <mi-icon icon="delete"></mi-icon>
-            </div>
-            <div class="database">
-                <av-img src="/img/mssql.svg"></av-img>
-                <div>Saplio2 (localhost)</div>
-                <mi-icon icon="delete"></mi-icon>
-            </div>
-            <div class="database">
-                <av-img src="/img/postgresql.svg"></av-img>
-                <div>Saplio2 (localhost)</div>
-                <mi-icon icon="delete"></mi-icon>
-            </div>
-            <div class="database">
-                <av-img src="/img/sqlite.svg"></av-img>
-                <div>Saplio2 (localhost)</div>
-                <mi-icon icon="delete"></mi-icon>
-            </div>
-            <div class="add">
+            for(let i = 0; i < this.databasesTarget.length; i++) {
+                @Context('database', this.databasesTarget[i])
+                <div class="database" active="{{ compareObject(this.dbTarget, database) }}" @click="selectDatabaseTarget" data-index="{{ i }}">
+                    <av-img src="{{this.getIcon(database)}}"></av-img>
+                    <div>{{ database.Database }} ({{ database.Host }})</div>
+                    <mi-icon icon="delete" @click="deleteDatabaseTarget" data-index="{{ i }}"></mi-icon>
+                </div>
+            }
+            <div class="add" @click="createDatabaseTarget">
                 <mi-icon icon="add"></mi-icon>
             </div>
         </div>

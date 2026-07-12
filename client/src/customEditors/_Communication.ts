@@ -28,7 +28,6 @@ export class Communication {
 	private routes: { [key: string]: InternalRoute<any, any>[]; } = {};
 
 	public constructor(
-		private document: TextDocument,
 		private webview: Webview
 	) {
 		webview.onDidReceiveMessage(e => this.onMessage(e));

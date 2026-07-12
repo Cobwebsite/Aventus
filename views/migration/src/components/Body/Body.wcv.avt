@@ -1,11 +1,5 @@
 <div class="content">
-    if(MainState.instance.step == 0) {
-        <av-import-schema @element="importEl"></av-import-schema>
-    }
-    else if(MainState.instance.step == 1) {
-        <av-resolution></av-resolution>
-    }
-    else if(MainState.instance.step == 2) {
-        <av-migration-writter></av-migration-writter>
-    }
+    <av-import-schema class="step" @element="importEl" active="{{ MainState.instance.step == 0 }}"></av-import-schema>
+    <av-resolution class="step" active="{{ MainState.instance.step == 1 }}"></av-resolution>
+    <av-migration-writter class="step" active="{{ MainState.instance.step == 2 }}"></av-migration-writter>
 </div>

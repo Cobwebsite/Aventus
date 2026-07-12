@@ -1,9 +1,9 @@
 <div class="diff-table-group">
-    <div class="diff-table-header" style="background: rgba(255, 255, 255, 0.01)">
+    <div class="diff-table-header">
         <span class="diff-table-title">
             {{ this.change.isRename ? `Table Renommée : ${this.change.oldTableName} ➔ ${this.change.newTableName}` : `Table Modifiée : ${this.change.newTableName}` }}
         </span>
-        <span class="badge badge-new">{{ this.change.isRename ? 'Renommé' : 'Modifié' }}</span>
+        <span class="badge">{{ this.change.isRename ? 'Renommé' : 'Modifié' }}</span>
     </div>
     <div class="diff-table-body">
         for(let renameField of this.change.renamedFields) {
@@ -20,7 +20,7 @@
         for(let deletedField of this.change.deletedFields) {
             <div class="diff-item">
                 <span class="diff-tag diff-tag-del">Retiré</span>
-                <span class="diff-change-old">{{ deletedField }}</span>
+                <span class="diff-change-old">{{ deletedField.name }}</span>
             </div>
         }
 

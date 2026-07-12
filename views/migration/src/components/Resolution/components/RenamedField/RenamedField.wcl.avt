@@ -1,4 +1,5 @@
-import type { ProcessFieldsResult } from "../../../../lib/Generator.lib.avt";
+import { Alert } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
+import { Generator, type ProcessFieldsResult } from "../../../../lib/Generator.lib.avt";
 import { MainState } from "../../../MainState.lib.avt";
 
 export class RenamedField extends Aventus.WebComponent implements Aventus.DefaultComponent {
@@ -14,15 +15,20 @@ export class RenamedField extends Aventus.WebComponent implements Aventus.Defaul
 
 
     //#region variables
-    @Watch()
+    @Watch((target: RenamedField) => {
+        target.oldField = "";
+        target.newField = "";
+    })
     protected mappingFieldTable?: string;
 
     public get tableComparisons(): ProcessFieldsResult[] {
         return MainState.instance.comparison.tableComparisons;
     }
     public get mappingFieldTableInfo(): ProcessFieldsResult {
-        const el = this.tableComparisons.find(p => p.newTableName == this.mappingFieldTable);
-        if(!el) return {
+        for(let table of this.tableComparisons) {
+            if(table.newTableName == this.mappingFieldTable) return table;
+        }
+        return {
             addedFields: [],
             deletedFields: [],
             hasChanges: false,
@@ -32,12 +38,21 @@ export class RenamedField extends Aventus.WebComponent implements Aventus.Defaul
             oldTableName: '',
             renamedFields: []
         };
-        return el;
     }
 
     public get fieldsMapping(): Record<string, string> {
-        return MainState.instance.mappings.fields[this.mappingFieldTable!];
+        const table = this.mappingFieldTable!;
+        if(!MainState.instance.mappings.fields[table]) {
+            MainState.instance.mappings.fields[table] = {};
+        }
+        return MainState.instance.mappings.fields[table];
     }
+
+    @Watch()
+    public oldField: string = "";
+
+    @Watch()
+    public newField: string = "";
     //#endregion
 
 
@@ -52,12 +67,38 @@ export class RenamedField extends Aventus.WebComponent implements Aventus.Defaul
      * 
      */
     protected addFieldMapping() {
+        if(!this.newField || !this.oldField || !this.mappingFieldTable) {
+            Alert.open({
+                type: "error",
+                title: "Missing data",
+                content: "Please select a value for the old field and the new field"
+            });
+            return;
+        }
+
+        const table = this.mappingFieldTable;
+        if(!MainState.instance.mappings.fields[table]) {
+            MainState.instance.mappings.fields[table] = { [this.oldField]: this.newField };
+        }
+        else {
+            MainState.instance.mappings.fields[table][this.oldField] = this.newField;
+        }
+        Generator.compareSchemas();
     }
 
     /**
      * 
      */
-    protected removeFieldMapping() {
+    protected removeFieldMapping(e: Event) {
+        if(!this.mappingFieldTable) return;
+        if(e.currentTarget instanceof HTMLElement) {
+            const field = e.currentTarget.dataset.field!;
+
+            if(MainState.instance.mappings.fields[this.mappingFieldTable]) {
+                delete MainState.instance.mappings.fields[this.mappingFieldTable][field];
+            }
+        }
+        Generator.compareSchemas();
     }
     //#endregion
 

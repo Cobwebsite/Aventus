@@ -806,6 +806,7 @@ export class TemplateInstance {
             let regexArray = new RegExp("^\\[(\\d+?)\\]$");
             let regexObject = new RegExp("^([^\\.]*)$");
             let sub: WatcherFunction = (action, path, value) => {
+                if(this.isDestroyed) return;
                 if(path == "") {
                     this.renderLoopSimple(loop, simple);
                     return;

@@ -1,13 +1,9 @@
-import { Modal } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
+import { Alert, Modal } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
+import type { DatabaseModel } from "../../data/DatabaseModel.lib.avt";
+import { uuidv4, Watcher } from "Aventus@Main:Aventus.package.avt";
+import { Api } from "../../lib/Api.lib.avt";
 
-type FormType = {
-    Type: string,
-    Host: string,
-    Username: string,
-    Password: string,
-    Database: string,
-};
-export class CreateDatabaseModal extends Modal<FormType> implements Aventus.DefaultComponent {
+export class CreateDatabaseModal extends Modal<DatabaseModel> implements Aventus.DefaultComponent {
 
     //#region static
 
@@ -21,12 +17,15 @@ export class CreateDatabaseModal extends Modal<FormType> implements Aventus.Defa
 
     //#region variables
     @Watch()
-    public formNewDb: FormType = {
+    public formNewDb: DatabaseModel = {
+        UUID: uuidv4(),
         Database: "Spalio2",
         Host: "localhost",
         Password: "",
+        Path: "",
         Type: "mysql",
-        Username: "root"
+        Username: "root",
+        SavePassword: false
     };
     //#endregion
 
@@ -40,11 +39,29 @@ export class CreateDatabaseModal extends Modal<FormType> implements Aventus.Defa
     /**
      * @inheritdoc
      */
-    public override configure(): Aventus.Modal.ModalOptions<FormType> {
+    public override configure(): Aventus.Modal.ModalOptions<DatabaseModel> {
         return {
-			closeWithClick: false,
-		};
+            closeWithClick: false,
+        };
     }
+
+
+    /**
+     * 
+     */
+    protected async save() {
+        const form = Watcher.extract(this.formNewDb)
+        if(!await Api.testConnection(form)) {
+            Alert.open({
+                title: "Connection error",
+                type: "error",
+                content: "There is a problem with the credentials provided"
+            });
+            return;
+        }
+        this.resolve(Watcher.extract(form));
+    }
+
 
     //#endregion
 

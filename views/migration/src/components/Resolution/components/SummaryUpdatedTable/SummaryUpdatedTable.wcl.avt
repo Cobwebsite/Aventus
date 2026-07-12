@@ -15,6 +15,9 @@ export class SummaryUpdatedTable extends Aventus.WebComponent implements Aventus
 
     //#region variables
     @Injectable()
+    @Watch(() => {
+        debugger
+    })
     public change!: ProcessFieldsResult;
     //#endregion
 
@@ -25,7 +28,9 @@ export class SummaryUpdatedTable extends Aventus.WebComponent implements Aventus
 
 
     //#region methods
-    
+    protected override postCreation(): void {
+        this.is_rename = true;//this.change.isRename;
+    }
     //#endregion
 
 }

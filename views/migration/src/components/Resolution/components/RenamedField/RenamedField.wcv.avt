@@ -12,10 +12,10 @@
 </div>
 <div class="mapping-list">
     if(!this.mappingFieldTable) {
-        <p>Sélectionnez une table ci-dessus.</p>
+        <div class="no-table">Sélectionnez une table ci-dessus.</div>
     }
     else if(Object.keys(this.fieldsMapping).length == 0){
-        <p>Aucune association pour cette table.</p>
+        <div class="no-table">Aucune association pour cette table.</div>
     }
     else {
         for(const oldF in this.fieldsMapping) {
@@ -30,16 +30,16 @@
         }
     }
 </div>
-if(!this.mappingFieldTable) {
+if(this.mappingFieldTable) {
     <div class="mapping-adder">
-        <om-select>
+        <om-select @bind="this.oldField">
             <om-option value="">-- Champ Supprimé --</om-option>
             for(let field of this.mappingFieldTableInfo.deletedFields) {
                 <om-option value="{{ field.name }}">{{ field.name }}</om-option>
             }
         </om-select>
         <span class="arrow-indicator">➔</span>
-        <om-select>
+        <om-select  @bind="this.newField">
             <om-option value="">-- Champ Ajouté --</om-option>
             for(let field of this.mappingFieldTableInfo.addedFields) {
                 <om-option value="{{ field.name }}">{{ field.name }}</om-option>
