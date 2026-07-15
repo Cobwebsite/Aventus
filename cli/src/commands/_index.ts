@@ -19,10 +19,14 @@ import { Project } from './Project';
 import { Template } from './Template';
 import { Dependencies as Dependencies } from './Dependencies';
 import { Store } from './Store';
+import { Watch } from './Watch';
+import { Ai } from './Ai';
+import { Prepare } from './ai/Prepare';
 
 const actions: ((new () => Action<any>) | (new () => ActionGroup))[] = [
 	Create,
 	Dev,
+	Watch,
 	Serve,
 	Build,
 	Check,
@@ -30,6 +34,9 @@ const actions: ((new () => Action<any>) | (new () => ActionGroup))[] = [
 
 	Dependencies,
 	HelpLLM,
+
+	Ai,
+	Prepare,
 
 	Project,
 	InstallProject,

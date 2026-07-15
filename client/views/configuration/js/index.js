@@ -1432,6 +1432,7 @@ let Watcher=class Watcher {
                                 };
                             }
                         }
+                        // else if(prop == 'find') {
                         else {
                             result = element.bind(target);
                         }
@@ -1719,6 +1720,7 @@ let Watcher=class Watcher {
                 callbacks[name] = [...callbacks[name]];
             }
             for (let name in callbacks) {
+                // for(let name in proxyData.callbacks) {
                 let pathToSend = rootPath;
                 if (name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
@@ -3709,8 +3711,6 @@ let TemplateInstance=class TemplateInstance {
             });
             computeds.push(computed);
             computed.subscribe(() => {
-                if (this.isDestroyed)
-                    return;
                 calculateActive();
             });
             this.computeds.push(computed);

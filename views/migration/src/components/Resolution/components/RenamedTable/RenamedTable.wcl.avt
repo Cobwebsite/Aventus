@@ -1,6 +1,7 @@
 import type { Select } from "OneMoreUI:OneMoreUI.Components.Form.Select.package.avt";
 import { MainState } from "../../../MainState.lib.avt";
-import type { CompareSchemasResult } from "../../../../lib/Generator.lib.avt";
+import { Generator, type CompareSchemasResult } from "../../../../lib/Generator.lib.avt";
+import { Alert } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
 
 export class RenamedTable extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
@@ -15,15 +16,17 @@ export class RenamedTable extends Aventus.WebComponent implements Aventus.Defaul
 
 
     //#region variables
-    @ViewElement()
-    protected oldTableSelect!: Select;
-    @ViewElement()
-    protected newTableSelect!: Select;
+    @Watch()
+    public newTable: string = "";
 
-	public get comparison(): CompareSchemasResult {
+    @Watch()
+    public oldTable: string = "";
+
+
+    public get comparison(): CompareSchemasResult {
         return MainState.instance.comparison;
     }
-    
+
     public get tables(): Record<string, string> {
         return MainState.instance.mappings.tables;
     }
@@ -39,13 +42,29 @@ export class RenamedTable extends Aventus.WebComponent implements Aventus.Defaul
     /**
      * 
      */
-    protected removeTableMapping() {
+    protected removeTableMapping(e: Event) {
+        if(e.currentTarget instanceof HTMLElement) {
+            const field = e.currentTarget.dataset.table!;
+            delete MainState.instance.mappings.tables[field];
+        }
+        Generator.compareSchemas();
     }
 
     /**
      * 
      */
     protected addTableMapping() {
+        if(!this.newTable || !this.oldTable) {
+            Alert.open({
+                type: "error",
+                title: "Missing data",
+                content: "Please select a value for the old field and the new field"
+            });
+            return;
+        }
+
+        MainState.instance.mappings.tables[this.oldTable] = this.newTable;
+        Generator.compareSchemas();
     }
     //#endregion
 

@@ -1,8 +1,8 @@
 for(let addedTable of this.comparison.addedTables) {
     <div class="diff-table-group">
         <div class="diff-table-header">
-            <span class="diff-table-title">Table Ajoutée : {{ addedTable.name }}</span>
-            <span class="badge badge-new">Nouveau</span>
+            <span class="diff-table-title">Added table : {{ addedTable.name }}</span>
+            <span class="badge badge-new">New</span>
         </div>
         <div class="diff-table-body">
             for(let addedTableField of addedTable.fields) {

@@ -58,8 +58,8 @@
 			"name": "Launch CLI Test",
 			"program": "${workspaceFolder}/cli/out/cli.js",
 			"args": [
-				"dependencies",
-				"help-llm"
+				"ai",
+				"prepare",
 			],
 			"cwd": "D:/Aventus/test",
 			"outFiles": [

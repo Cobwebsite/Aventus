@@ -1,6 +1,8 @@
+import { ToastManager } from "Aventus@UI:Aventus.Toast.package.avt";
 import { Api } from "../../lib/Api.lib.avt";
 import type { Body } from "../Body/Body.wcl.avt";
 import type { Header } from "../Header/Header.wcl.avt";
+import { Toast } from "OneMoreUI:OneMoreUI.Components.Interaction.package.avt";
 
 export class App extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
@@ -38,6 +40,10 @@ export class App extends Aventus.WebComponent implements Aventus.DefaultComponen
                 }
                 return "/css/material.css";
             }
+        });
+        ToastManager.configure({
+            defaultToast: Toast,
+            defaultPosition: 'bottom right'
         });
     }
     //#endregion

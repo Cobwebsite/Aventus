@@ -827,6 +827,7 @@ export class Watcher {
                 callbacks[name] = [...callbacks[name]];
             }
             for(let name in callbacks) {
+            // for(let name in proxyData.callbacks) {
                 let pathToSend = rootPath;
                 if(name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
@@ -855,6 +856,7 @@ export class Watcher {
                 }
 
                 let cbs = callbacks[name];
+                // let cbs = [...proxyData.callbacks[name]];
                 for(let cb of cbs) {
                     try {
                         cb(WatchAction[type] as any, pathToSend, value, dones);

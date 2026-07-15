@@ -1,5 +1,9 @@
+<div class="for">
 for(let table of this.tableComparisons) {
-    if(table.hasChanges) {
-        <av-summary-updated-table :change="table"></av-summary-updated-table>
-    }
+    <div class="table">
+        if(table.hasChanges) {
+            <av-summary-updated-table :change="table"></av-summary-updated-table>
+        }
+    </div>
 }
+</div>

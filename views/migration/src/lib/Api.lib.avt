@@ -13,12 +13,18 @@ export class Api {
     };
 
     public static wwwroot: string = "/";
+    public static nonce?: string;
 
     public static init() {
         if(VscodeView.Router.isVscode) {
             const el = document.getElementById("base-style");
             if(el instanceof HTMLLinkElement) {
                 this.wwwroot = el.href.replace("style.css", "");
+            }
+
+            const el2 = document.getElementById("base-script");
+            if(el2 instanceof HTMLScriptElement) {
+                this.nonce = el2.nonce;
             }
         }
     }
@@ -133,6 +139,36 @@ export class Api {
                 return result;
             }
             return defaultSchema;
+        });
+    }
+
+    public static async chooseFolder(): Promise<string | undefined> {
+        return await this.guard.run(["chooseFolder"], async () => {
+            if(VscodeView.Router.isVscode) {
+                const result = await Process.execute(VscodeView.Router.getInstance().sendWithResponse<string | undefined>({
+                    channel: "chooseFolder",
+                    body: {}
+                }));
+                return result;
+            }
+            return "";
+        });
+    }
+
+    public static async writeFile(folder: string, filename: string, content: string): Promise<boolean> {
+        return await this.guard.run(["writeFile"], async () => {
+            if(VscodeView.Router.isVscode) {
+                const result = await Process.execute(VscodeView.Router.getInstance().sendWithResponse<boolean>({
+                    channel: "writeFile",
+                    body: {
+                        folder,
+                        filename,
+                        content
+                    }
+                }));
+                return result ?? false;
+            }
+            return false;
         });
     }
 }

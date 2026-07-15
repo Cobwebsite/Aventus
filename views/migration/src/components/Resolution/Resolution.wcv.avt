@@ -1,13 +1,12 @@
 <div class="section-header">
     <h2>Resolution</h2>
-    <p>Associate tables et renamed field to generate the migration.
-    </p>
+    <p>Associate tables et renamed field to generate the migration.</p>
 </div>
 
 <div class="diff-container">
     <div class="panel resolution-panel">
         <div class="panel-header">
-            <h3>Renommages & Associations</h3>
+            <h3>Associations and renamed</h3>
         </div>
         <om-scrollable class="panel-scroll">
             <div class="panel-body">
@@ -24,7 +23,7 @@
 
     <div class="panel diff-preview-panel">
         <div class="panel-header">
-            <h3>Modifications Détectées</h3>
+            <h3>Dectected changes</h3>
         </div>
         <om-scrollable class="panel-scroll" id="diff-results">
             <div class="panel-body">
@@ -35,6 +34,6 @@
 </div>
 
 <div class="action-footer">
-    <om-button @click="back">Retour</om-button>
-    <om-button @click="prepareMigrationGeneration">Générer la Migration</om-button>
+    <om-button @click="back">Back</om-button>
+    <om-button @click="prepareMigrationGeneration">Generate migration</om-button>
 </div>

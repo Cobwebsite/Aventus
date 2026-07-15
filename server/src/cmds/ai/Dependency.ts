@@ -1,11 +1,9 @@
-import { existsSync, mkdirSync, rmdirSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { GenericServer } from '../../GenericServer';
 import { DependencyManager } from '../../project/DependencyManager';
-import { ProjectManager } from '../../project/ProjectManager';
 import { join } from 'path';
 import { uriToPath } from '../../tools';
 import { FilesManager } from '../../files/FilesManager';
-import { Build } from '../../project/Build';
 import { Project } from '../../project/Project';
 import { ManifestPackage } from '../../manifest/ManifestPackage';
 
@@ -38,8 +36,8 @@ export class Dependency {
 
 
 		for (let p of packages) {
-			console.log("writting : " + join(dependenciesDir, p.name))
-			writeFileSync(join(dependenciesDir, p.name + ".d.ts"), p.definition);
+			console.log("writting : " + join(dependenciesDir, p.name)+ ".md")
+			// writeFileSync(join(dependenciesDir, p.name + ".d.ts"), p.definition);
 			const md = ManifestPackage.getMarkdown(p.file.uri);
 			if (md) {
 				writeFileSync(join(dependenciesDir, p.name + ".md"), md);

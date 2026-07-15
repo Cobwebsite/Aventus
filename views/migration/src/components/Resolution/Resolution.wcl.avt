@@ -2,6 +2,8 @@ import { BaseContent } from "../BaseContent/BaseContent.wcl.avt";
 import { MainState } from "../MainState.lib.avt";
 import type { CompareSchemasResult, ProcessFieldsResult } from "../../lib/Generator.lib.avt";
 import type { Select } from "OneMoreUI:OneMoreUI.Components.Form.Select.package.avt";
+import type { Field, Schema, Table } from "../../lib/Definition.lib.avt";
+import { Watcher } from "Aventus@Main:Aventus.package.avt";
 
 export class Resolution extends BaseContent implements Aventus.DefaultComponent {
 
@@ -30,10 +32,10 @@ export class Resolution extends BaseContent implements Aventus.DefaultComponent 
     }
 
 
-    
 
 
-    
+
+
     //#endregion
 
 
@@ -56,13 +58,344 @@ export class Resolution extends BaseContent implements Aventus.DefaultComponent 
      * 
      */
     protected prepareMigrationGeneration() {
+        MainState.instance.code = this.generateMigrationCode();
         MainState.instance.step = 2;
+    }
+
+    protected generateMigrationCode(): string {
+
+        const state = Watcher.extract(MainState.instance);
+        const comp = Watcher.extract(state.comparison);
+        const oldSchema = Watcher.extract(state.oldSchema);
+        const newSchema = Watcher.extract(state.newSchema);
+
+        let sb: string[] = [];
+        sb.push("using AventusSharp.Data.Migrations;");
+        sb.push("using AventusSharp.Data.Attributes;");
+        sb.push("using System;");
+        sb.push("");
+        sb.push(`public class {{classname}} : Migration`);
+        sb.push("{");
+        sb.push("    public override string GetName()");
+        sb.push("    {");
+        sb.push(`        return "{{migrationName}}";`);
+        sb.push("    }");
+        sb.push("");
+        sb.push("    public override void Up()");
+        sb.push("    {");
+
+        // 1. Rename tables
+        for(const rt of comp.renamedTables) {
+            sb.push(`        RenameModel<${rt.newName}>("${rt.oldName}");`);
+        }
+        if(comp.renamedTables.length > 0) {
+            sb.push("");
+        }
+
+        // 2. Create added tables
+        for(const table of comp.addedTables) {
+            const chainLines = [];
+            chainLines.push(`CreateModel<${table.name}>()`);
+
+            const fields = table.fields || [];
+            const hasCreatedDate = fields.some(f => f.name.toLowerCase() === "createddate" || f.name.toLowerCase() === "created_at");
+            const hasUpdatedDate = fields.some(f => f.name.toLowerCase() === "updateddate" || f.name.toLowerCase() === "updated_at");
+            const hasTimestamps = hasCreatedDate && hasUpdatedDate;
+
+            for(const field of fields) {
+                if(hasTimestamps && (field.name.toLowerCase() === "createddate" || field.name.toLowerCase() === "created_at" || field.name.toLowerCase() === "updateddate" || field.name.toLowerCase() === "updated_at")) {
+                    continue;
+                }
+
+                if(field.primaryKey) {
+                    chainLines.push(`AddPrimary("${field.name}")`);
+                } else {
+                    const referencedTable = this.getReferencedTableJS(table, field, newSchema);
+                    if(referencedTable) {
+                        const refOptionsStr = this.formatRefOptionsJS(field.nullable);
+                        chainLines.push(`AddRef<${referencedTable}>("${field.name}"${refOptionsStr})`);
+                    } else {
+                        const { csharpType, sizeOption } = this.parseTypeAndSizeJS(field.type.name);
+                        const optionsStr = this.formatOptionsJS(field.nullable, field.unique, sizeOption);
+                        chainLines.push(`AddProperty<${csharpType}>("${field.name}"${optionsStr})`);
+                    }
+                }
+            }
+
+            if(hasTimestamps) {
+                chainLines.push("AddTimestamp()");
+            }
+
+            sb.push("        " + chainLines[0]);
+            for(let i = 1; i < chainLines.length; i++) {
+                sb.push("            ." + chainLines[i]);
+            }
+            sb[sb.length - 1] += ";";
+            sb.push("");
+        }
+
+        // 3. Update existing tables
+        for(const tc of comp.tableComparisons) {
+            if(!tc.hasChanges) continue;
+
+            const chainLines = [];
+            chainLines.push(`SelectModel<${tc.newTableName}>()`);
+
+            // Rename properties
+            for(const rf of tc.renamedFields) {
+                const { csharpType } = this.parseTypeAndSizeJS(rf.new.type.name);
+                chainLines.push(`RenameProperty<${csharpType}>("${rf.oldName}", "${rf.newName}")`);
+            }
+
+            // Remove properties
+            for(const df of tc.deletedFields) {
+                const { csharpType } = this.parseTypeAndSizeJS(df.type.name);
+                chainLines.push(`RemoveProperty<${csharpType}>("${df.name}")`);
+            }
+
+            // Add properties
+            for(const af of tc.addedFields) {
+                const newTableObj = newSchema.tables.find(t => t.name === tc.newTableName);
+                const referencedTable = this.getReferencedTableJS(newTableObj, af, newSchema);
+                if(referencedTable) {
+                    const refOptionsStr = this.formatRefOptionsJS(af.nullable);
+                    chainLines.push(`AddRef<${referencedTable}>("${af.name}"${refOptionsStr})`);
+                } else {
+                    const { csharpType, sizeOption } = this.parseTypeAndSizeJS(af.type.name);
+                    const optionsStr = this.formatOptionsJS(af.nullable, af.unique, sizeOption);
+                    chainLines.push(`AddProperty<${csharpType}>("${af.name}"${optionsStr})`);
+                }
+            }
+
+            // Modified properties
+            for(const mf of tc.modifiedFields) {
+                const newTableObj = newSchema.tables.find(t => t.name === tc.newTableName);
+                const referencedTable = this.getReferencedTableJS(newTableObj, mf.new, newSchema);
+                if(referencedTable) {
+                    const refOptionsStr = this.formatRefOptionsJS(mf.new.nullable);
+                    chainLines.push(`AddRef<${referencedTable}>("${mf.name}"${refOptionsStr})`);
+                } else {
+                    const { csharpType, sizeOption } = this.parseTypeAndSizeJS(mf.new.type.name);
+                    const optionsStr = this.formatOptionsJS(mf.new.nullable, mf.new.unique, sizeOption);
+                    chainLines.push(`AddProperty<${csharpType}>("${mf.name}"${optionsStr})`);
+                }
+            }
+
+            if(chainLines.length > 1) {
+                sb.push("        " + chainLines[0]);
+                for(let i = 1; i < chainLines.length; i++) {
+                    sb.push("            ." + chainLines[i]);
+                }
+                sb[sb.length - 1] += ";";
+                sb.push("");
+            }
+        }
+
+        // 4. Delete models
+        for(const dt of comp.deletedTables) {
+            sb.push(`        DeleteModel<${dt.name}>();`);
+        }
+        if(comp.deletedTables.length > 0) {
+            sb.push("");
+        }
+
+        sb.push("    }");
+        sb.push("");
+        sb.push("    public override void Down()");
+        sb.push("    {");
+
+        // 1. Delete models created in Up
+        for(const table of comp.addedTables) {
+            sb.push(`        DeleteModel<${table.name}>();`);
+        }
+        if(comp.addedTables.length > 0) {
+            sb.push("");
+        }
+
+        // 2. Recreate models deleted in Up
+        for(const table of comp.deletedTables) {
+            const chainLines = [];
+            chainLines.push(`CreateModel<${table.name}>()`);
+
+            const fields = table.fields || [];
+            const hasCreatedDate = fields.some(f => f.name.toLowerCase() === "createddate" || f.name.toLowerCase() === "created_at");
+            const hasUpdatedDate = fields.some(f => f.name.toLowerCase() === "updateddate" || f.name.toLowerCase() === "updated_at");
+            const hasTimestamps = hasCreatedDate && hasUpdatedDate;
+
+            for(const field of fields) {
+                if(hasTimestamps && (field.name.toLowerCase() === "createddate" || field.name.toLowerCase() === "created_at" || field.name.toLowerCase() === "updateddate" || field.name.toLowerCase() === "updated_at")) {
+                    continue;
+                }
+
+                if(field.primaryKey) {
+                    chainLines.push(`AddPrimary("${field.name}")`);
+                } else {
+                    const referencedTable = this.getReferencedTableJS(table, field, oldSchema);
+                    if(referencedTable) {
+                        const refOptionsStr = this.formatRefOptionsJS(field.nullable);
+                        chainLines.push(`AddRef<${referencedTable}>("${field.name}"${refOptionsStr})`);
+                    } else {
+                        const { csharpType, sizeOption } = this.parseTypeAndSizeJS(field.type.name);
+                        const optionsStr = this.formatOptionsJS(field.nullable, field.unique, sizeOption);
+                        chainLines.push(`AddProperty<${csharpType}>("${field.name}"${optionsStr})`);
+                    }
+                }
+            }
+
+            if(hasTimestamps) {
+                chainLines.push("AddTimestamp()");
+            }
+
+            sb.push("        " + chainLines[0]);
+            for(let i = 1; i < chainLines.length; i++) {
+                sb.push("            ." + chainLines[i]);
+            }
+            sb[sb.length - 1] += ";";
+            sb.push("");
+        }
+
+        // 3. Rename models back
+        for(const rt of comp.renamedTables) {
+            sb.push(`        RenameModel<${rt.oldName}>("${rt.newName}");`);
+        }
+        if(comp.renamedTables.length > 0) {
+            sb.push("");
+        }
+
+        // 4. Revert modifications on existing tables
+        for(const tc of comp.tableComparisons) {
+            if(!tc.hasChanges) continue;
+
+            const chainLines = [];
+            chainLines.push(`SelectModel<${tc.oldTableName}>()`);
+
+            // Invert rename properties (new to old)
+            for(const rf of tc.renamedFields) {
+                const { csharpType } = this.parseTypeAndSizeJS(rf.old.type.name);
+                chainLines.push(`RenameProperty<${csharpType}>("${rf.newName}", "${rf.oldName}")`);
+            }
+
+            // Re-add removed properties
+            for(const df of tc.deletedFields) {
+                const oldTableObj = oldSchema.tables.find(t => t.name === tc.oldTableName);
+                const referencedTable = this.getReferencedTableJS(oldTableObj, df, oldSchema);
+                if(referencedTable) {
+                    const refOptionsStr = this.formatRefOptionsJS(df.nullable);
+                    chainLines.push(`AddRef<${referencedTable}>("${df.name}"${refOptionsStr})`);
+                } else {
+                    const { csharpType, sizeOption } = this.parseTypeAndSizeJS(df.type.name);
+                    const optionsStr = this.formatOptionsJS(df.nullable, df.unique, sizeOption);
+                    chainLines.push(`AddProperty<${csharpType}>("${df.name}"${optionsStr})`);
+                }
+            }
+
+            // Remove added properties
+            for(const af of tc.addedFields) {
+                const { csharpType } = this.parseTypeAndSizeJS(af.type.name);
+                chainLines.push(`RemoveProperty<${csharpType}>("${af.name}")`);
+            }
+
+            // Revert modified properties back to old values
+            for(const mf of tc.modifiedFields) {
+                const oldTableObj = oldSchema.tables.find(t => t.name === tc.oldTableName);
+                const referencedTable = this.getReferencedTableJS(oldTableObj, mf.old, oldSchema);
+                if(referencedTable) {
+                    const refOptionsStr = this.formatRefOptionsJS(mf.old.nullable);
+                    chainLines.push(`AddRef<${referencedTable}>("${mf.name}"${refOptionsStr})`);
+                } else {
+                    const { csharpType, sizeOption } = this.parseTypeAndSizeJS(mf.old.type.name);
+                    const optionsStr = this.formatOptionsJS(mf.old.nullable, mf.old.unique, sizeOption);
+                    chainLines.push(`AddProperty<${csharpType}>("${mf.name}"${optionsStr})`);
+                }
+            }
+
+            if(chainLines.length > 1) {
+                sb.push("        " + chainLines[0]);
+                for(let i = 1; i < chainLines.length; i++) {
+                    sb.push("            ." + chainLines[i]);
+                }
+                sb[sb.length - 1] += ";";
+                sb.push("");
+            }
+        }
+
+        sb.push("    }");
+        sb.push("}");
+
+        return sb.join("\n");
+    }
+
+    protected getReferencedTableJS(table: Table | undefined, field: Field, schema: Schema) {
+        if(!schema.relationships) return null;
+        if(!table) return null;
+        for(const r of schema.relationships) {
+            const sourceFieldName = r.sourceFieldId.includes('.') ? r.sourceFieldId.split('.').pop() : r.sourceFieldId;
+            if(r.sourceTableId === table.id && (r.sourceFieldId === field.id || sourceFieldName === field.name)) {
+                const targetTable = schema.tables.find(t => t.id === r.targetTableId);
+                if(targetTable) return targetTable.name;
+            }
+
+            const targetFieldName = r.targetFieldId.includes('.') ? r.targetFieldId.split('.').pop() : r.targetFieldId;
+            if(r.targetTableId === table.id && (r.targetFieldId === field.id || targetFieldName === field.name)) {
+                const sourceTable = schema.tables.find(t => t.id === r.sourceTableId);
+                if(sourceTable) {
+                    const srcFieldName = r.sourceFieldId.includes('.') ? r.sourceFieldId.split('.').pop() : r.sourceFieldId;
+                    const srcField = sourceTable.fields.find(f => f.id === r.sourceFieldId || f.name === srcFieldName);
+                    if(srcField && srcField.primaryKey) {
+                        return sourceTable.name;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    protected getCSharpTypeJS(dbType: string) {
+        dbType = dbType.toLowerCase().trim();
+        if(dbType.includes("int") || dbType === "integer" || dbType === "serial") return "int";
+        if(dbType.includes("char") || dbType.includes("text") || dbType === "string" || dbType === "uuid") return "string";
+        if(dbType === "bool" || dbType === "boolean" || dbType === "bit") return "bool";
+        if(dbType === "datetime" || dbType === "timestamp" || dbType === "date" || dbType === "time") return "DateTime";
+        if(dbType === "float" || dbType === "double" || dbType === "real") return "double";
+        if(dbType === "decimal" || dbType === "numeric") return "decimal";
+        return "string";
+    }
+
+    protected parseTypeAndSizeJS(typeName: string) {
+        typeName = typeName.toLowerCase().trim();
+        const match = typeName.match(/^varchar\((\d+)\)$/);
+        if(match) {
+            const length = parseInt(match[1]);
+            if(length === 255) return { csharpType: "string", sizeOption: null };
+            return { csharpType: "string", sizeOption: `new Size(${length})` };
+        }
+        if(typeName === "text") return { csharpType: "string", sizeOption: "new Size(SizeEnum.Text)" };
+        if(typeName === "mediumtext") return { csharpType: "string", sizeOption: "new Size(SizeEnum.MediumText)" };
+        if(typeName === "longtext") return { csharpType: "string", sizeOption: "new Size(SizeEnum.LongText)" };
+
+        return { csharpType: this.getCSharpTypeJS(typeName), sizeOption: null };
+    }
+
+    protected formatOptionsJS(nullable: boolean | undefined, unique: boolean | undefined, sizeOption: string | null) {
+        const parts: string[] = [];
+        if(nullable) parts.push("Nullable = true");
+        if(unique) parts.push("Unique = true");
+        if(sizeOption) parts.push(`Size = ${sizeOption}`);
+
+        if(parts.length === 0) return "";
+        return ", new() { " + parts.join(", ") + " }";
+    }
+
+    protected formatRefOptionsJS(nullable: boolean | undefined) {
+        if(nullable) return ", new() { Nullable = true }";
+        return "";
     }
 
 
 
 
-    
+
+
 
     //#endregion
 

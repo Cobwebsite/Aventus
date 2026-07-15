@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import { join, normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind, Type } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind, Type, ModuleKind } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
@@ -1639,6 +1639,7 @@ const compilerOptionsRead: CompilerOptions = {
     checkJs: false,
     lib: ['lib.es2025.full.d.ts'],
     target: ScriptTarget.ES2025,
+    module: ModuleKind.NodeNext,
     moduleDetection: ModuleDetectionKind.Force,
     moduleResolution: ModuleResolutionKind.NodeNext,
     noImplicitOverride: true,
@@ -1658,6 +1659,7 @@ const compilerOptionsCompile: CompilerOptions = {
     checkJs: false,
     lib: ['lib.es2025.full.d.ts'],
     target: ScriptTarget.ES2025,
+    module: ModuleKind.NodeNext,
     moduleDetection: ModuleDetectionKind.Auto,
     moduleResolution: ModuleResolutionKind.NodeNext,
     noImplicitOverride: true,
@@ -1667,6 +1669,7 @@ const compilerOptionsCompile: CompilerOptions = {
     verbatimModuleSyntax: true,
     baseUrl: "./",
     alwaysStrict: false,
+
 };
 const completionOptions: GetCompletionsAtPositionOptions = {
     includeExternalModuleExports: true,

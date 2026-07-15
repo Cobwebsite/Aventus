@@ -71,6 +71,11 @@ const _ = {};
 
 
 let _n;
+let sleep=function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+__as1(_, 'sleep', sleep);
+
 let uuidv4=function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
     return uid;
@@ -133,12 +138,6 @@ let ActionGuard=class ActionGuard {
 ActionGuard.Namespace=`Aventus`;
 __as1(_, 'ActionGuard', ActionGuard);
 
-let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
-__as1(_, 'DragElementXYType', DragElementXYType);
-
-let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
-__as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
-
 let isClass=function isClass(v) {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }
@@ -183,6 +182,12 @@ let DateConverter=class DateConverter {
 }
 DateConverter.Namespace=`Aventus`;
 __as1(_, 'DateConverter', DateConverter);
+
+let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
+__as1(_, 'DragElementXYType', DragElementXYType);
+
+let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
+__as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 
 let ElementExtension=class ElementExtension {
     /**
@@ -1579,6 +1584,7 @@ let Watcher=class Watcher {
                                 };
                             }
                         }
+                        // else if(prop == 'find') {
                         else {
                             result = element.bind(target);
                         }
@@ -1866,6 +1872,7 @@ let Watcher=class Watcher {
                 callbacks[name] = [...callbacks[name]];
             }
             for (let name in callbacks) {
+                // for(let name in proxyData.callbacks) {
                 let pathToSend = rootPath;
                 if (name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
@@ -3856,8 +3863,6 @@ let TemplateInstance=class TemplateInstance {
             });
             computeds.push(computed);
             computed.subscribe(() => {
-                if (this.isDestroyed)
-                    return;
                 calculateActive();
             });
             this.computeds.push(computed);
@@ -4869,6 +4874,885 @@ let WebComponentInstance=class WebComponentInstance {
 WebComponentInstance.Namespace=`Aventus`;
 __as1(_, 'WebComponentInstance', WebComponentInstance);
 
+let ResizeObserver=class ResizeObserver {
+    callback;
+    targets;
+    fpsInterval = -1;
+    nextFrame;
+    entriesChangedEvent;
+    willTrigger;
+    static resizeObserverClassByObject = {};
+    static uniqueInstance;
+    static getUniqueInstance() {
+        if (!ResizeObserver.uniqueInstance) {
+            ResizeObserver.uniqueInstance = new window.ResizeObserver(entries => {
+                let allClasses = [];
+                for (let j = 0; j < entries.length; j++) {
+                    let entry = entries[j];
+                    const target = entry.target;
+                    let index = target['sourceIndex'];
+                    if (ResizeObserver.resizeObserverClassByObject[index]) {
+                        for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
+                            let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
+                            classTemp.entryChanged(entry);
+                            if (allClasses.indexOf(classTemp) == -1) {
+                                allClasses.push(classTemp);
+                            }
+                        }
+                    }
+                }
+                for (let i = 0; i < allClasses.length; i++) {
+                    allClasses[i].triggerCb();
+                }
+            });
+        }
+        return ResizeObserver.uniqueInstance;
+    }
+    constructor(options) {
+        let realOption;
+        if (options instanceof Function) {
+            realOption = {
+                callback: options,
+            };
+        }
+        else {
+            realOption = options;
+        }
+        this.callback = realOption.callback;
+        this.targets = [];
+        if (!realOption.fps) {
+            realOption.fps = 60;
+        }
+        if (realOption.fps != -1) {
+            this.fpsInterval = 1000 / realOption.fps;
+        }
+        this.nextFrame = 0;
+        this.entriesChangedEvent = {};
+        this.willTrigger = false;
+    }
+    /**
+     * Observe size changing for the element
+     */
+    observe(target) {
+        const _target = target;
+        if (!_target["sourceIndex"]) {
+            _target["sourceIndex"] = Math.random().toString(36);
+            this.targets.push(_target);
+            ResizeObserver.getUniqueInstance().observe(_target);
+        }
+        if (!ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]]) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]] = [];
+        }
+        if (ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].indexOf(this) == -1) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].push(this);
+        }
+    }
+    /**
+     * Stop observing size changing for the element
+     */
+    unobserve(target) {
+        const _target = target;
+        for (let i = 0; this.targets.length; i++) {
+            let tempTarget = this.targets[i];
+            if (tempTarget == _target) {
+                let position = ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].indexOf(this);
+                if (position != -1) {
+                    ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].splice(position, 1);
+                }
+                if (ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].length == 0) {
+                    delete ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
+                }
+                ResizeObserver.getUniqueInstance().unobserve(_target);
+                this.targets.splice(i, 1);
+                return;
+            }
+        }
+    }
+    /**
+     * Destroy the resize observer
+     */
+    disconnect() {
+        for (let i = 0; this.targets.length; i++) {
+            this.unobserve(this.targets[i]);
+        }
+    }
+    entryChanged(entry) {
+        const _target = entry.target;
+        let index = _target.sourceIndex;
+        this.entriesChangedEvent[index] = entry;
+    }
+    triggerCb() {
+        if (!this.willTrigger) {
+            this.willTrigger = true;
+            this._triggerCb();
+        }
+    }
+    _triggerCb() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
+            requestAnimationFrame(() => {
+                this._triggerCb();
+            });
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        let changed = Object.values(this.entriesChangedEvent);
+        this.entriesChangedEvent = {};
+        this.willTrigger = false;
+        setTimeout(() => {
+            this.callback(changed, ResizeObserver.uniqueInstance);
+        }, 0);
+    }
+}
+ResizeObserver.Namespace=`Aventus`;
+__as1(_, 'ResizeObserver', ResizeObserver);
+
+let DragAndDrop=class DragAndDrop {
+    /**
+     * Default offset before drag element
+     */
+    static defaultOffsetDrag = 20;
+    pressManager;
+    options;
+    startCursorPosition = { x: 0, y: 0 };
+    startElementPosition = { x: 0, y: 0 };
+    isEnable = true;
+    draggableElement;
+    constructor(options) {
+        this.options = this.getDefaultOptions(options.element);
+        this.mergeProperties(options);
+        this.mergeFunctions(options);
+        this.options.elementTrigger.style.touchAction = 'none';
+        this.pressManager = new PressManager({
+            element: this.options.elementTrigger,
+            onPressStart: this.onPressStart.bind(this),
+            onPressEnd: this.onPressEnd.bind(this),
+            onDragStart: this.onDragStart.bind(this),
+            onDrag: this.onDrag.bind(this),
+            onDragEnd: this.onDragEnd.bind(this),
+            offsetDrag: this.options.offsetDrag,
+            dragDirection: this.options.dragDirection,
+            stopPropagation: this.options.stopPropagation
+        });
+    }
+    getDefaultOptions(element) {
+        return {
+            applyDrag: true,
+            element: element,
+            elementTrigger: element,
+            offsetDrag: DragAndDrop.defaultOffsetDrag,
+            dragDirection: 'XY',
+            shadow: {
+                enable: false,
+                container: document.body,
+                removeOnStop: true,
+                transform: () => { },
+                delete: (el) => {
+                    el.remove();
+                }
+            },
+            strict: false,
+            targets: [],
+            usePercent: false,
+            stopPropagation: true,
+            useMouseFinalPosition: false,
+            useTransform: false,
+            isDragEnable: () => true,
+            getZoom: () => 1,
+            getOffsetX: () => 0,
+            getOffsetY: () => 0,
+            onPointerDown: (e) => { },
+            onPointerUp: (e) => { },
+            onStart: (e) => { },
+            onMove: (e) => { },
+            onStop: (e) => { },
+            onDrop: (element, targets) => { },
+            correctPosition: (position) => position
+        };
+    }
+    mergeProperties(options) {
+        if (options.element === void 0) {
+            throw "You must define the element for the drag&drop";
+        }
+        this.options.element = options.element;
+        if (options.elementTrigger === void 0) {
+            this.options.elementTrigger = this.options.element;
+        }
+        else {
+            this.options.elementTrigger = options.elementTrigger;
+        }
+        this.defaultMerge(options, "applyDrag");
+        this.defaultMerge(options, "offsetDrag");
+        this.defaultMerge(options, "dragDirection");
+        this.defaultMerge(options, "strict");
+        this.defaultMerge(options, "targets");
+        this.defaultMerge(options, "usePercent");
+        this.defaultMerge(options, "stopPropagation");
+        this.defaultMerge(options, "useMouseFinalPosition");
+        this.defaultMerge(options, "useTransform");
+        if (options.shadow !== void 0) {
+            this.options.shadow.enable = options.shadow.enable;
+            if (options.shadow.container !== void 0) {
+                this.options.shadow.container = options.shadow.container;
+            }
+            else {
+                this.options.shadow.container = document.body;
+            }
+            if (options.shadow.removeOnStop !== void 0) {
+                this.options.shadow.removeOnStop = options.shadow.removeOnStop;
+            }
+            if (options.shadow.transform !== void 0) {
+                this.options.shadow.transform = options.shadow.transform;
+            }
+            if (options.shadow.delete !== void 0) {
+                this.options.shadow.delete = options.shadow.delete;
+            }
+        }
+    }
+    mergeFunctions(options) {
+        this.defaultMerge(options, "isDragEnable");
+        this.defaultMerge(options, "getZoom");
+        this.defaultMerge(options, "getOffsetX");
+        this.defaultMerge(options, "getOffsetY");
+        this.defaultMerge(options, "onPointerDown");
+        this.defaultMerge(options, "onPointerUp");
+        this.defaultMerge(options, "onStart");
+        this.defaultMerge(options, "onMove");
+        this.defaultMerge(options, "onStop");
+        this.defaultMerge(options, "onDrop");
+        this.defaultMerge(options, "correctPosition");
+    }
+    defaultMerge(options, name) {
+        if (options[name] !== void 0) {
+            const opts = this.options;
+            opts[name] = options[name];
+        }
+    }
+    positionShadowRelativeToElement = { x: 0, y: 0 };
+    onPressStart(e) {
+        this.options.onPointerDown(e);
+    }
+    onPressEnd(e) {
+        this.options.onPointerUp(e);
+    }
+    onDragStart(e) {
+        this.isEnable = this.options.isDragEnable();
+        if (!this.isEnable) {
+            return false;
+        }
+        let draggableElement = this.options.element;
+        this.startCursorPosition = {
+            x: e.pageX,
+            y: e.pageY
+        };
+        this.startElementPosition = this.getBoundingBoxRelative(draggableElement);
+        if (this.options.shadow.enable) {
+            draggableElement = this.options.element.cloneNode(true);
+            let elBox = this.options.element.getBoundingClientRect();
+            let containerBox = this.options.shadow.container.getBoundingClientRect();
+            this.positionShadowRelativeToElement = {
+                x: elBox.x - containerBox.x,
+                y: elBox.y - containerBox.y
+            };
+            if (this.options.applyDrag) {
+                draggableElement.style.position = "absolute";
+                draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
+                draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
+                this.options.shadow.transform(draggableElement);
+                this.options.shadow.container.appendChild(draggableElement);
+            }
+        }
+        this.draggableElement = draggableElement;
+        const result = this.options.onStart(e);
+        if (result !== false) {
+            document.body.style.userSelect = 'none';
+            if (window.getSelection) {
+                window.getSelection()?.removeAllRanges();
+            }
+        }
+        return result;
+    }
+    onDrag(e) {
+        if (!this.isEnable) {
+            return;
+        }
+        let zoom = this.options.getZoom();
+        let diff = {
+            x: 0,
+            y: 0
+        };
+        if (this.options.shadow.enable) {
+            diff = {
+                x: (e.pageX - this.startCursorPosition.x) + this.positionShadowRelativeToElement.x + this.options.getOffsetX(),
+                y: (e.pageY - this.startCursorPosition.y) + this.positionShadowRelativeToElement.y + this.options.getOffsetY(),
+            };
+        }
+        else {
+            diff = {
+                x: (e.pageX - this.startCursorPosition.x) / zoom + this.startElementPosition.x + this.options.getOffsetX(),
+                y: (e.pageY - this.startCursorPosition.y) / zoom + this.startElementPosition.y + this.options.getOffsetY()
+            };
+        }
+        let newPos = this.setPosition(diff);
+        this.options.onMove(e, newPos);
+    }
+    onDragEnd(e) {
+        if (!this.isEnable) {
+            return;
+        }
+        document.body.style.userSelect = '';
+        let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
+            x: e.clientX,
+            y: e.clientY
+        }) : this.getMatchingTargets();
+        let draggableElement = this.draggableElement;
+        if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
+            this.options.shadow.delete(draggableElement);
+        }
+        if (targets.length > 0) {
+            this.options.onDrop(this.options.element, targets);
+        }
+        this.options.onStop(e);
+    }
+    setPosition(position) {
+        let draggableElement = this.draggableElement;
+        if (this.options.usePercent) {
+            let elementParent = this.getOffsetParent(draggableElement);
+            if (elementParent instanceof HTMLElement) {
+                let percentPosition = {
+                    x: (position.x / elementParent.offsetWidth) * 100,
+                    y: (position.y / elementParent.offsetHeight) * 100
+                };
+                percentPosition = this.options.correctPosition(percentPosition);
+                if (this.options.applyDrag) {
+                    draggableElement.style.left = percentPosition.x + '%';
+                    draggableElement.style.top = percentPosition.y + '%';
+                }
+                return percentPosition;
+            }
+            else {
+                console.error("Can't find parent. Contact an admin", draggableElement);
+            }
+        }
+        else {
+            position = this.options.correctPosition(position);
+            if (this.options.applyDrag) {
+                if (this.isLeftTopElement(draggableElement)) {
+                    draggableElement.style.left = position.x + 'px';
+                    draggableElement.style.top = position.y + 'px';
+                }
+                else {
+                    if (this.options.useTransform) {
+                        draggableElement.setAttribute("transform", `translate(${position.x},${position.y})`);
+                    }
+                    else {
+                        draggableElement.style.left = position.x + 'px';
+                        draggableElement.style.top = position.y + 'px';
+                    }
+                }
+            }
+        }
+        return position;
+    }
+    getTargets() {
+        if (typeof this.options.targets == "function") {
+            return this.options.targets();
+        }
+        else {
+            return this.options.targets;
+        }
+    }
+    /**
+     * Get targets within the current element position is matching
+     */
+    getMatchingTargets() {
+        let draggableElement = this.draggableElement;
+        let matchingTargets = [];
+        let srcTargets = this.getTargets();
+        for (let target of srcTargets) {
+            let elementCoordinates = this.getBoundingBoxAbsolute(draggableElement);
+            let targetCoordinates = this.getBoundingBoxAbsolute(target);
+            let offsetX = this.options.getOffsetX();
+            let offsetY = this.options.getOffsetY();
+            let zoom = this.options.getZoom();
+            targetCoordinates.x += offsetX;
+            targetCoordinates.y += offsetY;
+            targetCoordinates.width *= zoom;
+            targetCoordinates.height *= zoom;
+            if (this.options.strict) {
+                if ((elementCoordinates.x >= targetCoordinates.x && elementCoordinates.x + elementCoordinates.width <= targetCoordinates.x + targetCoordinates.width) &&
+                    (elementCoordinates.y >= targetCoordinates.y && elementCoordinates.y + elementCoordinates.height <= targetCoordinates.y + targetCoordinates.height)) {
+                    matchingTargets.push(target);
+                }
+            }
+            else {
+                let elementLeft = elementCoordinates.x;
+                let elementRight = elementCoordinates.x + elementCoordinates.width;
+                let elementTop = elementCoordinates.y;
+                let elementBottom = elementCoordinates.y + elementCoordinates.height;
+                let targetLeft = targetCoordinates.x;
+                let targetRight = targetCoordinates.x + targetCoordinates.width;
+                let targetTop = targetCoordinates.y;
+                let targetBottom = targetCoordinates.y + targetCoordinates.height;
+                if (!(elementRight < targetLeft ||
+                    elementLeft > targetRight ||
+                    elementBottom < targetTop ||
+                    elementTop > targetBottom)) {
+                    matchingTargets.push(target);
+                }
+            }
+        }
+        return matchingTargets;
+    }
+    /**
+     * This function will return the targets that are matching with the mouse position
+     * @param mouse The mouse position
+     */
+    getMatchingTargetsWithMousePosition(mouse) {
+        let matchingTargets = [];
+        if (this.options.shadow.enable == false || this.options.shadow.container == null) {
+            console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
+            return matchingTargets;
+        }
+        const container = this.options.shadow.container;
+        let xCorrected = mouse.x - container.getBoundingClientRect().left;
+        let yCorrected = mouse.y - container.getBoundingClientRect().top;
+        for (let target of this.getTargets()) {
+            if (this.isLeftTopElement(target)) {
+                if (this.matchPosition(target, { x: mouse.x, y: mouse.y })) {
+                    matchingTargets.push(target);
+                }
+            }
+            else {
+                if (this.matchPosition(target, { x: xCorrected, y: yCorrected })) {
+                    matchingTargets.push(target);
+                }
+            }
+        }
+        return matchingTargets;
+    }
+    matchPosition(element, point) {
+        let elementCoordinates = this.getBoundingBoxAbsolute(element);
+        if (point.x >= elementCoordinates.x &&
+            point.x <= elementCoordinates.x + elementCoordinates.width &&
+            point.y >= elementCoordinates.y &&
+            point.y <= elementCoordinates.y + elementCoordinates.height) {
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Get element currently dragging
+     */
+    getElementDrag() {
+        return this.options.element;
+    }
+    /**
+     * Set targets where to drop
+     */
+    setTargets(targets) {
+        this.options.targets = targets;
+    }
+    /**
+     * Set targets where to drop
+     */
+    setTargetsFct(targets) {
+        this.options.targets = targets;
+    }
+    /**
+     * Destroy the current drag&drop instance
+     */
+    destroy() {
+        this.pressManager.destroy();
+    }
+    isLeftTopElement(element) {
+        for (let Type of DragElementLeftTopType) {
+            if (element instanceof Type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    isXYElement(element) {
+        for (let Type of DragElementXYType) {
+            if (element instanceof Type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    getCoordinateFromAttribute(element) {
+        if (this.options.useTransform) {
+            const transform = element.getAttribute("transform");
+            const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
+            const x = tvalue ? parseFloat(tvalue[1]) : 0;
+            const y = tvalue ? parseFloat(tvalue[2]) : 0;
+            return {
+                x: x,
+                y: y
+            };
+        }
+        return {
+            x: parseFloat(element.getAttribute("x")),
+            y: parseFloat(element.getAttribute("y"))
+        };
+    }
+    XYElementToRelativeBox(element) {
+        let coordinates = this.getCoordinateFromAttribute(element);
+        const width = parseFloat(element.getAttribute("width"));
+        const height = parseFloat(element.getAttribute("height"));
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    XYElementToAbsoluteBox(element) {
+        let coordinates = this.getCoordinateFromAttribute(element);
+        const parent = this.getOffsetParent(element);
+        if (parent) {
+            const box = parent.getBoundingClientRect();
+            coordinates = {
+                x: coordinates.x + box.x,
+                y: coordinates.y + box.y
+            };
+        }
+        const width = parseFloat(element.getAttribute("width"));
+        const height = parseFloat(element.getAttribute("height"));
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getBoundingBoxAbsolute(element) {
+        if (this.isLeftTopElement(element)) {
+            if (element instanceof HTMLElement) {
+                const bounds = element.getBoundingClientRect();
+                return {
+                    x: bounds.x,
+                    y: bounds.y,
+                    width: bounds.width,
+                    height: bounds.height,
+                    bottom: bounds.bottom,
+                    right: bounds.right,
+                    top: bounds.top,
+                    left: bounds.left,
+                    toJSON() {
+                        return JSON.stringify(this);
+                    }
+                };
+            }
+        }
+        else if (this.isXYElement(element)) {
+            return this.XYElementToAbsoluteBox(element);
+        }
+        const parent = this.getOffsetParent(element);
+        if (parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
+            return {
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
+                toJSON() {
+                    return JSON.stringify(this);
+                }
+            };
+        }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getBoundingBoxRelative(element) {
+        if (this.isLeftTopElement(element)) {
+            if (element instanceof HTMLElement) {
+                return {
+                    x: element.offsetLeft,
+                    y: element.offsetTop,
+                    width: element.offsetWidth,
+                    height: element.offsetHeight,
+                    bottom: element.offsetTop + element.offsetHeight,
+                    right: element.offsetLeft + element.offsetWidth,
+                    top: element.offsetTop,
+                    left: element.offsetLeft,
+                    toJSON() {
+                        return JSON.stringify(this);
+                    }
+                };
+            }
+        }
+        else if (this.isXYElement(element)) {
+            return this.XYElementToRelativeBox(element);
+        }
+        const parent = this.getOffsetParent(element);
+        if (parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
+            return {
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
+                toJSON() {
+                    return JSON.stringify(this);
+                }
+            };
+        }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getOffsetParent(element) {
+        if (element instanceof HTMLElement) {
+            return element.offsetParent;
+        }
+        let current = element.parentNode;
+        while (current) {
+            if (current instanceof Element) {
+                const style = getComputedStyle(current);
+                if (style.position !== 'static') {
+                    return current;
+                }
+            }
+            if (current instanceof ShadowRoot) {
+                current = current.host;
+            }
+            else {
+                current = current.parentNode;
+            }
+        }
+        return null;
+    }
+}
+DragAndDrop.Namespace=`Aventus`;
+__as1(_, 'DragAndDrop', DragAndDrop);
+
+let ResourceLoader=class ResourceLoader {
+    static headerLoaded = {};
+    static headerWaiting = {};
+    /**
+     * Load the resource inside the head tag
+     */
+    static async loadInHead(options) {
+        const _options = this.prepareOptions(options);
+        if (this.headerLoaded[_options.url]) {
+            return true;
+        }
+        else if (this.headerWaiting.hasOwnProperty(_options.url)) {
+            return await this.awaitFctHead(_options.url);
+        }
+        else {
+            this.headerWaiting[_options.url] = [];
+            let tagEl;
+            if (_options.type == "js") {
+                tagEl = document.createElement("SCRIPT");
+            }
+            else if (_options.type == "css") {
+                tagEl = document.createElement("LINK");
+                tagEl.setAttribute("rel", "stylesheet");
+            }
+            else {
+                throw "unknow type " + _options.type + " to append into head";
+            }
+            if (_options.nonce) {
+                tagEl.setAttribute("nonce", _options.nonce);
+            }
+            document.head.appendChild(tagEl);
+            let result = await this.loadTag(tagEl, _options.url);
+            this.headerLoaded[_options.url] = true;
+            this.releaseAwaitFctHead(_options.url, result);
+            return result;
+        }
+    }
+    static loadTag(tagEl, url) {
+        return new Promise((resolve, reject) => {
+            tagEl.addEventListener("load", (e) => {
+                resolve(true);
+            });
+            tagEl.addEventListener("error", (e) => {
+                resolve(false);
+            });
+            if (tagEl instanceof HTMLLinkElement) {
+                tagEl.setAttribute("href", url);
+            }
+            else {
+                tagEl.setAttribute('src', url);
+            }
+        });
+    }
+    static releaseAwaitFctHead(url, result) {
+        if (this.headerWaiting[url]) {
+            for (let i = 0; i < this.headerWaiting[url].length; i++) {
+                this.headerWaiting[url][i](result);
+            }
+            delete this.headerWaiting[url];
+        }
+    }
+    static awaitFctHead(url) {
+        return new Promise((resolve) => {
+            this.headerWaiting[url].push((result) => {
+                resolve(result);
+            });
+        });
+    }
+    static requestLoaded = {};
+    static requestWaiting = {};
+    /**
+     *
+    */
+    static async load(options) {
+        options = this.prepareOptions(options);
+        if (this.requestLoaded[options.url]) {
+            return this.requestLoaded[options.url];
+        }
+        else if (this.requestWaiting.hasOwnProperty(options.url)) {
+            await this.awaitFct(options.url);
+            return this.requestLoaded[options.url];
+        }
+        else {
+            this.requestWaiting[options.url] = [];
+            let blob = false;
+            if (options.type == "img") {
+                blob = true;
+            }
+            let content = await this.fetching(options.url, blob);
+            if (options.type == "img" && content.startsWith("data:text/html;")) {
+                console.error("Can't load img " + options.url);
+                content = "";
+            }
+            this.requestLoaded[options.url] = content;
+            this.releaseAwaitFct(options.url);
+            return content;
+        }
+    }
+    static releaseAwaitFct(url) {
+        if (this.requestWaiting[url]) {
+            for (let i = 0; i < this.requestWaiting[url].length; i++) {
+                this.requestWaiting[url][i]();
+            }
+            delete this.requestWaiting[url];
+        }
+    }
+    static awaitFct(url) {
+        return new Promise((resolve) => {
+            this.requestWaiting[url].push(() => {
+                resolve('');
+            });
+        });
+    }
+    static async fetching(url, useBlob = false) {
+        if (useBlob) {
+            let result = await fetch(url, {
+                headers: {
+                    responseType: 'blob'
+                }
+            });
+            let blob = await result.blob();
+            return await this.readFile(blob);
+        }
+        else {
+            let result = await fetch(url);
+            return await result.text();
+        }
+    }
+    static readFile(blob) {
+        return new Promise((resolve) => {
+            var reader = new FileReader();
+            reader.onloadend = function () {
+                resolve(reader.result);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+    static imgExtensions = ["png", "jpg", "jpeg", "gif"];
+    static prepareOptions(options) {
+        let result;
+        if (typeof options === 'string' || options instanceof String) {
+            result = {
+                url: options,
+                type: 'js'
+            };
+            let splittedURI = result.url.split('.');
+            let extension = splittedURI[splittedURI.length - 1];
+            extension = extension.split("?")[0];
+            if (extension == "svg") {
+                result.type = 'svg';
+            }
+            else if (extension == "js") {
+                result.type = 'js';
+            }
+            else if (extension == "css") {
+                result.type = 'css';
+            }
+            else if (this.imgExtensions.indexOf(extension) != -1) {
+                result.type = 'img';
+            }
+            else {
+                delete result.type;
+            }
+        }
+        else {
+            result = options;
+        }
+        return result;
+    }
+}
+ResourceLoader.Namespace=`Aventus`;
+__as1(_, 'ResourceLoader', ResourceLoader);
+
 let ConverterTransform=class ConverterTransform {
     transform(data) {
         return this.transformLoop(data);
@@ -5845,882 +6729,6 @@ let HttpRoute=class HttpRoute {
 HttpRoute.Namespace=`Aventus`;
 __as1(_, 'HttpRoute', HttpRoute);
 
-let ResizeObserver=class ResizeObserver {
-    callback;
-    targets;
-    fpsInterval = -1;
-    nextFrame;
-    entriesChangedEvent;
-    willTrigger;
-    static resizeObserverClassByObject = {};
-    static uniqueInstance;
-    static getUniqueInstance() {
-        if (!ResizeObserver.uniqueInstance) {
-            ResizeObserver.uniqueInstance = new window.ResizeObserver(entries => {
-                let allClasses = [];
-                for (let j = 0; j < entries.length; j++) {
-                    let entry = entries[j];
-                    const target = entry.target;
-                    let index = target['sourceIndex'];
-                    if (ResizeObserver.resizeObserverClassByObject[index]) {
-                        for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
-                            let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
-                            classTemp.entryChanged(entry);
-                            if (allClasses.indexOf(classTemp) == -1) {
-                                allClasses.push(classTemp);
-                            }
-                        }
-                    }
-                }
-                for (let i = 0; i < allClasses.length; i++) {
-                    allClasses[i].triggerCb();
-                }
-            });
-        }
-        return ResizeObserver.uniqueInstance;
-    }
-    constructor(options) {
-        let realOption;
-        if (options instanceof Function) {
-            realOption = {
-                callback: options,
-            };
-        }
-        else {
-            realOption = options;
-        }
-        this.callback = realOption.callback;
-        this.targets = [];
-        if (!realOption.fps) {
-            realOption.fps = 60;
-        }
-        if (realOption.fps != -1) {
-            this.fpsInterval = 1000 / realOption.fps;
-        }
-        this.nextFrame = 0;
-        this.entriesChangedEvent = {};
-        this.willTrigger = false;
-    }
-    /**
-     * Observe size changing for the element
-     */
-    observe(target) {
-        const _target = target;
-        if (!_target["sourceIndex"]) {
-            _target["sourceIndex"] = Math.random().toString(36);
-            this.targets.push(_target);
-            ResizeObserver.getUniqueInstance().observe(_target);
-        }
-        if (!ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]]) {
-            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]] = [];
-        }
-        if (ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].indexOf(this) == -1) {
-            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].push(this);
-        }
-    }
-    /**
-     * Stop observing size changing for the element
-     */
-    unobserve(target) {
-        const _target = target;
-        for (let i = 0; this.targets.length; i++) {
-            let tempTarget = this.targets[i];
-            if (tempTarget == _target) {
-                let position = ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].indexOf(this);
-                if (position != -1) {
-                    ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].splice(position, 1);
-                }
-                if (ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].length == 0) {
-                    delete ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
-                }
-                ResizeObserver.getUniqueInstance().unobserve(_target);
-                this.targets.splice(i, 1);
-                return;
-            }
-        }
-    }
-    /**
-     * Destroy the resize observer
-     */
-    disconnect() {
-        for (let i = 0; this.targets.length; i++) {
-            this.unobserve(this.targets[i]);
-        }
-    }
-    entryChanged(entry) {
-        const _target = entry.target;
-        let index = _target.sourceIndex;
-        this.entriesChangedEvent[index] = entry;
-    }
-    triggerCb() {
-        if (!this.willTrigger) {
-            this.willTrigger = true;
-            this._triggerCb();
-        }
-    }
-    _triggerCb() {
-        let now = window.performance.now();
-        let elapsed = now - this.nextFrame;
-        if (this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
-            requestAnimationFrame(() => {
-                this._triggerCb();
-            });
-            return;
-        }
-        this.nextFrame = now - (elapsed % this.fpsInterval);
-        let changed = Object.values(this.entriesChangedEvent);
-        this.entriesChangedEvent = {};
-        this.willTrigger = false;
-        setTimeout(() => {
-            this.callback(changed, ResizeObserver.uniqueInstance);
-        }, 0);
-    }
-}
-ResizeObserver.Namespace=`Aventus`;
-__as1(_, 'ResizeObserver', ResizeObserver);
-
-let DragAndDrop=class DragAndDrop {
-    /**
-     * Default offset before drag element
-     */
-    static defaultOffsetDrag = 20;
-    pressManager;
-    options;
-    startCursorPosition = { x: 0, y: 0 };
-    startElementPosition = { x: 0, y: 0 };
-    isEnable = true;
-    draggableElement;
-    constructor(options) {
-        this.options = this.getDefaultOptions(options.element);
-        this.mergeProperties(options);
-        this.mergeFunctions(options);
-        this.options.elementTrigger.style.touchAction = 'none';
-        this.pressManager = new PressManager({
-            element: this.options.elementTrigger,
-            onPressStart: this.onPressStart.bind(this),
-            onPressEnd: this.onPressEnd.bind(this),
-            onDragStart: this.onDragStart.bind(this),
-            onDrag: this.onDrag.bind(this),
-            onDragEnd: this.onDragEnd.bind(this),
-            offsetDrag: this.options.offsetDrag,
-            dragDirection: this.options.dragDirection,
-            stopPropagation: this.options.stopPropagation
-        });
-    }
-    getDefaultOptions(element) {
-        return {
-            applyDrag: true,
-            element: element,
-            elementTrigger: element,
-            offsetDrag: DragAndDrop.defaultOffsetDrag,
-            dragDirection: 'XY',
-            shadow: {
-                enable: false,
-                container: document.body,
-                removeOnStop: true,
-                transform: () => { },
-                delete: (el) => {
-                    el.remove();
-                }
-            },
-            strict: false,
-            targets: [],
-            usePercent: false,
-            stopPropagation: true,
-            useMouseFinalPosition: false,
-            useTransform: false,
-            isDragEnable: () => true,
-            getZoom: () => 1,
-            getOffsetX: () => 0,
-            getOffsetY: () => 0,
-            onPointerDown: (e) => { },
-            onPointerUp: (e) => { },
-            onStart: (e) => { },
-            onMove: (e) => { },
-            onStop: (e) => { },
-            onDrop: (element, targets) => { },
-            correctPosition: (position) => position
-        };
-    }
-    mergeProperties(options) {
-        if (options.element === void 0) {
-            throw "You must define the element for the drag&drop";
-        }
-        this.options.element = options.element;
-        if (options.elementTrigger === void 0) {
-            this.options.elementTrigger = this.options.element;
-        }
-        else {
-            this.options.elementTrigger = options.elementTrigger;
-        }
-        this.defaultMerge(options, "applyDrag");
-        this.defaultMerge(options, "offsetDrag");
-        this.defaultMerge(options, "dragDirection");
-        this.defaultMerge(options, "strict");
-        this.defaultMerge(options, "targets");
-        this.defaultMerge(options, "usePercent");
-        this.defaultMerge(options, "stopPropagation");
-        this.defaultMerge(options, "useMouseFinalPosition");
-        this.defaultMerge(options, "useTransform");
-        if (options.shadow !== void 0) {
-            this.options.shadow.enable = options.shadow.enable;
-            if (options.shadow.container !== void 0) {
-                this.options.shadow.container = options.shadow.container;
-            }
-            else {
-                this.options.shadow.container = document.body;
-            }
-            if (options.shadow.removeOnStop !== void 0) {
-                this.options.shadow.removeOnStop = options.shadow.removeOnStop;
-            }
-            if (options.shadow.transform !== void 0) {
-                this.options.shadow.transform = options.shadow.transform;
-            }
-            if (options.shadow.delete !== void 0) {
-                this.options.shadow.delete = options.shadow.delete;
-            }
-        }
-    }
-    mergeFunctions(options) {
-        this.defaultMerge(options, "isDragEnable");
-        this.defaultMerge(options, "getZoom");
-        this.defaultMerge(options, "getOffsetX");
-        this.defaultMerge(options, "getOffsetY");
-        this.defaultMerge(options, "onPointerDown");
-        this.defaultMerge(options, "onPointerUp");
-        this.defaultMerge(options, "onStart");
-        this.defaultMerge(options, "onMove");
-        this.defaultMerge(options, "onStop");
-        this.defaultMerge(options, "onDrop");
-        this.defaultMerge(options, "correctPosition");
-    }
-    defaultMerge(options, name) {
-        if (options[name] !== void 0) {
-            const opts = this.options;
-            opts[name] = options[name];
-        }
-    }
-    positionShadowRelativeToElement = { x: 0, y: 0 };
-    onPressStart(e) {
-        this.options.onPointerDown(e);
-    }
-    onPressEnd(e) {
-        this.options.onPointerUp(e);
-    }
-    onDragStart(e) {
-        this.isEnable = this.options.isDragEnable();
-        if (!this.isEnable) {
-            return false;
-        }
-        let draggableElement = this.options.element;
-        this.startCursorPosition = {
-            x: e.pageX,
-            y: e.pageY
-        };
-        this.startElementPosition = this.getBoundingBoxRelative(draggableElement);
-        if (this.options.shadow.enable) {
-            draggableElement = this.options.element.cloneNode(true);
-            let elBox = this.options.element.getBoundingClientRect();
-            let containerBox = this.options.shadow.container.getBoundingClientRect();
-            this.positionShadowRelativeToElement = {
-                x: elBox.x - containerBox.x,
-                y: elBox.y - containerBox.y
-            };
-            if (this.options.applyDrag) {
-                draggableElement.style.position = "absolute";
-                draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
-                draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
-                this.options.shadow.transform(draggableElement);
-                this.options.shadow.container.appendChild(draggableElement);
-            }
-        }
-        this.draggableElement = draggableElement;
-        const result = this.options.onStart(e);
-        if (result !== false) {
-            document.body.style.userSelect = 'none';
-            if (window.getSelection) {
-                window.getSelection()?.removeAllRanges();
-            }
-        }
-        return result;
-    }
-    onDrag(e) {
-        if (!this.isEnable) {
-            return;
-        }
-        let zoom = this.options.getZoom();
-        let diff = {
-            x: 0,
-            y: 0
-        };
-        if (this.options.shadow.enable) {
-            diff = {
-                x: (e.pageX - this.startCursorPosition.x) + this.positionShadowRelativeToElement.x + this.options.getOffsetX(),
-                y: (e.pageY - this.startCursorPosition.y) + this.positionShadowRelativeToElement.y + this.options.getOffsetY(),
-            };
-        }
-        else {
-            diff = {
-                x: (e.pageX - this.startCursorPosition.x) / zoom + this.startElementPosition.x + this.options.getOffsetX(),
-                y: (e.pageY - this.startCursorPosition.y) / zoom + this.startElementPosition.y + this.options.getOffsetY()
-            };
-        }
-        let newPos = this.setPosition(diff);
-        this.options.onMove(e, newPos);
-    }
-    onDragEnd(e) {
-        if (!this.isEnable) {
-            return;
-        }
-        document.body.style.userSelect = '';
-        let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
-            x: e.clientX,
-            y: e.clientY
-        }) : this.getMatchingTargets();
-        let draggableElement = this.draggableElement;
-        if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
-            this.options.shadow.delete(draggableElement);
-        }
-        if (targets.length > 0) {
-            this.options.onDrop(this.options.element, targets);
-        }
-        this.options.onStop(e);
-    }
-    setPosition(position) {
-        let draggableElement = this.draggableElement;
-        if (this.options.usePercent) {
-            let elementParent = this.getOffsetParent(draggableElement);
-            if (elementParent instanceof HTMLElement) {
-                let percentPosition = {
-                    x: (position.x / elementParent.offsetWidth) * 100,
-                    y: (position.y / elementParent.offsetHeight) * 100
-                };
-                percentPosition = this.options.correctPosition(percentPosition);
-                if (this.options.applyDrag) {
-                    draggableElement.style.left = percentPosition.x + '%';
-                    draggableElement.style.top = percentPosition.y + '%';
-                }
-                return percentPosition;
-            }
-            else {
-                console.error("Can't find parent. Contact an admin", draggableElement);
-            }
-        }
-        else {
-            position = this.options.correctPosition(position);
-            if (this.options.applyDrag) {
-                if (this.isLeftTopElement(draggableElement)) {
-                    draggableElement.style.left = position.x + 'px';
-                    draggableElement.style.top = position.y + 'px';
-                }
-                else {
-                    if (this.options.useTransform) {
-                        draggableElement.setAttribute("transform", `translate(${position.x},${position.y})`);
-                    }
-                    else {
-                        draggableElement.style.left = position.x + 'px';
-                        draggableElement.style.top = position.y + 'px';
-                    }
-                }
-            }
-        }
-        return position;
-    }
-    getTargets() {
-        if (typeof this.options.targets == "function") {
-            return this.options.targets();
-        }
-        else {
-            return this.options.targets;
-        }
-    }
-    /**
-     * Get targets within the current element position is matching
-     */
-    getMatchingTargets() {
-        let draggableElement = this.draggableElement;
-        let matchingTargets = [];
-        let srcTargets = this.getTargets();
-        for (let target of srcTargets) {
-            let elementCoordinates = this.getBoundingBoxAbsolute(draggableElement);
-            let targetCoordinates = this.getBoundingBoxAbsolute(target);
-            let offsetX = this.options.getOffsetX();
-            let offsetY = this.options.getOffsetY();
-            let zoom = this.options.getZoom();
-            targetCoordinates.x += offsetX;
-            targetCoordinates.y += offsetY;
-            targetCoordinates.width *= zoom;
-            targetCoordinates.height *= zoom;
-            if (this.options.strict) {
-                if ((elementCoordinates.x >= targetCoordinates.x && elementCoordinates.x + elementCoordinates.width <= targetCoordinates.x + targetCoordinates.width) &&
-                    (elementCoordinates.y >= targetCoordinates.y && elementCoordinates.y + elementCoordinates.height <= targetCoordinates.y + targetCoordinates.height)) {
-                    matchingTargets.push(target);
-                }
-            }
-            else {
-                let elementLeft = elementCoordinates.x;
-                let elementRight = elementCoordinates.x + elementCoordinates.width;
-                let elementTop = elementCoordinates.y;
-                let elementBottom = elementCoordinates.y + elementCoordinates.height;
-                let targetLeft = targetCoordinates.x;
-                let targetRight = targetCoordinates.x + targetCoordinates.width;
-                let targetTop = targetCoordinates.y;
-                let targetBottom = targetCoordinates.y + targetCoordinates.height;
-                if (!(elementRight < targetLeft ||
-                    elementLeft > targetRight ||
-                    elementBottom < targetTop ||
-                    elementTop > targetBottom)) {
-                    matchingTargets.push(target);
-                }
-            }
-        }
-        return matchingTargets;
-    }
-    /**
-     * This function will return the targets that are matching with the mouse position
-     * @param mouse The mouse position
-     */
-    getMatchingTargetsWithMousePosition(mouse) {
-        let matchingTargets = [];
-        if (this.options.shadow.enable == false || this.options.shadow.container == null) {
-            console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
-            return matchingTargets;
-        }
-        const container = this.options.shadow.container;
-        let xCorrected = mouse.x - container.getBoundingClientRect().left;
-        let yCorrected = mouse.y - container.getBoundingClientRect().top;
-        for (let target of this.getTargets()) {
-            if (this.isLeftTopElement(target)) {
-                if (this.matchPosition(target, { x: mouse.x, y: mouse.y })) {
-                    matchingTargets.push(target);
-                }
-            }
-            else {
-                if (this.matchPosition(target, { x: xCorrected, y: yCorrected })) {
-                    matchingTargets.push(target);
-                }
-            }
-        }
-        return matchingTargets;
-    }
-    matchPosition(element, point) {
-        let elementCoordinates = this.getBoundingBoxAbsolute(element);
-        if (point.x >= elementCoordinates.x &&
-            point.x <= elementCoordinates.x + elementCoordinates.width &&
-            point.y >= elementCoordinates.y &&
-            point.y <= elementCoordinates.y + elementCoordinates.height) {
-            return true;
-        }
-        return false;
-    }
-    /**
-     * Get element currently dragging
-     */
-    getElementDrag() {
-        return this.options.element;
-    }
-    /**
-     * Set targets where to drop
-     */
-    setTargets(targets) {
-        this.options.targets = targets;
-    }
-    /**
-     * Set targets where to drop
-     */
-    setTargetsFct(targets) {
-        this.options.targets = targets;
-    }
-    /**
-     * Destroy the current drag&drop instance
-     */
-    destroy() {
-        this.pressManager.destroy();
-    }
-    isLeftTopElement(element) {
-        for (let Type of DragElementLeftTopType) {
-            if (element instanceof Type) {
-                return true;
-            }
-        }
-        return false;
-    }
-    isXYElement(element) {
-        for (let Type of DragElementXYType) {
-            if (element instanceof Type) {
-                return true;
-            }
-        }
-        return false;
-    }
-    getCoordinateFromAttribute(element) {
-        if (this.options.useTransform) {
-            const transform = element.getAttribute("transform");
-            const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
-            const x = tvalue ? parseFloat(tvalue[1]) : 0;
-            const y = tvalue ? parseFloat(tvalue[2]) : 0;
-            return {
-                x: x,
-                y: y
-            };
-        }
-        return {
-            x: parseFloat(element.getAttribute("x")),
-            y: parseFloat(element.getAttribute("y"))
-        };
-    }
-    XYElementToRelativeBox(element) {
-        let coordinates = this.getCoordinateFromAttribute(element);
-        const width = parseFloat(element.getAttribute("width"));
-        const height = parseFloat(element.getAttribute("height"));
-        return {
-            x: coordinates.x,
-            y: coordinates.y,
-            width: width,
-            height: height,
-            bottom: coordinates.y + height,
-            right: coordinates.x + width,
-            top: coordinates.y,
-            left: coordinates.x,
-            toJSON() {
-                return JSON.stringify(this);
-            }
-        };
-    }
-    XYElementToAbsoluteBox(element) {
-        let coordinates = this.getCoordinateFromAttribute(element);
-        const parent = this.getOffsetParent(element);
-        if (parent) {
-            const box = parent.getBoundingClientRect();
-            coordinates = {
-                x: coordinates.x + box.x,
-                y: coordinates.y + box.y
-            };
-        }
-        const width = parseFloat(element.getAttribute("width"));
-        const height = parseFloat(element.getAttribute("height"));
-        return {
-            x: coordinates.x,
-            y: coordinates.y,
-            width: width,
-            height: height,
-            bottom: coordinates.y + height,
-            right: coordinates.x + width,
-            top: coordinates.y,
-            left: coordinates.x,
-            toJSON() {
-                return JSON.stringify(this);
-            }
-        };
-    }
-    getBoundingBoxAbsolute(element) {
-        if (this.isLeftTopElement(element)) {
-            if (element instanceof HTMLElement) {
-                const bounds = element.getBoundingClientRect();
-                return {
-                    x: bounds.x,
-                    y: bounds.y,
-                    width: bounds.width,
-                    height: bounds.height,
-                    bottom: bounds.bottom,
-                    right: bounds.right,
-                    top: bounds.top,
-                    left: bounds.left,
-                    toJSON() {
-                        return JSON.stringify(this);
-                    }
-                };
-            }
-        }
-        else if (this.isXYElement(element)) {
-            return this.XYElementToAbsoluteBox(element);
-        }
-        const parent = this.getOffsetParent(element);
-        if (parent instanceof HTMLElement) {
-            const rect = element.getBoundingClientRect();
-            const rectParent = parent.getBoundingClientRect();
-            const x = rect.left - rectParent.left;
-            const y = rect.top - rectParent.top;
-            return {
-                x: x,
-                y: y,
-                width: rect.width,
-                height: rect.height,
-                bottom: y + rect.height,
-                right: x + rect.width,
-                left: rect.left - rectParent.left,
-                top: rect.top - rectParent.top,
-                toJSON() {
-                    return JSON.stringify(this);
-                }
-            };
-        }
-        console.error("Element type not supported");
-        return {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0,
-            bottom: 0,
-            right: 0,
-            top: 0,
-            left: 0,
-            toJSON() {
-                return JSON.stringify(this);
-            }
-        };
-    }
-    getBoundingBoxRelative(element) {
-        if (this.isLeftTopElement(element)) {
-            if (element instanceof HTMLElement) {
-                return {
-                    x: element.offsetLeft,
-                    y: element.offsetTop,
-                    width: element.offsetWidth,
-                    height: element.offsetHeight,
-                    bottom: element.offsetTop + element.offsetHeight,
-                    right: element.offsetLeft + element.offsetWidth,
-                    top: element.offsetTop,
-                    left: element.offsetLeft,
-                    toJSON() {
-                        return JSON.stringify(this);
-                    }
-                };
-            }
-        }
-        else if (this.isXYElement(element)) {
-            return this.XYElementToRelativeBox(element);
-        }
-        const parent = this.getOffsetParent(element);
-        if (parent instanceof HTMLElement) {
-            const rect = element.getBoundingClientRect();
-            const rectParent = parent.getBoundingClientRect();
-            const x = rect.left - rectParent.left;
-            const y = rect.top - rectParent.top;
-            return {
-                x: x,
-                y: y,
-                width: rect.width,
-                height: rect.height,
-                bottom: y + rect.height,
-                right: x + rect.width,
-                left: rect.left - rectParent.left,
-                top: rect.top - rectParent.top,
-                toJSON() {
-                    return JSON.stringify(this);
-                }
-            };
-        }
-        console.error("Element type not supported");
-        return {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0,
-            bottom: 0,
-            right: 0,
-            top: 0,
-            left: 0,
-            toJSON() {
-                return JSON.stringify(this);
-            }
-        };
-    }
-    getOffsetParent(element) {
-        if (element instanceof HTMLElement) {
-            return element.offsetParent;
-        }
-        let current = element.parentNode;
-        while (current) {
-            if (current instanceof Element) {
-                const style = getComputedStyle(current);
-                if (style.position !== 'static') {
-                    return current;
-                }
-            }
-            if (current instanceof ShadowRoot) {
-                current = current.host;
-            }
-            else {
-                current = current.parentNode;
-            }
-        }
-        return null;
-    }
-}
-DragAndDrop.Namespace=`Aventus`;
-__as1(_, 'DragAndDrop', DragAndDrop);
-
-let ResourceLoader=class ResourceLoader {
-    static headerLoaded = {};
-    static headerWaiting = {};
-    /**
-     * Load the resource inside the head tag
-     */
-    static async loadInHead(options) {
-        const _options = this.prepareOptions(options);
-        if (this.headerLoaded[_options.url]) {
-            return true;
-        }
-        else if (this.headerWaiting.hasOwnProperty(_options.url)) {
-            return await this.awaitFctHead(_options.url);
-        }
-        else {
-            this.headerWaiting[_options.url] = [];
-            let tagEl;
-            if (_options.type == "js") {
-                tagEl = document.createElement("SCRIPT");
-            }
-            else if (_options.type == "css") {
-                tagEl = document.createElement("LINK");
-                tagEl.setAttribute("rel", "stylesheet");
-            }
-            else {
-                throw "unknow type " + _options.type + " to append into head";
-            }
-            document.head.appendChild(tagEl);
-            let result = await this.loadTag(tagEl, _options.url);
-            this.headerLoaded[_options.url] = true;
-            this.releaseAwaitFctHead(_options.url, result);
-            return result;
-        }
-    }
-    static loadTag(tagEl, url) {
-        return new Promise((resolve, reject) => {
-            tagEl.addEventListener("load", (e) => {
-                resolve(true);
-            });
-            tagEl.addEventListener("error", (e) => {
-                resolve(false);
-            });
-            if (tagEl instanceof HTMLLinkElement) {
-                tagEl.setAttribute("href", url);
-            }
-            else {
-                tagEl.setAttribute('src', url);
-            }
-        });
-    }
-    static releaseAwaitFctHead(url, result) {
-        if (this.headerWaiting[url]) {
-            for (let i = 0; i < this.headerWaiting[url].length; i++) {
-                this.headerWaiting[url][i](result);
-            }
-            delete this.headerWaiting[url];
-        }
-    }
-    static awaitFctHead(url) {
-        return new Promise((resolve) => {
-            this.headerWaiting[url].push((result) => {
-                resolve(result);
-            });
-        });
-    }
-    static requestLoaded = {};
-    static requestWaiting = {};
-    /**
-     *
-    */
-    static async load(options) {
-        options = this.prepareOptions(options);
-        if (this.requestLoaded[options.url]) {
-            return this.requestLoaded[options.url];
-        }
-        else if (this.requestWaiting.hasOwnProperty(options.url)) {
-            await this.awaitFct(options.url);
-            return this.requestLoaded[options.url];
-        }
-        else {
-            this.requestWaiting[options.url] = [];
-            let blob = false;
-            if (options.type == "img") {
-                blob = true;
-            }
-            let content = await this.fetching(options.url, blob);
-            if (options.type == "img" && content.startsWith("data:text/html;")) {
-                console.error("Can't load img " + options.url);
-                content = "";
-            }
-            this.requestLoaded[options.url] = content;
-            this.releaseAwaitFct(options.url);
-            return content;
-        }
-    }
-    static releaseAwaitFct(url) {
-        if (this.requestWaiting[url]) {
-            for (let i = 0; i < this.requestWaiting[url].length; i++) {
-                this.requestWaiting[url][i]();
-            }
-            delete this.requestWaiting[url];
-        }
-    }
-    static awaitFct(url) {
-        return new Promise((resolve) => {
-            this.requestWaiting[url].push(() => {
-                resolve('');
-            });
-        });
-    }
-    static async fetching(url, useBlob = false) {
-        if (useBlob) {
-            let result = await fetch(url, {
-                headers: {
-                    responseType: 'blob'
-                }
-            });
-            let blob = await result.blob();
-            return await this.readFile(blob);
-        }
-        else {
-            let result = await fetch(url);
-            return await result.text();
-        }
-    }
-    static readFile(blob) {
-        return new Promise((resolve) => {
-            var reader = new FileReader();
-            reader.onloadend = function () {
-                resolve(reader.result);
-            };
-            reader.readAsDataURL(blob);
-        });
-    }
-    static imgExtensions = ["png", "jpg", "jpeg", "gif"];
-    static prepareOptions(options) {
-        let result;
-        if (typeof options === 'string' || options instanceof String) {
-            result = {
-                url: options,
-                type: 'js'
-            };
-            let splittedURI = result.url.split('.');
-            let extension = splittedURI[splittedURI.length - 1];
-            extension = extension.split("?")[0];
-            if (extension == "svg") {
-                result.type = 'svg';
-            }
-            else if (extension == "js") {
-                result.type = 'js';
-            }
-            else if (extension == "css") {
-                result.type = 'css';
-            }
-            else if (this.imgExtensions.indexOf(extension) != -1) {
-                result.type = 'img';
-            }
-            else {
-                delete result.type;
-            }
-        }
-        else {
-            result = options;
-        }
-        return result;
-    }
-}
-ResourceLoader.Namespace=`Aventus`;
-__as1(_, 'ResourceLoader', ResourceLoader);
-
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
@@ -7064,12 +7072,14 @@ const _ = {};
 
 let Layout = {};
 _.Layout = Aventus.Layout ?? {};
-let Lib = {};
-_.Lib = Aventus.Lib ?? {};
 let Form = {};
 _.Form = Aventus.Form ?? {};
+let Lib = {};
+_.Lib = Aventus.Lib ?? {};
 let Modal = {};
 _.Modal = Aventus.Modal ?? {};
+let Toast = {};
+_.Toast = Aventus.Toast ?? {};
 let _n;
 const Img = class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -7281,6 +7291,181 @@ Layout.Row.Tag=`av-row`;
 __as1(_.Layout, 'Row', Layout.Row);
 if(!window.customElements.get('av-row')){window.customElements.define('av-row', Layout.Row);Aventus.WebComponentInstance.registerDefinition(Layout.Row);}
 
+Form.FormElement = class FormElement extends Aventus.WebComponent {
+    static get observedAttributes() {return ["disabled"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'has_errors'() { return this.getBoolAttr('has_errors') }
+    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }    get 'disabled'() { return this.getBoolProp('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }    get 'value'() {
+						return this.__watch["value"];
+					}
+					set 'value'(val) {
+						this.__watch["value"] = val;
+					}get 'errors'() {
+						return this.__watch["errors"];
+					}
+					set 'errors'(val) {
+						this.__watch["errors"] = val;
+					}    static get formAssociated() { return true; }
+    _form;
+    get form() {
+        return this._form;
+    }
+    set form(value) {
+        this.unlinkFormPart();
+        this._form = value;
+        this.linkFormPart();
+    }
+    internals;
+    canLinkValueToForm = false;
+    handler = undefined;
+    onChange = new Aventus.Callback();
+    __registerWatchesActions() {
+    this.__addWatchesActions("value", ((target) => {
+    target.onValueChange(target.value);
+}));this.__addWatchesActions("errors", ((target) => {
+    target.onErrorsChange();
+}));    super.__registerWatchesActions();
+}
+    static __style = ``;
+    constructor() {
+        super();
+        this.internals = this.attachInternals();
+        if (this.constructor == FormElement) {
+            throw "can't instanciate an abstract class";
+        }
+        this.refreshValueFromForm = this.refreshValueFromForm.bind(this);
+        this.onFormValidation = this.onFormValidation.bind(this);
+    }
+    __getStatic() {
+        return FormElement;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(FormElement.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "FormElement";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;w["errors"] = []; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');this.__upgradeProperty('has_errors');this.__upgradeProperty('disabled');this.__correctGetter('value');this.__correctGetter('errors'); }
+    __listBoolProps() { return ["has_errors","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    refreshValueFromForm() {
+        if (this._form) {
+            this.errors = [];
+            this.value = this._form.value.get();
+        }
+    }
+    unlinkFormPart() {
+        if (this._form) {
+            this._form.unregister(this);
+            this._form.onValueChange.remove(this.refreshValueFromForm);
+            this._form.onValidation.remove(this.onFormValidation);
+        }
+    }
+    linkFormPart() {
+        if (this._form) {
+            this._form.register(this);
+            this._form.onValueChange.add(this.refreshValueFromForm);
+            this._form.onValidation.add(this.onFormValidation);
+            this.refreshValueFromForm();
+        }
+        else {
+            this.value = undefined;
+        }
+    }
+    async onFormValidation(errors) {
+        let _errors = await this.validation();
+        if (_errors.length == 0) {
+            _errors = errors;
+        }
+        else if (errors.length > 0) {
+            for (let error of errors) {
+                if (!_errors.includes(error)) {
+                    _errors.push(error);
+                }
+            }
+        }
+        this.errors = _errors;
+        return this.errors;
+    }
+    async validate() {
+        if (!this.form) {
+            this.errors = await this.validation();
+            return this.errors.length == 0;
+        }
+        return await this.form.test();
+    }
+    async validation() {
+        return [];
+    }
+    clearErrors() {
+        this.errors = [];
+    }
+    triggerChange(value) {
+        this.value = value;
+        this.onChange.trigger(this.value);
+        if (this.form) {
+            this.form.value.set(this.value);
+        }
+    }
+    onValueChange(value) {
+        this.linkValueToForm();
+    }
+    onErrorsChange() {
+        this.has_errors = this.errors.length > 0;
+        this.linkErrorToForm();
+    }
+    linkErrorToForm() {
+        if (!this.canLinkValueToForm)
+            return;
+        if (this.has_errors) {
+            this.internals.setValidity({
+                customError: true
+            }, this.errors.join(' & '));
+        }
+        else {
+            this.internals.setValidity({});
+        }
+    }
+    linkValueToForm() {
+        if (!this.canLinkValueToForm)
+            return;
+        if (this.value === undefined) {
+            this.internals.setFormValue(null);
+        }
+        else {
+            this.internals.setFormValue(this.value + '');
+        }
+    }
+    formAssociatedCallback(form) {
+        this.canLinkValueToForm = true;
+        this.linkValueToForm();
+        this.linkErrorToForm();
+        this.validate();
+    }
+    formDisabledCallback(disabled) {
+        this.disabled = disabled;
+    }
+    postCreation() {
+        super.postCreation();
+        let handler = this.findParentByType(_.Form.Form.formElements)?.registerElement(this);
+    }
+    postDestruction() {
+        super.postDestruction();
+        this.unlinkFormPart();
+    }
+}
+Form.FormElement.Namespace=`Aventus.Form`;
+__as1(_.Form, 'FormElement', Form.FormElement);
+
 (function (SpecialTouch) {
     SpecialTouch[SpecialTouch["Backspace"] = 0] = "Backspace";
     SpecialTouch[SpecialTouch["Insert"] = 1] = "Insert";
@@ -7303,80 +7488,373 @@ if(!window.customElements.get('av-row')){window.customElements.define('av-row', 
 })(Lib.SpecialTouch || (Lib.SpecialTouch = {}));
 __as1(_.Lib, 'SpecialTouch', Lib.SpecialTouch);
 
-Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
-    static get observedAttributes() {return ["type"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'type'() { return this.getStringProp('type') }
-    set 'type'(val) { this.setStringAttr('type', val) }    static get formAssociated() { return true; }
-    internals;
-    handler = undefined;
-    static __style = ``;
-    constructor() {
-        super();
-        this.internals = this.attachInternals();
-        if (this.constructor == ButtonElement) {
-            throw "can't instanciate an abstract class";
+Lib.ShortcutManager=class ShortcutManager {
+    /**
+     * Stores registered shortcut callbacks.
+     */
+    static memory = {};
+    /**
+     * List of shortcut key combinations that should automatically prevent default browser behavior.
+     */
+    static autoPrevents = [];
+    /**
+     * Indicates if the ShortcutManager has been initialized.
+     */
+    static isInit = false;
+    /**
+     * Currently pressed keys.
+     */
+    static arrayKeys = [];
+    /**
+     * Stores options for each registered shortcut callback.
+     */
+    static options = new Map();
+    /**
+     * Stores temporarily replaced shortcut callbacks.
+     */
+    static replacingMemory = {};
+    /**
+     * Checks if a given key is a printable character or a space.
+     */
+    static isTxt(touch) {
+        return touch.match(/[a-zA-Z0-9_\+\-]/g) || touch == " ";
+    }
+    /**
+     * Converts a key combination into a standardized string representation.
+     */
+    static getText(combinaison) {
+        let allTouches = [];
+        for (let touch of combinaison) {
+            let realTouch = "";
+            if (typeof touch == "number" && Lib.SpecialTouch[touch] !== undefined) {
+                realTouch = Lib.SpecialTouch[touch];
+            }
+            else if (this.isTxt(touch)) {
+                realTouch = touch;
+            }
+            else {
+                throw "I can't use " + touch + " to add a shortcut";
+            }
+            allTouches.push(realTouch);
+        }
+        allTouches.sort();
+        return allTouches.join("+");
+    }
+    /**
+     * Subscribes a callback function to a specific keyboard shortcut combination.
+     */
+    static subscribe(combinaison, cb, options) {
+        if (!Array.isArray(combinaison)) {
+            combinaison = [combinaison];
+        }
+        let key = this.getText(combinaison);
+        if (options?.replaceTemp) {
+            if (Lib.ShortcutManager.memory[key]) {
+                if (!this.replacingMemory[key]) {
+                    this.replacingMemory[key] = [];
+                }
+                this.replacingMemory[key].push(Lib.ShortcutManager.memory[key]);
+                delete Lib.ShortcutManager.memory[key];
+            }
+        }
+        if (!Lib.ShortcutManager.memory[key]) {
+            Lib.ShortcutManager.memory[key] = [];
+        }
+        if (!Lib.ShortcutManager.memory[key].includes(cb)) {
+            Lib.ShortcutManager.memory[key].push(cb);
+            if (options) {
+                this.options.set(cb, options);
+            }
+        }
+        if (!Lib.ShortcutManager.isInit) {
+            Lib.ShortcutManager.init();
         }
     }
+    /**
+     * Unsubscribes a callback function from a keyboard shortcut combination.
+     */
+    static unsubscribe(combinaison, cb) {
+        if (!Array.isArray(combinaison)) {
+            combinaison = [combinaison];
+        }
+        let key = this.getText(combinaison);
+        if (Lib.ShortcutManager.memory[key]) {
+            let index = Lib.ShortcutManager.memory[key].indexOf(cb);
+            if (index != -1) {
+                Lib.ShortcutManager.memory[key].splice(index, 1);
+                let options = this.options.get(cb);
+                if (options) {
+                    this.options.delete(cb);
+                }
+                if (Lib.ShortcutManager.memory[key].length == 0) {
+                    delete Lib.ShortcutManager.memory[key];
+                    if (options?.replaceTemp) {
+                        if (this.replacingMemory[key]) {
+                            if (this.replacingMemory[key].length > 0) {
+                                Lib.ShortcutManager.memory[key] = this.replacingMemory[key].pop();
+                                if (this.replacingMemory[key].length == 0) {
+                                    delete this.replacingMemory[key];
+                                }
+                            }
+                            else {
+                                delete this.replacingMemory[key];
+                            }
+                        }
+                    }
+                }
+                if (Object.keys(Lib.ShortcutManager.memory).length == 0 && Lib.ShortcutManager.isInit) {
+                    //ShortcutManager.uninit();
+                }
+            }
+        }
+    }
+    /**
+     * Handles keydown events, processing registered shortcuts and preventing default behavior.
+     */
+    static async onKeyDown(e) {
+        if (e.ctrlKey) {
+            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Control];
+            if (!this.arrayKeys.includes(txt)) {
+                this.arrayKeys.push(txt);
+            }
+        }
+        if (e.altKey) {
+            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Alt];
+            if (!this.arrayKeys.includes(txt)) {
+                this.arrayKeys.push(txt);
+            }
+        }
+        if (e.shiftKey) {
+            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Shift];
+            if (!this.arrayKeys.includes(txt)) {
+                this.arrayKeys.push(txt);
+            }
+        }
+        if (this.isTxt(e.key) && !this.arrayKeys.includes(e.key)) {
+            this.arrayKeys.push(e.key);
+        }
+        else if (Lib.SpecialTouch[e.key] !== undefined && !this.arrayKeys.includes(e.key)) {
+            this.arrayKeys.push(e.key);
+        }
+        this.arrayKeys.sort();
+        let key = this.arrayKeys.join("+");
+        if (Lib.ShortcutManager.memory[key]) {
+            let preventDefault = true;
+            for (let cb of Lib.ShortcutManager.memory[key]) {
+                let options = this.options.get(cb);
+                if (options && options.preventDefault === false) {
+                    preventDefault = false;
+                }
+            }
+            this.arrayKeys = [];
+            for (let cb of Lib.ShortcutManager.memory[key]) {
+                const result = await cb();
+                if (result === false) {
+                    preventDefault = result;
+                }
+            }
+            if (preventDefault) {
+                e.preventDefault();
+            }
+        }
+        else if (Lib.ShortcutManager.autoPrevents.includes(key)) {
+            e.preventDefault();
+        }
+    }
+    /**
+     * Handles keyup events, removing the released key from the currently pressed keys.
+     */
+    static onKeyUp(e) {
+        let index = this.arrayKeys.indexOf(e.key);
+        if (index != -1) {
+            this.arrayKeys.splice(index, 1);
+        }
+    }
+    /**
+     * Initializes the ShortcutManager, setting up global event listeners.
+     */
+    static init() {
+        if (Lib.ShortcutManager.isInit)
+            return;
+        Lib.ShortcutManager.isInit = true;
+        this.onKeyDown = this.onKeyDown.bind(this);
+        this.onKeyUp = this.onKeyUp.bind(this);
+        Lib.ShortcutManager.autoPrevents = [
+            this.getText([Lib.SpecialTouch.Control, "s"]),
+            this.getText([Lib.SpecialTouch.Control, "p"]),
+            this.getText([Lib.SpecialTouch.Control, "l"]),
+            this.getText([Lib.SpecialTouch.Control, "k"]),
+            this.getText([Lib.SpecialTouch.Control, "j"]),
+            this.getText([Lib.SpecialTouch.Control, "h"]),
+            this.getText([Lib.SpecialTouch.Control, "g"]),
+            this.getText([Lib.SpecialTouch.Control, "f"]),
+            this.getText([Lib.SpecialTouch.Control, "d"]),
+            this.getText([Lib.SpecialTouch.Control, "o"]),
+            this.getText([Lib.SpecialTouch.Control, "u"]),
+            this.getText([Lib.SpecialTouch.Control, "e"]),
+        ];
+        window.addEventListener("blur", () => {
+            this.arrayKeys = [];
+        });
+        document.body.addEventListener("keydown", this.onKeyDown);
+        document.body.addEventListener("keyup", this.onKeyUp);
+    }
+    /**
+     * Sets key combinations that should automatically prevent default browser behavior.
+     */
+    static setAutoPrevents(combinaisons) {
+        if (!Lib.ShortcutManager.isInit) {
+            this.init();
+        }
+        Lib.ShortcutManager.autoPrevents = [];
+        for (let combinaison of combinaisons) {
+            Lib.ShortcutManager.autoPrevents.push(this.getText(combinaison));
+        }
+    }
+    /**
+     * Deinitializes the ShortcutManager, removing global event listeners.
+     */
+    static uninit() {
+        document.body.removeEventListener("keydown", this.onKeyDown);
+        document.body.removeEventListener("keyup", this.onKeyUp);
+        this.arrayKeys = [];
+        Lib.ShortcutManager.isInit = false;
+    }
+}
+Lib.ShortcutManager.Namespace=`Aventus.Lib`;
+__as1(_.Lib, 'ShortcutManager', Lib.ShortcutManager);
+
+Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
+    get 'options'() {
+						return this.__watch["options"];
+					}
+					set 'options'(val) {
+						this.__watch["options"] = val;
+					}    static defaultCloseWithEsc = true;
+    static defaultCloseWithClick = true;
+    static defaultRejectValue = null;
+    cb;
+    pressManagerClickClose;
+    pressManagerPrevent;
+    __registerWatchesActions() {
+    this.__addWatchesActions("options", ((target, action, path, value) => {
+    target.onOptionsChanged();
+}));    super.__registerWatchesActions();
+}
+    static __style = `:host{align-items:center;display:flex;inset:0;justify-content:center;position:fixed;z-index:60}:host .modal{background-color:#fff;padding:1.5rem;position:relative}`;
+    constructor() {
+        super();
+        this.options = this.configure();
+        if (this.options.closeWithClick === undefined)
+            this.options.closeWithClick = Modal.ModalElement.defaultCloseWithClick;
+        if (this.options.closeWithEsc === undefined)
+            this.options.closeWithEsc = Modal.ModalElement.defaultCloseWithEsc;
+        if (!Object.hasOwn(this.options, "rejectValue")) {
+            this.options.rejectValue = Modal.ModalElement.defaultRejectValue;
+        }
+        if (this.constructor == ModalElement) {
+            throw "can't instanciate an abstract class";
+        }
+        this.close = this.close.bind(this);
+        this.reject = this.reject.bind(this);
+        this.resolve = this.resolve.bind(this);
+    }
     __getStatic() {
-        return ButtonElement;
+        return ModalElement;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(ButtonElement.__style);
+        arrStyle.push(ModalElement.__style);
         return arrStyle;
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
+        blocks: { 'default':`<div class="modal" _id="modalelement_0">	<slot></slot></div>` }
     });
 }
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "modalEl",
+      "ids": [
+        "modalelement_0"
+      ]
+    }
+  ]
+}); }
     getClassName() {
-        return "ButtonElement";
+        return "ModalElement";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = 'button'; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type'); }
-    async triggerSubmit() {
-        if (this.type == "submit") {
-            if ("loading" in this) {
-                if (this.loading)
-                    return;
-                this.loading = true;
-            }
-            if (this.internals.form) {
-                this.internals.form.requestSubmit();
-            }
-            else if (this.handler) {
-                await this.handler.requestSubmit();
-                if ("loading" in this) {
-                    this.loading = false;
-                }
-            }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["options"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('options'); }
+    onOptionsChanged() { }
+    init(cb) {
+        this.cb = cb;
+        if (this.options.closeWithEsc) {
+            Lib.ShortcutManager.subscribe(Lib.SpecialTouch.Escape, this.reject, { replaceTemp: true });
         }
-    }
-    registerSubmit() {
-        this.handler = this.findParentByType(_.Form.Form.formElements)?.registerSubmit(this);
-        if (this.type == "submit") {
-            new Aventus.PressManager({
+        if (this.options.closeWithClick) {
+            this.pressManagerClickClose = new Aventus.PressManager({
                 element: this,
                 onPress: () => {
-                    this.triggerSubmit();
+                    this.reject();
                 }
             });
-            this.addEventListener("keyup", (e) => {
-                if (e.key == 'Enter') {
-                    this.triggerSubmit();
-                }
+            this.pressManagerPrevent = new Aventus.PressManager({
+                element: this.modalEl,
+                onPress: () => { }
             });
         }
     }
-    postCreation() {
-        super.postCreation();
-        this.registerSubmit();
+    show(element) {
+        return Modal.ModalElement._show(this, element);
+    }
+    close() {
+        Lib.ShortcutManager.unsubscribe(Lib.SpecialTouch.Escape, this.reject);
+        this.pressManagerClickClose?.destroy();
+        this.pressManagerPrevent?.destroy();
+        this.remove();
+    }
+    reject(no_close) {
+        if (this.cb) {
+            this.cb(this.options.rejectValue ?? null);
+        }
+        if (no_close !== true) {
+            this.close();
+        }
+    }
+    resolve(response, no_close) {
+        if (this.cb) {
+            this.cb(response);
+        }
+        if (no_close !== true) {
+            this.close();
+        }
+    }
+    static configure(options) {
+        if (options.closeWithClick !== undefined)
+            this.defaultCloseWithClick = options.closeWithClick;
+        if (options.closeWithEsc !== undefined)
+            this.defaultCloseWithEsc = options.closeWithEsc;
+        if (!Object.hasOwn(options, "rejectValue")) {
+            this.defaultRejectValue = options.rejectValue;
+        }
+    }
+    static _show(modal, element) {
+        return new Promise((resolve) => {
+            modal.init((response) => {
+                resolve(response);
+            });
+            if (!element) {
+                element = document.body;
+            }
+            element.appendChild(modal);
+        });
     }
 }
-Form.ButtonElement.Namespace=`Aventus.Form`;
-__as1(_.Form, 'ButtonElement', Form.ButtonElement);
+Modal.ModalElement.Namespace=`Aventus.Modal`;
+__as1(_.Modal, 'ModalElement', Modal.ModalElement);
 
 Form.Validator=class Validator {
     /**
@@ -8071,57 +8549,26 @@ Form.FormHandlerController=class FormHandlerController extends _.Form.FormHandle
 Form.FormHandlerController.Namespace=`Aventus.Form`;
 __as1(_.Form, 'FormHandlerController', Form.FormHandlerController);
 
-Form.FormElement = class FormElement extends Aventus.WebComponent {
-    static get observedAttributes() {return ["disabled"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'has_errors'() { return this.getBoolAttr('has_errors') }
-    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }    get 'disabled'() { return this.getBoolProp('disabled') }
-    set 'disabled'(val) { this.setBoolAttr('disabled', val) }    get 'value'() {
-						return this.__watch["value"];
-					}
-					set 'value'(val) {
-						this.__watch["value"] = val;
-					}get 'errors'() {
-						return this.__watch["errors"];
-					}
-					set 'errors'(val) {
-						this.__watch["errors"] = val;
-					}    static get formAssociated() { return true; }
-    _form;
-    get form() {
-        return this._form;
-    }
-    set form(value) {
-        this.unlinkFormPart();
-        this._form = value;
-        this.linkFormPart();
-    }
+Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
+    static get observedAttributes() {return ["type"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'type'() { return this.getStringProp('type') }
+    set 'type'(val) { this.setStringAttr('type', val) }    static get formAssociated() { return true; }
     internals;
-    canLinkValueToForm = false;
     handler = undefined;
-    onChange = new Aventus.Callback();
-    __registerWatchesActions() {
-    this.__addWatchesActions("value", ((target) => {
-    target.onValueChange(target.value);
-}));this.__addWatchesActions("errors", ((target) => {
-    target.onErrorsChange();
-}));    super.__registerWatchesActions();
-}
     static __style = ``;
     constructor() {
         super();
         this.internals = this.attachInternals();
-        if (this.constructor == FormElement) {
+        if (this.constructor == ButtonElement) {
             throw "can't instanciate an abstract class";
         }
-        this.refreshValueFromForm = this.refreshValueFromForm.bind(this);
-        this.onFormValidation = this.onFormValidation.bind(this);
     }
     __getStatic() {
-        return FormElement;
+        return ButtonElement;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(FormElement.__style);
+        arrStyle.push(ButtonElement.__style);
         return arrStyle;
     }
     __getHtml() {
@@ -8131,488 +8578,155 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
     });
 }
     getClassName() {
-        return "FormElement";
+        return "ButtonElement";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;w["errors"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');this.__upgradeProperty('has_errors');this.__upgradeProperty('disabled');this.__correctGetter('value');this.__correctGetter('errors'); }
-    __listBoolProps() { return ["has_errors","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    refreshValueFromForm() {
-        if (this._form) {
-            this.errors = [];
-            this.value = this._form.value.get();
-        }
-    }
-    unlinkFormPart() {
-        if (this._form) {
-            this._form.unregister(this);
-            this._form.onValueChange.remove(this.refreshValueFromForm);
-            this._form.onValidation.remove(this.onFormValidation);
-        }
-    }
-    linkFormPart() {
-        if (this._form) {
-            this._form.register(this);
-            this._form.onValueChange.add(this.refreshValueFromForm);
-            this._form.onValidation.add(this.onFormValidation);
-            this.refreshValueFromForm();
-        }
-        else {
-            this.value = undefined;
-        }
-    }
-    async onFormValidation(errors) {
-        let _errors = await this.validation();
-        if (_errors.length == 0) {
-            _errors = errors;
-        }
-        else if (errors.length > 0) {
-            for (let error of errors) {
-                if (!_errors.includes(error)) {
-                    _errors.push(error);
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = 'button'; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type'); }
+    async triggerSubmit() {
+        if (this.type == "submit") {
+            if ("loading" in this) {
+                if (this.loading)
+                    return;
+                this.loading = true;
+            }
+            if (this.internals.form) {
+                this.internals.form.requestSubmit();
+            }
+            else if (this.handler) {
+                await this.handler.requestSubmit();
+                if ("loading" in this) {
+                    this.loading = false;
                 }
             }
         }
-        this.errors = _errors;
-        return this.errors;
     }
-    async validate() {
-        if (!this.form) {
-            this.errors = await this.validation();
-            return this.errors.length == 0;
+    registerSubmit() {
+        this.handler = this.findParentByType(_.Form.Form.formElements)?.registerSubmit(this);
+        if (this.type == "submit") {
+            new Aventus.PressManager({
+                element: this,
+                onPress: () => {
+                    this.triggerSubmit();
+                }
+            });
+            this.addEventListener("keyup", (e) => {
+                if (e.key == 'Enter') {
+                    this.triggerSubmit();
+                }
+            });
         }
-        return await this.form.test();
-    }
-    async validation() {
-        return [];
-    }
-    clearErrors() {
-        this.errors = [];
-    }
-    triggerChange(value) {
-        this.value = value;
-        this.onChange.trigger(this.value);
-        if (this.form) {
-            this.form.value.set(this.value);
-        }
-    }
-    onValueChange(value) {
-        this.linkValueToForm();
-    }
-    onErrorsChange() {
-        this.has_errors = this.errors.length > 0;
-        this.linkErrorToForm();
-    }
-    linkErrorToForm() {
-        if (!this.canLinkValueToForm)
-            return;
-        if (this.has_errors) {
-            this.internals.setValidity({
-                customError: true
-            }, this.errors.join(' & '));
-        }
-        else {
-            this.internals.setValidity({});
-        }
-    }
-    linkValueToForm() {
-        if (!this.canLinkValueToForm)
-            return;
-        if (this.value === undefined) {
-            this.internals.setFormValue(null);
-        }
-        else {
-            this.internals.setFormValue(this.value + '');
-        }
-    }
-    formAssociatedCallback(form) {
-        this.canLinkValueToForm = true;
-        this.linkValueToForm();
-        this.linkErrorToForm();
-        this.validate();
-    }
-    formDisabledCallback(disabled) {
-        this.disabled = disabled;
     }
     postCreation() {
         super.postCreation();
-        let handler = this.findParentByType(_.Form.Form.formElements)?.registerElement(this);
-    }
-    postDestruction() {
-        super.postDestruction();
-        this.unlinkFormPart();
+        this.registerSubmit();
     }
 }
-Form.FormElement.Namespace=`Aventus.Form`;
-__as1(_.Form, 'FormElement', Form.FormElement);
+Form.ButtonElement.Namespace=`Aventus.Form`;
+__as1(_.Form, 'ButtonElement', Form.ButtonElement);
 
-Lib.ShortcutManager=class ShortcutManager {
-    /**
-     * Stores registered shortcut callbacks.
-     */
-    static memory = {};
-    /**
-     * List of shortcut key combinations that should automatically prevent default browser behavior.
-     */
-    static autoPrevents = [];
-    /**
-     * Indicates if the ShortcutManager has been initialized.
-     */
-    static isInit = false;
-    /**
-     * Currently pressed keys.
-     */
-    static arrayKeys = [];
-    /**
-     * Stores options for each registered shortcut callback.
-     */
-    static options = new Map();
-    /**
-     * Stores temporarily replaced shortcut callbacks.
-     */
-    static replacingMemory = {};
-    /**
-     * Checks if a given key is a printable character or a space.
-     */
-    static isTxt(touch) {
-        return touch.match(/[a-zA-Z0-9_\+\-]/g) || touch == " ";
-    }
-    /**
-     * Converts a key combination into a standardized string representation.
-     */
-    static getText(combinaison) {
-        let allTouches = [];
-        for (let touch of combinaison) {
-            let realTouch = "";
-            if (typeof touch == "number" && Lib.SpecialTouch[touch] !== undefined) {
-                realTouch = Lib.SpecialTouch[touch];
-            }
-            else if (this.isTxt(touch)) {
-                realTouch = touch;
-            }
-            else {
-                throw "I can't use " + touch + " to add a shortcut";
-            }
-            allTouches.push(realTouch);
-        }
-        allTouches.sort();
-        return allTouches.join("+");
-    }
-    /**
-     * Subscribes a callback function to a specific keyboard shortcut combination.
-     */
-    static subscribe(combinaison, cb, options) {
-        if (!Array.isArray(combinaison)) {
-            combinaison = [combinaison];
-        }
-        let key = this.getText(combinaison);
-        if (options?.replaceTemp) {
-            if (Lib.ShortcutManager.memory[key]) {
-                if (!this.replacingMemory[key]) {
-                    this.replacingMemory[key] = [];
-                }
-                this.replacingMemory[key].push(Lib.ShortcutManager.memory[key]);
-                delete Lib.ShortcutManager.memory[key];
-            }
-        }
-        if (!Lib.ShortcutManager.memory[key]) {
-            Lib.ShortcutManager.memory[key] = [];
-        }
-        if (!Lib.ShortcutManager.memory[key].includes(cb)) {
-            Lib.ShortcutManager.memory[key].push(cb);
-            if (options) {
-                this.options.set(cb, options);
-            }
-        }
-        if (!Lib.ShortcutManager.isInit) {
-            Lib.ShortcutManager.init();
-        }
-    }
-    /**
-     * Unsubscribes a callback function from a keyboard shortcut combination.
-     */
-    static unsubscribe(combinaison, cb) {
-        if (!Array.isArray(combinaison)) {
-            combinaison = [combinaison];
-        }
-        let key = this.getText(combinaison);
-        if (Lib.ShortcutManager.memory[key]) {
-            let index = Lib.ShortcutManager.memory[key].indexOf(cb);
-            if (index != -1) {
-                Lib.ShortcutManager.memory[key].splice(index, 1);
-                let options = this.options.get(cb);
-                if (options) {
-                    this.options.delete(cb);
-                }
-                if (Lib.ShortcutManager.memory[key].length == 0) {
-                    delete Lib.ShortcutManager.memory[key];
-                    if (options?.replaceTemp) {
-                        if (this.replacingMemory[key]) {
-                            if (this.replacingMemory[key].length > 0) {
-                                Lib.ShortcutManager.memory[key] = this.replacingMemory[key].pop();
-                                if (this.replacingMemory[key].length == 0) {
-                                    delete this.replacingMemory[key];
-                                }
-                            }
-                            else {
-                                delete this.replacingMemory[key];
-                            }
-                        }
-                    }
-                }
-                if (Object.keys(Lib.ShortcutManager.memory).length == 0 && Lib.ShortcutManager.isInit) {
-                    //ShortcutManager.uninit();
-                }
-            }
-        }
-    }
-    /**
-     * Handles keydown events, processing registered shortcuts and preventing default behavior.
-     */
-    static async onKeyDown(e) {
-        if (e.ctrlKey) {
-            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Control];
-            if (!this.arrayKeys.includes(txt)) {
-                this.arrayKeys.push(txt);
-            }
-        }
-        if (e.altKey) {
-            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Alt];
-            if (!this.arrayKeys.includes(txt)) {
-                this.arrayKeys.push(txt);
-            }
-        }
-        if (e.shiftKey) {
-            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Shift];
-            if (!this.arrayKeys.includes(txt)) {
-                this.arrayKeys.push(txt);
-            }
-        }
-        if (this.isTxt(e.key) && !this.arrayKeys.includes(e.key)) {
-            this.arrayKeys.push(e.key);
-        }
-        else if (Lib.SpecialTouch[e.key] !== undefined && !this.arrayKeys.includes(e.key)) {
-            this.arrayKeys.push(e.key);
-        }
-        this.arrayKeys.sort();
-        let key = this.arrayKeys.join("+");
-        if (Lib.ShortcutManager.memory[key]) {
-            let preventDefault = true;
-            for (let cb of Lib.ShortcutManager.memory[key]) {
-                let options = this.options.get(cb);
-                if (options && options.preventDefault === false) {
-                    preventDefault = false;
-                }
-            }
-            this.arrayKeys = [];
-            for (let cb of Lib.ShortcutManager.memory[key]) {
-                const result = await cb();
-                if (result === false) {
-                    preventDefault = result;
-                }
-            }
-            if (preventDefault) {
-                e.preventDefault();
-            }
-        }
-        else if (Lib.ShortcutManager.autoPrevents.includes(key)) {
-            e.preventDefault();
-        }
-    }
-    /**
-     * Handles keyup events, removing the released key from the currently pressed keys.
-     */
-    static onKeyUp(e) {
-        let index = this.arrayKeys.indexOf(e.key);
-        if (index != -1) {
-            this.arrayKeys.splice(index, 1);
-        }
-    }
-    /**
-     * Initializes the ShortcutManager, setting up global event listeners.
-     */
-    static init() {
-        if (Lib.ShortcutManager.isInit)
-            return;
-        Lib.ShortcutManager.isInit = true;
-        this.onKeyDown = this.onKeyDown.bind(this);
-        this.onKeyUp = this.onKeyUp.bind(this);
-        Lib.ShortcutManager.autoPrevents = [
-            this.getText([Lib.SpecialTouch.Control, "s"]),
-            this.getText([Lib.SpecialTouch.Control, "p"]),
-            this.getText([Lib.SpecialTouch.Control, "l"]),
-            this.getText([Lib.SpecialTouch.Control, "k"]),
-            this.getText([Lib.SpecialTouch.Control, "j"]),
-            this.getText([Lib.SpecialTouch.Control, "h"]),
-            this.getText([Lib.SpecialTouch.Control, "g"]),
-            this.getText([Lib.SpecialTouch.Control, "f"]),
-            this.getText([Lib.SpecialTouch.Control, "d"]),
-            this.getText([Lib.SpecialTouch.Control, "o"]),
-            this.getText([Lib.SpecialTouch.Control, "u"]),
-            this.getText([Lib.SpecialTouch.Control, "e"]),
-        ];
-        window.addEventListener("blur", () => {
-            this.arrayKeys = [];
-        });
-        document.body.addEventListener("keydown", this.onKeyDown);
-        document.body.addEventListener("keyup", this.onKeyUp);
-    }
-    /**
-     * Sets key combinations that should automatically prevent default browser behavior.
-     */
-    static setAutoPrevents(combinaisons) {
-        if (!Lib.ShortcutManager.isInit) {
-            this.init();
-        }
-        Lib.ShortcutManager.autoPrevents = [];
-        for (let combinaison of combinaisons) {
-            Lib.ShortcutManager.autoPrevents.push(this.getText(combinaison));
-        }
-    }
-    /**
-     * Deinitializes the ShortcutManager, removing global event listeners.
-     */
-    static uninit() {
-        document.body.removeEventListener("keydown", this.onKeyDown);
-        document.body.removeEventListener("keyup", this.onKeyUp);
-        this.arrayKeys = [];
-        Lib.ShortcutManager.isInit = false;
-    }
-}
-Lib.ShortcutManager.Namespace=`Aventus.Lib`;
-__as1(_.Lib, 'ShortcutManager', Lib.ShortcutManager);
-
-Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
-    get 'options'() {
-						return this.__watch["options"];
-					}
-					set 'options'(val) {
-						this.__watch["options"] = val;
-					}    static defaultCloseWithEsc = true;
-    static defaultCloseWithClick = true;
-    static defaultRejectValue = null;
-    cb;
-    pressManagerClickClose;
-    pressManagerPrevent;
-    __registerWatchesActions() {
-    this.__addWatchesActions("options", ((target, action, path, value) => {
-    target.onOptionsChanged();
-}));    super.__registerWatchesActions();
-}
-    static __style = `:host{align-items:center;display:flex;inset:0;justify-content:center;position:fixed;z-index:60}:host .modal{background-color:#fff;padding:1.5rem;position:relative}`;
+Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
+    get 'position'() { return this.getStringAttr('position') }
+    set 'position'(val) { this.setStringAttr('position', val) }get 'delay'() { return this.getNumberAttr('delay') }
+    set 'delay'(val) { this.setNumberAttr('delay', val) }get 'is_active'() { return this.getBoolAttr('is_active') }
+    set 'is_active'(val) { this.setBoolAttr('is_active', val) }    showAsked = false;
+    onHideCallback = () => { };
+    timeout = 0;
+    hasTransition = false;
+    waitTransitionCbs = [];
+    static __style = `:host{position:absolute}:host(:not([is_active])){opacity:0;visibility:hidden}:host([position="bottom left"]){bottom:0px;left:0px}:host([position="top left"]){left:0;top:0}:host([position="bottom right"]){bottom:0;right:0}:host([position="top right"]){right:0;top:0}:host([position=top]){left:50%;top:0;transform:translateX(-50%)}:host([position=bottom]){bottom:0;left:50%;transform:translateX(-50%)}`;
     constructor() {
         super();
-        this.options = this.configure();
-        if (this.options.closeWithClick === undefined)
-            this.options.closeWithClick = Modal.ModalElement.defaultCloseWithClick;
-        if (this.options.closeWithEsc === undefined)
-            this.options.closeWithEsc = Modal.ModalElement.defaultCloseWithEsc;
-        if (!Object.hasOwn(this.options, "rejectValue")) {
-            this.options.rejectValue = Modal.ModalElement.defaultRejectValue;
-        }
-        if (this.constructor == ModalElement) {
+        this.addTransition();
+        if (this.constructor == ToastElement) {
             throw "can't instanciate an abstract class";
         }
-        this.close = this.close.bind(this);
-        this.reject = this.reject.bind(this);
-        this.resolve = this.resolve.bind(this);
     }
     __getStatic() {
-        return ModalElement;
+        return ToastElement;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(ModalElement.__style);
+        arrStyle.push(ToastElement.__style);
         return arrStyle;
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="modal" _id="modalelement_0">	<slot></slot></div>` }
+        blocks: { 'default':`<slot></slot>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "modalEl",
-      "ids": [
-        "modalelement_0"
-      ]
-    }
-  ]
-}); }
     getClassName() {
-        return "ModalElement";
+        return "ToastElement";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["options"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('options'); }
-    onOptionsChanged() { }
-    init(cb) {
-        this.cb = cb;
-        if (this.options.closeWithEsc) {
-            Lib.ShortcutManager.subscribe(Lib.SpecialTouch.Escape, this.reject, { replaceTemp: true });
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('position')){ this['position'] = _.Toast.ToastManager.defaultPosition; }if(!this.hasAttribute('delay')){ this['delay'] = _.Toast.ToastManager.defaultDelay; }if(!this.hasAttribute('is_active')) { this.attributeChangedCallback('is_active', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('position');this.__upgradeProperty('delay');this.__upgradeProperty('is_active'); }
+    __listBoolProps() { return ["is_active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    _setOptions(options) {
+        if (options.position !== undefined)
+            this.position = options.position;
+        if (options.delay !== undefined)
+            this.delay = options.delay;
+        return this.setOptions(options);
+    }
+    show(onHideCallback) {
+        this.onHideCallback = onHideCallback;
+        if (this.isReady) {
+            this.is_active = true;
+            this.startDelay();
         }
-        if (this.options.closeWithClick) {
-            this.pressManagerClickClose = new Aventus.PressManager({
-                element: this,
-                onPress: () => {
-                    this.reject();
-                }
-            });
-            this.pressManagerPrevent = new Aventus.PressManager({
-                element: this.modalEl,
-                onPress: () => { }
-            });
-        }
-    }
-    show(element) {
-        return Modal.ModalElement._show(this, element);
-    }
-    close() {
-        Lib.ShortcutManager.unsubscribe(Lib.SpecialTouch.Escape, this.reject);
-        this.pressManagerClickClose?.destroy();
-        this.pressManagerPrevent?.destroy();
-        this.remove();
-    }
-    reject(no_close) {
-        if (this.cb) {
-            this.cb(this.options.rejectValue ?? null);
-        }
-        if (no_close !== true) {
-            this.close();
+        else {
+            this.showAsked = true;
         }
     }
-    resolve(response, no_close) {
-        if (this.cb) {
-            this.cb(response);
-        }
-        if (no_close !== true) {
-            this.close();
-        }
-    }
-    static configure(options) {
-        if (options.closeWithClick !== undefined)
-            this.defaultCloseWithClick = options.closeWithClick;
-        if (options.closeWithEsc !== undefined)
-            this.defaultCloseWithEsc = options.closeWithEsc;
-        if (!Object.hasOwn(options, "rejectValue")) {
-            this.defaultRejectValue = options.rejectValue;
+    startDelay() {
+        if (this.delay > 0) {
+            this.timeout = setTimeout(() => {
+                this.close();
+            }, this.delay);
         }
     }
-    static _show(modal, element) {
-        return new Promise((resolve) => {
-            modal.init((response) => {
-                resolve(response);
-            });
-            if (!element) {
-                element = document.body;
+    async close() {
+        if (this.onHideCallback) {
+            this.is_active = false;
+            this.onHideCallback(false);
+            this.remove();
+        }
+    }
+    addTransition() {
+        this.addEventListener("transitionstart", (e) => {
+            this.hasTransition = true;
+        });
+        this.addEventListener("transitionend", () => {
+            this.hasTransition = false;
+            let cbs = [...this.waitTransitionCbs];
+            this.waitTransitionCbs = [];
+            for (let cb of cbs) {
+                cb();
             }
-            element.appendChild(modal);
         });
     }
+    waitTransition() {
+        if (this.hasTransition) {
+            return new Promise((resolve) => {
+                this.waitTransitionCbs.push(resolve);
+            });
+        }
+        return new Promise((resolve) => {
+            resolve();
+        });
+    }
+    postCreation() {
+        if (this.showAsked) {
+            this.is_active = true;
+            this.startDelay();
+        }
+    }
+    static add(options) {
+        return _.Toast.ToastManager.add(options);
+    }
 }
-Modal.ModalElement.Namespace=`Aventus.Modal`;
-__as1(_.Modal, 'ModalElement', Modal.ModalElement);
+Toast.ToastElement.Namespace=`Aventus.Toast`;
+__as1(_.Toast, 'ToastElement', Toast.ToastElement);
 
 let Process=class Process {
     /**
@@ -8700,6 +8814,242 @@ Layout.Col.Tag=`av-col`;
 __as1(_.Layout, 'Col', Layout.Col);
 if(!window.customElements.get('av-col')){window.customElements.define('av-col', Layout.Col);Aventus.WebComponentInstance.registerDefinition(Layout.Col);}
 
+Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
+    get 'not_main'() { return this.getBoolAttr('not_main') }
+    set 'not_main'(val) { this.setBoolAttr('not_main', val) }    static defaultToast;
+    static defaultToastManager;
+    static defaultPosition = 'top right';
+    static defaultDelay = 5000;
+    static gap = 10;
+    static heightLimitPercent = 100;
+    static instance;
+    activeToasts = {
+        top: [],
+        'top left': [],
+        'bottom left': [],
+        bottom: [],
+        'bottom right': [],
+        'top right': [],
+    };
+    waitingToasts = {
+        top: [],
+        'top left': [],
+        'bottom left': [],
+        bottom: [],
+        'bottom right': [],
+        'top right': [],
+    };
+    get containerHeight() {
+        return this.offsetHeight;
+    }
+    get heightLimit() {
+        return this.containerHeight * Toast.ToastManager.heightLimitPercent / 100;
+    }
+    mutex = new Aventus.Mutex();
+    static __style = `:host{--_toast-space-bottom: var(--toast-space-bottom, 20px);--_toast-space-top: var(--toast-space-top, 20px);--_toast-space-right: var(--toast-space-right, 10px);--_toast-space-left: var(--toast-space-left, 10px)}:host{bottom:var(--_toast-space-bottom);left:var(--_toast-space-left);overflow:visible;pointer-events:none;position:fixed;right:var(--_toast-space-right);top:var(--_toast-space-top);z-index:50}:host ::slotted(*){pointer-events:auto}`;
+    __getStatic() {
+        return ToastManager;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(ToastManager.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "ToastManager";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('not_main')) { this.attributeChangedCallback('not_main', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('containerHeight');this.__correctGetter('heightLimit');this.__upgradeProperty('not_main'); }
+    __listBoolProps() { return ["not_main"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    async add(toast) {
+        await this.mutex.waitOne();
+        let realToast;
+        if (toast instanceof _.Toast.ToastElement) {
+            realToast = toast;
+        }
+        else {
+            if (!Toast.ToastManager.defaultToast)
+                throw "No default toast. Try ToastManager.configure()";
+            realToast = new Toast.ToastManager.defaultToast();
+            await realToast._setOptions(toast);
+        }
+        this.appendChild(realToast);
+        if (realToast.position == "bottom") {
+            return this._notifyBottom(realToast, true);
+        }
+        else if (realToast.position == "bottom left") {
+            return this._notifyBottomLeft(realToast, true);
+        }
+        else if (realToast.position == "top left") {
+            return this._notifyTopLeft(realToast, true);
+        }
+        else if (realToast.position == "bottom right") {
+            return this._notifyBottomRight(realToast, true);
+        }
+        else if (realToast.position == "top right") {
+            return this._notifyTopRight(realToast, true);
+        }
+        else if (realToast.position == "top") {
+            return this._notifyTop(realToast, true);
+        }
+        return false;
+    }
+    _calculateBottom(toast, firstTime, position) {
+        return new Promise(async (resolve) => {
+            let height = toast.offsetHeight;
+            const _remove = (result) => {
+                let index = this.activeToasts[position].indexOf(toast);
+                if (index > -1) {
+                    this.activeToasts[position].splice(index, 1);
+                }
+                if (this.waitingToasts[position].length > 0) {
+                    let nextNotif = this.waitingToasts[position].splice(0, 1)[0];
+                    this._calculateBottom(nextNotif, false, position);
+                }
+                else {
+                    let bottom = 0;
+                    for (let i = 0; i < this.activeToasts[position].length; i++) {
+                        let notif = this.activeToasts[position][i];
+                        notif.style.bottom = bottom + 'px';
+                        bottom += notif.offsetHeight + Toast.ToastManager.gap;
+                    }
+                }
+                resolve(result);
+            };
+            let length = this.activeToasts[position].length;
+            if (length == 0) {
+                this.activeToasts[position].push(toast);
+                toast.show(_remove);
+            }
+            else {
+                let totHeight = 0;
+                for (let notif of this.activeToasts[position]) {
+                    await notif.waitTransition();
+                    totHeight += notif.offsetHeight + Toast.ToastManager.gap;
+                }
+                if (totHeight + height < this.heightLimit) {
+                    this.activeToasts[position].splice(0, 0, toast);
+                    let bottom = 0;
+                    for (let i = 0; i < this.activeToasts[position].length; i++) {
+                        let notif = this.activeToasts[position][i];
+                        notif.style.bottom = bottom + 'px';
+                        bottom += notif.offsetHeight + Toast.ToastManager.gap;
+                    }
+                    toast.show(_remove);
+                }
+                else if (firstTime) {
+                    this.waitingToasts[position].push(toast);
+                }
+            }
+            this.mutex.release();
+        });
+    }
+    _calculateTop(toast, firstTime, position) {
+        return new Promise(async (resolve) => {
+            let height = toast.offsetHeight;
+            const _remove = (result) => {
+                let index = this.activeToasts[position].indexOf(toast);
+                if (index > -1) {
+                    this.activeToasts[position].splice(index, 1);
+                }
+                if (this.waitingToasts[position].length > 0) {
+                    let nextNotif = this.waitingToasts[position].splice(0, 1)[0];
+                    this._calculateTop(nextNotif, false, position);
+                }
+                else {
+                    let top = 0;
+                    for (let i = 0; i < this.activeToasts[position].length; i++) {
+                        let notif = this.activeToasts[position][i];
+                        notif.style.top = top + 'px';
+                        top += notif.offsetHeight + Toast.ToastManager.gap;
+                    }
+                }
+                resolve(result);
+            };
+            let length = this.activeToasts[position].length;
+            if (length == 0) {
+                this.activeToasts[position].push(toast);
+                toast.show(_remove);
+            }
+            else {
+                let totHeight = 0;
+                for (let notif of this.activeToasts[position]) {
+                    await notif.waitTransition();
+                    totHeight += notif.offsetHeight + Toast.ToastManager.gap;
+                }
+                if (totHeight + height < this.heightLimit) {
+                    this.activeToasts[position].splice(0, 0, toast);
+                    let top = 0;
+                    for (let i = 0; i < this.activeToasts[position].length; i++) {
+                        let notif = this.activeToasts[position][i];
+                        notif.style.top = top + 'px';
+                        top += notif.offsetHeight + Toast.ToastManager.gap;
+                    }
+                    toast.show(_remove);
+                }
+                else if (firstTime) {
+                    this.waitingToasts[position].push(toast);
+                }
+            }
+            this.mutex.release();
+        });
+    }
+    async _notifyBottomRight(toast, firstTime) {
+        return await this._calculateBottom(toast, firstTime, "bottom right");
+    }
+    async _notifyTopRight(toast, firstTime) {
+        return await this._calculateTop(toast, firstTime, "top right");
+    }
+    async _notifyBottomLeft(toast, firstTime) {
+        return await this._calculateBottom(toast, firstTime, "bottom left");
+    }
+    async _notifyTopLeft(toast, firstTime) {
+        return await this._calculateTop(toast, firstTime, "top left");
+    }
+    async _notifyTop(toast, firstTime) {
+        return await this._calculateTop(toast, firstTime, "top");
+    }
+    async _notifyBottom(toast, firstTime) {
+        return await this._calculateBottom(toast, firstTime, "bottom");
+    }
+    postConnect() {
+        super.postConnect();
+        if (!Toast.ToastManager.instance && !this.not_main) {
+            Toast.ToastManager.instance = this;
+        }
+    }
+    postDisconnect() {
+        if (Toast.ToastManager.instance == this) {
+            Toast.ToastManager.instance = undefined;
+        }
+    }
+    static add(toast) {
+        if (!this.instance) {
+            this.instance = this.defaultToastManager ? new this.defaultToastManager() : new Toast.ToastManager();
+            document.body.appendChild(this.instance);
+        }
+        return this.instance.add(toast);
+    }
+    static configure(options) {
+        const opts = options;
+        const t = this;
+        for (let key in options) {
+            if (opts[key] !== undefined)
+                t[key] = opts[key];
+        }
+    }
+}
+Toast.ToastManager.Namespace=`Aventus.Toast`;
+Toast.ToastManager.Tag=`av-toast-manager`;
+__as1(_.Toast, 'ToastManager', Toast.ToastManager);
+if(!window.customElements.get('av-toast-manager')){window.customElements.define('av-toast-manager', Toast.ToastManager);Aventus.WebComponentInstance.registerDefinition(Toast.ToastManager);}
+
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
@@ -8711,21 +9061,502 @@ const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] 
 const moduleName = `OneMoreUI`;
 const _ = {};
 
-let Components = {};
-_.Components = OneMoreUI.Components ?? {};
-Components.Display = {};
-_.Components.Display = OneMoreUI.Components?.Display ?? {};
-Components.Interaction = {};
-_.Components.Interaction = OneMoreUI.Components?.Interaction ?? {};
 let Libs = {};
 _.Libs = OneMoreUI.Libs ?? {};
+let Components = {};
+_.Components = OneMoreUI.Components ?? {};
 Components.Form = {};
 _.Components.Form = OneMoreUI.Components?.Form ?? {};
 Components.Form.Select = {};
 _.Components.Form.Select = OneMoreUI.Components?.Form?.Select ?? {};
+Components.Display = {};
+_.Components.Display = OneMoreUI.Components?.Display ?? {};
+Components.Interaction = {};
+_.Components.Interaction = OneMoreUI.Components?.Interaction ?? {};
 Components.Form.Select.BaseSelect = {};
 _.Components.Form.Select.BaseSelect = OneMoreUI.Components?.Form?.Select?.BaseSelect ?? {};
 let _n;
+Libs.Style=class Style {
+    static getVariable(prop, el) {
+        const computed = getComputedStyle(el);
+        let value = computed.getPropertyValue(prop.replace("--", "--_"));
+        if (!value) {
+            value = computed.getPropertyValue(prop);
+        }
+        return value;
+    }
+    static getVariables(props, el) {
+        const computed = getComputedStyle(el);
+        const result = [];
+        for (let prop of props) {
+            let value = computed.getPropertyValue(prop.replace("--", "--_"));
+            if (!value) {
+                value = computed.getPropertyValue(prop);
+            }
+            result.push(value);
+        }
+        return result;
+    }
+    static lockVariable(props, el) {
+        if (typeof props == "string") {
+            props = [props];
+        }
+        const values = this.getVariables(props, el);
+        for (let i = 0; i < props.length; i++) {
+            el.style.setProperty(props[i], values[i]);
+        }
+    }
+}
+Libs.Style.Namespace=`OneMoreUI.Libs`;
+__as1(_.Libs, 'Style', Libs.Style);
+
+Components.Form.Select.BaseOption = class BaseOption extends Aventus.WebComponent {
+    get 'focused'() { return this.getBoolAttr('focused') }
+    set 'focused'(val) { this.setBoolAttr('focused', val) }    value;
+    select;
+    static __style = `:host{border-radius:var(--radius-field);color:inherit;cursor:pointer;font-size:.875rem;padding-block:.375rem;padding-inline:.75rem;transition-duration:.2s;transition-property:color,background-color;transition-timing-function:cubic-bezier(0, 0, 0.2, 1);white-space:normal}@media(hover: hover)and (pointer: fine){:host(:hover){background-color:color-mix(in oklab, var(--_options-container-background), #000 7%)}}:host([focused]){background-color:color-mix(in oklab, var(--_options-container-background), #000 7%)}`;
+    __getStatic() {
+        return BaseOption;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(BaseOption.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "BaseOption";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('focused')) { this.attributeChangedCallback('focused', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('focused'); }
+    __listBoolProps() { return ["focused"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    choose() {
+        this.select.setValueFromOption(this);
+        this.select.hideOptions();
+    }
+    init(select) {
+        this.select = select;
+    }
+    filter(text) {
+        if (this.innerText.toLowerCase().includes(text)) {
+            this.style.display = "";
+        }
+        else {
+            this.style.display = "none";
+        }
+    }
+    postCreation() {
+        this.addEventListener("click", () => {
+            this.choose();
+        });
+    }
+}
+Components.Form.Select.BaseOption.Namespace=`OneMoreUI.Components.Form.Select`;
+Components.Form.Select.BaseOption.Tag=`om-base-option`;
+__as1(_.Components.Form.Select, 'BaseOption', Components.Form.Select.BaseOption);
+if(!window.customElements.get('om-base-option')){window.customElements.define('om-base-option', Components.Form.Select.BaseOption);Aventus.WebComponentInstance.registerDefinition(Components.Form.Select.BaseOption);}
+
+Components.Form.Select.Option = class Option extends Components.Form.Select.BaseOption {
+    static get observedAttributes() {return ["value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'value'() { return this.getStringProp('value') }
+    set 'value'(val) { this.setStringAttr('value', val) }    static __style = ``;
+    __getStatic() {
+        return Option;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Option.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Option";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('value')){ this['value'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value'); }
+}
+Components.Form.Select.Option.Namespace=`OneMoreUI.Components.Form.Select`;
+Components.Form.Select.Option.Tag=`om-option`;
+__as1(_.Components.Form.Select, 'Option', Components.Form.Select.Option);
+if(!window.customElements.get('om-option')){window.customElements.define('om-option', Components.Form.Select.Option);Aventus.WebComponentInstance.registerDefinition(Components.Form.Select.Option);}
+
+Components.Form.FormElement = class FormElement extends Aventus.Form.FormElement {
+    static __style = `:host{--form-element-bg: var(--surface, white);--form-element-border-radius: var(--border-radius-lg, 0);--form-element-fg: var(--surface-content, oklch(21% 0.006 285.885));--form-element-border-color: var(--border-color, oklab(0.21 0.00164225 -0.00577088 / 0.1));--form-element-border: 1px solid var(--form-element-border-color)}`;
+    constructor() {
+        super();
+        if (this.constructor == FormElement) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return FormElement;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(FormElement.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "FormElement";
+    }
+}
+Components.Form.FormElement.Namespace=`OneMoreUI.Components.Form`;
+__as1(_.Components.Form, 'FormElement', Components.Form.FormElement);
+
+Components.Form.Checkbox = class Checkbox extends Components.Form.FormElement {
+    static get observedAttributes() {return ["label", "checked"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'left_label'() { return this.getBoolAttr('left_label') }
+    set 'left_label'(val) { this.setBoolAttr('left_label', val) }    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }get 'checked'() { return this.getBoolProp('checked') }
+    set 'checked'(val) { this.setBoolAttr('checked', val) }    get 'value'() {
+						return this.__watch["value"];
+					}
+					set 'value'(val) {
+						this.__watch["value"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("value", ((target) => {
+    target.checked = target.value;
+}));    super.__registerWatchesActions();
+}
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("checked", ((target) => {
+    target.value = target.checked;
+})); }
+    static __style = `:host{--_checkbox-size: var(--checkbox-size, 1.5rem);--_checkbox-height: var(--checkbox-height, var(--_checkbox-size));--_checkbox-width: var(--checkbox-width, var(--_checkbox-size));--_checkbox-border-radius: var(--checkbox-border-radius, var(--border-radius));--_checkbox-border: var(--checkbox-border, 1px solid var(--border-color));--_checkbox-border-active: var(--checkbox-border-active, var(--primary-600));--_checkbox-background: var(--checkbox-background, transparent);--_checkbox-background-active: var(--checkbox-background-active, var(--primary));--_checkbox-tick-color: var(--checkbox-tick-color, var(--primary-content));--_checkbox-tick-size: var(--checkbox-tick-size, 2px);--_checkbox-tick-padding: var(--checkbox-tick-padding, 20%);--_checkbox-font-size-label: var(--checkbox-font-size-label, var(--font-size-sm));--_checkbox-margin-label: var(--checkbox-margin-label, 1rem)}:host{align-items:center;display:flex;outline:none}:host .label:not(:empty){cursor:pointer;font-size:var(--_checkbox-font-size-label);margin-left:var(--_checkbox-margin-label);user-select:none}:host .square{align-items:center;background-color:var(--_checkbox-background);border:var(--_checkbox-border);border-radius:var(--_checkbox-border-radius);cursor:pointer;display:flex;flex-shrink:0;height:var(--_checkbox-height);justify-content:center;position:relative;transition:border .2s var(--bezier-curve),background-color .2s var(--bezier-curve);width:var(--_checkbox-width)}:host .square svg{height:calc(100% - var(--_checkbox-tick-padding));margin-top:1px;opacity:0;stroke:var(--_checkbox-tick-color);stroke-width:var(--_checkbox-tick-size);visibility:hidden;width:calc(100% - var(--_checkbox-tick-padding))}:host .square:focus-visible{outline:2px solid var(--primary)}:host([checked]) .square{background-color:var(--_checkbox-background-active);border-color:var(--_checkbox-border-active)}:host([checked]) .square svg{opacity:1;visibility:visible}:host([checked]) .square svg .tick{animation:dash .2s linear forwards;animation-delay:.1s;stroke-dasharray:100;stroke-dashoffset:100}:host([left_label]) .label:not(:empty){margin-left:0;margin-right:var(--_checkbox-margin-label);order:1}:host([left_label]) .square{order:2}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) .label{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .square{background-color:color-mix(in oklab, var(--surface-content) 10%, transparent)}:host([disabled]) .square svg{stroke:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}@keyframes dash{to{stroke-dashoffset:70}}`;
+    constructor() {
+        super();
+        this.toggleChecked = this.toggleChecked.bind(this);
+    }
+    __getStatic() {
+        return Checkbox;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Checkbox.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="square" _id="checkbox_0">    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">        <polyline fill="none" points="3.7 14.3 9.6 19 20.3 5" stroke-linecap="round" stroke-linejoin="round" class="tick"></polyline>    </svg></div><div class="label" _id="checkbox_1"></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "checkbox_0°tabindex": {
+      "fct": (c) => `${c.print(c.comp.__e89e389cce67389d127fd9c3f9aba9d5method0())}`
+    },
+    "checkbox_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__e89e389cce67389d127fd9c3f9aba9d5method1())}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "focus",
+      "id": "checkbox_0",
+      "fct": (e, c) => c.comp.onFocus(e)
+    },
+    {
+      "eventName": "blur",
+      "id": "checkbox_0",
+      "fct": (e, c) => c.comp.onBlur(e)
+    }
+  ]
+}); }
+    getClassName() {
+        return "Checkbox";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('left_label')) { this.attributeChangedCallback('left_label', false, false); }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = false; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('left_label');this.__upgradeProperty('label');this.__upgradeProperty('checked');this.__correctGetter('value'); }
+    __listBoolProps() { return ["left_label","checked"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    /**
+     * Toggles the checked state of the checkbox and triggers a change event.
+     */
+    toggleChecked() {
+        this.triggerChange(!this.checked);
+    }
+    onFocus() {
+        if (!this.disabled) {
+            this.removeErrors();
+            Aventus.Lib.ShortcutManager.subscribe(" ", this.toggleChecked, { replaceTemp: true });
+        }
+    }
+    onBlur() {
+        if (!this.disabled) {
+            Aventus.Lib.ShortcutManager.unsubscribe(" ", this.toggleChecked);
+        }
+    }
+    removeErrors() {
+        this.errors = [];
+    }
+    postCreation() {
+        super.postCreation();
+        this.addEventListener("click", () => {
+            this.removeErrors();
+            this.triggerChange(!this.checked);
+        });
+    }
+    __e89e389cce67389d127fd9c3f9aba9d5method0() {
+        return this.disabled ? -1 : 0;
+    }
+    __e89e389cce67389d127fd9c3f9aba9d5method1() {
+        return this.label;
+    }
+}
+Components.Form.Checkbox.Namespace=`OneMoreUI.Components.Form`;
+Components.Form.Checkbox.Tag=`om-checkbox`;
+__as1(_.Components.Form, 'Checkbox', Components.Form.Checkbox);
+if(!window.customElements.get('om-checkbox')){window.customElements.define('om-checkbox', Components.Form.Checkbox);Aventus.WebComponentInstance.registerDefinition(Components.Form.Checkbox);}
+
+Components.Form.Input = class Input extends Components.Form.FormElement {
+    static get observedAttributes() {return ["name", "label", "icon", "placeholder", "value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'is_focus'() { return this.getBoolAttr('is_focus') }
+    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }    get 'name'() { return this.getStringProp('name') }
+    set 'name'(val) { this.setStringAttr('name', val) }get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }get 'placeholder'() { return this.getStringProp('placeholder') }
+    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }get 'value'() { return this.getStringProp('value') }
+    set 'value'(val) { this.setStringAttr('value', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
+    target.onValueChange(target.value);
+})); }
+    static __style = `:host{--_input-bg: var(--input-bg, var(--form-element-bg));--_input-fg: var(--input-fg, var(--form-element-fg));--_input-border: var(--input-border, var(--form-element-border));--_input-border-radius: var(--input-border-radius, var(--form-element-border-radius))}:host{width:100%}:host label{display:none;font-size:var(--font-size-sm);font-weight:500;line-height:var(--line-height-sm)}:host .input{align-items:center;background-color:var(--_input-bg);border-radius:var(--_input-border-radius);display:flex;gap:.5rem;height:100%;margin-top:0;overflow:hidden;padding:.5rem 1rem;position:relative;width:100%}:host .input .icon{color:color-mix(in oklab, var(--_input-fg) 40%, transparent);display:none;font-size:var(--font-size)}:host .input input{background-color:rgba(0,0,0,0);border:none;color:var(--_input-fg);display:block;flex-grow:1;font-size:var(--font-size);height:var(--line-height);margin:0;min-width:0;outline:none;padding:0}:host .input input::placeholder{color:color-mix(in oklab, var(--_input-fg) 40%, transparent)}:host .input::after{border:var(--_input-border);border-radius:var(--_input-border-radius);content:"";display:block;inset:0px;pointer-events:none;position:absolute}:host .errors{color:var(--error);display:none;flex-direction:column;font-size:var(--font-size-sm);gap:.25rem;line-height:var(--line-height-sm);margin:.5rem;margin-bottom:0}:host([is_focus]) .input{border-color:var(--primary)}:host([is_focus]) .input::after{border-color:var(--primary);border-width:2px}:host([has_errors]) .input::after{border-color:var(--error)}:host([has_errors]) .errors{display:flex}:host([icon]:not([icon=""])) .input .icon{display:block}:host([label]:not([label=""])) label{display:flex}:host([label]:not([label=""])) .input{height:auto;margin-top:.5rem}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) label{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input{background-color:color-mix(in oklab, var(--surface-content) 10%, transparent)}:host([disabled]) .input input{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input::after{border:none}`;
+    __getStatic() {
+        return Input;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Input.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        slots: { 'prepend':`<slot name="prepend">        <mi-icon class="icon" _id="input_1"></mi-icon>    </slot>`,'append':`<slot name="append">    </slot>` }, 
+        blocks: { 'default':`<label _id="input_0"></label><div class="input">    <slot name="prepend">        <mi-icon class="icon" _id="input_1"></mi-icon>    </slot>    <input autocomplete="off" _id="input_2" />    <slot name="append">    </slot></div><div class="errors">    <template _id="input_3"></template></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "iconEl",
+      "ids": [
+        "input_1"
+      ]
+    },
+    {
+      "name": "inputEl",
+      "ids": [
+        "input_2"
+      ]
+    }
+  ],
+  "content": {
+    "input_0°for": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod1())}`,
+      "once": true
+    },
+    "input_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod2())}`,
+      "once": true
+    },
+    "input_1°icon": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod3())}`,
+      "once": true
+    },
+    "input_2°id": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod1())}`,
+      "once": true
+    },
+    "input_2°name": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod1())}`,
+      "once": true
+    },
+    "input_2°placeholder": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod4())}`,
+      "once": true
+    },
+    "input_2°tabindex": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod6())}`
+    }
+  },
+  "injection": [
+    {
+      "id": "input_2",
+      "injectionName": "value",
+      "inject": (c) => c.comp.__2d86810f2ba04f242547809ce401a43bmethod5(),
+      "once": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "focus",
+      "id": "input_2",
+      "fct": (e, c) => c.comp.onFocus(e)
+    },
+    {
+      "eventName": "blur",
+      "id": "input_2",
+      "fct": (e, c) => c.comp.onBlur(e)
+    },
+    {
+      "eventName": "input",
+      "id": "input_2",
+      "fct": (e, c) => c.comp.onInputChanged(e)
+    }
+  ]
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`         <div _id="input_4"></div>    `);templ0.setActions({
+  "content": {
+    "input_4°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod7(c.data.error))}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'input_3',
+                    template: templ0,
+                simple:{data: "this.errors",item:"error"}}); }
+    getClassName() {
+        return "Input";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }if(!this.hasAttribute('name')){ this['name'] = undefined; }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_focus');this.__upgradeProperty('name');this.__upgradeProperty('label');this.__upgradeProperty('icon');this.__upgradeProperty('placeholder');this.__upgradeProperty('value'); }
+    __listBoolProps() { return ["is_focus"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    onFocus() {
+        this.is_focus = true;
+        this.errors = [];
+    }
+    onBlur() {
+        this.is_focus = false;
+    }
+    onInputChanged() {
+        this.triggerChange(this.inputEl.value);
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod1() {
+        return this.name;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod2() {
+        return this.label;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod3() {
+        return this.icon;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod4() {
+        return this.placeholder;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod6() {
+        return this.disabled ? -1 : 0;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod7(error) {
+        return error;
+    }
+    __2d86810f2ba04f242547809ce401a43bmethod5() {
+        return this.value;
+    }
+}
+Components.Form.Input.Namespace=`OneMoreUI.Components.Form`;
+Components.Form.Input.Tag=`om-input`;
+__as1(_.Components.Form, 'Input', Components.Form.Input);
+if(!window.customElements.get('om-input')){window.customElements.define('om-input', Components.Form.Input);Aventus.WebComponentInstance.registerDefinition(Components.Form.Input);}
+
+Components.Form.Password = class Password extends Components.Form.Input {
+    get 'iconEye'() {
+						return this.__signals["iconEye"].value;
+					}
+					set 'iconEye'(val) {
+						this.__signals["iconEye"].value = val;
+					}    __registerSignalsActions() { this.__signals["iconEye"] = null; super.__registerSignalsActions();  }
+    static __style = `:host .icon-visibility{color:color-mix(in oklab, var(--_input-fg) 60%, transparent);cursor:pointer;font-size:var(--font-size)}`;
+    constructor() {
+        super();
+        this.toggleVisibility = this.toggleVisibility.bind(this);
+    }
+    __getStatic() {
+        return Password;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Password.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'append':`    <mi-icon class="icon-visibility" tabindex="0" _id="password_0"></mi-icon>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "password_0°icon": {
+      "fct": (c) => `${c.print(c.comp.__17ed1e2c85a5f0157a52fd5e530f8741method0())}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "password_0",
+      "fct": (e, c) => c.comp.toggleVisibility(e)
+    },
+    {
+      "eventName": "focus",
+      "id": "password_0",
+      "fct": (e, c) => c.comp.addToggle(e)
+    },
+    {
+      "eventName": "blur",
+      "id": "password_0",
+      "fct": (e, c) => c.comp.removeToggle(e)
+    }
+  ]
+}); }
+    getClassName() {
+        return "Password";
+    }
+    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["iconEye"] = "visibility"; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('iconEye'); }
+    addToggle() {
+        Aventus.Lib.ShortcutManager.subscribe(" ", this.toggleVisibility, { replaceTemp: true });
+    }
+    removeToggle() {
+        Aventus.Lib.ShortcutManager.unsubscribe(" ", this.toggleVisibility);
+    }
+    toggleVisibility() {
+        if (this.inputEl.type == "password") {
+            this.iconEye = "visibility_off";
+            this.inputEl.type = "text";
+        }
+        else {
+            this.iconEye = "visibility";
+            this.inputEl.type = "password";
+        }
+    }
+    postCreation() {
+        super.postCreation();
+        this.inputEl.type = "password";
+    }
+    __17ed1e2c85a5f0157a52fd5e530f8741method0() {
+        return this.iconEye;
+    }
+}
+Components.Form.Password.Namespace=`OneMoreUI.Components.Form`;
+Components.Form.Password.Tag=`om-password`;
+__as1(_.Components.Form, 'Password', Components.Form.Password);
+if(!window.customElements.get('om-password')){window.customElements.define('om-password', Components.Form.Password);Aventus.WebComponentInstance.registerDefinition(Components.Form.Password);}
+
 Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'y_scroll_visible'() { return this.getBoolAttr('y_scroll_visible') }
@@ -9246,486 +10077,208 @@ Components.Interaction.Modal = class Modal extends Aventus.Modal.ModalElement {
 Components.Interaction.Modal.Namespace=`OneMoreUI.Components.Interaction`;
 __as1(_.Components.Interaction, 'Modal', Components.Interaction.Modal);
 
-Libs.Style=class Style {
-    static getVariable(prop, el) {
-        const computed = getComputedStyle(el);
-        let value = computed.getPropertyValue(prop.replace("--", "--_"));
-        if (!value) {
-            value = computed.getPropertyValue(prop);
-        }
-        return value;
-    }
-    static getVariables(props, el) {
-        const computed = getComputedStyle(el);
-        const result = [];
-        for (let prop of props) {
-            let value = computed.getPropertyValue(prop.replace("--", "--_"));
-            if (!value) {
-                value = computed.getPropertyValue(prop);
-            }
-            result.push(value);
-        }
-        return result;
-    }
-    static lockVariable(props, el) {
-        if (typeof props == "string") {
-            props = [props];
-        }
-        const values = this.getVariables(props, el);
-        for (let i = 0; i < props.length; i++) {
-            el.style.setProperty(props[i], values[i]);
-        }
-    }
-}
-Libs.Style.Namespace=`OneMoreUI.Libs`;
-__as1(_.Libs, 'Style', Libs.Style);
-
-Components.Form.Select.BaseOption = class BaseOption extends Aventus.WebComponent {
-    get 'focused'() { return this.getBoolAttr('focused') }
-    set 'focused'(val) { this.setBoolAttr('focused', val) }    value;
-    select;
-    static __style = `:host{border-radius:var(--radius-field);color:inherit;cursor:pointer;font-size:.875rem;padding-block:.375rem;padding-inline:.75rem;transition-duration:.2s;transition-property:color,background-color;transition-timing-function:cubic-bezier(0, 0, 0.2, 1);white-space:normal}@media(hover: hover)and (pointer: fine){:host(:hover){background-color:color-mix(in oklab, var(--_options-container-background), #000 7%)}}:host([focused]){background-color:color-mix(in oklab, var(--_options-container-background), #000 7%)}`;
+Components.Form.Button = class Button extends Aventus.Form.ButtonElement {
+    static get observedAttributes() {return ["icon", "icon_right"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'color'() { return this.getStringAttr('color') }
+    set 'color'(val) { this.setStringAttr('color', val) }get 'outline'() { return this.getBoolAttr('outline') }
+    set 'outline'(val) { this.setBoolAttr('outline', val) }get 'disabled'() { return this.getBoolAttr('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'loading'() { return this.getBoolAttr('loading') }
+    set 'loading'(val) { this.setBoolAttr('loading', val) }get 'ghost'() { return this.getBoolAttr('ghost') }
+    set 'ghost'(val) { this.setBoolAttr('ghost', val) }    get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }get 'icon_right'() { return this.getBoolProp('icon_right') }
+    set 'icon_right'(val) { this.setBoolAttr('icon_right', val) }    static __style = `:host{--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content));--_button-radius: var(--button-radius, var(--border-radius-lg));--_button-icon-font-size: var(--button-icon-font-size, var(--font-size-lg))}:host([outline]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--surface-content));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--surface-content))}:host([color=primary]){--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content))}:host([outline][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--primary));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary))}:host([color=accent]){--_button-bg: var(--button-bg, var(--accent-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent-content))}:host([outline][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--accent));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent))}:host([color=neutral]){--_button-bg: var(--button-bg, var(--neutral-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral-content))}:host([outline][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--neutral));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral))}:host([color=info]){--_button-bg: var(--button-bg, var(--info-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info-content))}:host([outline][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--info));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info))}:host([color=success]){--_button-bg: var(--button-bg, var(--success-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success-content))}:host([outline][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--success));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success))}:host([color=warning]){--_button-bg: var(--button-bg, var(--warning-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning-content))}:host([outline][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--warning));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning))}:host([color=error]){--_button-bg: var(--button-bg, var(--error-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error-content))}:host([outline][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--error));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error))}:host([disabled]){--_button-bg: color-mix(in oklab, var(--surface-content) 10%, transparent);--_button-fg: color-mix(in oklab, var(--surface-content) 50%, var(--surface));pointer-events:none}:host{align-items:center;background-color:var(--_button-bg);border-radius:var(--_button-radius);color:var(--_button-fg);cursor:pointer;display:flex;font-weight:500;gap:.5rem;line-height:var(--line-height);padding:.5rem 1rem;position:relative;user-select:none;width:fit-content}:host mi-icon{font-size:var(--_button-icon-font-size);font-weight:normal}:host .loader-mask{align-items:center;align-items:stretch;display:none;inset:.6rem;justify-content:center;position:absolute}:host .loader-mask .loader{animation:rotation 1s linear infinite;aspect-ratio:1;border:2px solid var(--_button-fg);border-bottom-color:rgba(0,0,0,0);border-radius:50000px;display:block;height:100%;max-height:100%;max-width:100%}:host .border{border:1px solid var(--_button-border);border-radius:var(--_button-radius);display:none;inset:0;pointer-events:none;position:absolute}:host([outline]) .border{display:block}:host(:not([icon])) mi-icon,:host([icon=""]) mi-icon{display:none}:host([round]){border-radius:var(--border-radius-round)}:host(:empty[icon]:not([icon=""])){align-items:center;justify-content:center;padding:.5rem}:host([loading]) slot{opacity:0;visibility:hidden}:host([loading]) mi-icon{opacity:0;visibility:hidden}:host([loading]) .loader-mask{display:flex}@media(hover: hover)and (pointer: fine){:host(:not([loading]):hover){background-color:color-mix(in oklab, var(--_button-bg), #000 7%)}}@keyframes rotation{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`;
     __getStatic() {
-        return BaseOption;
+        return Button;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(BaseOption.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "BaseOption";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('focused')) { this.attributeChangedCallback('focused', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('focused'); }
-    __listBoolProps() { return ["focused"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    choose() {
-        this.select.setValueFromOption(this);
-        this.select.hideOptions();
-    }
-    init(select) {
-        this.select = select;
-    }
-    filter(text) {
-        if (this.innerText.toLowerCase().includes(text)) {
-            this.style.display = "";
-        }
-        else {
-            this.style.display = "none";
-        }
-    }
-    postCreation() {
-        this.addEventListener("click", () => {
-            this.choose();
-        });
-    }
-}
-Components.Form.Select.BaseOption.Namespace=`OneMoreUI.Components.Form.Select`;
-Components.Form.Select.BaseOption.Tag=`om-base-option`;
-__as1(_.Components.Form.Select, 'BaseOption', Components.Form.Select.BaseOption);
-if(!window.customElements.get('om-base-option')){window.customElements.define('om-base-option', Components.Form.Select.BaseOption);Aventus.WebComponentInstance.registerDefinition(Components.Form.Select.BaseOption);}
-
-Components.Form.Select.Option = class Option extends Components.Form.Select.BaseOption {
-    static get observedAttributes() {return ["value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'value'() { return this.getStringProp('value') }
-    set 'value'(val) { this.setStringAttr('value', val) }    static __style = ``;
-    __getStatic() {
-        return Option;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Option.__style);
+        arrStyle.push(Button.__style);
         return arrStyle;
     }
     __getHtml() {super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
+        blocks: { 'default':`<template _id="button_0"></template><slot></slot><template _id="button_2"></template><div class="loader-mask">    <div class="loader"></div></div><div class="border"></div>` }
     });
 }
-    getClassName() {
-        return "Option";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('value')){ this['value'] = undefined; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value'); }
-}
-Components.Form.Select.Option.Namespace=`OneMoreUI.Components.Form.Select`;
-Components.Form.Select.Option.Tag=`om-option`;
-__as1(_.Components.Form.Select, 'Option', Components.Form.Select.Option);
-if(!window.customElements.get('om-option')){window.customElements.define('om-option', Components.Form.Select.Option);Aventus.WebComponentInstance.registerDefinition(Components.Form.Select.Option);}
-
-Components.Form.FormElement = class FormElement extends Aventus.Form.FormElement {
-    static __style = `:host{--form-element-bg: var(--surface, white);--form-element-border-radius: var(--border-radius-lg, 0);--form-element-fg: var(--surface-content, oklch(21% 0.006 285.885));--form-element-border-color: var(--border-color, oklab(0.21 0.00164225 -0.00577088 / 0.1));--form-element-border: 1px solid var(--form-element-border-color)}`;
-    constructor() {
-        super();
-        if (this.constructor == FormElement) {
-            throw "can't instanciate an abstract class";
-        }
-    }
-    __getStatic() {
-        return FormElement;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(FormElement.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "FormElement";
-    }
-}
-Components.Form.FormElement.Namespace=`OneMoreUI.Components.Form`;
-__as1(_.Components.Form, 'FormElement', Components.Form.FormElement);
-
-Components.Form.Checkbox = class Checkbox extends Components.Form.FormElement {
-    static get observedAttributes() {return ["label", "checked"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'left_label'() { return this.getBoolAttr('left_label') }
-    set 'left_label'(val) { this.setBoolAttr('left_label', val) }    get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }get 'checked'() { return this.getBoolProp('checked') }
-    set 'checked'(val) { this.setBoolAttr('checked', val) }    get 'value'() {
-						return this.__watch["value"];
-					}
-					set 'value'(val) {
-						this.__watch["value"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("value", ((target) => {
-    target.checked = target.value;
-}));    super.__registerWatchesActions();
-}
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("checked", ((target) => {
-    target.value = target.checked;
-})); }
-    static __style = `:host{--_checkbox-size: var(--checkbox-size, 1.5rem);--_checkbox-height: var(--checkbox-height, var(--_checkbox-size));--_checkbox-width: var(--checkbox-width, var(--_checkbox-size));--_checkbox-border-radius: var(--checkbox-border-radius, var(--border-radius));--_checkbox-border: var(--checkbox-border, 1px solid var(--border-color));--_checkbox-border-active: var(--checkbox-border-active, var(--primary-600));--_checkbox-background: var(--checkbox-background, transparent);--_checkbox-background-active: var(--checkbox-background-active, var(--primary));--_checkbox-tick-color: var(--checkbox-tick-color, var(--primary-content));--_checkbox-tick-size: var(--checkbox-tick-size, 2px);--_checkbox-tick-padding: var(--checkbox-tick-padding, 20%);--_checkbox-font-size-label: var(--checkbox-font-size-label, var(--font-size-sm));--_checkbox-margin-label: var(--checkbox-margin-label, 1rem)}:host{align-items:center;display:flex;outline:none}:host .label:not(:empty){cursor:pointer;font-size:var(--_checkbox-font-size-label);margin-left:var(--_checkbox-margin-label);user-select:none}:host .square{align-items:center;background-color:var(--_checkbox-background);border:var(--_checkbox-border);border-radius:var(--_checkbox-border-radius);cursor:pointer;display:flex;flex-shrink:0;height:var(--_checkbox-height);justify-content:center;position:relative;transition:border .2s var(--bezier-curve),background-color .2s var(--bezier-curve);width:var(--_checkbox-width)}:host .square svg{height:calc(100% - var(--_checkbox-tick-padding));margin-top:1px;opacity:0;stroke:var(--_checkbox-tick-color);stroke-width:var(--_checkbox-tick-size);visibility:hidden;width:calc(100% - var(--_checkbox-tick-padding))}:host .square:focus-visible{outline:2px solid var(--primary)}:host([checked]) .square{background-color:var(--_checkbox-background-active);border-color:var(--_checkbox-border-active)}:host([checked]) .square svg{opacity:1;visibility:visible}:host([checked]) .square svg .tick{animation:dash .2s linear forwards;animation-delay:.1s;stroke-dasharray:100;stroke-dashoffset:100}:host([left_label]) .label:not(:empty){margin-left:0;margin-right:var(--_checkbox-margin-label);order:1}:host([left_label]) .square{order:2}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) .label{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .square{background-color:color-mix(in oklab, var(--surface-content) 10%, transparent)}:host([disabled]) .square svg{stroke:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}@keyframes dash{to{stroke-dashoffset:70}}`;
-    constructor() {
-        super();
-        this.toggleChecked = this.toggleChecked.bind(this);
-    }
-    __getStatic() {
-        return Checkbox;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Checkbox.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="square" _id="checkbox_0">    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">        <polyline fill="none" points="3.7 14.3 9.6 19 20.3 5" stroke-linecap="round" stroke-linejoin="round" class="tick"></polyline>    </svg></div><div class="label" _id="checkbox_1"></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <mi-icon _id="button_1"></mi-icon>`);templ0.setActions({
   "content": {
-    "checkbox_0°tabindex": {
-      "fct": (c) => `${c.print(c.comp.__e89e389cce67389d127fd9c3f9aba9d5method0())}`
-    },
-    "checkbox_1°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__e89e389cce67389d127fd9c3f9aba9d5method1())}`,
-      "once": true
-    }
-  },
-  "events": [
-    {
-      "eventName": "focus",
-      "id": "checkbox_0",
-      "fct": (e, c) => c.comp.onFocus(e)
-    },
-    {
-      "eventName": "blur",
-      "id": "checkbox_0",
-      "fct": (e, c) => c.comp.onBlur(e)
-    }
-  ]
-}); }
-    getClassName() {
-        return "Checkbox";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('left_label')) { this.attributeChangedCallback('left_label', false, false); }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = false; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('left_label');this.__upgradeProperty('label');this.__upgradeProperty('checked');this.__correctGetter('value'); }
-    __listBoolProps() { return ["left_label","checked"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    /**
-     * Toggles the checked state of the checkbox and triggers a change event.
-     */
-    toggleChecked() {
-        this.triggerChange(!this.checked);
-    }
-    onFocus() {
-        if (!this.disabled) {
-            this.removeErrors();
-            Aventus.Lib.ShortcutManager.subscribe(" ", this.toggleChecked, { replaceTemp: true });
-        }
-    }
-    onBlur() {
-        if (!this.disabled) {
-            Aventus.Lib.ShortcutManager.unsubscribe(" ", this.toggleChecked);
-        }
-    }
-    removeErrors() {
-        this.errors = [];
-    }
-    postCreation() {
-        super.postCreation();
-        this.addEventListener("click", () => {
-            this.removeErrors();
-            this.triggerChange(!this.checked);
-        });
-    }
-    __e89e389cce67389d127fd9c3f9aba9d5method0() {
-        return this.disabled ? -1 : 0;
-    }
-    __e89e389cce67389d127fd9c3f9aba9d5method1() {
-        return this.label;
-    }
-}
-Components.Form.Checkbox.Namespace=`OneMoreUI.Components.Form`;
-Components.Form.Checkbox.Tag=`om-checkbox`;
-__as1(_.Components.Form, 'Checkbox', Components.Form.Checkbox);
-if(!window.customElements.get('om-checkbox')){window.customElements.define('om-checkbox', Components.Form.Checkbox);Aventus.WebComponentInstance.registerDefinition(Components.Form.Checkbox);}
-
-Components.Form.Input = class Input extends Components.Form.FormElement {
-    static get observedAttributes() {return ["name", "label", "icon", "placeholder", "value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'is_focus'() { return this.getBoolAttr('is_focus') }
-    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }    get 'name'() { return this.getStringProp('name') }
-    set 'name'(val) { this.setStringAttr('name', val) }get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }get 'placeholder'() { return this.getStringProp('placeholder') }
-    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }get 'value'() { return this.getStringProp('value') }
-    set 'value'(val) { this.setStringAttr('value', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
-    target.onValueChange(target.value);
-})); }
-    static __style = `:host{--_input-bg: var(--input-bg, var(--form-element-bg));--_input-fg: var(--input-fg, var(--form-element-fg));--_input-border: var(--input-border, var(--form-element-border));--_input-border-radius: var(--input-border-radius, var(--form-element-border-radius))}:host{width:100%}:host label{display:none;font-size:var(--font-size-sm);font-weight:500;line-height:var(--line-height-sm)}:host .input{align-items:center;background-color:var(--_input-bg);border-radius:var(--_input-border-radius);display:flex;gap:.5rem;height:100%;margin-top:0;overflow:hidden;padding:.5rem 1rem;position:relative;width:100%}:host .input .icon{color:color-mix(in oklab, var(--_input-fg) 40%, transparent);display:none;font-size:var(--font-size)}:host .input input{background-color:rgba(0,0,0,0);border:none;color:var(--_input-fg);display:block;flex-grow:1;font-size:var(--font-size);height:var(--line-height);margin:0;min-width:0;outline:none;padding:0}:host .input input::placeholder{color:color-mix(in oklab, var(--_input-fg) 40%, transparent)}:host .input::after{border:var(--_input-border);border-radius:var(--_input-border-radius);content:"";display:block;inset:0px;pointer-events:none;position:absolute}:host .errors{color:var(--error);display:none;flex-direction:column;font-size:var(--font-size-sm);gap:.25rem;line-height:var(--line-height-sm);margin:.5rem;margin-bottom:0}:host([is_focus]) .input{border-color:var(--primary)}:host([is_focus]) .input::after{border-color:var(--primary);border-width:2px}:host([has_errors]) .input::after{border-color:var(--error)}:host([has_errors]) .errors{display:flex}:host([icon]:not([icon=""])) .input .icon{display:block}:host([label]:not([label=""])) label{display:flex}:host([label]:not([label=""])) .input{height:auto;margin-top:.5rem}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) label{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input{background-color:color-mix(in oklab, var(--surface-content) 10%, transparent)}:host([disabled]) .input input{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input::after{border:none}`;
-    __getStatic() {
-        return Input;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Input.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        slots: { 'prepend':`<slot name="prepend">        <mi-icon class="icon" _id="input_1"></mi-icon>    </slot>`,'append':`<slot name="append">    </slot>` }, 
-        blocks: { 'default':`<label _id="input_0"></label><div class="input">    <slot name="prepend">        <mi-icon class="icon" _id="input_1"></mi-icon>    </slot>    <input autocomplete="off" _id="input_2" />    <slot name="append">    </slot></div><div class="errors">    <template _id="input_3"></template></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "iconEl",
-      "ids": [
-        "input_1"
-      ]
-    },
-    {
-      "name": "inputEl",
-      "ids": [
-        "input_2"
-      ]
-    }
-  ],
-  "content": {
-    "input_0°for": {
-      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod1())}`,
-      "once": true
-    },
-    "input_0°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod2())}`,
-      "once": true
-    },
-    "input_1°icon": {
-      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod3())}`,
-      "once": true
-    },
-    "input_2°id": {
-      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod1())}`,
-      "once": true
-    },
-    "input_2°name": {
-      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod1())}`,
-      "once": true
-    },
-    "input_2°placeholder": {
-      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod4())}`,
-      "once": true
-    },
-    "input_2°tabindex": {
-      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod6())}`
-    }
-  },
-  "injection": [
-    {
-      "id": "input_2",
-      "injectionName": "value",
-      "inject": (c) => c.comp.__2d86810f2ba04f242547809ce401a43bmethod5(),
-      "once": true
-    }
-  ],
-  "events": [
-    {
-      "eventName": "focus",
-      "id": "input_2",
-      "fct": (e, c) => c.comp.onFocus(e)
-    },
-    {
-      "eventName": "blur",
-      "id": "input_2",
-      "fct": (e, c) => c.comp.onBlur(e)
-    },
-    {
-      "eventName": "input",
-      "id": "input_2",
-      "fct": (e, c) => c.comp.onInputChanged(e)
-    }
-  ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`         <div _id="input_4"></div>    `);templ0.setActions({
-  "content": {
-    "input_4°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod7(c.data.error))}`,
+    "button_1°icon": {
+      "fct": (c) => `${c.print(c.comp.__4b84b84f9c7940ff70213fba40df60cemethod2())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'input_3',
-                    template: templ0,
-                simple:{data: "this.errors",item:"error"}}); }
+});this.__getStatic().__template.addIf({
+                    anchorId: 'button_0',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__4b84b84f9c7940ff70213fba40df60cemethod0(),
+                    template: templ0
+                }]
+            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`    <mi-icon _id="button_3"></mi-icon>`);templ1.setActions({
+  "content": {
+    "button_3°icon": {
+      "fct": (c) => `${c.print(c.comp.__4b84b84f9c7940ff70213fba40df60cemethod2())}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addIf({
+                    anchorId: 'button_2',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__4b84b84f9c7940ff70213fba40df60cemethod1(),
+                    template: templ1
+                }]
+            }); }
     getClassName() {
-        return "Input";
+        return "Button";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }if(!this.hasAttribute('name')){ this['name'] = undefined; }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_focus');this.__upgradeProperty('name');this.__upgradeProperty('label');this.__upgradeProperty('icon');this.__upgradeProperty('placeholder');this.__upgradeProperty('value'); }
-    __listBoolProps() { return ["is_focus"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    onFocus() {
-        this.is_focus = true;
-        this.errors = [];
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('color')){ this['color'] = undefined; }if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('icon_right')) { this.attributeChangedCallback('icon_right', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('color');this.__upgradeProperty('outline');this.__upgradeProperty('disabled');this.__upgradeProperty('loading');this.__upgradeProperty('ghost');this.__upgradeProperty('icon');this.__upgradeProperty('icon_right'); }
+    __listBoolProps() { return ["outline","disabled","loading","ghost","icon_right"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    registerSubmit() {
+        this.handler = this.findParentByType(Aventus.Form.Form.formElements)?.registerSubmit(this);
+        if (this.type == "submit") {
+            this.addEventListener("click", () => {
+                this.triggerSubmit();
+            });
+            this.addEventListener("keyup", (e) => {
+                if (e.key == 'Enter') {
+                    this.triggerSubmit();
+                }
+            });
+        }
     }
-    onBlur() {
-        this.is_focus = false;
-    }
-    onInputChanged() {
-        this.triggerChange(this.inputEl.value);
-    }
-    __2d86810f2ba04f242547809ce401a43bmethod1() {
-        return this.name;
-    }
-    __2d86810f2ba04f242547809ce401a43bmethod2() {
-        return this.label;
-    }
-    __2d86810f2ba04f242547809ce401a43bmethod3() {
+    __4b84b84f9c7940ff70213fba40df60cemethod2() {
         return this.icon;
     }
-    __2d86810f2ba04f242547809ce401a43bmethod4() {
-        return this.placeholder;
+    __4b84b84f9c7940ff70213fba40df60cemethod0() {
+        return !this.icon_right;
     }
-    __2d86810f2ba04f242547809ce401a43bmethod6() {
-        return this.disabled ? -1 : 0;
-    }
-    __2d86810f2ba04f242547809ce401a43bmethod7(error) {
-        return error;
-    }
-    __2d86810f2ba04f242547809ce401a43bmethod5() {
-        return this.value;
+    __4b84b84f9c7940ff70213fba40df60cemethod1() {
+        return this.icon_right;
     }
 }
-Components.Form.Input.Namespace=`OneMoreUI.Components.Form`;
-Components.Form.Input.Tag=`om-input`;
-__as1(_.Components.Form, 'Input', Components.Form.Input);
-if(!window.customElements.get('om-input')){window.customElements.define('om-input', Components.Form.Input);Aventus.WebComponentInstance.registerDefinition(Components.Form.Input);}
+Components.Form.Button.Namespace=`OneMoreUI.Components.Form`;
+Components.Form.Button.Tag=`om-button`;
+__as1(_.Components.Form, 'Button', Components.Form.Button);
+if(!window.customElements.get('om-button')){window.customElements.define('om-button', Components.Form.Button);Aventus.WebComponentInstance.registerDefinition(Components.Form.Button);}
 
-Components.Form.Password = class Password extends Components.Form.Input {
-    get 'iconEye'() {
-						return this.__signals["iconEye"].value;
-					}
-					set 'iconEye'(val) {
-						this.__signals["iconEye"].value = val;
-					}    __registerSignalsActions() { this.__signals["iconEye"] = null; super.__registerSignalsActions();  }
-    static __style = `:host .icon-visibility{color:color-mix(in oklab, var(--_input-fg) 60%, transparent);cursor:pointer;font-size:var(--font-size)}`;
-    constructor() {
-        super();
-        this.toggleVisibility = this.toggleVisibility.bind(this);
-    }
+Components.Interaction.Alert = class Alert extends Components.Interaction.Modal {
+    static defaultConfig = {
+        title: "",
+        content: "",
+        btnTxt: "Ok",
+    };
+    static __style = `:host .modal{max-width:800px}:host .modal .modal-header .icon[color=primary]{color:var(--primary)}:host .modal .modal-header .icon[color=accent]{color:var(--accent)}:host .modal .modal-header .icon[color=neutral]{color:var(--neutral)}:host .modal .modal-header .icon[color=info]{color:var(--info)}:host .modal .modal-header .icon[color=success]{color:var(--success)}:host .modal .modal-header .icon[color=warning]{color:var(--warning)}:host .modal .modal-header .icon[color=error]{color:var(--error)}`;
     __getStatic() {
-        return Password;
+        return Alert;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(Password.__style);
+        arrStyle.push(Alert.__style);
         return arrStyle;
     }
     __getHtml() {super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'append':`    <mi-icon class="icon-visibility" tabindex="0" _id="password_0"></mi-icon>` }
+        blocks: { 'header':`    <template _id="alert_0"></template>    <div class="title" _id="alert_2"></div>`,'footer':`    <om-button _id="alert_4"></om-button>`,'default':`<div _id="alert_3"></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "content": {
-    "password_0°icon": {
-      "fct": (c) => `${c.print(c.comp.__17ed1e2c85a5f0157a52fd5e530f8741method0())}`,
+    "alert_2°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod3())}`,
+      "once": true
+    },
+    "alert_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod4())}`,
+      "once": true
+    },
+    "alert_4°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod5())}`,
       "once": true
     }
   },
   "events": [
     {
       "eventName": "click",
-      "id": "password_0",
-      "fct": (e, c) => c.comp.toggleVisibility(e)
-    },
-    {
-      "eventName": "focus",
-      "id": "password_0",
-      "fct": (e, c) => c.comp.addToggle(e)
-    },
-    {
-      "eventName": "blur",
-      "id": "password_0",
-      "fct": (e, c) => c.comp.removeToggle(e)
+      "id": "alert_4",
+      "fct": (e, c) => c.comp.done(e)
     }
   ]
-}); }
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <mi-icon class="icon" _id="alert_1"></mi-icon>    `);templ0.setActions({
+  "content": {
+    "alert_1°icon": {
+      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod1())}`,
+      "once": true
+    },
+    "alert_1°color": {
+      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod2())}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addIf({
+                    anchorId: 'alert_0',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__18e1eef5fce2e718728d07198f6800camethod0(),
+                    template: templ0
+                }]
+            }); }
     getClassName() {
-        return "Password";
+        return "Alert";
     }
-    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["iconEye"] = "visibility"; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('iconEye'); }
-    addToggle() {
-        Aventus.Lib.ShortcutManager.subscribe(" ", this.toggleVisibility, { replaceTemp: true });
+    determineIcon() {
+        if (this.options.icon)
+            return;
+        if (this.options.type == "error")
+            this.options.icon = "error";
+        else if (this.options.type == "warning")
+            this.options.icon = "warning";
+        else if (this.options.type == "success")
+            this.options.icon = "done_all";
+        else if (this.options.type == "info")
+            this.options.icon = "info";
     }
-    removeToggle() {
-        Aventus.Lib.ShortcutManager.unsubscribe(" ", this.toggleVisibility);
+    configure() {
+        return Components.Interaction.Alert.defaultConfig;
     }
-    toggleVisibility() {
-        if (this.inputEl.type == "password") {
-            this.iconEye = "visibility_off";
-            this.inputEl.type = "text";
-        }
-        else {
-            this.iconEye = "visibility";
-            this.inputEl.type = "password";
-        }
+    done() {
+        this.resolve();
     }
     postCreation() {
         super.postCreation();
-        this.inputEl.type = "password";
+        this.determineIcon();
     }
-    __17ed1e2c85a5f0157a52fd5e530f8741method0() {
-        return this.iconEye;
+    __18e1eef5fce2e718728d07198f6800camethod1() {
+        return this.options.icon;
+    }
+    __18e1eef5fce2e718728d07198f6800camethod2() {
+        return this.options.type;
+    }
+    __18e1eef5fce2e718728d07198f6800camethod3() {
+        return this.options.title;
+    }
+    __18e1eef5fce2e718728d07198f6800camethod4() {
+        return this.options.content;
+    }
+    __18e1eef5fce2e718728d07198f6800camethod5() {
+        return this.options.btnTxt;
+    }
+    __18e1eef5fce2e718728d07198f6800camethod0() {
+        return this.options.icon;
+    }
+    static configure(options) {
+        this.defaultConfig = { ...this.defaultConfig, ...options };
+    }
+    static async open(options) {
+        const alert = new Components.Interaction.Alert();
+        alert.options = { ...alert.options, ...options };
+        alert.determineIcon();
+        return await alert.show();
     }
 }
-Components.Form.Password.Namespace=`OneMoreUI.Components.Form`;
-Components.Form.Password.Tag=`om-password`;
-__as1(_.Components.Form, 'Password', Components.Form.Password);
-if(!window.customElements.get('om-password')){window.customElements.define('om-password', Components.Form.Password);Aventus.WebComponentInstance.registerDefinition(Components.Form.Password);}
+Components.Interaction.Alert.Namespace=`OneMoreUI.Components.Interaction`;
+Components.Interaction.Alert.Tag=`om-alert`;
+__as1(_.Components.Interaction, 'Alert', Components.Interaction.Alert);
+if(!window.customElements.get('om-alert')){window.customElements.define('om-alert', Components.Interaction.Alert);Aventus.WebComponentInstance.registerDefinition(Components.Interaction.Alert);}
 
 Components.Form.Select.BaseSelect.OptionsContainer = class OptionsContainer extends Aventus.WebComponent {
     get 'open'() { return this.getBoolAttr('open') }
@@ -10290,209 +10843,6 @@ Components.Form.Select.Select.Tag=`om-select`;
 __as1(_.Components.Form.Select, 'Select', Components.Form.Select.Select);
 if(!window.customElements.get('om-select')){window.customElements.define('om-select', Components.Form.Select.Select);Aventus.WebComponentInstance.registerDefinition(Components.Form.Select.Select);}
 
-Components.Form.Button = class Button extends Aventus.Form.ButtonElement {
-    static get observedAttributes() {return ["icon", "icon_right"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'color'() { return this.getStringAttr('color') }
-    set 'color'(val) { this.setStringAttr('color', val) }get 'outline'() { return this.getBoolAttr('outline') }
-    set 'outline'(val) { this.setBoolAttr('outline', val) }get 'disabled'() { return this.getBoolAttr('disabled') }
-    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'loading'() { return this.getBoolAttr('loading') }
-    set 'loading'(val) { this.setBoolAttr('loading', val) }get 'ghost'() { return this.getBoolAttr('ghost') }
-    set 'ghost'(val) { this.setBoolAttr('ghost', val) }    get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }get 'icon_right'() { return this.getBoolProp('icon_right') }
-    set 'icon_right'(val) { this.setBoolAttr('icon_right', val) }    static __style = `:host{--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content));--_button-radius: var(--button-radius, var(--border-radius-lg));--_button-icon-font-size: var(--button-icon-font-size, var(--font-size-lg))}:host([outline]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--surface-content));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--surface-content))}:host([color=primary]){--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content))}:host([outline][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--primary));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary))}:host([color=accent]){--_button-bg: var(--button-bg, var(--accent-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent-content))}:host([outline][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--accent));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent))}:host([color=neutral]){--_button-bg: var(--button-bg, var(--neutral-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral-content))}:host([outline][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--neutral));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral))}:host([color=info]){--_button-bg: var(--button-bg, var(--info-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info-content))}:host([outline][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--info));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info))}:host([color=success]){--_button-bg: var(--button-bg, var(--success-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success-content))}:host([outline][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--success));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success))}:host([color=warning]){--_button-bg: var(--button-bg, var(--warning-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning-content))}:host([outline][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--warning));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning))}:host([color=error]){--_button-bg: var(--button-bg, var(--error-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error-content))}:host([outline][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--error));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error))}:host([disabled]){--_button-bg: color-mix(in oklab, var(--surface-content) 10%, transparent);--_button-fg: color-mix(in oklab, var(--surface-content) 50%, var(--surface));pointer-events:none}:host{align-items:center;background-color:var(--_button-bg);border-radius:var(--_button-radius);color:var(--_button-fg);cursor:pointer;display:flex;font-weight:500;gap:.5rem;line-height:var(--line-height);padding:.5rem 1rem;position:relative;user-select:none;width:fit-content}:host mi-icon{font-size:var(--_button-icon-font-size);font-weight:normal}:host .loader-mask{align-items:center;align-items:stretch;display:none;inset:.6rem;justify-content:center;position:absolute}:host .loader-mask .loader{animation:rotation 1s linear infinite;aspect-ratio:1;border:2px solid var(--_button-fg);border-bottom-color:rgba(0,0,0,0);border-radius:50000px;display:block;height:100%;max-height:100%;max-width:100%}:host .border{border:1px solid var(--_button-border);border-radius:var(--_button-radius);display:none;inset:0;pointer-events:none;position:absolute}:host([outline]) .border{display:block}:host(:not([icon])) mi-icon,:host([icon=""]) mi-icon{display:none}:host([round]){border-radius:var(--border-radius-round)}:host(:empty[icon]:not([icon=""])){align-items:center;justify-content:center;padding:.5rem}:host([loading]) slot{opacity:0;visibility:hidden}:host([loading]) mi-icon{opacity:0;visibility:hidden}:host([loading]) .loader-mask{display:flex}@media(hover: hover)and (pointer: fine){:host(:not([loading]):hover){background-color:color-mix(in oklab, var(--_button-bg), #000 7%)}}@keyframes rotation{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`;
-    __getStatic() {
-        return Button;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Button.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<template _id="button_0"></template><slot></slot><template _id="button_2"></template><div class="loader-mask">    <div class="loader"></div></div><div class="border"></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <mi-icon _id="button_1"></mi-icon>`);templ0.setActions({
-  "content": {
-    "button_1°icon": {
-      "fct": (c) => `${c.print(c.comp.__4b84b84f9c7940ff70213fba40df60cemethod2())}`,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addIf({
-                    anchorId: 'button_0',
-                    parts: [{once: true,
-                    condition: (c) => c.comp.__4b84b84f9c7940ff70213fba40df60cemethod0(),
-                    template: templ0
-                }]
-            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`    <mi-icon _id="button_3"></mi-icon>`);templ1.setActions({
-  "content": {
-    "button_3°icon": {
-      "fct": (c) => `${c.print(c.comp.__4b84b84f9c7940ff70213fba40df60cemethod2())}`,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addIf({
-                    anchorId: 'button_2',
-                    parts: [{once: true,
-                    condition: (c) => c.comp.__4b84b84f9c7940ff70213fba40df60cemethod1(),
-                    template: templ1
-                }]
-            }); }
-    getClassName() {
-        return "Button";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('color')){ this['color'] = undefined; }if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('icon_right')) { this.attributeChangedCallback('icon_right', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('color');this.__upgradeProperty('outline');this.__upgradeProperty('disabled');this.__upgradeProperty('loading');this.__upgradeProperty('ghost');this.__upgradeProperty('icon');this.__upgradeProperty('icon_right'); }
-    __listBoolProps() { return ["outline","disabled","loading","ghost","icon_right"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    registerSubmit() {
-        this.handler = this.findParentByType(Aventus.Form.Form.formElements)?.registerSubmit(this);
-        if (this.type == "submit") {
-            this.addEventListener("click", () => {
-                this.triggerSubmit();
-            });
-            this.addEventListener("keyup", (e) => {
-                if (e.key == 'Enter') {
-                    this.triggerSubmit();
-                }
-            });
-        }
-    }
-    __4b84b84f9c7940ff70213fba40df60cemethod2() {
-        return this.icon;
-    }
-    __4b84b84f9c7940ff70213fba40df60cemethod0() {
-        return !this.icon_right;
-    }
-    __4b84b84f9c7940ff70213fba40df60cemethod1() {
-        return this.icon_right;
-    }
-}
-Components.Form.Button.Namespace=`OneMoreUI.Components.Form`;
-Components.Form.Button.Tag=`om-button`;
-__as1(_.Components.Form, 'Button', Components.Form.Button);
-if(!window.customElements.get('om-button')){window.customElements.define('om-button', Components.Form.Button);Aventus.WebComponentInstance.registerDefinition(Components.Form.Button);}
-
-Components.Interaction.Alert = class Alert extends Components.Interaction.Modal {
-    static defaultConfig = {
-        title: "",
-        content: "",
-        btnTxt: "Ok",
-    };
-    static __style = `:host .modal{max-width:800px}:host .modal .modal-header .icon[color=primary]{color:var(--primary)}:host .modal .modal-header .icon[color=accent]{color:var(--accent)}:host .modal .modal-header .icon[color=neutral]{color:var(--neutral)}:host .modal .modal-header .icon[color=info]{color:var(--info)}:host .modal .modal-header .icon[color=success]{color:var(--success)}:host .modal .modal-header .icon[color=warning]{color:var(--warning)}:host .modal .modal-header .icon[color=error]{color:var(--error)}`;
-    __getStatic() {
-        return Alert;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Alert.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        blocks: { 'header':`    <template _id="alert_0"></template>    <div class="title" _id="alert_2"></div>`,'footer':`    <om-button _id="alert_4"></om-button>`,'default':`<div _id="alert_3"></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "content": {
-    "alert_2°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod3())}`,
-      "once": true
-    },
-    "alert_3°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod4())}`,
-      "once": true
-    },
-    "alert_4°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod5())}`,
-      "once": true
-    }
-  },
-  "events": [
-    {
-      "eventName": "click",
-      "id": "alert_4",
-      "fct": (e, c) => c.comp.done(e)
-    }
-  ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <mi-icon class="icon" _id="alert_1"></mi-icon>    `);templ0.setActions({
-  "content": {
-    "alert_1°icon": {
-      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod1())}`,
-      "once": true
-    },
-    "alert_1°color": {
-      "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod2())}`,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addIf({
-                    anchorId: 'alert_0',
-                    parts: [{once: true,
-                    condition: (c) => c.comp.__18e1eef5fce2e718728d07198f6800camethod0(),
-                    template: templ0
-                }]
-            }); }
-    getClassName() {
-        return "Alert";
-    }
-    determineIcon() {
-        if (this.options.icon)
-            return;
-        if (this.options.type == "error")
-            this.options.icon = "error";
-        else if (this.options.type == "warning")
-            this.options.icon = "warning";
-        else if (this.options.type == "success")
-            this.options.icon = "done_all";
-        else if (this.options.type == "info")
-            this.options.icon = "info";
-    }
-    configure() {
-        return Components.Interaction.Alert.defaultConfig;
-    }
-    done() {
-        this.resolve();
-    }
-    postCreation() {
-        super.postCreation();
-        this.determineIcon();
-    }
-    __18e1eef5fce2e718728d07198f6800camethod1() {
-        return this.options.icon;
-    }
-    __18e1eef5fce2e718728d07198f6800camethod2() {
-        return this.options.type;
-    }
-    __18e1eef5fce2e718728d07198f6800camethod3() {
-        return this.options.title;
-    }
-    __18e1eef5fce2e718728d07198f6800camethod4() {
-        return this.options.content;
-    }
-    __18e1eef5fce2e718728d07198f6800camethod5() {
-        return this.options.btnTxt;
-    }
-    __18e1eef5fce2e718728d07198f6800camethod0() {
-        return this.options.icon;
-    }
-    static configure(options) {
-        this.defaultConfig = { ...this.defaultConfig, ...options };
-    }
-    static async open(options) {
-        const alert = new Components.Interaction.Alert();
-        alert.options = { ...alert.options, ...options };
-        alert.determineIcon();
-        return await alert.show();
-    }
-}
-Components.Interaction.Alert.Namespace=`OneMoreUI.Components.Interaction`;
-Components.Interaction.Alert.Tag=`om-alert`;
-__as1(_.Components.Interaction, 'Alert', Components.Interaction.Alert);
-if(!window.customElements.get('om-alert')){window.customElements.define('om-alert', Components.Interaction.Alert);Aventus.WebComponentInstance.registerDefinition(Components.Interaction.Alert);}
-
 Components.Interaction.Confirm = class Confirm extends Components.Interaction.Modal {
     static defaultConfig = {
         title: "",
@@ -10623,6 +10973,190 @@ Components.Interaction.Confirm.Namespace=`OneMoreUI.Components.Interaction`;
 Components.Interaction.Confirm.Tag=`om-confirm`;
 __as1(_.Components.Interaction, 'Confirm', Components.Interaction.Confirm);
 if(!window.customElements.get('om-confirm')){window.customElements.define('om-confirm', Components.Interaction.Confirm);Aventus.WebComponentInstance.registerDefinition(Components.Interaction.Confirm);}
+
+Components.Interaction.Toast = class Toast extends Aventus.Toast.ToastElement {
+    get 'type'() { return this.getStringAttr('type') }
+    set 'type'(val) { this.setStringAttr('type', val) }get 'closing'() { return this.getBoolAttr('closing') }
+    set 'closing'(val) { this.setBoolAttr('closing', val) }get 'closable'() { return this.getBoolAttr('closable') }
+    set 'closable'(val) { this.setBoolAttr('closable', val) }get 'close_icon'() { return this.getBoolAttr('close_icon') }
+    set 'close_icon'(val) { this.setBoolAttr('close_icon', val) }    get 'toastTitle'() {
+						return this.__watch["toastTitle"];
+					}
+					set 'toastTitle'(val) {
+						this.__watch["toastTitle"] = val;
+					}get 'toastMessage'() {
+						return this.__watch["toastMessage"];
+					}
+					set 'toastMessage'(val) {
+						this.__watch["toastMessage"] = val;
+					}    icon;
+    __registerWatchesActions() {
+    this.__addWatchesActions("toastTitle");this.__addWatchesActions("toastMessage");    super.__registerWatchesActions();
+}
+    static __style = `:host{background-color:var(--surface);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-3);cursor:default;max-width:calc(100vw - 2rem);overflow:hidden;pointer-events:auto;transition:top .2s linear,opacity .2s linear,visibility .2s linear}:host .toast-content{display:grid;gap:1rem;grid-auto-flow:column;grid-template-columns:auto;justify-content:start;padding-block:.75rem;padding-inline:1rem;place-items:center start;text-align:start}:host .toast-content .toast-flex{align-items:flex-start;display:flex}:host .toast-content .toast-flex .toast-icon-wrapper{flex-shrink:0}:host .toast-content .toast-flex .toast-icon-wrapper .toast-icon{align-items:center;display:flex;font-size:var(--font-size-lg);height:var(--font-size-lg);justify-content:center;width:var(--font-size-lg)}:host .toast-content .toast-flex .toast-message-wrapper{flex:1;margin-left:1rem}:host .toast-content .toast-flex .toast-message-wrapper .toast-title{font-size:var(--font-size);font-weight:500;line-height:var(--line-height)}:host .toast-content .toast-flex .toast-message-wrapper .toast-message{font-size:var(--font-size-sm)}:host .toast-content .toast-flex .toast-close-wrapper{flex-shrink:0;margin-left:1rem}:host .toast-content .toast-flex .toast-close-wrapper .toast-close-icon{align-items:center;cursor:pointer;display:flex;font-size:var(--font-size-lg);height:var(--font-size-lg);justify-content:center;width:var(--font-size-lg)}:host mi-icon{user-select:none}:host([type=primary]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--primary)}:host([type=accent]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--accent)}:host([type=neutral]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--neutral)}:host([type=info]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--info)}:host([type=success]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--success)}:host([type=warning]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--warning)}:host([type=error]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--error)}`;
+    constructor() {
+        super();
+        this.close = this.close.bind(this);
+    }
+    __getStatic() {
+        return Toast;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Toast.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="toast-content">    <div class="toast-flex">        <template _id="toast_0"></template>        <div class="toast-message-wrapper">            <template _id="toast_2"></template>            <template _id="toast_4"></template>        </div>        <div class="toast-close-wrapper">            <mi-icon icon="close" class="toast-close-icon" tabindex="0" _id="toast_6"></mi-icon>        </div>    </div></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "events": [
+    {
+      "eventName": "click",
+      "id": "toast_6",
+      "fct": (e, c) => c.comp.close(e)
+    },
+    {
+      "eventName": "focus",
+      "id": "toast_6",
+      "fct": (e, c) => c.comp.addKeyboard(e)
+    },
+    {
+      "eventName": "blur",
+      "id": "toast_6",
+      "fct": (e, c) => c.comp.removeKeyboard(e)
+    }
+  ]
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <div class="toast-icon-wrapper">                <mi-icon class="toast-icon" aria-hidden="true" _id="toast_1"></mi-icon>            </div>        `);templ0.setActions({
+  "content": {
+    "toast_1°icon": {
+      "fct": (c) => `${c.print(c.comp.__6dcf3cd35b0051eebb666b32076a0404method3())}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addIf({
+                    anchorId: 'toast_0',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__6dcf3cd35b0051eebb666b32076a0404method0(),
+                    template: templ0
+                }]
+            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="toast-title" _id="toast_3"></div>            `);templ1.setActions({
+  "content": {
+    "toast_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6dcf3cd35b0051eebb666b32076a0404method4())}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addIf({
+                    anchorId: 'toast_2',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__6dcf3cd35b0051eebb666b32076a0404method1(),
+                    template: templ1
+                }]
+            });const templ2 = new Aventus.Template(this);templ2.setTemplate(`                <div class="toast-message" _id="toast_5"></div>            `);templ2.setActions({
+  "content": {
+    "toast_5°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6dcf3cd35b0051eebb666b32076a0404method5())}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addIf({
+                    anchorId: 'toast_4',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__6dcf3cd35b0051eebb666b32076a0404method2(),
+                    template: templ2
+                }]
+            }); }
+    getClassName() {
+        return "Toast";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = undefined; }if(!this.hasAttribute('closing')) { this.attributeChangedCallback('closing', false, false); }if(!this.hasAttribute('closable')) { this.attributeChangedCallback('closable', false, false); }if(!this.hasAttribute('close_icon')) { this.attributeChangedCallback('close_icon', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["toastTitle"] = "";w["toastMessage"] = ""; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type');this.__upgradeProperty('closing');this.__upgradeProperty('closable');this.__upgradeProperty('close_icon');this.__correctGetter('toastTitle');this.__correctGetter('toastMessage'); }
+    __listBoolProps() { return ["closing","closable","close_icon"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    /**
+     * @inheritdoc
+     * Overrides the `close` method to handle the closing animation and removal from DOM.
+     */
+    close() {
+        if (this.onHideCallback) {
+            this.closing = true;
+            this.is_active = false;
+            this.onHideCallback(false);
+            Aventus.sleep(300).then(() => {
+                this.remove();
+            });
+        }
+    }
+    addKeyboard() {
+        Aventus.Lib.ShortcutManager.subscribe(" ", this.close, { replaceTemp: true });
+        Aventus.Lib.ShortcutManager.subscribe(Aventus.Lib.SpecialTouch.Enter, this.close, { replaceTemp: true });
+    }
+    removeKeyboard() {
+        Aventus.Lib.ShortcutManager.unsubscribe(" ", this.close);
+        Aventus.Lib.ShortcutManager.unsubscribe(Aventus.Lib.SpecialTouch.Enter, this.close);
+    }
+    setOptions(options) {
+        if (options.type != undefined)
+            this.type = options.type;
+        if (options.icon != undefined)
+            this.icon = options.icon;
+        if (options.title != undefined)
+            this.toastTitle = options.title;
+        if (options.message != undefined)
+            this.toastMessage = options.message;
+        if (options.closable != undefined)
+            this.closable = options.closable;
+        if (options.close_icon != undefined)
+            this.close_icon = options.close_icon;
+        if (options.message != undefined)
+            this.toastMessage = options.message;
+    }
+    getIcon() {
+        if (this.icon !== undefined)
+            return this.icon;
+        if (this.type == "error")
+            return 'error';
+        if (this.type == "info")
+            return 'info';
+        if (this.type == "success")
+            return 'check';
+        if (this.type == "warning")
+            return 'warning';
+        return undefined;
+    }
+    postDestruction() {
+        super.postDestruction();
+        this.removeKeyboard();
+    }
+    __6dcf3cd35b0051eebb666b32076a0404method3() {
+        return this.getIcon();
+    }
+    __6dcf3cd35b0051eebb666b32076a0404method4() {
+        return this.toastTitle;
+    }
+    __6dcf3cd35b0051eebb666b32076a0404method5() {
+        return this.toastMessage;
+    }
+    __6dcf3cd35b0051eebb666b32076a0404method0() {
+        return this.getIcon();
+    }
+    __6dcf3cd35b0051eebb666b32076a0404method1() {
+        return this.toastTitle;
+    }
+    __6dcf3cd35b0051eebb666b32076a0404method2() {
+        return this.toastMessage;
+    }
+    static add(options) {
+        return super.add(options);
+    }
+}
+Components.Interaction.Toast.Namespace=`OneMoreUI.Components.Interaction`;
+Components.Interaction.Toast.Tag=`om-toast`;
+__as1(_.Components.Interaction, 'Toast', Components.Interaction.Toast);
+if(!window.customElements.get('om-toast')){window.customElements.define('om-toast', Components.Interaction.Toast);Aventus.WebComponentInstance.registerDefinition(Components.Interaction.Toast);}
 
 
 for(let key in _) { OneMoreUI[key] = _[key] }
@@ -10813,139 +11347,285 @@ BaseContent.Tag=`av-base-content`;
 __as1(_, 'BaseContent', BaseContent);
 if(!window.customElements.get('av-base-content')){window.customElements.define('av-base-content', BaseContent);Aventus.WebComponentInstance.registerDefinition(BaseContent);}
 
-const RenamedTable = class RenamedTable extends Aventus.WebComponent {
-    get comparison() {
-        return MainState.instance.comparison;
+const RenamedField = class RenamedField extends Aventus.WebComponent {
+    get 'mappingFieldTable'() {
+						return this.__watch["mappingFieldTable"];
+					}
+					set 'mappingFieldTable'(val) {
+						this.__watch["mappingFieldTable"] = val;
+					}get 'oldField'() {
+						return this.__watch["oldField"];
+					}
+					set 'oldField'(val) {
+						this.__watch["oldField"] = val;
+					}get 'newField'() {
+						return this.__watch["newField"];
+					}
+					set 'newField'(val) {
+						this.__watch["newField"] = val;
+					}    get tableComparisons() {
+        return MainState.instance.comparison.tableComparisons;
     }
-    get tables() {
-        return MainState.instance.mappings.tables;
+    get mappingFieldTableInfo() {
+        for (let table of this.tableComparisons) {
+            if (table.newTableName == this.mappingFieldTable)
+                return table;
+        }
+        return {
+            addedFields: [],
+            deletedFields: [],
+            hasChanges: false,
+            isRename: false,
+            modifiedFields: [],
+            newTableName: '',
+            oldTableName: '',
+            renamedFields: []
+        };
     }
-    static __style = `:host{width:100%}:host h4{font-size:1rem;font-weight:500;margin:0;margin-bottom:.25rem}:host .card-desc{color:var(--neutral);font-size:.8rem;margin-bottom:1rem}:host .mapping-adder{align-items:center;display:flex;gap:.5rem}:host .mapping-adder om-select{min-width:0}:host .mapping-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}:host .mapping-list .no-table{font-size:var(--font-size-sm);font-style:italic}:host .mapping-list .mapping-item{align-items:center;background:hsla(0,0%,100%,.02);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;font-size:.85rem;justify-content:space-between;padding:.5rem .75rem}:host .mapping-list .mapping-item .mapping-names{align-items:center;display:flex;font-family:var(--font-mono);gap:.5rem}:host .mapping-list .mapping-item .mapping-arrow{color:var(--info)}:host .mapping-list .mapping-item .mapping-delete{background:rgba(0,0,0,0);border:none;border-radius:4px;color:var(--error);cursor:pointer;font-size:1rem;padding:.1rem .3rem}:host .mapping-list .mapping-item .mapping-delete:hover{background:var(--error-600)}:host .table-selector-wrapper{align-items:center;display:flex;gap:.75rem;margin-bottom:1rem}:host .table-selector-wrapper label{flex-shrink:0}`;
+    get fieldsMapping() {
+        const table = this.mappingFieldTable;
+        if (!MainState.instance.mappings.fields[table]) {
+            MainState.instance.mappings.fields[table] = {};
+        }
+        return MainState.instance.mappings.fields[table];
+    }
+    __registerWatchesActions() {
+    this.__addWatchesActions("mappingFieldTable", ((target) => {
+    target.oldField = "";
+    target.newField = "";
+}));this.__addWatchesActions("oldField");this.__addWatchesActions("newField");    super.__registerWatchesActions();
+}
+    static __style = `:host{width:100%}:host h4{font-size:1rem;font-weight:500;margin:0;margin-bottom:.25rem}:host .card-desc{color:var(--neutral);font-size:.8rem;margin-bottom:1rem}:host .mapping-adder{align-items:center;display:flex;gap:.5rem}:host .mapping-adder om-select{min-width:0}:host .mapping-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}:host .mapping-list .no-table{font-size:var(--font-size-sm);font-style:italic}:host .mapping-list .mapping-item{align-items:center;background:hsla(0,0%,100%,.02);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;font-size:.85rem;justify-content:space-between;padding:.5rem .75rem}:host .mapping-list .mapping-item .mapping-names{align-items:center;display:flex;font-family:var(--font-mono);gap:.5rem}:host .mapping-list .mapping-item .mapping-arrow{color:var(--info)}:host .mapping-list .mapping-item .mapping-delete{background:rgba(0,0,0,0);border:none;border-radius:4px;color:var(--error);cursor:pointer;font-size:1rem;padding:.1rem .3rem;transition:background-color .2s linear}:host .mapping-list .mapping-item .mapping-delete:hover{background:var(--error-100)}:host .table-selector-wrapper{align-items:center;display:flex;gap:.75rem;margin-bottom:1rem}:host .table-selector-wrapper label{flex-shrink:0}`;
     __getStatic() {
-        return RenamedTable;
+        return RenamedField;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(RenamedTable.__style);
+        arrStyle.push(RenamedField.__style);
         return arrStyle;
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h4>Tables Renommées</h4><p class="card-desc">Si une table a été renommée, associez son ancien nom au nouveau.</p><div class="mapping-list">    <template _id="renamedtable_0"></template></div><div class="mapping-adder">    <om-select _id="renamedtable_5">        <om-option value="">-- Table Supprimée --</om-option>        <template _id="renamedtable_6"></template>    </om-select>    <span class="arrow-indicator">➔</span>    <om-select _id="renamedtable_8">        <om-option value="">-- Table Ajoutée --</om-option>        <template _id="renamedtable_9"></template>    </om-select>    <om-button _id="renamedtable_11">Lier</om-button></div>` }
+        blocks: { 'default':`<h4>Renamed fields</h4><p class="card-desc">Select a table to associate old fields with new one.</p><div class="table-selector-wrapper">    <label>Table :</label>    <om-select _id="renamedfield_0">        <om-option value="">-- Select a table --</om-option>        <template _id="renamedfield_1"></template>    </om-select></div><div class="mapping-list">    <template _id="renamedfield_3"></template></div><template _id="renamedfield_8"></template>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
+  "bindings": [
     {
-      "name": "oldTableSelect",
-      "ids": [
-        "renamedtable_5"
-      ]
-    },
-    {
-      "name": "newTableSelect",
-      "ids": [
-        "renamedtable_8"
-      ]
-    }
-  ],
-  "events": [
-    {
-      "eventName": "click",
-      "id": "renamedtable_11",
-      "fct": (e, c) => c.comp.addTableMapping(e)
+      "id": "renamedfield_0",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method7(),
+      "extract": (c, v) => c.comp.__6a9803ce37a6658d333e838def2ebba3method8(v),
+      "once": true,
+      "isCallback": true
     }
   ]
-});const templ3 = new Aventus.Template(this);templ3.setTemplate(`            <om-option _id="renamedtable_7"></om-option>        `);templ3.setActions({
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <om-option _id="renamedfield_2"></om-option>        `);templ0.setActions({
   "content": {
-    "renamedtable_7°value": {
-      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod6(c.data.deletedTable))}`,
+    "renamedfield_2°value": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method9(c.data.table))}`,
       "once": true
     },
-    "renamedtable_7°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod6(c.data.deletedTable))}`,
-      "once": true
+    "renamedfield_2°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method10(c.data.table))}`
     }
   }
 });this.__getStatic().__template.addLoop({
-                    anchorId: 'renamedtable_6',
-                    template: templ3,
-                simple:{data: "this.comparison.deletedTables",item:"deletedTable"}});const templ4 = new Aventus.Template(this);templ4.setTemplate(`            <om-option _id="renamedtable_10"></om-option>        `);templ4.setActions({
+                    anchorId: 'renamedfield_1',
+                    template: templ0,
+                simple:{data: "this.tableComparisons",item:"table"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <div class="no-table">Select a table above.</div>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`        <div class="no-table">No association for this table.</div>    `);const templ3 = new Aventus.Template(this);templ3.setTemplate(`        <template _id="renamedfield_4"></template>    `);const templ5 = new Aventus.Template(this);templ5.setTemplate(`            <div class="mapping-item">                <span class="mapping-names">                    <span _id="renamedfield_5"></span>                    <span class="mapping-arrow">➔</span>                    <span _id="renamedfield_6"></span>                </span>                <button class="mapping-delete" _id="renamedfield_7">✕</button>            </div>        `);templ5.setActions({
   "content": {
-    "renamedtable_10°value": {
-      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod7(c.data.addedTable))}`,
+    "renamedfield_5°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method11(c.data.oldF))}`,
       "once": true
     },
-    "renamedtable_10°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod7(c.data.addedTable))}`,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'renamedtable_9',
-                    template: templ4,
-                simple:{data: "this.comparison.addedTables",item:"addedTable"}});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <div class="no-table">Aucune association de table.</div>    `);const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <template _id="renamedtable_1"></template>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`            <div class="mapping-item">                <span class="mapping-names">                    <span _id="renamedtable_2"></span>                    <span class="mapping-arrow">➔</span>                    <span _id="renamedtable_3"></span>                </span>                <button class="mapping-delete" _id="renamedtable_4">✕</button>            </div>        `);templ2.setActions({
-  "content": {
-    "renamedtable_2°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod4(c.data.oldName))}`,
-      "once": true
+    "renamedfield_6°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method12(c.data.oldF))}`
     },
-    "renamedtable_3°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod5(c.data.oldName))}`
-    },
-    "renamedtable_4°data-name": {
-      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod4(c.data.oldName))}`,
+    "renamedfield_7°data-field": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method11(c.data.oldF))}`,
       "once": true
     }
   },
   "events": [
     {
       "eventName": "click",
-      "id": "renamedtable_4",
-      "fct": (e, c) => c.comp.removeTableMapping(e)
+      "id": "renamedfield_7",
+      "fct": (e, c) => c.comp.removeFieldMapping(e)
     }
   ]
-});templ1.addLoop({
-                    anchorId: 'renamedtable_1',
-                    template: templ2,
-                simple:{data: "this.tables",index:"oldName"}});this.__getStatic().__template.addIf({
-                    anchorId: 'renamedtable_0',
+});templ3.addLoop({
+                    anchorId: 'renamedfield_4',
+                    template: templ5,
+                simple:{data: "this.fieldsMapping",index:"oldF"}});this.__getStatic().__template.addIf({
+                    anchorId: 'renamedfield_3',
                     parts: [{once: true,
-                    condition: (c) => c.comp.__890caef2e9cc439ef37effad59e247femethod0(),
-                    template: templ0
+                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method1(),
+                    template: templ1
+                },{once: true,
+                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method2(),
+                    template: templ2
                 },{once: true,
                     condition: (c) => true,
-                    template: templ1
+                    template: templ3
+                }]
+            });const templ6 = new Aventus.Template(this);templ6.setTemplate(`    <div class="mapping-adder">        <om-select _id="renamedfield_9">            <om-option value="">-- Deleted field --</om-option>            <template _id="renamedfield_10"></template>        </om-select>        <span class="arrow-indicator">➔</span>        <om-select _id="renamedfield_12">            <om-option value="">-- Added field --</om-option>            <template _id="renamedfield_13"></template>        </om-select>        <om-button _id="renamedfield_15">Link</om-button>    </div>`);templ6.setActions({
+  "bindings": [
+    {
+      "id": "renamedfield_9",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method13(),
+      "extract": (c, v) => c.comp.__6a9803ce37a6658d333e838def2ebba3method14(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "renamedfield_12",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method16(),
+      "extract": (c, v) => c.comp.__6a9803ce37a6658d333e838def2ebba3method17(v),
+      "once": true,
+      "isCallback": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "click",
+      "id": "renamedfield_15",
+      "fct": (e, c) => c.comp.addFieldMapping(e)
+    }
+  ]
+});const templ7 = new Aventus.Template(this);templ7.setTemplate(`                <om-option _id="renamedfield_11"></om-option>            `);templ7.setActions({
+  "content": {
+    "renamedfield_11°value": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+      "once": true
+    },
+    "renamedfield_11°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+      "once": true
+    }
+  }
+});templ6.addLoop({
+                    anchorId: 'renamedfield_10',
+                    template: templ7,
+                simple:{data: "this.mappingFieldTableInfo.deletedFields",item:"field"}});const templ8 = new Aventus.Template(this);templ8.setTemplate(`                <om-option _id="renamedfield_14"></om-option>            `);templ8.setActions({
+  "content": {
+    "renamedfield_14°value": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+      "once": true
+    },
+    "renamedfield_14°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+      "once": true
+    }
+  }
+});templ6.addLoop({
+                    anchorId: 'renamedfield_13',
+                    template: templ8,
+                simple:{data: "this.mappingFieldTableInfo.addedFields",item:"field"}});this.__getStatic().__template.addIf({
+                    anchorId: 'renamedfield_8',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method4(),
+                    template: templ6
                 }]
             }); }
     getClassName() {
-        return "RenamedTable";
+        return "RenamedField";
     }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison');this.__correctGetter('tables'); }
-    removeTableMapping() {
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["mappingFieldTable"] = undefined;w["oldField"] = "";w["newField"] = ""; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tableComparisons');this.__correctGetter('mappingFieldTableInfo');this.__correctGetter('fieldsMapping');this.__correctGetter('mappingFieldTable');this.__correctGetter('oldField');this.__correctGetter('newField'); }
+    addFieldMapping() {
+        if (!this.newField || !this.oldField || !this.mappingFieldTable) {
+            OneMoreUI.Components.Interaction.Alert.open({
+                type: "error",
+                title: "Missing data",
+                content: "Please select a value for the old field and the new field"
+            });
+            return;
+        }
+        const table = this.mappingFieldTable;
+        if (!MainState.instance.mappings.fields[table]) {
+            MainState.instance.mappings.fields[table] = { [this.oldField]: this.newField };
+        }
+        else {
+            MainState.instance.mappings.fields[table][this.oldField] = this.newField;
+        }
+        Generator.compareSchemas();
     }
-    addTableMapping() {
+    removeFieldMapping(e) {
+        if (!this.mappingFieldTable)
+            return;
+        if (e.currentTarget instanceof HTMLElement) {
+            const field = e.currentTarget.dataset.field;
+            if (MainState.instance.mappings.fields[this.mappingFieldTable]) {
+                delete MainState.instance.mappings.fields[this.mappingFieldTable][field];
+            }
+        }
+        Generator.compareSchemas();
     }
-    __890caef2e9cc439ef37effad59e247femethod4(oldName) {
-        return oldName;
+    __6a9803ce37a6658d333e838def2ebba3method9(table) {
+        return table.newTableName;
     }
-    __890caef2e9cc439ef37effad59e247femethod5(oldName) {
-        return this.tables[oldName];
+    __6a9803ce37a6658d333e838def2ebba3method10(table) {
+        return table.isRename ? `${table.oldTableName} ➔ ${table.newTableName}` : table.newTableName;
     }
-    __890caef2e9cc439ef37effad59e247femethod6(deletedTable) {
-        return deletedTable.name;
+    __6a9803ce37a6658d333e838def2ebba3method11(oldF) {
+        return oldF;
     }
-    __890caef2e9cc439ef37effad59e247femethod7(addedTable) {
-        return addedTable.name;
+    __6a9803ce37a6658d333e838def2ebba3method12(oldF) {
+        return this.fieldsMapping[oldF];
     }
-    __890caef2e9cc439ef37effad59e247femethod0() {
-        return Object.keys(this.tables).length == 0;
+    __6a9803ce37a6658d333e838def2ebba3method15(field) {
+        return field.name;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method1() {
+        return !this.mappingFieldTable;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method2() {
+        return Object.keys(this.fieldsMapping).length == 0;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method4() {
+        return this.mappingFieldTable;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method7() {
+        return this.mappingFieldTable;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method8(v) {
+        if (this) {
+            this.mappingFieldTable = v;
+        }
+    }
+    __6a9803ce37a6658d333e838def2ebba3method13() {
+        return this.oldField;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method14(v) {
+        if (this) {
+            this.oldField = v;
+        }
+    }
+    __6a9803ce37a6658d333e838def2ebba3method16() {
+        return this.newField;
+    }
+    __6a9803ce37a6658d333e838def2ebba3method17(v) {
+        if (this) {
+            this.newField = v;
+        }
     }
 }
-RenamedTable.Namespace=`migration`;
-RenamedTable.Tag=`av-renamed-table`;
-__as1(_, 'RenamedTable', RenamedTable);
-if(!window.customElements.get('av-renamed-table')){window.customElements.define('av-renamed-table', RenamedTable);Aventus.WebComponentInstance.registerDefinition(RenamedTable);}
+RenamedField.Namespace=`migration`;
+RenamedField.Tag=`av-renamed-field`;
+__as1(_, 'RenamedField', RenamedField);
+if(!window.customElements.get('av-renamed-field')){window.customElements.define('av-renamed-field', RenamedField);Aventus.WebComponentInstance.registerDefinition(RenamedField);}
 
 let Dynamic=function Dynamic(cb) {
     return function (target, context) {
@@ -13231,6 +13911,201 @@ let defaultSchema= {
 };
 __as1(_, 'defaultSchema', defaultSchema);
 
+const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebComponent {
+    static get observedAttributes() {return ["is_rename"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'is_rename'() { return this.getBoolProp('is_rename') }
+    set 'is_rename'(val) { this.setBoolAttr('is_rename', val) }    get 'change'() {
+						return this.__watch["change"];
+					}
+					set 'change'(val) {
+						this.__watch["change"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("change", (() => {
+    debugger;
+}));    super.__registerWatchesActions();
+}
+    static __style = `:host{width:100%}:host .diff-table-group{background:rgba(15,23,42,.15);border:1px solid var(--warning);border-radius:var(--border-radius-lg);margin-bottom:1rem;overflow:hidden}:host .diff-table-group .diff-table-header{align-items:center;background:var(--warning-100);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:.75rem 1rem}:host .diff-table-group .diff-table-header .diff-table-title{font-family:var(--font-mono);font-size:.95rem;font-weight:600}:host .diff-table-group .diff-table-header .badge{background-color:var(--warning-200);border:1px solid var(--warning);border-radius:50px;font-size:.75rem;font-weight:600;padding:.25rem .65rem}:host .diff-table-group .diff-table-body{display:flex;flex-direction:column;gap:.5rem;padding:.75rem 1rem}:host .diff-table-group .diff-table-body .diff-item{align-items:center;display:flex;font-family:var(--font-mono);font-size:.85rem;gap:.75rem;padding:.25rem 0}:host .diff-table-group .diff-table-body .diff-item .diff-tag{border-radius:4px;font-family:var(--font-sans);font-size:.7rem;font-weight:600;padding:.1rem .4rem;text-transform:uppercase}:host .diff-table-group .diff-table-body .diff-item .diff-tag-add{background:rgba(16,185,129,.15);color:var(--color-success)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-del{background:rgba(239,68,68,.15);color:var(--color-danger)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-mod{background:rgba(245,158,11,.15);color:var(--color-warning)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-ren{background:rgba(99,102,241,.15);color:var(--accent-indigo)}:host .diff-table-group .diff-table-body .diff-item .diff-item-detail{color:var(--neutral)}:host .diff-table-group .diff-table-body .diff-item .diff-change-old{color:rgba(239,68,68,.7);text-decoration:line-through}:host .diff-table-group .diff-table-body .diff-item .diff-change-new{color:var(--success-400)}:host([is_rename]) .diff-table-group{border:1px solid var(--accent)}:host([is_rename]) .diff-table-group .diff-table-header{background-color:var(--accent-100)}:host([is_rename]) .diff-table-group .diff-table-header .badge{background-color:var(--accent-200);border:1px solid var(--accent)}`;
+    __getStatic() {
+        return SummaryUpdatedTable;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(SummaryUpdatedTable.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="diff-table-group">    <div class="diff-table-header">        <span class="diff-table-title" _id="summaryupdatedtable_0"></span>        <span class="badge" _id="summaryupdatedtable_1"></span>    </div>    <div class="diff-table-body">        <template _id="summaryupdatedtable_2"></template>        <template _id="summaryupdatedtable_5"></template>        <template _id="summaryupdatedtable_7"></template>        <template _id="summaryupdatedtable_10"></template>    </div></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "summaryupdatedtable_0°@HTML": {
+      "fct": (c) => `\r\n            ${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method7())}\r\n        `
+    },
+    "summaryupdatedtable_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method8())}`
+    }
+  }
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-ren">Renamed</span>                <span>                    <span class="diff-change-old" _id="summaryupdatedtable_3"></span>                    <span>➔</span>                    <span class="diff-change-new" _id="summaryupdatedtable_4"></span>                </span>            </div>        `);templ0.setActions({
+  "content": {
+    "summaryupdatedtable_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method9(c.data.renameField))}`,
+      "once": true
+    },
+    "summaryupdatedtable_4°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method10(c.data.renameField))}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'summaryupdatedtable_2',
+                    template: templ0,
+                simple:{data: "this.change.renamedFields",item:"renameField"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-del">Removed</span>                <span class="diff-change-old" _id="summaryupdatedtable_6"></span>            </div>        `);templ1.setActions({
+  "content": {
+    "summaryupdatedtable_6°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method11(c.data.deletedField))}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'summaryupdatedtable_5',
+                    template: templ1,
+                simple:{data: "this.change.deletedFields",item:"deletedField"}});const templ2 = new Aventus.Template(this);templ2.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-add">Added</span>                <span class="diff-change-new" _id="summaryupdatedtable_8"></span>                <span class="diff-item-detail" _id="summaryupdatedtable_9"></span>            </div>        `);templ2.setActions({
+  "content": {
+    "summaryupdatedtable_8°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method12(c.data.addedField))}`,
+      "once": true
+    },
+    "summaryupdatedtable_9°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method13(c.data.addedField))}`
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'summaryupdatedtable_7',
+                    template: templ2,
+                simple:{data: "this.change.addedFields",item:"addedField"}});const templ3 = new Aventus.Template(this);templ3.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-mod">Edited</span>                <span _id="summaryupdatedtable_11"></span>                <span class="diff-item-detail">                    <template _id="summaryupdatedtable_12"></template>                    <template _id="summaryupdatedtable_15"></template>                    <template _id="summaryupdatedtable_18"></template>                </span>            </div>        `);templ3.setActions({
+  "content": {
+    "summaryupdatedtable_11°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method14(c.data.modifiedField))}`
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'summaryupdatedtable_10',
+                    template: templ3,
+                simple:{data: "this.change.modifiedFields",item:"modifiedField"}});const templ4 = new Aventus.Template(this);templ4.setTemplate(`                        <span>                            <span>type: </span>                            <span class="diff-change-old" _id="summaryupdatedtable_13"></span>                            <span>➔</span>                            <span class="diff-change-new" _id="summaryupdatedtable_14"></span>                        </span>                    `);templ4.setActions({
+  "content": {
+    "summaryupdatedtable_13°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method15(c.data.modifiedField))}`
+    },
+    "summaryupdatedtable_14°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method16(c.data.modifiedField))}`
+    }
+  }
+});templ3.addIf({
+                    anchorId: 'summaryupdatedtable_12',
+                    parts: [{
+                    condition: (c) => c.comp.__49686968742173745148a8d3c31a7eb3method4(c.data.modifiedField),
+                    template: templ4
+                }]
+            });const templ5 = new Aventus.Template(this);templ5.setTemplate(`                        <span>                            <span>nullable: </span>                            <span class="diff-change-old" _id="summaryupdatedtable_16"></span>                            <span>➔</span>                            <span class="diff-change-new" _id="summaryupdatedtable_17"></span>                        </span>                    `);templ5.setActions({
+  "content": {
+    "summaryupdatedtable_16°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method17(c.data.modifiedField))}`
+    },
+    "summaryupdatedtable_17°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method18(c.data.modifiedField))}`
+    }
+  }
+});templ3.addIf({
+                    anchorId: 'summaryupdatedtable_15',
+                    parts: [{
+                    condition: (c) => c.comp.__49686968742173745148a8d3c31a7eb3method5(c.data.modifiedField),
+                    template: templ5
+                }]
+            });const templ6 = new Aventus.Template(this);templ6.setTemplate(`                        <span>                            <span>unique: </span>                            <span class="diff-change-old" _id="summaryupdatedtable_19"></span>                            <span>➔</span>                            <span class="diff-change-new" _id="summaryupdatedtable_20"></span>                        </span>                    `);templ6.setActions({
+  "content": {
+    "summaryupdatedtable_19°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method19(c.data.modifiedField))}`
+    },
+    "summaryupdatedtable_20°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method20(c.data.modifiedField))}`
+    }
+  }
+});templ3.addIf({
+                    anchorId: 'summaryupdatedtable_18',
+                    parts: [{
+                    condition: (c) => c.comp.__49686968742173745148a8d3c31a7eb3method6(c.data.modifiedField),
+                    template: templ6
+                }]
+            }); }
+    getClassName() {
+        return "SummaryUpdatedTable";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_rename')) { this.attributeChangedCallback('is_rename', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["change"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_rename');this.__correctGetter('change'); }
+    __listBoolProps() { return ["is_rename"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    postCreation() {
+        this.is_rename = true; //this.change.isRename;
+    }
+    __49686968742173745148a8d3c31a7eb3method7() {
+        return this.change.isRename ? `Renamed table : ${this.change.oldTableName} ➔ ${this.change.newTableName}` : `Edited table : ${this.change.newTableName}`;
+    }
+    __49686968742173745148a8d3c31a7eb3method8() {
+        return this.change.isRename ? 'Renamed' : 'Edited';
+    }
+    __49686968742173745148a8d3c31a7eb3method9(renameField) {
+        return renameField.oldName;
+    }
+    __49686968742173745148a8d3c31a7eb3method10(renameField) {
+        return renameField.newName;
+    }
+    __49686968742173745148a8d3c31a7eb3method11(deletedField) {
+        return deletedField.name;
+    }
+    __49686968742173745148a8d3c31a7eb3method12(addedField) {
+        return addedField.name;
+    }
+    __49686968742173745148a8d3c31a7eb3method13(addedField) {
+        return `(${addedField.type.name}${addedField.nullable ? ', null' : ''})`;
+    }
+    __49686968742173745148a8d3c31a7eb3method14(modifiedField) {
+        return modifiedField.name;
+    }
+    __49686968742173745148a8d3c31a7eb3method15(modifiedField) {
+        return modifiedField.changes.type.old;
+    }
+    __49686968742173745148a8d3c31a7eb3method16(modifiedField) {
+        return modifiedField.changes.type.new;
+    }
+    __49686968742173745148a8d3c31a7eb3method17(modifiedField) {
+        return modifiedField.changes.nullable.old;
+    }
+    __49686968742173745148a8d3c31a7eb3method18(modifiedField) {
+        return modifiedField.changes.nullable.new;
+    }
+    __49686968742173745148a8d3c31a7eb3method19(modifiedField) {
+        return modifiedField.changes.unique.old;
+    }
+    __49686968742173745148a8d3c31a7eb3method20(modifiedField) {
+        return modifiedField.changes.unique.new;
+    }
+    __49686968742173745148a8d3c31a7eb3method4(modifiedField) {
+        return modifiedField.changes.type;
+    }
+    __49686968742173745148a8d3c31a7eb3method5(modifiedField) {
+        return modifiedField.changes.nullable;
+    }
+    __49686968742173745148a8d3c31a7eb3method6(modifiedField) {
+        return modifiedField.changes.unique;
+    }
+}
+SummaryUpdatedTable.Namespace=`migration`;
+SummaryUpdatedTable.Tag=`av-summary-updated-table`;
+__as1(_, 'SummaryUpdatedTable', SummaryUpdatedTable);
+if(!window.customElements.get('av-summary-updated-table')){window.customElements.define('av-summary-updated-table', SummaryUpdatedTable);Aventus.WebComponentInstance.registerDefinition(SummaryUpdatedTable);}
+
 let Generator=class Generator {
     static compareSchemas() {
         MainState.instance.comparison = this._compareSchemas(MainState.instance.oldSchema, MainState.instance.newSchema, MainState.instance.mappings);
@@ -13353,152 +14228,61 @@ let Generator=class Generator {
 Generator.Namespace=`migration`;
 __as1(_, 'Generator', Generator);
 
-const RenamedField = class RenamedField extends Aventus.WebComponent {
-    get 'mappingFieldTable'() {
-						return this.__watch["mappingFieldTable"];
+const RenamedTable = class RenamedTable extends Aventus.WebComponent {
+    get 'newTable'() {
+						return this.__watch["newTable"];
 					}
-					set 'mappingFieldTable'(val) {
-						this.__watch["mappingFieldTable"] = val;
-					}get 'oldField'() {
-						return this.__watch["oldField"];
+					set 'newTable'(val) {
+						this.__watch["newTable"] = val;
+					}get 'oldTable'() {
+						return this.__watch["oldTable"];
 					}
-					set 'oldField'(val) {
-						this.__watch["oldField"] = val;
-					}get 'newField'() {
-						return this.__watch["newField"];
-					}
-					set 'newField'(val) {
-						this.__watch["newField"] = val;
-					}    get tableComparisons() {
-        return MainState.instance.comparison.tableComparisons;
+					set 'oldTable'(val) {
+						this.__watch["oldTable"] = val;
+					}    get comparison() {
+        return MainState.instance.comparison;
     }
-    get mappingFieldTableInfo() {
-        for (let table of this.tableComparisons) {
-            if (table.newTableName == this.mappingFieldTable)
-                return table;
-        }
-        return {
-            addedFields: [],
-            deletedFields: [],
-            hasChanges: false,
-            isRename: false,
-            modifiedFields: [],
-            newTableName: '',
-            oldTableName: '',
-            renamedFields: []
-        };
-    }
-    get fieldsMapping() {
-        const table = this.mappingFieldTable;
-        if (!MainState.instance.mappings.fields[table]) {
-            MainState.instance.mappings.fields[table] = {};
-        }
-        return MainState.instance.mappings.fields[table];
+    get tables() {
+        return MainState.instance.mappings.tables;
     }
     __registerWatchesActions() {
-    this.__addWatchesActions("mappingFieldTable", ((target) => {
-    target.oldField = "";
-    target.newField = "";
-}));this.__addWatchesActions("oldField");this.__addWatchesActions("newField");    super.__registerWatchesActions();
+    this.__addWatchesActions("newTable");this.__addWatchesActions("oldTable");    super.__registerWatchesActions();
 }
-    static __style = `:host{width:100%}:host h4{font-size:1rem;font-weight:500;margin:0;margin-bottom:.25rem}:host .card-desc{color:var(--neutral);font-size:.8rem;margin-bottom:1rem}:host .mapping-adder{align-items:center;display:flex;gap:.5rem}:host .mapping-adder om-select{min-width:0}:host .mapping-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}:host .mapping-list .no-table{font-size:var(--font-size-sm);font-style:italic}:host .mapping-list .mapping-item{align-items:center;background:hsla(0,0%,100%,.02);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;font-size:.85rem;justify-content:space-between;padding:.5rem .75rem}:host .mapping-list .mapping-item .mapping-names{align-items:center;display:flex;font-family:var(--font-mono);gap:.5rem}:host .mapping-list .mapping-item .mapping-arrow{color:var(--info)}:host .mapping-list .mapping-item .mapping-delete{background:rgba(0,0,0,0);border:none;border-radius:4px;color:var(--error);cursor:pointer;font-size:1rem;padding:.1rem .3rem;transition:background-color .2s linear}:host .mapping-list .mapping-item .mapping-delete:hover{background:var(--error-100)}:host .table-selector-wrapper{align-items:center;display:flex;gap:.75rem;margin-bottom:1rem}:host .table-selector-wrapper label{flex-shrink:0}`;
+    static __style = `:host{width:100%}:host h4{font-size:1rem;font-weight:500;margin:0;margin-bottom:.25rem}:host .card-desc{color:var(--neutral);font-size:.8rem;margin-bottom:1rem}:host .mapping-adder{align-items:center;display:flex;gap:.5rem}:host .mapping-adder om-select{min-width:0}:host .mapping-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}:host .mapping-list .no-table{font-size:var(--font-size-sm);font-style:italic}:host .mapping-list .mapping-item{align-items:center;background:hsla(0,0%,100%,.02);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;font-size:.85rem;justify-content:space-between;padding:.5rem .75rem}:host .mapping-list .mapping-item .mapping-names{align-items:center;display:flex;font-family:var(--font-mono);gap:.5rem}:host .mapping-list .mapping-item .mapping-arrow{color:var(--info)}:host .mapping-list .mapping-item .mapping-delete{background:rgba(0,0,0,0);border:none;border-radius:4px;color:var(--error);cursor:pointer;font-size:1rem;padding:.1rem .3rem}:host .mapping-list .mapping-item .mapping-delete:hover{background:var(--error-600)}:host .table-selector-wrapper{align-items:center;display:flex;gap:.75rem;margin-bottom:1rem}:host .table-selector-wrapper label{flex-shrink:0}`;
     __getStatic() {
-        return RenamedField;
+        return RenamedTable;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(RenamedField.__style);
+        arrStyle.push(RenamedTable.__style);
         return arrStyle;
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h4>Champs Renommés</h4><p class="card-desc">Sélectionnez une table pour associer ses anciens champs supprimés à ses nouveaux    champs ajoutés.</p><div class="table-selector-wrapper">    <label>Table :</label>    <om-select _id="renamedfield_0">        <om-option value="">-- Choisir une table --</om-option>        <template _id="renamedfield_1"></template>    </om-select></div><div class="mapping-list">    <template _id="renamedfield_3"></template></div><template _id="renamedfield_8"></template>` }
+        blocks: { 'default':`<h4>Renamed tables</h4><p class="card-desc">If a table is renamed, associate it with the old name with the new one.</p><div class="mapping-list">    <template _id="renamedtable_0"></template></div><div class="mapping-adder">    <om-select _id="renamedtable_5">        <om-option value="">-- Deleted table --</om-option>        <template _id="renamedtable_6"></template>    </om-select>    <span class="arrow-indicator">➔</span>    <om-select _id="renamedtable_8">        <om-option value="">-- Added table --</om-option>        <template _id="renamedtable_9"></template>    </om-select>    <om-button _id="renamedtable_11">Lier</om-button></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "bindings": [
     {
-      "id": "renamedfield_0",
+      "id": "renamedtable_5",
       "injectionName": "value",
       "eventNames": [
         "onChange"
       ],
-      "inject": (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method7(),
-      "extract": (c, v) => c.comp.__6a9803ce37a6658d333e838def2ebba3method8(v),
-      "once": true,
-      "isCallback": true
-    }
-  ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <om-option _id="renamedfield_2"></om-option>        `);templ0.setActions({
-  "content": {
-    "renamedfield_2°value": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method9(c.data.table))}`,
-      "once": true
-    },
-    "renamedfield_2°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method10(c.data.table))}`
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'renamedfield_1',
-                    template: templ0,
-                simple:{data: "this.tableComparisons",item:"table"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <div class="no-table">Sélectionnez une table ci-dessus.</div>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`        <div class="no-table">Aucune association pour cette table.</div>    `);const templ3 = new Aventus.Template(this);templ3.setTemplate(`        <template _id="renamedfield_4"></template>    `);const templ4 = new Aventus.Template(this);templ4.setTemplate(`            <div class="mapping-item">                <span class="mapping-names">                    <span _id="renamedfield_5"></span>                    <span class="mapping-arrow">➔</span>                    <span _id="renamedfield_6"></span>                </span>                <button class="mapping-delete" _id="renamedfield_7">✕</button>            </div>        `);templ4.setActions({
-  "content": {
-    "renamedfield_5°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method11(c.data.oldF))}`,
-      "once": true
-    },
-    "renamedfield_6°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method12(c.data.oldF))}`
-    },
-    "renamedfield_7°data-field": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method11(c.data.oldF))}`,
-      "once": true
-    }
-  },
-  "events": [
-    {
-      "eventName": "click",
-      "id": "renamedfield_7",
-      "fct": (e, c) => c.comp.removeFieldMapping(e)
-    }
-  ]
-});templ3.addLoop({
-                    anchorId: 'renamedfield_4',
-                    template: templ4,
-                simple:{data: "this.fieldsMapping",index:"oldF"}});this.__getStatic().__template.addIf({
-                    anchorId: 'renamedfield_3',
-                    parts: [{once: true,
-                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method1(),
-                    template: templ1
-                },{once: true,
-                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method2(),
-                    template: templ2
-                },{once: true,
-                    condition: (c) => true,
-                    template: templ3
-                }]
-            });const templ5 = new Aventus.Template(this);templ5.setTemplate(`    <div class="mapping-adder">        <om-select _id="renamedfield_9">            <om-option value="">-- Champ Supprimé --</om-option>            <template _id="renamedfield_10"></template>        </om-select>        <span class="arrow-indicator">➔</span>        <om-select _id="renamedfield_12">            <om-option value="">-- Champ Ajouté --</om-option>            <template _id="renamedfield_13"></template>        </om-select>        <om-button _id="renamedfield_15">Lier</om-button>    </div>`);templ5.setActions({
-  "bindings": [
-    {
-      "id": "renamedfield_9",
-      "injectionName": "value",
-      "eventNames": [
-        "onChange"
-      ],
-      "inject": (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method13(),
-      "extract": (c, v) => c.comp.__6a9803ce37a6658d333e838def2ebba3method14(v),
+      "inject": (c) => c.comp.__890caef2e9cc439ef37effad59e247femethod6(),
+      "extract": (c, v) => c.comp.__890caef2e9cc439ef37effad59e247femethod7(v),
       "once": true,
       "isCallback": true
     },
     {
-      "id": "renamedfield_12",
+      "id": "renamedtable_8",
       "injectionName": "value",
       "eventNames": [
         "onChange"
       ],
-      "inject": (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method16(),
-      "extract": (c, v) => c.comp.__6a9803ce37a6658d333e838def2ebba3method17(v),
+      "inject": (c) => c.comp.__890caef2e9cc439ef37effad59e247femethod9(),
+      "extract": (c, v) => c.comp.__890caef2e9cc439ef37effad59e247femethod10(v),
       "once": true,
       "isCallback": true
     }
@@ -13506,52 +14290,86 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
   "events": [
     {
       "eventName": "click",
-      "id": "renamedfield_15",
-      "fct": (e, c) => c.comp.addFieldMapping(e)
+      "id": "renamedtable_11",
+      "fct": (e, c) => c.comp.addTableMapping(e)
     }
   ]
-});const templ6 = new Aventus.Template(this);templ6.setTemplate(`                <om-option _id="renamedfield_11"></om-option>            `);templ6.setActions({
+});const templ3 = new Aventus.Template(this);templ3.setTemplate(`            <om-option _id="renamedtable_7"></om-option>        `);templ3.setActions({
   "content": {
-    "renamedfield_11°value": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+    "renamedtable_7°value": {
+      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod8(c.data.deletedTable))}`,
       "once": true
     },
-    "renamedfield_11°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+    "renamedtable_7°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod8(c.data.deletedTable))}`,
       "once": true
     }
   }
-});templ5.addLoop({
-                    anchorId: 'renamedfield_10',
-                    template: templ6,
-                simple:{data: "this.mappingFieldTableInfo.deletedFields",item:"field"}});const templ7 = new Aventus.Template(this);templ7.setTemplate(`                <om-option _id="renamedfield_14"></om-option>            `);templ7.setActions({
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'renamedtable_6',
+                    template: templ3,
+                simple:{data: "this.comparison.deletedTables",item:"deletedTable"}});const templ4 = new Aventus.Template(this);templ4.setTemplate(`            <om-option _id="renamedtable_10"></om-option>        `);templ4.setActions({
   "content": {
-    "renamedfield_14°value": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+    "renamedtable_10°value": {
+      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod11(c.data.addedTable))}`,
       "once": true
     },
-    "renamedfield_14°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
+    "renamedtable_10°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod11(c.data.addedTable))}`,
       "once": true
     }
   }
-});templ5.addLoop({
-                    anchorId: 'renamedfield_13',
-                    template: templ7,
-                simple:{data: "this.mappingFieldTableInfo.addedFields",item:"field"}});this.__getStatic().__template.addIf({
-                    anchorId: 'renamedfield_8',
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'renamedtable_9',
+                    template: templ4,
+                simple:{data: "this.comparison.addedTables",item:"addedTable"}});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <div class="no-table">No association table.</div>    `);const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <template _id="renamedtable_1"></template>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`            <div class="mapping-item">                <span class="mapping-names">                    <span _id="renamedtable_2"></span>                    <span class="mapping-arrow">➔</span>                    <span _id="renamedtable_3"></span>                </span>                <button class="mapping-delete" _id="renamedtable_4">✕</button>            </div>        `);templ2.setActions({
+  "content": {
+    "renamedtable_2°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod4(c.data.oldName))}`,
+      "once": true
+    },
+    "renamedtable_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod5(c.data.oldName))}`
+    },
+    "renamedtable_4°data-table": {
+      "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod4(c.data.oldName))}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "renamedtable_4",
+      "fct": (e, c) => c.comp.removeTableMapping(e)
+    }
+  ]
+});templ1.addLoop({
+                    anchorId: 'renamedtable_1',
+                    template: templ2,
+                simple:{data: "this.tables",index:"oldName"}});this.__getStatic().__template.addIf({
+                    anchorId: 'renamedtable_0',
                     parts: [{once: true,
-                    condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method4(),
-                    template: templ5
+                    condition: (c) => c.comp.__890caef2e9cc439ef37effad59e247femethod0(),
+                    template: templ0
+                },{once: true,
+                    condition: (c) => true,
+                    template: templ1
                 }]
             }); }
     getClassName() {
-        return "RenamedField";
+        return "RenamedTable";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["mappingFieldTable"] = undefined;w["oldField"] = "";w["newField"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tableComparisons');this.__correctGetter('mappingFieldTableInfo');this.__correctGetter('fieldsMapping');this.__correctGetter('mappingFieldTable');this.__correctGetter('oldField');this.__correctGetter('newField'); }
-    addFieldMapping() {
-        if (!this.newField || !this.oldField || !this.mappingFieldTable) {
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["newTable"] = "";w["oldTable"] = ""; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison');this.__correctGetter('tables');this.__correctGetter('newTable');this.__correctGetter('oldTable'); }
+    removeTableMapping(e) {
+        if (e.currentTarget instanceof HTMLElement) {
+            const field = e.currentTarget.dataset.table;
+            delete MainState.instance.mappings.tables[field];
+        }
+        Generator.compareSchemas();
+    }
+    addTableMapping() {
+        if (!this.newTable || !this.oldTable) {
             OneMoreUI.Components.Interaction.Alert.open({
                 type: "error",
                 title: "Missing data",
@@ -13559,274 +14377,45 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
             });
             return;
         }
-        const table = this.mappingFieldTable;
-        if (!MainState.instance.mappings.fields[table]) {
-            MainState.instance.mappings.fields[table] = { [this.oldField]: this.newField };
-        }
-        else {
-            MainState.instance.mappings.fields[table][this.oldField] = this.newField;
-        }
+        MainState.instance.mappings.tables[this.oldTable] = this.newTable;
         Generator.compareSchemas();
     }
-    removeFieldMapping(e) {
-        if (!this.mappingFieldTable)
-            return;
-        if (e.currentTarget instanceof HTMLElement) {
-            const field = e.currentTarget.dataset.field;
-            if (MainState.instance.mappings.fields[this.mappingFieldTable]) {
-                delete MainState.instance.mappings.fields[this.mappingFieldTable][field];
-            }
-        }
-        Generator.compareSchemas();
+    __890caef2e9cc439ef37effad59e247femethod4(oldName) {
+        return oldName;
     }
-    __6a9803ce37a6658d333e838def2ebba3method9(table) {
-        return table.newTableName;
+    __890caef2e9cc439ef37effad59e247femethod5(oldName) {
+        return this.tables[oldName];
     }
-    __6a9803ce37a6658d333e838def2ebba3method10(table) {
-        return table.isRename ? `${table.oldTableName} ➔ ${table.newTableName}` : table.newTableName;
+    __890caef2e9cc439ef37effad59e247femethod8(deletedTable) {
+        return deletedTable.name;
     }
-    __6a9803ce37a6658d333e838def2ebba3method11(oldF) {
-        return oldF;
+    __890caef2e9cc439ef37effad59e247femethod11(addedTable) {
+        return addedTable.name;
     }
-    __6a9803ce37a6658d333e838def2ebba3method12(oldF) {
-        return this.fieldsMapping[oldF];
+    __890caef2e9cc439ef37effad59e247femethod0() {
+        return Object.keys(this.tables).length == 0;
     }
-    __6a9803ce37a6658d333e838def2ebba3method15(field) {
-        return field.name;
+    __890caef2e9cc439ef37effad59e247femethod6() {
+        return this.oldTable;
     }
-    __6a9803ce37a6658d333e838def2ebba3method1() {
-        return !this.mappingFieldTable;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method2() {
-        return Object.keys(this.fieldsMapping).length == 0;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method4() {
-        return this.mappingFieldTable;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method7() {
-        return this.mappingFieldTable;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method8(v) {
+    __890caef2e9cc439ef37effad59e247femethod7(v) {
         if (this) {
-            this.mappingFieldTable = v;
+            this.oldTable = v;
         }
     }
-    __6a9803ce37a6658d333e838def2ebba3method13() {
-        return this.oldField;
+    __890caef2e9cc439ef37effad59e247femethod9() {
+        return this.newTable;
     }
-    __6a9803ce37a6658d333e838def2ebba3method14(v) {
+    __890caef2e9cc439ef37effad59e247femethod10(v) {
         if (this) {
-            this.oldField = v;
-        }
-    }
-    __6a9803ce37a6658d333e838def2ebba3method16() {
-        return this.newField;
-    }
-    __6a9803ce37a6658d333e838def2ebba3method17(v) {
-        if (this) {
-            this.newField = v;
+            this.newTable = v;
         }
     }
 }
-RenamedField.Namespace=`migration`;
-RenamedField.Tag=`av-renamed-field`;
-__as1(_, 'RenamedField', RenamedField);
-if(!window.customElements.get('av-renamed-field')){window.customElements.define('av-renamed-field', RenamedField);Aventus.WebComponentInstance.registerDefinition(RenamedField);}
-
-const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebComponent {
-    static get observedAttributes() {return ["is_rename"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'is_rename'() { return this.getBoolProp('is_rename') }
-    set 'is_rename'(val) { this.setBoolAttr('is_rename', val) }    get 'change'() {
-						return this.__watch["change"];
-					}
-					set 'change'(val) {
-						this.__watch["change"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("change", (() => {
-    debugger;
-}));    super.__registerWatchesActions();
-}
-    static __style = `:host{width:100%}:host .diff-table-group{background:rgba(15,23,42,.15);border:1px solid var(--warning);border-radius:var(--border-radius-lg);margin-bottom:1rem;overflow:hidden}:host .diff-table-group .diff-table-header{align-items:center;background:var(--warning-100);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:.75rem 1rem}:host .diff-table-group .diff-table-header .diff-table-title{font-family:var(--font-mono);font-size:.95rem;font-weight:600}:host .diff-table-group .diff-table-header .badge{background-color:var(--warning-200);border:1px solid var(--warning);border-radius:50px;font-size:.75rem;font-weight:600;padding:.25rem .65rem}:host .diff-table-group .diff-table-body{display:flex;flex-direction:column;gap:.5rem;padding:.75rem 1rem}:host .diff-table-group .diff-table-body .diff-item{align-items:center;display:flex;font-family:var(--font-mono);font-size:.85rem;gap:.75rem;padding:.25rem 0}:host .diff-table-group .diff-table-body .diff-item .diff-tag{border-radius:4px;font-family:var(--font-sans);font-size:.7rem;font-weight:600;padding:.1rem .4rem;text-transform:uppercase}:host .diff-table-group .diff-table-body .diff-item .diff-tag-add{background:rgba(16,185,129,.15);color:var(--color-success)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-del{background:rgba(239,68,68,.15);color:var(--color-danger)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-mod{background:rgba(245,158,11,.15);color:var(--color-warning)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-ren{background:rgba(99,102,241,.15);color:var(--accent-indigo)}:host .diff-table-group .diff-table-body .diff-item .diff-item-detail{color:var(--neutral)}:host .diff-table-group .diff-table-body .diff-item .diff-change-old{color:rgba(239,68,68,.7);text-decoration:line-through}:host .diff-table-group .diff-table-body .diff-item .diff-change-new{color:var(--success-400)}:host([is_rename]) .diff-table-group{border:1px solid var(--accent)}:host([is_rename]) .diff-table-group .diff-table-header{background-color:var(--accent-100)}:host([is_rename]) .diff-table-group .diff-table-header .badge{background-color:var(--accent-200);border:1px solid var(--accent)}`;
-    __getStatic() {
-        return SummaryUpdatedTable;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(SummaryUpdatedTable.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="diff-table-group">    <div class="diff-table-header">        <span class="diff-table-title" _id="summaryupdatedtable_0"></span>        <span class="badge" _id="summaryupdatedtable_1"></span>    </div>    <div class="diff-table-body">        <template _id="summaryupdatedtable_2"></template>        <template _id="summaryupdatedtable_5"></template>        <template _id="summaryupdatedtable_7"></template>        <template _id="summaryupdatedtable_10"></template>    </div></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "content": {
-    "summaryupdatedtable_0°@HTML": {
-      "fct": (c) => `\r\n            ${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method7())}\r\n        `
-    },
-    "summaryupdatedtable_1°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method8())}`
-    }
-  }
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-ren">Renommé</span>                <span>                    <span class="diff-change-old" _id="summaryupdatedtable_3"></span>                    <span>➔</span>                    <span class="diff-change-new" _id="summaryupdatedtable_4"></span>                </span>            </div>        `);templ0.setActions({
-  "content": {
-    "summaryupdatedtable_3°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method9(c.data.renameField))}`,
-      "once": true
-    },
-    "summaryupdatedtable_4°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method10(c.data.renameField))}`,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'summaryupdatedtable_2',
-                    template: templ0,
-                simple:{data: "this.change.renamedFields",item:"renameField"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-del">Retiré</span>                <span class="diff-change-old" _id="summaryupdatedtable_6"></span>            </div>        `);templ1.setActions({
-  "content": {
-    "summaryupdatedtable_6°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method11(c.data.deletedField))}`,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'summaryupdatedtable_5',
-                    template: templ1,
-                simple:{data: "this.change.deletedFields",item:"deletedField"}});const templ2 = new Aventus.Template(this);templ2.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-add">Ajouté</span>                <span class="diff-change-new" _id="summaryupdatedtable_8"></span>                <span class="diff-item-detail" _id="summaryupdatedtable_9"></span>            </div>        `);templ2.setActions({
-  "content": {
-    "summaryupdatedtable_8°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method12(c.data.addedField))}`,
-      "once": true
-    },
-    "summaryupdatedtable_9°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method13(c.data.addedField))}`
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'summaryupdatedtable_7',
-                    template: templ2,
-                simple:{data: "this.change.addedFields",item:"addedField"}});const templ3 = new Aventus.Template(this);templ3.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-mod">Modifié</span>                <span _id="summaryupdatedtable_11"></span>                <span class="diff-item-detail">                    <template _id="summaryupdatedtable_12"></template>                    <template _id="summaryupdatedtable_15"></template>                    <template _id="summaryupdatedtable_18"></template>                </span>            </div>        `);templ3.setActions({
-  "content": {
-    "summaryupdatedtable_11°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method14(c.data.modifiedField))}`
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'summaryupdatedtable_10',
-                    template: templ3,
-                simple:{data: "this.change.modifiedFields",item:"modifiedField"}});const templ4 = new Aventus.Template(this);templ4.setTemplate(`                        <span>                            <span>type: </span>                            <span class="diff-change-old" _id="summaryupdatedtable_13"></span>                            <span>➔</span>                            <span class="diff-change-new" _id="summaryupdatedtable_14"></span>                        </span>                    `);templ4.setActions({
-  "content": {
-    "summaryupdatedtable_13°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method15(c.data.modifiedField))}`
-    },
-    "summaryupdatedtable_14°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method16(c.data.modifiedField))}`
-    }
-  }
-});templ3.addIf({
-                    anchorId: 'summaryupdatedtable_12',
-                    parts: [{
-                    condition: (c) => c.comp.__49686968742173745148a8d3c31a7eb3method4(c.data.modifiedField),
-                    template: templ4
-                }]
-            });const templ5 = new Aventus.Template(this);templ5.setTemplate(`                        <span>                            <span>nullable: </span>                            <span class="diff-change-old" _id="summaryupdatedtable_16"></span>                            <span>➔</span>                            <span class="diff-change-new" _id="summaryupdatedtable_17"></span>                        </span>                    `);templ5.setActions({
-  "content": {
-    "summaryupdatedtable_16°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method17(c.data.modifiedField))}`
-    },
-    "summaryupdatedtable_17°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method18(c.data.modifiedField))}`
-    }
-  }
-});templ3.addIf({
-                    anchorId: 'summaryupdatedtable_15',
-                    parts: [{
-                    condition: (c) => c.comp.__49686968742173745148a8d3c31a7eb3method5(c.data.modifiedField),
-                    template: templ5
-                }]
-            });const templ6 = new Aventus.Template(this);templ6.setTemplate(`                        <span>                            <span>unique: </span>                            <span class="diff-change-old" _id="summaryupdatedtable_19"></span>                            <span>➔</span>                            <span class="diff-change-new" _id="summaryupdatedtable_20"></span>                        </span>                    `);templ6.setActions({
-  "content": {
-    "summaryupdatedtable_19°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method19(c.data.modifiedField))}`
-    },
-    "summaryupdatedtable_20°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method20(c.data.modifiedField))}`
-    }
-  }
-});templ3.addIf({
-                    anchorId: 'summaryupdatedtable_18',
-                    parts: [{
-                    condition: (c) => c.comp.__49686968742173745148a8d3c31a7eb3method6(c.data.modifiedField),
-                    template: templ6
-                }]
-            }); }
-    getClassName() {
-        return "SummaryUpdatedTable";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_rename')) { this.attributeChangedCallback('is_rename', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["change"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_rename');this.__correctGetter('change'); }
-    __listBoolProps() { return ["is_rename"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    postCreation() {
-        this.is_rename = true; //this.change.isRename;
-    }
-    __49686968742173745148a8d3c31a7eb3method7() {
-        return this.change.isRename ? `Table Renommée : ${this.change.oldTableName} ➔ ${this.change.newTableName}` : `Table Modifiée : ${this.change.newTableName}`;
-    }
-    __49686968742173745148a8d3c31a7eb3method8() {
-        return this.change.isRename ? 'Renommé' : 'Modifié';
-    }
-    __49686968742173745148a8d3c31a7eb3method9(renameField) {
-        return renameField.oldName;
-    }
-    __49686968742173745148a8d3c31a7eb3method10(renameField) {
-        return renameField.newName;
-    }
-    __49686968742173745148a8d3c31a7eb3method11(deletedField) {
-        return deletedField.name;
-    }
-    __49686968742173745148a8d3c31a7eb3method12(addedField) {
-        return addedField.name;
-    }
-    __49686968742173745148a8d3c31a7eb3method13(addedField) {
-        return `(${addedField.type.name}${addedField.nullable ? ', null' : ''})`;
-    }
-    __49686968742173745148a8d3c31a7eb3method14(modifiedField) {
-        return modifiedField.name;
-    }
-    __49686968742173745148a8d3c31a7eb3method15(modifiedField) {
-        return modifiedField.changes.type.old;
-    }
-    __49686968742173745148a8d3c31a7eb3method16(modifiedField) {
-        return modifiedField.changes.type.new;
-    }
-    __49686968742173745148a8d3c31a7eb3method17(modifiedField) {
-        return modifiedField.changes.nullable.old;
-    }
-    __49686968742173745148a8d3c31a7eb3method18(modifiedField) {
-        return modifiedField.changes.nullable.new;
-    }
-    __49686968742173745148a8d3c31a7eb3method19(modifiedField) {
-        return modifiedField.changes.unique.old;
-    }
-    __49686968742173745148a8d3c31a7eb3method20(modifiedField) {
-        return modifiedField.changes.unique.new;
-    }
-    __49686968742173745148a8d3c31a7eb3method4(modifiedField) {
-        return modifiedField.changes.type;
-    }
-    __49686968742173745148a8d3c31a7eb3method5(modifiedField) {
-        return modifiedField.changes.nullable;
-    }
-    __49686968742173745148a8d3c31a7eb3method6(modifiedField) {
-        return modifiedField.changes.unique;
-    }
-}
-SummaryUpdatedTable.Namespace=`migration`;
-SummaryUpdatedTable.Tag=`av-summary-updated-table`;
-__as1(_, 'SummaryUpdatedTable', SummaryUpdatedTable);
-if(!window.customElements.get('av-summary-updated-table')){window.customElements.define('av-summary-updated-table', SummaryUpdatedTable);Aventus.WebComponentInstance.registerDefinition(SummaryUpdatedTable);}
+RenamedTable.Namespace=`migration`;
+RenamedTable.Tag=`av-renamed-table`;
+__as1(_, 'RenamedTable', RenamedTable);
+if(!window.customElements.get('av-renamed-table')){window.customElements.define('av-renamed-table', RenamedTable);Aventus.WebComponentInstance.registerDefinition(RenamedTable);}
 
 let MainState=(() => {
     let _step_decorators;
@@ -13844,6 +14433,9 @@ let MainState=(() => {
     let _comparison_decorators;
     let _comparison_initializers = [];
     let _comparison_extraInitializers = [];
+    let _code_decorators;
+    let _code_initializers = [];
+    let _code_extraInitializers = [];
     return class MainState {
         static {
             const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(null) : void 0;
@@ -13852,11 +14444,13 @@ let MainState=(() => {
             _newSchema_decorators = [Dynamic()];
             _mappings_decorators = [Dynamic()];
             _comparison_decorators = [Dynamic()];
+            _code_decorators = [Dynamic()];
             __esDecorate(this, null, _step_decorators, { kind: "accessor", name: "step", static: false, private: false, access: { has: obj => "step" in obj, get: obj => obj.step, set: (obj, value) => { obj.step = value; } }, metadata: _metadata }, _step_initializers, _step_extraInitializers);
             __esDecorate(this, null, _oldSchema_decorators, { kind: "accessor", name: "oldSchema", static: false, private: false, access: { has: obj => "oldSchema" in obj, get: obj => obj.oldSchema, set: (obj, value) => { obj.oldSchema = value; } }, metadata: _metadata }, _oldSchema_initializers, _oldSchema_extraInitializers);
             __esDecorate(this, null, _newSchema_decorators, { kind: "accessor", name: "newSchema", static: false, private: false, access: { has: obj => "newSchema" in obj, get: obj => obj.newSchema, set: (obj, value) => { obj.newSchema = value; } }, metadata: _metadata }, _newSchema_initializers, _newSchema_extraInitializers);
             __esDecorate(this, null, _mappings_decorators, { kind: "accessor", name: "mappings", static: false, private: false, access: { has: obj => "mappings" in obj, get: obj => obj.mappings, set: (obj, value) => { obj.mappings = value; } }, metadata: _metadata }, _mappings_initializers, _mappings_extraInitializers);
             __esDecorate(this, null, _comparison_decorators, { kind: "accessor", name: "comparison", static: false, private: false, access: { has: obj => "comparison" in obj, get: obj => obj.comparison, set: (obj, value) => { obj.comparison = value; } }, metadata: _metadata }, _comparison_initializers, _comparison_extraInitializers);
+            __esDecorate(this, null, _code_decorators, { kind: "accessor", name: "code", static: false, private: false, access: { has: obj => "code" in obj, get: obj => obj.code, set: (obj, value) => { obj.code = value; } }, metadata: _metadata }, _code_initializers, _code_extraInitializers);
             if (_metadata) Object.defineProperty(this, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
         }
         static get instance() {
@@ -13911,7 +14505,7 @@ let MainState=(() => {
             "tables": [
                 {
                     "id": "t1",
-                    "name": "Club",
+                    "name": "Equipe",
                     "fields": [
                         { "id": "f1_1", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
                         { "id": "f1_2_new", "name": "Nom", "type": { "id": "varchar", "name": "varchar(255)" } },
@@ -13979,97 +14573,1093 @@ let MainState=(() => {
         }));
         get comparison() { return this.#comparison_accessor_storage; }
         set comparison(value) { this.#comparison_accessor_storage = value; }
+        #code_accessor_storage = (__runInitializers(this, _comparison_extraInitializers), __runInitializers(this, _code_initializers, ""));
+        get code() { return this.#code_accessor_storage; }
+        set code(value) { this.#code_accessor_storage = value; }
         constructor() {
-            __runInitializers(this, _comparison_extraInitializers);
+            __runInitializers(this, _code_extraInitializers);
         }
     };
 })();
 MainState.Namespace=`migration`;
 __as1(_, 'MainState', MainState);
 
-const MigrationWritter = class MigrationWritter extends BaseContent {
-    get 'migrationName'() {
-						return this.__watch["migrationName"];
-					}
-					set 'migrationName'(val) {
-						this.__watch["migrationName"] = val;
-					}get 'migrationClassName'() {
-						return this.__watch["migrationClassName"];
-					}
-					set 'migrationClassName'(val) {
-						this.__watch["migrationClassName"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("migrationName");this.__addWatchesActions("migrationClassName");    super.__registerWatchesActions();
-}
-    static __style = `:host{width:100%}:host .output-grid{align-items:start;display:grid;gap:2rem;grid-template-columns:1fr 2fr}:host .output-grid .config-panel{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2)}:host .output-grid .config-panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:1.25rem 1.5rem}:host .output-grid .config-panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .output-grid .config-panel .panel-body{display:flex;flex-direction:column;gap:1.5rem;padding:1.5rem}:host .output-grid .config-panel .panel-body .quick-stats{border-top:1px solid var(--border-color);margin-top:1rem;padding-top:1.25rem}:host .output-grid .config-panel .panel-body .quick-stats h4{color:var(--text-secondary);font-size:.9rem;font-weight:600;margin:0;margin-bottom:.75rem}:host .output-grid .config-panel .panel-body .quick-stats ul{display:flex;flex-direction:column;gap:.4rem;list-style:none;margin:0;padding:0}:host .output-grid .config-panel .panel-body .quick-stats ul li{color:var(--neutral);display:flex;font-size:.85rem;justify-content:space-between}:host .output-grid .config-panel .panel-body .quick-stats ul li span{color:var(--primary-content);font-weight:600}:host .output-grid .code-panel{background:#0b0f19;border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);overflow:hidden}:host .output-grid .code-panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:1.25rem 1.5rem}:host .output-grid .code-panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .output-grid .code-panel .panel-header .code-actions{display:flex;gap:.5rem}:host .output-grid .code-panel .code-viewport{max-height:600px;overflow-x:auto;padding:1.5rem}:host .output-grid .code-panel .code-viewport pre{color:#e2e8f0;font-family:var(--font-mono);font-size:.85rem;line-height:1.6}`;
+const SummaryDeleted = class SummaryDeleted extends Aventus.WebComponent {
+    get comparison() {
+        return MainState.instance.comparison;
+    }
+    static __style = `:host{width:100%}:host .diff-table-group{background:rgba(15,23,42,.15);border:1px solid var(--error);border-radius:var(--border-radius-lg);margin-bottom:1rem;overflow:hidden}:host .diff-table-group .diff-table-header{align-items:center;background:var(--error-100);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:.75rem 1rem}:host .diff-table-group .diff-table-header .diff-table-title{font-family:var(--font-mono);font-size:.95rem;font-weight:600}:host .diff-table-group .diff-table-header .badge{background:var(--error-200);border:1px solid var(--error);border-radius:50px;color:var(--color-error);font-size:.75rem;font-weight:600;padding:.25rem .65rem}:host .diff-table-group .diff-table-body{display:flex;flex-direction:column;gap:.5rem;padding:.75rem 1rem}:host .diff-table-group .diff-table-body .diff-item{align-items:center;display:flex;font-family:var(--font-mono);font-size:.85rem;gap:.75rem;padding:.25rem 0}:host .diff-table-group .diff-table-body .diff-item .diff-tag{align-items:center;align-items:center;background:var(--error-200);border-radius:4px;display:flex;font-family:var(--font-sans);font-weight:600;height:20px;justify-content:center;line-height:20px;padding-bottom:3px;width:20px}:host .diff-table-group .diff-table-body .diff-item .diff-item-detail{color:var(--neutral)}`;
     __getStatic() {
-        return MigrationWritter;
+        return SummaryDeleted;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(MigrationWritter.__style);
+        arrStyle.push(SummaryDeleted.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="section-header">    <h2>Code de Migration C# Généré</h2>    <p>Voici la classe de migration AventusSharp générée. Copiez ce code dans votre projet ou téléchargez le fichier.    </p></div><div class="output-grid">    <div class="config-panel">        <div class="panel-header">            <h3>Configuration</h3>        </div>        <div class="panel-body">            <div class="form-group">                <om-input label="Nom de la migration :" _id="migrationwritter_0"></om-input>                <small>Identifiant unique de la migration (ex: 0001_update).</small>            </div>            <div class="form-group">                <om-input label="Nom de la classe C# :" _id="migrationwritter_1"></om-input>                <small>Nom valide pour la classe C# héritant de <code>Migration</code>.</small>            </div>            <div class="quick-stats">                <h4>Statistiques :</h4>                <ul>                    <li>Tables créées : <span id="stat-created-tables">0</span></li>                    <li>Tables renommées : <span id="stat-renamed-tables">0</span></li>                    <li>Tables supprimées : <span id="stat-deleted-tables">0</span></li>                    <li>Modifications appliquées : <span id="stat-modified-tables">0</span></li>                </ul>            </div>        </div>    </div>    <div class="code-panel">        <div class="panel-header">            <h3>Code Source C#</h3>            <div class="code-actions">                <om-button outline>Copier</om-button>                <om-button>Télécharger</om-button>            </div>        </div>        <div class="code-viewport">            <pre><code _id="migrationwritter_2"></code></pre>        </div>    </div></div><div class="action-footer">    <om-button _id="migrationwritter_3">Retour</om-button></div>` }
+        blocks: { 'default':`<template _id="summarydeleted_0"></template>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="diff-table-group">        <div class="diff-table-header">            <span class="diff-table-title" style="color: var(--color-danger)" _id="summarydeleted_1"></span>            <span class="badge">Deleted</span>        </div>        <div class="diff-table-body">            <template _id="summarydeleted_2"></template>        </div>    </div>`);templ0.setActions({
+  "content": {
+    "summarydeleted_1°@HTML": {
+      "fct": (c) => `Deleted table : ${c.print(c.comp.__83f0ae5284cb63e76d7ef2a50310a4bfmethod2(c.data.deletedTable))}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'summarydeleted_0',
+                    template: templ0,
+                simple:{data: "this.comparison.deletedTables",item:"deletedTable"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="diff-item">                    <span class="diff-tag">-</span>                    <span class="diff-change-old" _id="summarydeleted_3"></span>                </div>            `);templ1.setActions({
+  "content": {
+    "summarydeleted_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__83f0ae5284cb63e76d7ef2a50310a4bfmethod3(c.data.deletedTableField))}`,
+      "once": true
+    }
+  }
+});templ0.addLoop({
+                    anchorId: 'summarydeleted_2',
+                    template: templ1,
+                simple:{data: "deletedTable.fields",item:"deletedTableField"}}); }
+    getClassName() {
+        return "SummaryDeleted";
+    }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison'); }
+    __83f0ae5284cb63e76d7ef2a50310a4bfmethod2(deletedTable) {
+        return deletedTable.name;
+    }
+    __83f0ae5284cb63e76d7ef2a50310a4bfmethod3(deletedTableField) {
+        return deletedTableField.name;
+    }
+}
+SummaryDeleted.Namespace=`migration`;
+SummaryDeleted.Tag=`av-summary-deleted`;
+__as1(_, 'SummaryDeleted', SummaryDeleted);
+if(!window.customElements.get('av-summary-deleted')){window.customElements.define('av-summary-deleted', SummaryDeleted);Aventus.WebComponentInstance.registerDefinition(SummaryDeleted);}
+
+const SummaryNew = class SummaryNew extends Aventus.WebComponent {
+    get comparison() {
+        return MainState.instance.comparison;
+    }
+    static __style = `:host{width:100%}:host .diff-table-group{background:rgba(15,23,42,.15);border:1px solid var(--success);border-radius:var(--border-radius-lg);margin-bottom:1rem;overflow:hidden}:host .diff-table-group .diff-table-header{align-items:center;background:var(--success-100);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:.75rem 1rem}:host .diff-table-group .diff-table-header .diff-table-title{font-family:var(--font-mono);font-size:.95rem;font-weight:600}:host .diff-table-group .diff-table-header .badge{background:var(--success-200);border:1px solid var(--success);border-radius:50px;color:var(--color-success);font-size:.75rem;font-weight:600;padding:.25rem .65rem}:host .diff-table-group .diff-table-body{display:flex;flex-direction:column;gap:.5rem;padding:.75rem 1rem}:host .diff-table-group .diff-table-body .diff-item{align-items:center;display:flex;font-family:var(--font-mono);font-size:.85rem;gap:.75rem;padding:.25rem 0}:host .diff-table-group .diff-table-body .diff-item .diff-tag{align-items:center;align-items:center;background:var(--success-200);border-radius:4px;display:flex;font-family:var(--font-sans);font-weight:600;height:20px;justify-content:center;line-height:20px;padding-bottom:3px;width:20px}:host .diff-table-group .diff-table-body .diff-item .diff-item-detail{color:var(--neutral)}`;
+    __getStatic() {
+        return SummaryNew;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(SummaryNew.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<template _id="summarynew_0"></template>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="diff-table-group">        <div class="diff-table-header">            <span class="diff-table-title" _id="summarynew_1"></span>            <span class="badge badge-new">New</span>        </div>        <div class="diff-table-body">            <template _id="summarynew_2"></template>        </div>    </div>`);templ0.setActions({
+  "content": {
+    "summarynew_1°@HTML": {
+      "fct": (c) => `Added table : ${c.print(c.comp.__a902aa746d994c2401ca9ac9dfe3b2aemethod2(c.data.addedTable))}`,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'summarynew_0',
+                    template: templ0,
+                simple:{data: "this.comparison.addedTables",item:"addedTable"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="diff-item">                    <span class="diff-tag diff-tag-add">+</span>                    <span _id="summarynew_3"></span>                    <span class="diff-item-detail" _id="summarynew_4"></span>                </div>            `);templ1.setActions({
+  "content": {
+    "summarynew_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__a902aa746d994c2401ca9ac9dfe3b2aemethod3(c.data.addedTableField))}`,
+      "once": true
+    },
+    "summarynew_4°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__a902aa746d994c2401ca9ac9dfe3b2aemethod4(c.data.addedTableField))}`
+    }
+  }
+});templ0.addLoop({
+                    anchorId: 'summarynew_2',
+                    template: templ1,
+                simple:{data: "addedTable.fields",item:"addedTableField"}}); }
+    getClassName() {
+        return "SummaryNew";
+    }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison'); }
+    __a902aa746d994c2401ca9ac9dfe3b2aemethod2(addedTable) {
+        return addedTable.name;
+    }
+    __a902aa746d994c2401ca9ac9dfe3b2aemethod3(addedTableField) {
+        return addedTableField.name;
+    }
+    __a902aa746d994c2401ca9ac9dfe3b2aemethod4(addedTableField) {
+        return `(${addedTableField.type.name}${addedTableField.nullable ? ', null' : ''}${addedTableField.primaryKey ? ', PK' : ''})`;
+    }
+}
+SummaryNew.Namespace=`migration`;
+SummaryNew.Tag=`av-summary-new`;
+__as1(_, 'SummaryNew', SummaryNew);
+if(!window.customElements.get('av-summary-new')){window.customElements.define('av-summary-new', SummaryNew);Aventus.WebComponentInstance.registerDefinition(SummaryNew);}
+
+const Header = class Header extends Aventus.WebComponent {
+    static __style = `:host{align-items:center;backdrop-filter:blur(16px);background:rgba(15,23,42,.8);border-bottom:1px solid var(--border-color);display:flex;justify-content:center;padding:1.25rem 2rem;top:0;z-index:100}:host .app-nav{background:hsla(0,0%,100%,.03);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;gap:.5rem;padding:.35rem}:host .app-nav .nav-btn{background:rgba(0,0,0,0);border:none;border-radius:var(--border-radius-lg);color:var(--surface-content);cursor:pointer;font-weight:500;padding:.5rem 1.25rem;transition:all .2s ease}:host .app-nav .nav-btn:hover{background:hsla(0,0%,100%,.05)}:host .app-nav .nav-btn[active=true]{background:var(--primary);color:var(--primary-content);box-shadow:var(--elevation-2)}`;
+    __getStatic() {
+        return Header;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Header.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<nav class="app-nav">    <button class="nav-btn" _id="header_0">1. Schemas</button>    <button class="nav-btn" _id="header_1">2. Resolution</button>    <button class="nav-btn" _id="header_2">3. Migration</button></nav>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "header_0°active": {
+      "fct": (c) => `${c.print(c.comp.__afe2bf44205761c9fef83440ff881e72method0())}`,
+      "once": true
+    },
+    "header_1°active": {
+      "fct": (c) => `${c.print(c.comp.__afe2bf44205761c9fef83440ff881e72method1())}`,
+      "once": true
+    },
+    "header_2°active": {
+      "fct": (c) => `${c.print(c.comp.__afe2bf44205761c9fef83440ff881e72method2())}`,
+      "once": true
+    }
+  }
+}); }
+    getClassName() {
+        return "Header";
+    }
+    __afe2bf44205761c9fef83440ff881e72method0() {
+        return MainState.instance.step == 0;
+    }
+    __afe2bf44205761c9fef83440ff881e72method1() {
+        return MainState.instance.step == 1;
+    }
+    __afe2bf44205761c9fef83440ff881e72method2() {
+        return MainState.instance.step == 2;
+    }
+}
+Header.Namespace=`migration`;
+Header.Tag=`av-header`;
+__as1(_, 'Header', Header);
+if(!window.customElements.get('av-header')){window.customElements.define('av-header', Header);Aventus.WebComponentInstance.registerDefinition(Header);}
+
+let Api=class Api {
+    static guard = new Aventus.ActionGuard();
+    static databases;
+    static wwwroot = "/";
+    static nonce;
+    static init() {
+        if (VscodeView.Router.isVscode) {
+            const el = document.getElementById("base-style");
+            if (el instanceof HTMLLinkElement) {
+                this.wwwroot = el.href.replace("style.css", "");
+            }
+            const el2 = document.getElementById("base-script");
+            if (el2 instanceof HTMLScriptElement) {
+                this.nonce = el2.nonce;
+            }
+        }
+    }
+    static async getDatabases() {
+        return await this.guard.run(["getDatabases"], async () => {
+            if (this.databases != undefined)
+                return {
+                    source: [...this.databases.source],
+                    target: [...this.databases.target],
+                };
+            if (VscodeView.Router.isVscode) {
+                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
+                    channel: "getDatabases"
+                }));
+                this.databases = result ?? { source: [], target: [] };
+            }
+            else {
+                const txt = localStorage.getItem("databases");
+                this.databases = txt ? JSON.parse(txt) : { source: [], target: [] };
+                ;
+            }
+            return {
+                source: [...this.databases.source],
+                target: [...this.databases.target],
+            };
+        });
+    }
+    static async setDatabase(type, model) {
+        model = Aventus.Watcher.extract(model);
+        if (!this.databases) {
+            this.databases = {
+                source: [],
+                target: []
+            };
+        }
+        this.databases[type].push(model);
+        this.databases[type].sort((a, b) => a.Database.localeCompare(b.Database));
+        if (VscodeView.Router.isVscode) {
+            await VscodeView.Router.getInstance().send({
+                channel: "setDatabases",
+                body: this.databases
+            });
+        }
+        else {
+            const clones = JSON.parse(JSON.stringify(this.databases));
+            for (let clone of clones[type]) {
+                if (!clone.SavePassword) {
+                    delete clone.Password;
+                }
+            }
+            localStorage.setItem('databases', JSON.stringify(clones));
+        }
+        return this.databases[type];
+    }
+    static async deleteDatabase(type, model) {
+        model = Aventus.Watcher.extract(model);
+        if (!this.databases) {
+            return [];
+        }
+        const index = this.databases[type].indexOf(model);
+        if (index == -1)
+            return this.databases[type];
+        this.databases[type].splice(index, 1);
+        if (VscodeView.Router.isVscode) {
+            await VscodeView.Router.getInstance().send({
+                channel: "setDatabases",
+                body: this.databases
+            });
+        }
+        else {
+            const clones = JSON.parse(JSON.stringify(this.databases));
+            for (let clone of clones[type]) {
+                if (!clone.SavePassword) {
+                    delete clone.Password;
+                }
+            }
+            localStorage.setItem('databases', JSON.stringify(clones));
+        }
+        return this.databases[type];
+    }
+    static async testConnection(model) {
+        model = Aventus.Watcher.extract(model);
+        return await this.guard.run(["testConnection"], async () => {
+            if (VscodeView.Router.isVscode) {
+                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
+                    channel: "testConnection",
+                    body: model
+                }));
+                return result ?? false;
+            }
+            return true;
+        });
+    }
+    static async getSchema(model) {
+        model = Aventus.Watcher.extract(model);
+        return await this.guard.run(["getSchema"], async () => {
+            if (VscodeView.Router.isVscode) {
+                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
+                    channel: "getSchema",
+                    body: model
+                }));
+                return result;
+            }
+            return defaultSchema;
+        });
+    }
+    static async chooseFolder() {
+        return await this.guard.run(["chooseFolder"], async () => {
+            if (VscodeView.Router.isVscode) {
+                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
+                    channel: "chooseFolder",
+                    body: {}
+                }));
+                return result;
+            }
+            return "";
+        });
+    }
+    static async writeFile(folder, filename, content) {
+        return await this.guard.run(["writeFile"], async () => {
+            if (VscodeView.Router.isVscode) {
+                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
+                    channel: "writeFile",
+                    body: {
+                        folder,
+                        filename,
+                        content
+                    }
+                }));
+                return result ?? false;
+            }
+            return false;
+        });
+    }
+}
+Api.Namespace=`migration`;
+__as1(_, 'Api', Api);
+
+const Code = class Code extends Aventus.WebComponent {
+    static get observedAttributes() {return ["language"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'language'() { return this.getStringProp('language') }
+    set 'language'(val) { this.setStringAttr('language', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("language", ((target) => {
+    if (window.Prism) {
+        if (!window.Prism.languages.hasOwnProperty(target.language)) {
+            target.language = 'plain';
+        }
+    }
+})); }
+    static __style = `:host{display:flex;overflow:hidden;position:relative;width:100%}:host pre{background-color:rgba(0,0,0,0);font-size:.85rem;line-height:1.6;margin:0;width:100%}:host .hided{display:none}`;
+    __getStatic() {
+        return Code;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Code.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<pre>    <code _id="code_0">    </code></pre><template class="hided">    <slot></slot></template>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
-      "name": "csharpOutput",
+      "name": "codeEl",
       "ids": [
-        "migrationwritter_2"
+        "code_0"
       ]
     }
   ],
-  "injection": [
-    {
-      "id": "migrationwritter_0",
-      "injectionName": "value",
-      "inject": (c) => c.comp.__9a8036ed8f626c8a9e612affd1701bf1method0(),
+  "content": {
+    "code_0°class": {
+      "fct": (c) => `language-${c.print(c.comp.__8d24666c28b8cb25089e01a27613d23amethod0())}`,
       "once": true
-    },
+    }
+  }
+}); }
+    getClassName() {
+        return "Code";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('language')){ this['language'] = "plain"; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('language'); }
+    styleBefore(addStyle) {
+        addStyle("Prism");
+    }
+    async setCode(code) {
+        debugger;
+        if (!window.Prism) {
+            await this.loadFiles();
+        }
+        // if(!window.Prism.languages.hasOwnProperty(this.language)) {
+        //     this.language = 'plain';
+        // }
+        code = code.replace(/<pre>/g, "").replace(/<\/pre>/g, "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        this.codeEl.innerHTML = code;
+        window.Prism.highlightElement(this.codeEl);
+    }
+    async loadFiles() {
+        await Aventus.ResourceLoader.loadInHead({
+            url: Api.wwwroot + 'libs/prism.js',
+            type: 'js',
+            nonce: Api.nonce,
+        });
+        await Aventus.Style.load("Prism", Api.wwwroot + 'libs/prism_vscode_theme.css');
+    }
+    __8d24666c28b8cb25089e01a27613d23amethod0() {
+        return this.language;
+    }
+}
+Code.Namespace=`migration`;
+Code.Tag=`av-code`;
+__as1(_, 'Code', Code);
+if(!window.customElements.get('av-code')){window.customElements.define('av-code', Code);Aventus.WebComponentInstance.registerDefinition(Code);}
+
+const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Components.Interaction.Modal {
+    get 'formNewDb'() {
+						return this.__watch["formNewDb"];
+					}
+					set 'formNewDb'(val) {
+						this.__watch["formNewDb"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("formNewDb");    super.__registerWatchesActions();
+}
+    static __style = `:host .modal{width:600px}:host .modal av-row{--col-gap-x: 1rem;--col-gap-y: 1rem}`;
+    __getStatic() {
+        return CreateDatabaseModal;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(CreateDatabaseModal.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'header':`    Create database coonnection`,'footer':`    <om-button outline _id="createdatabasemodal_8">Cancel</om-button>    <om-button color="primary" _id="createdatabasemodal_9">Save</om-button>`,'default':`<av-row>    <av-col size="12">        <om-select label="Database kind" _id="createdatabasemodal_0">            <om-option value="mysql">Mysql</om-option>            <om-option value="mssql">Mssql</om-option>            <om-option value="postgresql">Postgresql</om-option>            <om-option value="sqlite">Sqlite</om-option>        </om-select>    </av-col>    <template _id="createdatabasemodal_1"></template></av-row>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "bindings": [
     {
-      "id": "migrationwritter_1",
+      "id": "createdatabasemodal_0",
       "injectionName": "value",
-      "inject": (c) => c.comp.__9a8036ed8f626c8a9e612affd1701bf1method1(),
-      "once": true
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method1(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method2(v),
+      "once": true,
+      "isCallback": true
     }
   ],
   "events": [
     {
       "eventName": "click",
-      "id": "migrationwritter_3",
+      "id": "createdatabasemodal_8",
+      "fct": (e, c) => c.comp.reject(e)
+    },
+    {
+      "eventName": "click",
+      "id": "createdatabasemodal_9",
+      "fct": (e, c) => c.comp.save(e)
+    }
+  ]
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-col size="12">            <om-input label="Hostname" _id="createdatabasemodal_2"></om-input>        </av-col>        <av-col size="12">            <om-input label="Database" _id="createdatabasemodal_3"></om-input>        </av-col>        <av-col size="12">            <om-input label="Username" _id="createdatabasemodal_4"></om-input>        </av-col>        <av-col size="12">            <om-password label="Password" _id="createdatabasemodal_5"></om-password>        </av-col>        <av-col size="12">            <om-checkbox label="Save Password" _id="createdatabasemodal_6"></om-checkbox>        </av-col>    `);templ0.setActions({
+  "bindings": [
+    {
+      "id": "createdatabasemodal_2",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method3(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method4(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "createdatabasemodal_3",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method5(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method6(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "createdatabasemodal_4",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method7(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method8(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "createdatabasemodal_5",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method9(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method10(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "createdatabasemodal_6",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method11(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method12(v),
+      "once": true,
+      "isCallback": true
+    }
+  ]
+});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <av-col size="12">            <om-input label="File path" _id="createdatabasemodal_7"></om-input>        </av-col>    `);templ1.setActions({
+  "bindings": [
+    {
+      "id": "createdatabasemodal_7",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method13(),
+      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method14(v),
+      "once": true,
+      "isCallback": true
+    }
+  ]
+});this.__getStatic().__template.addIf({
+                    anchorId: 'createdatabasemodal_1',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method0(),
+                    template: templ0
+                },{once: true,
+                    condition: (c) => true,
+                    template: templ1
+                }]
+            }); }
+    getClassName() {
+        return "CreateDatabaseModal";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["formNewDb"] = {        UUID: Aventus.uuidv4(),        Database: "Spalio2",        Host: "localhost",        Password: "",        Path: "",        Type: "mysql",        Username: "root",        SavePassword: false    }; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('formNewDb'); }
+    configure() {
+        return {
+            closeWithClick: false,
+        };
+    }
+    async save() {
+        const form = Aventus.Watcher.extract(this.formNewDb);
+        if (!await Api.testConnection(form)) {
+            OneMoreUI.Components.Interaction.Alert.open({
+                title: "Connection error",
+                type: "error",
+                content: "There is a problem with the credentials provided"
+            });
+            return;
+        }
+        this.resolve(Aventus.Watcher.extract(form));
+    }
+    __dce7836a7f0affea31f87e4387ff3630method0() {
+        return this.formNewDb.Type != "sqlite";
+    }
+    __dce7836a7f0affea31f87e4387ff3630method1() {
+        return this.formNewDb.Type;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method2(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Type = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method3() {
+        return this.formNewDb.Host;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method4(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Host = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method5() {
+        return this.formNewDb.Database;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method6(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Database = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method7() {
+        return this.formNewDb.Username;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method8(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Username = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method9() {
+        return this.formNewDb.Password;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method10(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Password = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method11() {
+        return this.formNewDb.SavePassword;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method12(v) {
+        if (this.formNewDb) {
+            this.formNewDb.SavePassword = v;
+        }
+    }
+    __dce7836a7f0affea31f87e4387ff3630method13() {
+        return this.formNewDb.Path;
+    }
+    __dce7836a7f0affea31f87e4387ff3630method14(v) {
+        if (this.formNewDb) {
+            this.formNewDb.Path = v;
+        }
+    }
+}
+CreateDatabaseModal.Namespace=`migration`;
+CreateDatabaseModal.Tag=`av-create-database-modal`;
+__as1(_, 'CreateDatabaseModal', CreateDatabaseModal);
+if(!window.customElements.get('av-create-database-modal')){window.customElements.define('av-create-database-modal', CreateDatabaseModal);Aventus.WebComponentInstance.registerDefinition(CreateDatabaseModal);}
+
+const ImportSchema = class ImportSchema extends BaseContent {
+    get 'databasesSource'() {
+						return this.__watch["databasesSource"];
+					}
+					set 'databasesSource'(val) {
+						this.__watch["databasesSource"] = val;
+					}get 'databasesTarget'() {
+						return this.__watch["databasesTarget"];
+					}
+					set 'databasesTarget'(val) {
+						this.__watch["databasesTarget"] = val;
+					}get 'dbSource'() {
+						return this.__watch["dbSource"];
+					}
+					set 'dbSource'(val) {
+						this.__watch["dbSource"] = val;
+					}get 'dbTarget'() {
+						return this.__watch["dbTarget"];
+					}
+					set 'dbTarget'(val) {
+						this.__watch["dbTarget"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("databasesSource");this.__addWatchesActions("databasesTarget");this.__addWatchesActions("dbSource");this.__addWatchesActions("dbTarget");    super.__registerWatchesActions();
+}
+    static __style = `:host .schemas-grid{display:grid;gap:2rem;grid-template-columns:repeat(auto-fit, minmax(450px, 1fr));margin-bottom:2rem}:host .schemas-grid .schema-card{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);display:flex;flex-direction:column;gap:1.25rem;padding:1.5rem}:host .schemas-grid .schema-card .card-header{align-items:flex-start;display:flex;flex-direction:column}:host .schemas-grid .schema-card .card-header p{color:var(--neutral);font-size:var(--font-size-sm);margin:0}:host .schemas-grid .schema-card .list{border:1px solid var(--border-color);border-radius:var(--border-radius-md);display:flex;flex-direction:column}:host .schemas-grid .schema-card .list .database{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;gap:1rem;overflow:hidden;padding:.5rem 1rem;transition:background-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database av-img{flex-shrink:0;height:30px;width:30px}:host .schemas-grid .schema-card .list .database div{flex-grow:1}:host .schemas-grid .schema-card .list .database mi-icon{color:var(--error);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database mi-icon:hover{color:var(--error-600)}:host .schemas-grid .schema-card .list .database:first-child{border-top:none}:host .schemas-grid .schema-card .list .database[active]{background-color:hsla(0,0%,100%,.1)}:host .schemas-grid .schema-card .list .database:not([active]):hover{background-color:hsla(0,0%,100%,.05)}:host .schemas-grid .schema-card .list .add{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;justify-content:center;padding:.5rem 1rem}:host .schemas-grid .schema-card .list .add mi-icon{color:var(--success);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .add mi-icon:hover{color:var(--success-600)}:host .schemas-grid .schema-card .list .add:nth-child(2){border-top:none}:host .schemas-grid .schema-card .or{display:flex;font-size:var(--font-size-lg);font-weight:bold;justify-content:center;letter-spacing:2px}:host .schemas-grid .schema-card .import-file{align-items:center;border:2px dashed var(--border-color);border-radius:var(--border-radius-md);cursor:pointer;display:flex;flex-direction:column;gap:1rem;padding:2rem 1rem;transition:border-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .import-file mi-icon{font-size:var(--font-size-xl)}:host .schemas-grid .schema-card .import-file:hover{border-color:var(--surface-content)}:host .schemas-grid .schema-card .code-textarea{background:rgba(15,23,42,.5);border:1px solid var(--border-color);border-radius:var(--border-radius-md);color:var(--primary-content);font-size:.85rem;height:350px;outline:none;padding:1rem;resize:vertical;transition:border-color .2s ease;width:100%}:host .schemas-grid .schema-card .code-textarea:focus{border-color:var(--info)}`;
+    __getStatic() {
+        return ImportSchema;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(ImportSchema.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="section-header">    <h2>Data Sources</h2>    <p>Provide data source or schema to generate the migration</p></div><div class="schemas-grid">    <div class="schema-card">        <div class="card-header">            <h3>Database Source</h3>            <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>        </div>        <div class="list">            <template _id="importschema_0"></template>            <div class="add" _id="importschema_5">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.db.avt)</span>        </div>    </div>    <div class="schema-card">        <div class="card-header">            <h3>Database Final</h3>            <p>Provide the final data source model.</p>        </div>        <div class="list">            <template _id="importschema_6"></template>            <div class="add" _id="importschema_11">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.db.avt)</span>        </div>    </div></div><div class="action-footer">    <om-button _id="importschema_12">Compare schemas</om-button></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "events": [
+    {
+      "eventName": "click",
+      "id": "importschema_5",
+      "fct": (e, c) => c.comp.createDatabaseSource(e)
+    },
+    {
+      "eventName": "click",
+      "id": "importschema_11",
+      "fct": (e, c) => c.comp.createDatabaseTarget(e)
+    },
+    {
+      "eventName": "click",
+      "id": "importschema_12",
+      "fct": (e, c) => c.comp.analyzeAndCompare(e)
+    }
+  ]
+});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="database" _id="importschema_1">                    <av-img _id="importschema_2"></av-img>                    <div _id="importschema_3"></div>                    <mi-icon icon="delete" _id="importschema_4"></mi-icon>                </div>            `);templ1.setActions({
+  "content": {
+    "importschema_1°active": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method4(c.data.database))}`,
+      "once": true
+    },
+    "importschema_1°data-index": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
+      "once": true
+    },
+    "importschema_2°src": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method6(c.data.database))}`,
+      "once": true
+    },
+    "importschema_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method7(c.data.database))} (${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method8(c.data.database))})`,
+      "once": true
+    },
+    "importschema_4°data-index": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "importschema_1",
+      "fct": (e, c) => c.comp.selectDatabaseSource(e)
+    },
+    {
+      "eventName": "click",
+      "id": "importschema_4",
+      "fct": (e, c) => c.comp.deleteDatabaseSource(e)
+    }
+  ],
+  "contextEdits": [
+    {
+      "fct": (c) => c.comp.__c9cba54071d54a55cdb77c778f22dba2method1(c.data.i)
+    }
+  ]
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'importschema_0',
+                    template: templ1,
+                simple:{data: "this.databasesSource",index:"i"}});const templ3 = new Aventus.Template(this);templ3.setTemplate(`                <div class="database" _id="importschema_7">                    <av-img _id="importschema_8"></av-img>                    <div _id="importschema_9"></div>                    <mi-icon icon="delete" _id="importschema_10"></mi-icon>                </div>            `);templ3.setActions({
+  "content": {
+    "importschema_7°active": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method9(c.data.database))}`,
+      "once": true
+    },
+    "importschema_7°data-index": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
+      "once": true
+    },
+    "importschema_8°src": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method6(c.data.database))}`,
+      "once": true
+    },
+    "importschema_9°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method7(c.data.database))} (${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method8(c.data.database))})`,
+      "once": true
+    },
+    "importschema_10°data-index": {
+      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "importschema_7",
+      "fct": (e, c) => c.comp.selectDatabaseTarget(e)
+    },
+    {
+      "eventName": "click",
+      "id": "importschema_10",
+      "fct": (e, c) => c.comp.deleteDatabaseTarget(e)
+    }
+  ],
+  "contextEdits": [
+    {
+      "fct": (c) => c.comp.__c9cba54071d54a55cdb77c778f22dba2method3(c.data.i)
+    }
+  ]
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'importschema_6',
+                    template: templ3,
+                simple:{data: "this.databasesTarget",index:"i"}}); }
+    getClassName() {
+        return "ImportSchema";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["databasesSource"] = [];w["databasesTarget"] = [];w["dbSource"] = undefined;w["dbTarget"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('databasesSource');this.__correctGetter('databasesTarget');this.__correctGetter('dbSource');this.__correctGetter('dbTarget'); }
+    selectDatabaseSource(e) {
+        const el = e.currentTarget;
+        if (el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesSource[index];
+            this.dbSource = db;
+        }
+    }
+    selectDatabaseTarget(e) {
+        const el = e.currentTarget;
+        if (el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesTarget[index];
+            this.dbTarget = db;
+        }
+    }
+    async deleteDatabaseSource(e) {
+        const el = e.currentTarget;
+        if (el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesSource[index];
+            const result = await OneMoreUI.Components.Interaction.Confirm.open({
+                title: "Delete database",
+                content: "Do you want to delete the database " + db.Database + "?",
+                type: "error"
+            });
+            if (result) {
+                if (Aventus.compareObject(db, this.dbSource)) {
+                    this.dbSource = undefined;
+                }
+                this.databasesSource = await Api.deleteDatabase('source', Aventus.Watcher.extract(db));
+            }
+        }
+    }
+    async deleteDatabaseTarget(e) {
+        const el = e.currentTarget;
+        if (el instanceof HTMLElement) {
+            const index = Number(el.dataset.index);
+            const db = this.databasesTarget[index];
+            const result = await OneMoreUI.Components.Interaction.Confirm.open({
+                title: "Delete database",
+                content: "Do you want to delete the database " + db.Database + "?",
+                type: "error"
+            });
+            if (result) {
+                if (Aventus.compareObject(db, this.dbTarget)) {
+                    this.dbTarget = undefined;
+                }
+                this.databasesTarget = await Api.deleteDatabase('target', Aventus.Watcher.extract(db));
+            }
+        }
+    }
+    async createDatabaseSource() {
+        const modal = new CreateDatabaseModal();
+        const result = await modal.show();
+        if (result) {
+            this.databasesSource = await Api.setDatabase('source', result);
+        }
+    }
+    async createDatabaseTarget() {
+        const modal = new CreateDatabaseModal();
+        const result = await modal.show();
+        if (result) {
+            this.databasesTarget = await Api.setDatabase('target', result);
+        }
+    }
+    async loadData() {
+        const db = await Api.getDatabases();
+        this.databasesSource = db?.source ?? [];
+        this.databasesTarget = db?.target ?? [];
+    }
+    getIcon(db) {
+        if (db.Type == "mysql")
+            return Api.wwwroot + "img/mysql.svg";
+        if (db.Type == "mssql")
+            return Api.wwwroot + "img/mssql.svg";
+        if (db.Type == "postgresql")
+            return Api.wwwroot + "img/postgresql.svg";
+        if (db.Type == "sqlite")
+            return Api.wwwroot + "img/sqlite.svg";
+        return "";
+    }
+    async analyzeAndCompare() {
+        if (this.dbTarget) {
+            if (!this.dbTarget.SavePassword && this.dbTarget.Password === undefined) {
+                const modal = new AskPasswordModal();
+                modal.dbName = this.dbTarget.Database;
+                const result = await modal.show();
+                if (result === null)
+                    return;
+                this.dbTarget.Password = result;
+            }
+            const schema = await Api.getSchema(this.dbTarget);
+            if (!schema)
+                return;
+            MainState.instance.newSchema = schema;
+        }
+        else {
+            OneMoreUI.Components.Interaction.Alert.open({
+                title: "Missing data",
+                type: "error",
+                content: "You must select a final database or provide a schema"
+            });
+            return;
+        }
+        if (this.dbSource) {
+            if (!this.dbSource.SavePassword && this.dbSource.Password === undefined) {
+                const modal = new AskPasswordModal();
+                modal.dbName = this.dbSource.Database;
+                const result = await modal.show();
+                if (result === null)
+                    return;
+                this.dbSource.Password = result;
+            }
+            const schema = await Api.getSchema(this.dbSource);
+            if (!schema)
+                return;
+            MainState.instance.oldSchema = schema;
+        }
+        else {
+            MainState.instance.oldSchema = {
+                databaseType: MainState.instance.newSchema.databaseType,
+                name: MainState.instance.newSchema.name,
+                relationships: [],
+                tables: [],
+            };
+        }
+        Generator.compareSchemas();
+        MainState.instance.step = 1;
+    }
+    postCreation() {
+        super.postCreation();
+        this.loadData();
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method4(database) {
+        return Aventus.compareObject(this.dbSource, database);
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method5(i) {
+        return i;
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method6(database) {
+        return this.getIcon(database);
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method7(database) {
+        return database.Database;
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method8(database) {
+        return database.Host;
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method9(database) {
+        return Aventus.compareObject(this.dbTarget, database);
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method1(i) {
+        return { 'database': this.databasesSource[i] };
+    }
+    __c9cba54071d54a55cdb77c778f22dba2method3(i) {
+        return { 'database': this.databasesTarget[i] };
+    }
+}
+ImportSchema.Namespace=`migration`;
+ImportSchema.Tag=`av-import-schema`;
+__as1(_, 'ImportSchema', ImportSchema);
+if(!window.customElements.get('av-import-schema')){window.customElements.define('av-import-schema', ImportSchema);Aventus.WebComponentInstance.registerDefinition(ImportSchema);}
+
+const SummaryUpdated = class SummaryUpdated extends Aventus.WebComponent {
+    get tableComparisons() {
+        return MainState.instance.comparison.tableComparisons;
+    }
+    static __style = `:host{width:100%}`;
+    __getStatic() {
+        return SummaryUpdated;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(SummaryUpdated.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="for"><template _id="summaryupdated_0"></template></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="table">        <template _id="summaryupdated_1"></template>    </div>`);this.__getStatic().__template.addLoop({
+                    anchorId: 'summaryupdated_0',
+                    template: templ0,
+                simple:{data: "this.tableComparisons",item:"table"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`            <av-summary-updated-table _id="summaryupdated_2"></av-summary-updated-table>        `);templ1.setActions({
+  "injection": [
+    {
+      "id": "summaryupdated_2",
+      "injectionName": "change",
+      "inject": (c) => c.comp.__8959b69ae2b5092f3c1be2eb741d7f13method2(c.data.table),
+      "once": true
+    }
+  ]
+});templ0.addIf({
+                    anchorId: 'summaryupdated_1',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__8959b69ae2b5092f3c1be2eb741d7f13method1(c.data.table),
+                    template: templ1
+                }]
+            }); }
+    getClassName() {
+        return "SummaryUpdated";
+    }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tableComparisons'); }
+    __8959b69ae2b5092f3c1be2eb741d7f13method1(table) {
+        return table.hasChanges;
+    }
+    __8959b69ae2b5092f3c1be2eb741d7f13method2(table) {
+        return table;
+    }
+}
+SummaryUpdated.Namespace=`migration`;
+SummaryUpdated.Tag=`av-summary-updated`;
+__as1(_, 'SummaryUpdated', SummaryUpdated);
+if(!window.customElements.get('av-summary-updated')){window.customElements.define('av-summary-updated', SummaryUpdated);Aventus.WebComponentInstance.registerDefinition(SummaryUpdated);}
+
+const DiffSummary = class DiffSummary extends Aventus.WebComponent {
+    get 'has_diff'() { return this.getBoolAttr('has_diff') }
+    set 'has_diff'(val) { this.setBoolAttr('has_diff', val) }    static __style = `:host .empty-state{align-items:center;color:var(--neutral);display:none;flex-direction:column;gap:.75rem;justify-content:center;padding:4rem 2rem;text-align:center}:host .empty-state .empty-icon{font-size:2.5rem}:host(:not([has_diff])) .empty-state{display:flex}`;
+    __getStatic() {
+        return DiffSummary;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(DiffSummary.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="empty-state">    <span class="empty-icon">✨</span>    <p>No difference find across both schemas.</p></div><av-summary-new></av-summary-new><av-summary-deleted></av-summary-deleted><av-summary-updated></av-summary-updated>` }
+    });
+}
+    getClassName() {
+        return "DiffSummary";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_diff')) { this.attributeChangedCallback('has_diff', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('has_diff'); }
+    __listBoolProps() { return ["has_diff"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    postCreation() {
+        Aventus.Watcher.effect(() => {
+            const comp = MainState.instance.comparison;
+            this.has_diff = comp.addedTables.length > 0 || comp.deletedTables.length > 0 || comp.renamedTables.length > 0;
+        });
+    }
+}
+DiffSummary.Namespace=`migration`;
+DiffSummary.Tag=`av-diff-summary`;
+__as1(_, 'DiffSummary', DiffSummary);
+if(!window.customElements.get('av-diff-summary')){window.customElements.define('av-diff-summary', DiffSummary);Aventus.WebComponentInstance.registerDefinition(DiffSummary);}
+
+const Resolution = class Resolution extends BaseContent {
+    get comparison() {
+        return MainState.instance.comparison;
+    }
+    get tableComparisons() {
+        return this.comparison.tableComparisons;
+    }
+    get tables() {
+        return MainState.instance.mappings.tables;
+    }
+    static __style = `:host .diff-container{align-items:start;display:grid;gap:2rem;grid-template-columns:1fr 1.25fr}:host .diff-container .panel{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);display:flex;flex-direction:column;height:calc(100vh - 120px);overflow:hidden}:host .diff-container .panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;flex-shrink:0;justify-content:space-between;padding:1.25rem 1.5rem}:host .diff-container .panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .diff-container .panel .panel-scroll{flex-grow:1;min-height:0}:host .diff-container .panel .panel-scroll .panel-body{display:flex;flex-direction:column;gap:1.5rem;height:100%;padding:1.5rem}:host .diff-container .panel .panel-scroll .panel-body .mapping-card{background:var(--surface-200);border:1px solid var(--border-color);border-radius:var(--border-radius-md);padding:1.25rem}`;
+    __getStatic() {
+        return Resolution;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Resolution.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="section-header">    <h2>Resolution</h2>    <p>Associate tables et renamed field to generate the migration.</p></div><div class="diff-container">    <div class="panel resolution-panel">        <div class="panel-header">            <h3>Associations and renamed</h3>        </div>        <om-scrollable class="panel-scroll">            <div class="panel-body">                <div class="mapping-card">                    <av-renamed-table></av-renamed-table>                </div>                <div class="mapping-card">                    <av-renamed-field></av-renamed-field>                </div>            </div>        </om-scrollable>    </div>    <div class="panel diff-preview-panel">        <div class="panel-header">            <h3>Dectected changes</h3>        </div>        <om-scrollable class="panel-scroll" id="diff-results">            <div class="panel-body">                <av-diff-summary></av-diff-summary>            </div>        </om-scrollable>    </div></div><div class="action-footer">    <om-button _id="resolution_0">Back</om-button>    <om-button _id="resolution_1">Generate migration</om-button></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "events": [
+    {
+      "eventName": "click",
+      "id": "resolution_0",
       "fct": (e, c) => c.comp.back(e)
+    },
+    {
+      "eventName": "click",
+      "id": "resolution_1",
+      "fct": (e, c) => c.comp.prepareMigrationGeneration(e)
     }
   ]
 }); }
     getClassName() {
-        return "MigrationWritter";
+        return "Resolution";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["migrationName"] = "0001_update";w["migrationClassName"] = "Migration_0001_update"; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('migrationName');this.__correctGetter('migrationClassName'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison');this.__correctGetter('tableComparisons');this.__correctGetter('tables'); }
     back() {
-        MainState.instance.step = 1;
+        MainState.instance.step = 0;
     }
-    generateMigrationCode(migrationName, className) {
-        const state = MainState.instance;
-        const comp = state.comparison;
-        const oldSchema = state.oldSchema;
-        const newSchema = state.newSchema;
-        const mappings = state.mappings;
+    prepareMigrationGeneration() {
+        MainState.instance.code = this.generateMigrationCode();
+        MainState.instance.step = 2;
+    }
+    generateMigrationCode() {
+        const state = Aventus.Watcher.extract(MainState.instance);
+        const comp = Aventus.Watcher.extract(state.comparison);
+        const oldSchema = Aventus.Watcher.extract(state.oldSchema);
+        const newSchema = Aventus.Watcher.extract(state.newSchema);
         let sb = [];
         sb.push("using AventusSharp.Data.Migrations;");
         sb.push("using AventusSharp.Data.Attributes;");
         sb.push("using System;");
         sb.push("");
-        sb.push(`public class ${className} : Migration`);
+        sb.push(`public class {{classname}} : Migration`);
         sb.push("{");
         sb.push("    public override string GetName()");
         sb.push("    {");
-        sb.push(`        return "${migrationName}";`);
+        sb.push(`        return "{{migrationName}}";`);
         sb.push("    }");
         sb.push("");
         sb.push("    public override void Up()");
@@ -14368,974 +15958,221 @@ const MigrationWritter = class MigrationWritter extends BaseContent {
             return ", new() { Nullable = true }";
         return "";
     }
+}
+Resolution.Namespace=`migration`;
+Resolution.Tag=`av-resolution`;
+__as1(_, 'Resolution', Resolution);
+if(!window.customElements.get('av-resolution')){window.customElements.define('av-resolution', Resolution);Aventus.WebComponentInstance.registerDefinition(Resolution);}
+
+const MigrationWritter = class MigrationWritter extends BaseContent {
+    get 'migrationName'() {
+						return this.__watch["migrationName"];
+					}
+					set 'migrationName'(val) {
+						this.__watch["migrationName"] = val;
+					}get 'migrationClassName'() {
+						return this.__watch["migrationClassName"];
+					}
+					set 'migrationClassName'(val) {
+						this.__watch["migrationClassName"] = val;
+					}get 'saveDir'() {
+						return this.__watch["saveDir"];
+					}
+					set 'saveDir'(val) {
+						this.__watch["saveDir"] = val;
+					}    get comparaison() {
+        return MainState.instance.comparison;
+    }
+    get statsModified() {
+        let tot = 0;
+        for (let comp of this.comparaison.tableComparisons) {
+            if (!comp.isRename && comp.hasChanges)
+                tot++;
+        }
+        ;
+        return tot;
+    }
+    code = "";
+    __registerWatchesActions() {
+    this.__addWatchesActions("migrationName");this.__addWatchesActions("migrationClassName");this.__addWatchesActions("saveDir");    super.__registerWatchesActions();
+}
+    static __style = `:host{width:100%}:host .output-grid{align-items:start;display:grid;gap:2rem;grid-template-columns:1fr 2fr}:host .output-grid .config-panel{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2)}:host .output-grid .config-panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:1.25rem 1.5rem}:host .output-grid .config-panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .output-grid .config-panel .panel-body{display:flex;flex-direction:column;gap:1.5rem;padding:1.5rem}:host .output-grid .config-panel .panel-body .quick-stats{border-top:1px solid var(--border-color);margin-top:1rem;padding-top:1.25rem}:host .output-grid .config-panel .panel-body .quick-stats h4{color:var(--text-secondary);font-size:.9rem;font-weight:600;margin:0;margin-bottom:.75rem}:host .output-grid .config-panel .panel-body .quick-stats ul{display:flex;flex-direction:column;gap:.4rem;list-style:none;margin:0;padding:0}:host .output-grid .config-panel .panel-body .quick-stats ul li{color:var(--neutral);display:flex;font-size:.85rem;justify-content:space-between}:host .output-grid .config-panel .panel-body .quick-stats ul li span{color:var(--primary-content);font-weight:600}:host .output-grid .code-panel{background:#0b0f19;border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);overflow:hidden}:host .output-grid .code-panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:12px 1.5rem}:host .output-grid .code-panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .output-grid .code-panel .panel-header .code-actions{display:flex;gap:.5rem}:host .output-grid .code-panel .code-viewport{max-height:600px;overflow-x:auto;padding:1.5rem}:host .output-grid .code-panel .code-viewport pre{color:#e2e8f0;font-family:var(--font-mono);font-size:.85rem;line-height:1.6}`;
+    __getStatic() {
+        return MigrationWritter;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(MigrationWritter.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="section-header">    <h2>Generated code</h2></div><div class="output-grid">    <div class="config-panel">        <div class="panel-header">            <h3>Configuration</h3>        </div>        <div class="panel-body">            <div class="form-group">                <om-input label="Nom de la migration :" _id="migrationwritter_0"></om-input>                <small>Unique identifier for the migration (ex: 0001_update).</small>            </div>            <div class="form-group">                <om-input label="C# classname" _id="migrationwritter_1"></om-input>                <small>Valid name for the C# class inherit from <code>Migration</code>.</small>            </div>            <div class="form-group">                <om-input label="Save directory" _id="migrationwritter_2">                    <mi-icon icon="folder" slot="append" _id="migrationwritter_3"></mi-icon>                </om-input>            </div>            <div class="quick-stats">                <h4>Statistics :</h4>                <ul>                    <li>Created tables : <span _id="migrationwritter_4"></span></li>                    <li>Renamed tables : <span _id="migrationwritter_5"></span></li>                    <li>Deleted tables : <span _id="migrationwritter_6"></span></li>                    <li>Changes applied : <span _id="migrationwritter_7"></span></li>                </ul>            </div>        </div>    </div>    <div class="code-panel">        <div class="panel-header">            <h3>Source code C#</h3>            <div class="code-actions">                <om-button outline _id="migrationwritter_8">Copy</om-button>                <om-button _id="migrationwritter_9">Save</om-button>            </div>        </div>        <div class="code-viewport">            <av-code language="csharp" _id="migrationwritter_10"></av-code>        </div>    </div></div><div class="action-footer">    <om-button _id="migrationwritter_11">Retour</om-button></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "codeEl",
+      "ids": [
+        "migrationwritter_10"
+      ]
+    }
+  ],
+  "content": {
+    "migrationwritter_4°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__9a8036ed8f626c8a9e612affd1701bf1method6())}`,
+      "once": true
+    },
+    "migrationwritter_5°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__9a8036ed8f626c8a9e612affd1701bf1method7())}`,
+      "once": true
+    },
+    "migrationwritter_6°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__9a8036ed8f626c8a9e612affd1701bf1method8())}`,
+      "once": true
+    },
+    "migrationwritter_7°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__9a8036ed8f626c8a9e612affd1701bf1method9())}`
+    }
+  },
+  "bindings": [
+    {
+      "id": "migrationwritter_0",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__9a8036ed8f626c8a9e612affd1701bf1method0(),
+      "extract": (c, v) => c.comp.__9a8036ed8f626c8a9e612affd1701bf1method1(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "migrationwritter_1",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__9a8036ed8f626c8a9e612affd1701bf1method2(),
+      "extract": (c, v) => c.comp.__9a8036ed8f626c8a9e612affd1701bf1method3(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "migrationwritter_2",
+      "injectionName": "value",
+      "eventNames": [
+        "onChange"
+      ],
+      "inject": (c) => c.comp.__9a8036ed8f626c8a9e612affd1701bf1method4(),
+      "extract": (c, v) => c.comp.__9a8036ed8f626c8a9e612affd1701bf1method5(v),
+      "once": true,
+      "isCallback": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "click",
+      "id": "migrationwritter_3",
+      "fct": (e, c) => c.comp.selectDir(e)
+    },
+    {
+      "eventName": "click",
+      "id": "migrationwritter_8",
+      "fct": (e, c) => c.comp.copy(e)
+    },
+    {
+      "eventName": "click",
+      "id": "migrationwritter_9",
+      "fct": (e, c) => c.comp.save(e)
+    },
+    {
+      "eventName": "click",
+      "id": "migrationwritter_11",
+      "fct": (e, c) => c.comp.back(e)
+    }
+  ]
+}); }
+    getClassName() {
+        return "MigrationWritter";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["migrationName"] = "0001_update";w["migrationClassName"] = "Migration_0001_update";w["saveDir"] = ""; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparaison');this.__correctGetter('statsModified');this.__correctGetter('migrationName');this.__correctGetter('migrationClassName');this.__correctGetter('saveDir'); }
+    async selectDir() {
+        const dir = await Api.chooseFolder();
+        if (dir) {
+            this.saveDir = dir;
+        }
+    }
+    async copy() {
+        await navigator.clipboard.writeText(this.code);
+        OneMoreUI.Components.Interaction.Toast.add({
+            type: 'success',
+            title: 'Code copied to clipboard !'
+        });
+    }
+    async save() {
+        await Api.writeFile(this.saveDir, this.migrationClassName + ".cs", this.code);
+    }
+    back() {
+        MainState.instance.step = 1;
+    }
+    generateMigrationCode() {
+        let code = MainState.instance.code;
+        const migrationName = this.migrationName;
+        const className = this.migrationClassName;
+        code = code.replace(/\{\{classname\}\}/g, className).replace(/\{\{migrationName\}\}/g, migrationName);
+        this.code = code;
+        this.codeEl.setCode(code);
+    }
     postCreation() {
         super.postCreation();
         Aventus.Watcher.effect(() => {
-            this.csharpOutput.innerHTML = this.generateMigrationCode(this.migrationName, this.migrationClassName);
+            this.generateMigrationCode();
         });
+    }
+    __9a8036ed8f626c8a9e612affd1701bf1method6() {
+        return this.comparaison.addedTables.length;
+    }
+    __9a8036ed8f626c8a9e612affd1701bf1method7() {
+        return this.comparaison.renamedTables.length;
+    }
+    __9a8036ed8f626c8a9e612affd1701bf1method8() {
+        return this.comparaison.deletedTables.length;
+    }
+    __9a8036ed8f626c8a9e612affd1701bf1method9() {
+        return this.statsModified;
     }
     __9a8036ed8f626c8a9e612affd1701bf1method0() {
         return this.migrationName;
     }
-    __9a8036ed8f626c8a9e612affd1701bf1method1() {
+    __9a8036ed8f626c8a9e612affd1701bf1method1(v) {
+        if (this) {
+            this.migrationName = v;
+        }
+    }
+    __9a8036ed8f626c8a9e612affd1701bf1method2() {
         return this.migrationClassName;
+    }
+    __9a8036ed8f626c8a9e612affd1701bf1method3(v) {
+        if (this) {
+            this.migrationClassName = v;
+        }
+    }
+    __9a8036ed8f626c8a9e612affd1701bf1method4() {
+        return this.saveDir;
+    }
+    __9a8036ed8f626c8a9e612affd1701bf1method5(v) {
+        if (this) {
+            this.saveDir = v;
+        }
     }
 }
 MigrationWritter.Namespace=`migration`;
 MigrationWritter.Tag=`av-migration-writter`;
 __as1(_, 'MigrationWritter', MigrationWritter);
 if(!window.customElements.get('av-migration-writter')){window.customElements.define('av-migration-writter', MigrationWritter);Aventus.WebComponentInstance.registerDefinition(MigrationWritter);}
-
-const SummaryDeleted = class SummaryDeleted extends Aventus.WebComponent {
-    get comparison() {
-        return MainState.instance.comparison;
-    }
-    static __style = ``;
-    __getStatic() {
-        return SummaryDeleted;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(SummaryDeleted.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<template _id="summarydeleted_0"></template>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="diff-table-group" style="border-color: rgba(239, 68, 68, 0.4)">        <div class="diff-table-header" style="background: rgba(239, 68, 68, 0.05)">            <span class="diff-table-title" style="color: var(--color-danger)" _id="summarydeleted_1"></span>            <span class="badge badge-old">Supprimé</span>        </div>        <div class="diff-table-body">            <template _id="summarydeleted_2"></template>        </div>    </div>`);templ0.setActions({
-  "content": {
-    "summarydeleted_1°@HTML": {
-      "fct": (c) => `Table Supprimée : ${c.print(c.comp.__83f0ae5284cb63e76d7ef2a50310a4bfmethod2(c.data.deletedTable))}`,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'summarydeleted_0',
-                    template: templ0,
-                simple:{data: "this.comparison.deletedTables",item:"deletedTable"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="diff-item">                    <span class="diff-tag diff-tag-del">-</span>                    <span class="diff-change-old" _id="summarydeleted_3"></span>                </div>            `);templ1.setActions({
-  "content": {
-    "summarydeleted_3°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__83f0ae5284cb63e76d7ef2a50310a4bfmethod3(c.data.deletedTableField))}`,
-      "once": true
-    }
-  }
-});templ0.addLoop({
-                    anchorId: 'summarydeleted_2',
-                    template: templ1,
-                simple:{data: "deletedTable.fields",item:"deletedTableField"}}); }
-    getClassName() {
-        return "SummaryDeleted";
-    }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison'); }
-    __83f0ae5284cb63e76d7ef2a50310a4bfmethod2(deletedTable) {
-        return deletedTable.name;
-    }
-    __83f0ae5284cb63e76d7ef2a50310a4bfmethod3(deletedTableField) {
-        return deletedTableField.name;
-    }
-}
-SummaryDeleted.Namespace=`migration`;
-SummaryDeleted.Tag=`av-summary-deleted`;
-__as1(_, 'SummaryDeleted', SummaryDeleted);
-if(!window.customElements.get('av-summary-deleted')){window.customElements.define('av-summary-deleted', SummaryDeleted);Aventus.WebComponentInstance.registerDefinition(SummaryDeleted);}
-
-const SummaryNew = class SummaryNew extends Aventus.WebComponent {
-    get comparison() {
-        return MainState.instance.comparison;
-    }
-    static __style = `:host{width:100%}:host .diff-table-group{background:rgba(15,23,42,.15);border:1px solid var(--success);border-radius:var(--border-radius-lg);margin-bottom:1rem;overflow:hidden}:host .diff-table-group .diff-table-header{align-items:center;background:var(--success-100);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:.75rem 1rem}:host .diff-table-group .diff-table-header .diff-table-title{font-family:var(--font-mono);font-size:.95rem;font-weight:600}:host .diff-table-group .diff-table-header .badge{background:var(--success-200);border:1px solid var(--success);border-radius:50px;color:var(--color-success);font-size:.75rem;font-weight:600;padding:.25rem .65rem}:host .diff-table-group .diff-table-body{display:flex;flex-direction:column;gap:.5rem;padding:.75rem 1rem}:host .diff-table-group .diff-table-body .diff-item{align-items:center;display:flex;font-family:var(--font-mono);font-size:.85rem;gap:.75rem;padding:.25rem 0}:host .diff-table-group .diff-table-body .diff-item .diff-tag{align-items:center;align-items:center;background:var(--success-200);border-radius:4px;display:flex;font-family:var(--font-sans);font-weight:600;height:20px;justify-content:center;line-height:20px;padding-bottom:3px;width:20px}:host .diff-table-group .diff-table-body .diff-item .diff-item-detail{color:var(--neutral)}`;
-    __getStatic() {
-        return SummaryNew;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(SummaryNew.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<template _id="summarynew_0"></template>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="diff-table-group">        <div class="diff-table-header">            <span class="diff-table-title" _id="summarynew_1"></span>            <span class="badge badge-new">Nouveau</span>        </div>        <div class="diff-table-body">            <template _id="summarynew_2"></template>        </div>    </div>`);templ0.setActions({
-  "content": {
-    "summarynew_1°@HTML": {
-      "fct": (c) => `Table Ajoutée : ${c.print(c.comp.__a902aa746d994c2401ca9ac9dfe3b2aemethod2(c.data.addedTable))}`,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'summarynew_0',
-                    template: templ0,
-                simple:{data: "this.comparison.addedTables",item:"addedTable"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="diff-item">                    <span class="diff-tag diff-tag-add">+</span>                    <span _id="summarynew_3"></span>                    <span class="diff-item-detail" _id="summarynew_4"></span>                </div>            `);templ1.setActions({
-  "content": {
-    "summarynew_3°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__a902aa746d994c2401ca9ac9dfe3b2aemethod3(c.data.addedTableField))}`,
-      "once": true
-    },
-    "summarynew_4°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__a902aa746d994c2401ca9ac9dfe3b2aemethod4(c.data.addedTableField))}`
-    }
-  }
-});templ0.addLoop({
-                    anchorId: 'summarynew_2',
-                    template: templ1,
-                simple:{data: "addedTable.fields",item:"addedTableField"}}); }
-    getClassName() {
-        return "SummaryNew";
-    }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison'); }
-    __a902aa746d994c2401ca9ac9dfe3b2aemethod2(addedTable) {
-        return addedTable.name;
-    }
-    __a902aa746d994c2401ca9ac9dfe3b2aemethod3(addedTableField) {
-        return addedTableField.name;
-    }
-    __a902aa746d994c2401ca9ac9dfe3b2aemethod4(addedTableField) {
-        return `(${addedTableField.type.name}${addedTableField.nullable ? ', null' : ''}${addedTableField.primaryKey ? ', PK' : ''})`;
-    }
-}
-SummaryNew.Namespace=`migration`;
-SummaryNew.Tag=`av-summary-new`;
-__as1(_, 'SummaryNew', SummaryNew);
-if(!window.customElements.get('av-summary-new')){window.customElements.define('av-summary-new', SummaryNew);Aventus.WebComponentInstance.registerDefinition(SummaryNew);}
-
-const Header = class Header extends Aventus.WebComponent {
-    static __style = `:host{align-items:center;backdrop-filter:blur(16px);background:rgba(15,23,42,.8);border-bottom:1px solid var(--border-color);display:flex;justify-content:center;padding:1.25rem 2rem;top:0;z-index:100}:host .app-nav{background:hsla(0,0%,100%,.03);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;gap:.5rem;padding:.35rem}:host .app-nav .nav-btn{background:rgba(0,0,0,0);border:none;border-radius:var(--border-radius-lg);color:var(--surface-content);cursor:pointer;font-weight:500;padding:.5rem 1.25rem;transition:all .2s ease}:host .app-nav .nav-btn:hover{background:hsla(0,0%,100%,.05)}:host .app-nav .nav-btn[active=true]{background:var(--primary);color:var(--primary-content);box-shadow:var(--elevation-2)}`;
-    __getStatic() {
-        return Header;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Header.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<nav class="app-nav">    <button class="nav-btn" _id="header_0">1. Schémas</button>    <button class="nav-btn" _id="header_1">2. Résolution & Diff</button>    <button class="nav-btn" _id="header_2">3. Migration C#</button></nav>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "content": {
-    "header_0°active": {
-      "fct": (c) => `${c.print(c.comp.__afe2bf44205761c9fef83440ff881e72method0())}`,
-      "once": true
-    },
-    "header_1°active": {
-      "fct": (c) => `${c.print(c.comp.__afe2bf44205761c9fef83440ff881e72method1())}`,
-      "once": true
-    },
-    "header_2°active": {
-      "fct": (c) => `${c.print(c.comp.__afe2bf44205761c9fef83440ff881e72method2())}`,
-      "once": true
-    }
-  }
-}); }
-    getClassName() {
-        return "Header";
-    }
-    __afe2bf44205761c9fef83440ff881e72method0() {
-        return MainState.instance.step == 0;
-    }
-    __afe2bf44205761c9fef83440ff881e72method1() {
-        return MainState.instance.step == 1;
-    }
-    __afe2bf44205761c9fef83440ff881e72method2() {
-        return MainState.instance.step == 2;
-    }
-}
-Header.Namespace=`migration`;
-Header.Tag=`av-header`;
-__as1(_, 'Header', Header);
-if(!window.customElements.get('av-header')){window.customElements.define('av-header', Header);Aventus.WebComponentInstance.registerDefinition(Header);}
-
-let Api=class Api {
-    static guard = new Aventus.ActionGuard();
-    static databases;
-    static wwwroot = "/";
-    static init() {
-        if (VscodeView.Router.isVscode) {
-            const el = document.getElementById("base-style");
-            if (el instanceof HTMLLinkElement) {
-                this.wwwroot = el.href.replace("style.css", "");
-            }
-        }
-    }
-    static async getDatabases() {
-        return await this.guard.run(["getDatabases"], async () => {
-            if (this.databases != undefined)
-                return {
-                    source: [...this.databases.source],
-                    target: [...this.databases.target],
-                };
-            if (VscodeView.Router.isVscode) {
-                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
-                    channel: "getDatabases"
-                }));
-                this.databases = result ?? { source: [], target: [] };
-            }
-            else {
-                const txt = localStorage.getItem("databases");
-                this.databases = txt ? JSON.parse(txt) : { source: [], target: [] };
-                ;
-            }
-            return {
-                source: [...this.databases.source],
-                target: [...this.databases.target],
-            };
-        });
-    }
-    static async setDatabase(type, model) {
-        model = Aventus.Watcher.extract(model);
-        if (!this.databases) {
-            this.databases = {
-                source: [],
-                target: []
-            };
-        }
-        this.databases[type].push(model);
-        this.databases[type].sort((a, b) => a.Database.localeCompare(b.Database));
-        if (VscodeView.Router.isVscode) {
-            await VscodeView.Router.getInstance().send({
-                channel: "setDatabases",
-                body: this.databases
-            });
-        }
-        else {
-            const clones = JSON.parse(JSON.stringify(this.databases));
-            for (let clone of clones[type]) {
-                if (!clone.SavePassword) {
-                    delete clone.Password;
-                }
-            }
-            localStorage.setItem('databases', JSON.stringify(clones));
-        }
-        return this.databases[type];
-    }
-    static async deleteDatabase(type, model) {
-        model = Aventus.Watcher.extract(model);
-        if (!this.databases) {
-            return [];
-        }
-        const index = this.databases[type].indexOf(model);
-        if (index == -1)
-            return this.databases[type];
-        this.databases[type].splice(index, 1);
-        if (VscodeView.Router.isVscode) {
-            await VscodeView.Router.getInstance().send({
-                channel: "setDatabases",
-                body: this.databases
-            });
-        }
-        else {
-            const clones = JSON.parse(JSON.stringify(this.databases));
-            for (let clone of clones[type]) {
-                if (!clone.SavePassword) {
-                    delete clone.Password;
-                }
-            }
-            localStorage.setItem('databases', JSON.stringify(clones));
-        }
-        return this.databases[type];
-    }
-    static async testConnection(model) {
-        model = Aventus.Watcher.extract(model);
-        return await this.guard.run(["testConnection"], async () => {
-            if (VscodeView.Router.isVscode) {
-                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
-                    channel: "testConnection",
-                    body: model
-                }));
-                return result ?? false;
-            }
-            return true;
-        });
-    }
-    static async getSchema(model) {
-        model = Aventus.Watcher.extract(model);
-        return await this.guard.run(["getSchema"], async () => {
-            if (VscodeView.Router.isVscode) {
-                const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
-                    channel: "getSchema",
-                    body: model
-                }));
-                return result;
-            }
-            return defaultSchema;
-        });
-    }
-}
-Api.Namespace=`migration`;
-__as1(_, 'Api', Api);
-
-const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Components.Interaction.Modal {
-    get 'formNewDb'() {
-						return this.__watch["formNewDb"];
-					}
-					set 'formNewDb'(val) {
-						this.__watch["formNewDb"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("formNewDb");    super.__registerWatchesActions();
-}
-    static __style = `:host .modal{width:600px}:host .modal av-row{--col-gap-x: 1rem;--col-gap-y: 1rem}`;
-    __getStatic() {
-        return CreateDatabaseModal;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(CreateDatabaseModal.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        blocks: { 'header':`    Create database coonnection`,'footer':`    <om-button outline _id="createdatabasemodal_8">Cancel</om-button>    <om-button color="primary" _id="createdatabasemodal_9">Save</om-button>`,'default':`<av-row>    <av-col size="12">        <om-select label="Database kind" _id="createdatabasemodal_0">            <om-option value="mysql">Mysql</om-option>            <om-option value="mssql">Mssql</om-option>            <om-option value="postgresql">Postgresql</om-option>            <om-option value="sqlite">Sqlite</om-option>        </om-select>    </av-col>    <template _id="createdatabasemodal_1"></template></av-row>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "bindings": [
-    {
-      "id": "createdatabasemodal_0",
-      "injectionName": "value",
-      "eventNames": [
-        "onChange"
-      ],
-      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method1(),
-      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method2(v),
-      "once": true,
-      "isCallback": true
-    }
-  ],
-  "events": [
-    {
-      "eventName": "click",
-      "id": "createdatabasemodal_8",
-      "fct": (e, c) => c.comp.reject(e)
-    },
-    {
-      "eventName": "click",
-      "id": "createdatabasemodal_9",
-      "fct": (e, c) => c.comp.save(e)
-    }
-  ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-col size="12">            <om-input label="Hostname" _id="createdatabasemodal_2"></om-input>        </av-col>        <av-col size="12">            <om-input label="Database" _id="createdatabasemodal_3"></om-input>        </av-col>        <av-col size="12">            <om-input label="Username" _id="createdatabasemodal_4"></om-input>        </av-col>        <av-col size="12">            <om-password label="Password" _id="createdatabasemodal_5"></om-password>        </av-col>        <av-col size="12">            <om-checkbox label="Save Password" _id="createdatabasemodal_6"></om-checkbox>        </av-col>    `);templ0.setActions({
-  "bindings": [
-    {
-      "id": "createdatabasemodal_2",
-      "injectionName": "value",
-      "eventNames": [
-        "onChange"
-      ],
-      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method3(),
-      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method4(v),
-      "once": true,
-      "isCallback": true
-    },
-    {
-      "id": "createdatabasemodal_3",
-      "injectionName": "value",
-      "eventNames": [
-        "onChange"
-      ],
-      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method5(),
-      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method6(v),
-      "once": true,
-      "isCallback": true
-    },
-    {
-      "id": "createdatabasemodal_4",
-      "injectionName": "value",
-      "eventNames": [
-        "onChange"
-      ],
-      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method7(),
-      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method8(v),
-      "once": true,
-      "isCallback": true
-    },
-    {
-      "id": "createdatabasemodal_5",
-      "injectionName": "value",
-      "eventNames": [
-        "onChange"
-      ],
-      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method9(),
-      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method10(v),
-      "once": true,
-      "isCallback": true
-    },
-    {
-      "id": "createdatabasemodal_6",
-      "injectionName": "value",
-      "eventNames": [
-        "onChange"
-      ],
-      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method11(),
-      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method12(v),
-      "once": true,
-      "isCallback": true
-    }
-  ]
-});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <av-col size="12">            <om-input label="File path" _id="createdatabasemodal_7"></om-input>        </av-col>    `);templ1.setActions({
-  "bindings": [
-    {
-      "id": "createdatabasemodal_7",
-      "injectionName": "value",
-      "eventNames": [
-        "onChange"
-      ],
-      "inject": (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method13(),
-      "extract": (c, v) => c.comp.__dce7836a7f0affea31f87e4387ff3630method14(v),
-      "once": true,
-      "isCallback": true
-    }
-  ]
-});this.__getStatic().__template.addIf({
-                    anchorId: 'createdatabasemodal_1',
-                    parts: [{once: true,
-                    condition: (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method0(),
-                    template: templ0
-                },{once: true,
-                    condition: (c) => true,
-                    template: templ1
-                }]
-            }); }
-    getClassName() {
-        return "CreateDatabaseModal";
-    }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["formNewDb"] = {        UUID: Aventus.uuidv4(),        Database: "Spalio2",        Host: "localhost",        Password: "",        Path: "",        Type: "mysql",        Username: "root",        SavePassword: false    }; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('formNewDb'); }
-    configure() {
-        return {
-            closeWithClick: false,
-        };
-    }
-    async save() {
-        const form = Aventus.Watcher.extract(this.formNewDb);
-        if (!await Api.testConnection(form)) {
-            OneMoreUI.Components.Interaction.Alert.open({
-                title: "Connection error",
-                type: "error",
-                content: "There is a problem with the credentials provided"
-            });
-            return;
-        }
-        this.resolve(Aventus.Watcher.extract(form));
-    }
-    __dce7836a7f0affea31f87e4387ff3630method0() {
-        return this.formNewDb.Type != "sqlite";
-    }
-    __dce7836a7f0affea31f87e4387ff3630method1() {
-        return this.formNewDb.Type;
-    }
-    __dce7836a7f0affea31f87e4387ff3630method2(v) {
-        if (this.formNewDb) {
-            this.formNewDb.Type = v;
-        }
-    }
-    __dce7836a7f0affea31f87e4387ff3630method3() {
-        return this.formNewDb.Host;
-    }
-    __dce7836a7f0affea31f87e4387ff3630method4(v) {
-        if (this.formNewDb) {
-            this.formNewDb.Host = v;
-        }
-    }
-    __dce7836a7f0affea31f87e4387ff3630method5() {
-        return this.formNewDb.Database;
-    }
-    __dce7836a7f0affea31f87e4387ff3630method6(v) {
-        if (this.formNewDb) {
-            this.formNewDb.Database = v;
-        }
-    }
-    __dce7836a7f0affea31f87e4387ff3630method7() {
-        return this.formNewDb.Username;
-    }
-    __dce7836a7f0affea31f87e4387ff3630method8(v) {
-        if (this.formNewDb) {
-            this.formNewDb.Username = v;
-        }
-    }
-    __dce7836a7f0affea31f87e4387ff3630method9() {
-        return this.formNewDb.Password;
-    }
-    __dce7836a7f0affea31f87e4387ff3630method10(v) {
-        if (this.formNewDb) {
-            this.formNewDb.Password = v;
-        }
-    }
-    __dce7836a7f0affea31f87e4387ff3630method11() {
-        return this.formNewDb.SavePassword;
-    }
-    __dce7836a7f0affea31f87e4387ff3630method12(v) {
-        if (this.formNewDb) {
-            this.formNewDb.SavePassword = v;
-        }
-    }
-    __dce7836a7f0affea31f87e4387ff3630method13() {
-        return this.formNewDb.Path;
-    }
-    __dce7836a7f0affea31f87e4387ff3630method14(v) {
-        if (this.formNewDb) {
-            this.formNewDb.Path = v;
-        }
-    }
-}
-CreateDatabaseModal.Namespace=`migration`;
-CreateDatabaseModal.Tag=`av-create-database-modal`;
-__as1(_, 'CreateDatabaseModal', CreateDatabaseModal);
-if(!window.customElements.get('av-create-database-modal')){window.customElements.define('av-create-database-modal', CreateDatabaseModal);Aventus.WebComponentInstance.registerDefinition(CreateDatabaseModal);}
-
-const ImportSchema = class ImportSchema extends BaseContent {
-    get 'databasesSource'() {
-						return this.__watch["databasesSource"];
-					}
-					set 'databasesSource'(val) {
-						this.__watch["databasesSource"] = val;
-					}get 'databasesTarget'() {
-						return this.__watch["databasesTarget"];
-					}
-					set 'databasesTarget'(val) {
-						this.__watch["databasesTarget"] = val;
-					}get 'dbSource'() {
-						return this.__watch["dbSource"];
-					}
-					set 'dbSource'(val) {
-						this.__watch["dbSource"] = val;
-					}get 'dbTarget'() {
-						return this.__watch["dbTarget"];
-					}
-					set 'dbTarget'(val) {
-						this.__watch["dbTarget"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("databasesSource");this.__addWatchesActions("databasesTarget");this.__addWatchesActions("dbSource");this.__addWatchesActions("dbTarget");    super.__registerWatchesActions();
-}
-    static __style = `:host .schemas-grid{display:grid;gap:2rem;grid-template-columns:repeat(auto-fit, minmax(450px, 1fr));margin-bottom:2rem}:host .schemas-grid .schema-card{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);display:flex;flex-direction:column;gap:1.25rem;padding:1.5rem}:host .schemas-grid .schema-card .card-header{align-items:flex-start;display:flex;flex-direction:column}:host .schemas-grid .schema-card .card-header p{color:var(--neutral);font-size:var(--font-size-sm);margin:0}:host .schemas-grid .schema-card .list{border:1px solid var(--border-color);border-radius:var(--border-radius-md);display:flex;flex-direction:column}:host .schemas-grid .schema-card .list .database{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;gap:1rem;overflow:hidden;padding:.5rem 1rem;transition:background-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database av-img{flex-shrink:0;height:30px;width:30px}:host .schemas-grid .schema-card .list .database div{flex-grow:1}:host .schemas-grid .schema-card .list .database mi-icon{color:var(--error);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database mi-icon:hover{color:var(--error-600)}:host .schemas-grid .schema-card .list .database:first-child{border-top:none}:host .schemas-grid .schema-card .list .database[active]{background-color:hsla(0,0%,100%,.1)}:host .schemas-grid .schema-card .list .database:not([active]):hover{background-color:hsla(0,0%,100%,.05)}:host .schemas-grid .schema-card .list .add{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;justify-content:center;padding:.5rem 1rem}:host .schemas-grid .schema-card .list .add mi-icon{color:var(--success);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .add mi-icon:hover{color:var(--success-600)}:host .schemas-grid .schema-card .list .add:nth-child(2){border-top:none}:host .schemas-grid .schema-card .or{display:flex;font-size:var(--font-size-lg);font-weight:bold;justify-content:center;letter-spacing:2px}:host .schemas-grid .schema-card .import-file{align-items:center;border:2px dashed var(--border-color);border-radius:var(--border-radius-md);cursor:pointer;display:flex;flex-direction:column;gap:1rem;padding:2rem 1rem;transition:border-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .import-file mi-icon{font-size:var(--font-size-xl)}:host .schemas-grid .schema-card .import-file:hover{border-color:var(--surface-content)}:host .schemas-grid .schema-card .code-textarea{background:rgba(15,23,42,.5);border:1px solid var(--border-color);border-radius:var(--border-radius-md);color:var(--primary-content);font-size:.85rem;height:350px;outline:none;padding:1rem;resize:vertical;transition:border-color .2s ease;width:100%}:host .schemas-grid .schema-card .code-textarea:focus{border-color:var(--info)}`;
-    __getStatic() {
-        return ImportSchema;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(ImportSchema.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="section-header">    <h2>Data Sources</h2>    <p>Provide data source or schema to generate the migration</p></div><div class="schemas-grid">    <div class="schema-card">        <div class="card-header">            <h3>Database Source</h3>            <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>        </div>        <div class="list">            <template _id="importschema_0"></template>            <div class="add" _id="importschema_5">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.database.avt)</span>        </div>    </div>    <div class="schema-card">        <div class="card-header">            <h3>Database Final</h3>            <p>Provide the final data source model.</p>        </div>        <div class="list">            <template _id="importschema_6"></template>            <div class="add" _id="importschema_11">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.database.avt)</span>        </div>    </div></div><div class="action-footer">    <om-button _id="importschema_12">Comparer les Schémas</om-button></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "events": [
-    {
-      "eventName": "click",
-      "id": "importschema_5",
-      "fct": (e, c) => c.comp.createDatabaseSource(e)
-    },
-    {
-      "eventName": "click",
-      "id": "importschema_11",
-      "fct": (e, c) => c.comp.createDatabaseTarget(e)
-    },
-    {
-      "eventName": "click",
-      "id": "importschema_12",
-      "fct": (e, c) => c.comp.analyzeAndCompare(e)
-    }
-  ]
-});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="database" _id="importschema_1">                    <av-img _id="importschema_2"></av-img>                    <div _id="importschema_3"></div>                    <mi-icon icon="delete" _id="importschema_4"></mi-icon>                </div>            `);templ1.setActions({
-  "content": {
-    "importschema_1°active": {
-      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method4(c.data.database))}`,
-      "once": true
-    },
-    "importschema_1°data-index": {
-      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
-      "once": true
-    },
-    "importschema_2°src": {
-      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method6(c.data.database))}`,
-      "once": true
-    },
-    "importschema_3°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method7(c.data.database))} (${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method8(c.data.database))})`,
-      "once": true
-    },
-    "importschema_4°data-index": {
-      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
-      "once": true
-    }
-  },
-  "events": [
-    {
-      "eventName": "click",
-      "id": "importschema_1",
-      "fct": (e, c) => c.comp.selectDatabaseSource(e)
-    },
-    {
-      "eventName": "click",
-      "id": "importschema_4",
-      "fct": (e, c) => c.comp.deleteDatabaseSource(e)
-    }
-  ],
-  "contextEdits": [
-    {
-      "fct": (c) => c.comp.__c9cba54071d54a55cdb77c778f22dba2method1(c.data.i)
-    }
-  ]
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'importschema_0',
-                    template: templ1,
-                simple:{data: "this.databasesSource",index:"i"}});const templ3 = new Aventus.Template(this);templ3.setTemplate(`                <div class="database" _id="importschema_7">                    <av-img _id="importschema_8"></av-img>                    <div _id="importschema_9"></div>                    <mi-icon icon="delete" _id="importschema_10"></mi-icon>                </div>            `);templ3.setActions({
-  "content": {
-    "importschema_7°active": {
-      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method9(c.data.database))}`,
-      "once": true
-    },
-    "importschema_7°data-index": {
-      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
-      "once": true
-    },
-    "importschema_8°src": {
-      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method6(c.data.database))}`,
-      "once": true
-    },
-    "importschema_9°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method7(c.data.database))} (${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method8(c.data.database))})`,
-      "once": true
-    },
-    "importschema_10°data-index": {
-      "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method5(c.data.i))}`,
-      "once": true
-    }
-  },
-  "events": [
-    {
-      "eventName": "click",
-      "id": "importschema_7",
-      "fct": (e, c) => c.comp.selectDatabaseTarget(e)
-    },
-    {
-      "eventName": "click",
-      "id": "importschema_10",
-      "fct": (e, c) => c.comp.deleteDatabaseTarget(e)
-    }
-  ],
-  "contextEdits": [
-    {
-      "fct": (c) => c.comp.__c9cba54071d54a55cdb77c778f22dba2method3(c.data.i)
-    }
-  ]
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'importschema_6',
-                    template: templ3,
-                simple:{data: "this.databasesTarget",index:"i"}}); }
-    getClassName() {
-        return "ImportSchema";
-    }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["databasesSource"] = [];w["databasesTarget"] = [];w["dbSource"] = undefined;w["dbTarget"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('databasesSource');this.__correctGetter('databasesTarget');this.__correctGetter('dbSource');this.__correctGetter('dbTarget'); }
-    selectDatabaseSource(e) {
-        const el = e.currentTarget;
-        if (el instanceof HTMLElement) {
-            const index = Number(el.dataset.index);
-            const db = this.databasesSource[index];
-            this.dbSource = db;
-        }
-    }
-    selectDatabaseTarget(e) {
-        const el = e.currentTarget;
-        if (el instanceof HTMLElement) {
-            const index = Number(el.dataset.index);
-            const db = this.databasesTarget[index];
-            this.dbTarget = db;
-        }
-    }
-    async deleteDatabaseSource(e) {
-        const el = e.currentTarget;
-        if (el instanceof HTMLElement) {
-            const index = Number(el.dataset.index);
-            const db = this.databasesSource[index];
-            const result = await OneMoreUI.Components.Interaction.Confirm.open({
-                title: "Delete database",
-                content: "Do you want to delete the database " + db.Database + "?",
-                type: "error"
-            });
-            if (result) {
-                if (Aventus.compareObject(db, this.dbSource)) {
-                    this.dbSource = undefined;
-                }
-                this.databasesSource = await Api.deleteDatabase('source', Aventus.Watcher.extract(db));
-            }
-        }
-    }
-    async deleteDatabaseTarget(e) {
-        const el = e.currentTarget;
-        if (el instanceof HTMLElement) {
-            const index = Number(el.dataset.index);
-            const db = this.databasesTarget[index];
-            const result = await OneMoreUI.Components.Interaction.Confirm.open({
-                title: "Delete database",
-                content: "Do you want to delete the database " + db.Database + "?",
-                type: "error"
-            });
-            if (result) {
-                if (Aventus.compareObject(db, this.dbTarget)) {
-                    this.dbTarget = undefined;
-                }
-                this.databasesTarget = await Api.deleteDatabase('target', Aventus.Watcher.extract(db));
-            }
-        }
-    }
-    async createDatabaseSource() {
-        const modal = new CreateDatabaseModal();
-        const result = await modal.show();
-        if (result) {
-            this.databasesSource = await Api.setDatabase('source', result);
-        }
-    }
-    async createDatabaseTarget() {
-        const modal = new CreateDatabaseModal();
-        const result = await modal.show();
-        if (result) {
-            this.databasesTarget = await Api.setDatabase('target', result);
-        }
-    }
-    async loadData() {
-        const db = await Api.getDatabases();
-        this.databasesSource = db?.source ?? [];
-        this.databasesTarget = db?.target ?? [];
-    }
-    getIcon(db) {
-        if (db.Type == "mysql")
-            return Api.wwwroot + "img/mysql.svg";
-        if (db.Type == "mssql")
-            return Api.wwwroot + "img/mssql.svg";
-        if (db.Type == "postgresql")
-            return Api.wwwroot + "img/postgresql.svg";
-        if (db.Type == "sqlite")
-            return Api.wwwroot + "img/sqlite.svg";
-        return "";
-    }
-    async analyzeAndCompare() {
-        // if(this.dbTarget) {
-        //     if(!this.dbTarget.SavePassword && this.dbTarget.Password === undefined) {
-        //         const modal = new AskPasswordModal();
-        //         modal.dbName = this.dbTarget.Database;
-        //         const result = await modal.show();
-        //         if(result === null) return;
-        //         this.dbTarget.Password = result;
-        //     }
-        //     const schema = await Api.getSchema(this.dbTarget);
-        //     if(!schema) return;
-        //     MainState.instance.newSchema = schema;
-        // }
-        // else {
-        //     Alert.open({
-        //         title: "Missing data",
-        //         type: "error",
-        //         content: "You must select a final database or provide a schema"
-        //     });
-        //     return;
-        // }
-        // if(this.dbSource) {
-        //     if(!this.dbSource.SavePassword && this.dbSource.Password === undefined) {
-        //         const modal = new AskPasswordModal();
-        //         modal.dbName = this.dbSource.Database;
-        //         const result = await modal.show();
-        //         if(result === null) return;
-        //         this.dbSource.Password = result;
-        //     }
-        //     const schema = await Api.getSchema(this.dbSource);
-        //     if(!schema) return;
-        //     MainState.instance.oldSchema = schema;
-        // }
-        // else {
-        //     MainState.instance.oldSchema = {
-        //         databaseType: MainState.instance.newSchema.databaseType,
-        //         name: MainState.instance.newSchema.name,
-        //         relationships: [],
-        //         tables: [],
-        //     };
-        // }
-        Generator.compareSchemas();
-        MainState.instance.step = 1;
-    }
-    postCreation() {
-        super.postCreation();
-        this.loadData();
-    }
-    __c9cba54071d54a55cdb77c778f22dba2method4(database) {
-        return Aventus.compareObject(this.dbSource, database);
-    }
-    __c9cba54071d54a55cdb77c778f22dba2method5(i) {
-        return i;
-    }
-    __c9cba54071d54a55cdb77c778f22dba2method6(database) {
-        return this.getIcon(database);
-    }
-    __c9cba54071d54a55cdb77c778f22dba2method7(database) {
-        return database.Database;
-    }
-    __c9cba54071d54a55cdb77c778f22dba2method8(database) {
-        return database.Host;
-    }
-    __c9cba54071d54a55cdb77c778f22dba2method9(database) {
-        return Aventus.compareObject(this.dbTarget, database);
-    }
-    __c9cba54071d54a55cdb77c778f22dba2method1(i) {
-        return { 'database': this.databasesSource[i] };
-    }
-    __c9cba54071d54a55cdb77c778f22dba2method3(i) {
-        return { 'database': this.databasesTarget[i] };
-    }
-}
-ImportSchema.Namespace=`migration`;
-ImportSchema.Tag=`av-import-schema`;
-__as1(_, 'ImportSchema', ImportSchema);
-if(!window.customElements.get('av-import-schema')){window.customElements.define('av-import-schema', ImportSchema);Aventus.WebComponentInstance.registerDefinition(ImportSchema);}
-
-const SummaryUpdated = class SummaryUpdated extends Aventus.WebComponent {
-    get tableComparisons() {
-        return MainState.instance.comparison.tableComparisons;
-    }
-    static __style = `:host{width:100%}`;
-    __getStatic() {
-        return SummaryUpdated;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(SummaryUpdated.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<template _id="summaryupdated_0"></template>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <template _id="summaryupdated_1"></template>`);this.__getStatic().__template.addLoop({
-                    anchorId: 'summaryupdated_0',
-                    template: templ0,
-                simple:{data: "this.tableComparisons",item:"table"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <av-summary-updated-table _id="summaryupdated_2"></av-summary-updated-table>    `);templ1.setActions({
-  "injection": [
-    {
-      "id": "summaryupdated_2",
-      "injectionName": "change",
-      "inject": (c) => c.comp.__8959b69ae2b5092f3c1be2eb741d7f13method2(c.data.table),
-      "once": true
-    }
-  ]
-});templ0.addIf({
-                    anchorId: 'summaryupdated_1',
-                    parts: [{once: true,
-                    condition: (c) => c.comp.__8959b69ae2b5092f3c1be2eb741d7f13method1(c.data.table),
-                    template: templ1
-                }]
-            }); }
-    getClassName() {
-        return "SummaryUpdated";
-    }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tableComparisons'); }
-    __8959b69ae2b5092f3c1be2eb741d7f13method1(table) {
-        return table.hasChanges;
-    }
-    __8959b69ae2b5092f3c1be2eb741d7f13method2(table) {
-        return table;
-    }
-}
-SummaryUpdated.Namespace=`migration`;
-SummaryUpdated.Tag=`av-summary-updated`;
-__as1(_, 'SummaryUpdated', SummaryUpdated);
-if(!window.customElements.get('av-summary-updated')){window.customElements.define('av-summary-updated', SummaryUpdated);Aventus.WebComponentInstance.registerDefinition(SummaryUpdated);}
-
-const DiffSummary = class DiffSummary extends Aventus.WebComponent {
-    get 'has_diff'() { return this.getBoolAttr('has_diff') }
-    set 'has_diff'(val) { this.setBoolAttr('has_diff', val) }    static __style = `:host .empty-state{align-items:center;color:var(--neutral);display:none;flex-direction:column;gap:.75rem;justify-content:center;padding:4rem 2rem;text-align:center}:host .empty-state .empty-icon{font-size:2.5rem}:host(:not([has_diff])) .empty-state{display:flex}`;
-    __getStatic() {
-        return DiffSummary;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(DiffSummary.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="empty-state">    <span class="empty-icon">✨</span>    <p>Aucune différence structurelle détectée entre les deux schémas.</p></div><av-summary-new></av-summary-new><av-summary-deleted></av-summary-deleted><av-summary-updated></av-summary-updated>` }
-    });
-}
-    getClassName() {
-        return "DiffSummary";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_diff')) { this.attributeChangedCallback('has_diff', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('has_diff'); }
-    __listBoolProps() { return ["has_diff"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    postCreation() {
-        Aventus.Watcher.effect(() => {
-            const comp = MainState.instance.comparison;
-            this.has_diff = comp.addedTables.length > 0 || comp.deletedTables.length > 0 || comp.renamedTables.length > 0;
-        });
-    }
-}
-DiffSummary.Namespace=`migration`;
-DiffSummary.Tag=`av-diff-summary`;
-__as1(_, 'DiffSummary', DiffSummary);
-if(!window.customElements.get('av-diff-summary')){window.customElements.define('av-diff-summary', DiffSummary);Aventus.WebComponentInstance.registerDefinition(DiffSummary);}
-
-const Resolution = class Resolution extends BaseContent {
-    get comparison() {
-        return MainState.instance.comparison;
-    }
-    get tableComparisons() {
-        return this.comparison.tableComparisons;
-    }
-    get tables() {
-        return MainState.instance.mappings.tables;
-    }
-    static __style = `:host .diff-container{align-items:start;display:grid;gap:2rem;grid-template-columns:1fr 1.25fr}:host .diff-container .panel{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);display:flex;flex-direction:column;height:calc(100vh - 120px);overflow:hidden}:host .diff-container .panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;flex-shrink:0;justify-content:space-between;padding:1.25rem 1.5rem}:host .diff-container .panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .diff-container .panel .panel-scroll{flex-grow:1;min-height:0}:host .diff-container .panel .panel-scroll .panel-body{display:flex;flex-direction:column;gap:1.5rem;height:100%;padding:1.5rem}:host .diff-container .panel .panel-scroll .panel-body .mapping-card{background:var(--surface-200);border:1px solid var(--border-color);border-radius:var(--border-radius-md);padding:1.25rem}`;
-    __getStatic() {
-        return Resolution;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Resolution.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="section-header">    <h2>Resolution</h2>    <p>Associate tables et renamed field to generate the migration.    </p></div><div class="diff-container">    <div class="panel resolution-panel">        <div class="panel-header">            <h3>Renommages & Associations</h3>        </div>        <om-scrollable class="panel-scroll">            <div class="panel-body">                <div class="mapping-card">                    <av-renamed-table></av-renamed-table>                </div>                <div class="mapping-card">                    <av-renamed-field></av-renamed-field>                </div>            </div>        </om-scrollable>    </div>    <div class="panel diff-preview-panel">        <div class="panel-header">            <h3>Modifications Détectées</h3>        </div>        <om-scrollable class="panel-scroll" id="diff-results">            <div class="panel-body">                <av-diff-summary></av-diff-summary>            </div>        </om-scrollable>    </div></div><div class="action-footer">    <om-button _id="resolution_0">Retour</om-button>    <om-button _id="resolution_1">Générer la Migration</om-button></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "events": [
-    {
-      "eventName": "click",
-      "id": "resolution_0",
-      "fct": (e, c) => c.comp.back(e)
-    },
-    {
-      "eventName": "click",
-      "id": "resolution_1",
-      "fct": (e, c) => c.comp.prepareMigrationGeneration(e)
-    }
-  ]
-}); }
-    getClassName() {
-        return "Resolution";
-    }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison');this.__correctGetter('tableComparisons');this.__correctGetter('tables'); }
-    back() {
-        MainState.instance.step = 0;
-    }
-    prepareMigrationGeneration() {
-        MainState.instance.step = 2;
-    }
-}
-Resolution.Namespace=`migration`;
-Resolution.Tag=`av-resolution`;
-__as1(_, 'Resolution', Resolution);
-if(!window.customElements.get('av-resolution')){window.customElements.define('av-resolution', Resolution);Aventus.WebComponentInstance.registerDefinition(Resolution);}
 
 const Body = class Body extends Aventus.WebComponent {
     static __style = `:host{padding:2.5rem 2rem;width:100%}:host .content{margin:0 auto;max-width:1600px;width:100%}:host .content .step[active]{animation-name:fadeIn;animation-duration:1s;animation-timing-function:var(--bezier-curve)}:host .content .step:not([active]){display:none}@keyframes fadeIn{0%{opacity:0;visibility:hidden;transform:translateY(30px)}100%{opacity:1;visibility:visible;transform:translateY(0px)}}`;
@@ -15440,6 +16277,10 @@ const App = class App extends Aventus.WebComponent {
                 }
                 return "/css/material.css";
             }
+        });
+        Aventus.Toast.ToastManager.configure({
+            defaultToast: OneMoreUI.Components.Interaction.Toast,
+            defaultPosition: 'bottom right'
         });
     }
 }
