@@ -41,7 +41,7 @@
         </div>
         <div class="import-file">
             <mi-icon icon="upload"></mi-icon>
-            <span>Import schema file (*.database.avt)</span>
+            <span>Import schema file (*.db.avt)</span>
         </div>
     </div>
 
@@ -68,10 +68,10 @@
         </div>
         <div class="import-file">
             <mi-icon icon="upload"></mi-icon>
-            <span>Import schema file (*.database.avt)</span>
+            <span>Import schema file (*.db.avt)</span>
         </div>
     </div>
 </div>
 <div class="action-footer">
-    <om-button @click="analyzeAndCompare">Comparer les Schémas</om-button>
+    <om-button @click="analyzeAndCompare">Compare schemas</om-button>
 </div>

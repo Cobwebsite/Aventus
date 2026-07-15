@@ -1,0 +1,66 @@
+import { Api } from "../../../../lib/Api.lib.avt";
+
+export class Code extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property((target: Code) => {
+        if(window.Prism) {
+            if(!window.Prism.languages.hasOwnProperty(target.language)) {
+                target.language = 'plain';
+            }
+        }
+    })
+    public language: string = "plain";
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    public codeEl!: HTMLElement;
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    protected override styleBefore(addStyle: (name: string) => void): void {
+        addStyle("Prism");
+    }
+
+    public async setCode(code: string) {
+        debugger;
+        if(!window.Prism) {
+            await this.loadFiles();
+        }
+
+        // if(!window.Prism.languages.hasOwnProperty(this.language)) {
+        //     this.language = 'plain';
+        // }
+
+
+        code = code.replace(/<pre>/g, "").replace(/<\/pre>/g, "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        this.codeEl.innerHTML = code;
+        window.Prism.highlightElement(this.codeEl);
+    }
+
+    private async loadFiles() {
+        await Aventus.ResourceLoader.loadInHead({
+            url: Api.wwwroot + 'libs/prism.js',
+            type: 'js',
+            nonce: Api.nonce,
+        });
+        await Aventus.Style.load("Prism", Api.wwwroot + 'libs/prism_vscode_theme.css');
+    }
+    //#endregion
+
+}

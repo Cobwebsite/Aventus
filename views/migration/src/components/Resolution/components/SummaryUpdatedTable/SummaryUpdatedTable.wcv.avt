@@ -1,14 +1,14 @@
 <div class="diff-table-group">
     <div class="diff-table-header">
         <span class="diff-table-title">
-            {{ this.change.isRename ? `Table Renommée : ${this.change.oldTableName} ➔ ${this.change.newTableName}` : `Table Modifiée : ${this.change.newTableName}` }}
+            {{ this.change.isRename ? `Renamed table : ${this.change.oldTableName} ➔ ${this.change.newTableName}` : `Edited table : ${this.change.newTableName}` }}
         </span>
-        <span class="badge">{{ this.change.isRename ? 'Renommé' : 'Modifié' }}</span>
+        <span class="badge">{{ this.change.isRename ? 'Renamed' : 'Edited' }}</span>
     </div>
     <div class="diff-table-body">
         for(let renameField of this.change.renamedFields) {
             <div class="diff-item">
-                <span class="diff-tag diff-tag-ren">Renommé</span>
+                <span class="diff-tag diff-tag-ren">Renamed</span>
                 <span>
                     <span class="diff-change-old">{{ renameField.oldName }}</span>
                     <span>➔</span>
@@ -19,14 +19,14 @@
 
         for(let deletedField of this.change.deletedFields) {
             <div class="diff-item">
-                <span class="diff-tag diff-tag-del">Retiré</span>
+                <span class="diff-tag diff-tag-del">Removed</span>
                 <span class="diff-change-old">{{ deletedField.name }}</span>
             </div>
         }
 
         for(let addedField of this.change.addedFields) {
             <div class="diff-item">
-                <span class="diff-tag diff-tag-add">Ajouté</span>
+                <span class="diff-tag diff-tag-add">Added</span>
                 <span class="diff-change-new">{{ addedField.name }}</span>
                 <span class="diff-item-detail">{{ `(${addedField.type.name}${addedField.nullable ? ', null' : ''})` }}</span>
             </div>
@@ -34,7 +34,7 @@
 
         for(let modifiedField of this.change.modifiedFields) {
             <div class="diff-item">
-                <span class="diff-tag diff-tag-mod">Modifié</span>
+                <span class="diff-tag diff-tag-mod">Edited</span>
                 <span>{{ modifiedField.name }}</span>
                 <span class="diff-item-detail">
                     if(modifiedField.changes.type) {

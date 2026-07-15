@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join, normalize } from 'path';
-import { ExtensionContext, Uri, ViewColumn, Webview, WebviewPanel, window, workspace } from 'vscode';
-import { getNonce, uriToPath } from '../tool';
+import { ExtensionContext, OpenDialogOptions, Uri, ViewColumn, Webview, WebviewPanel, window, workspace } from 'vscode';
+import { getNonce, pathToUri, uriToPath } from '../tool';
 import { Communication } from '../customEditors/_Communication';
 import { spawn } from 'child_process';
 import { sqlSchema } from './migration_sql';
@@ -38,8 +38,11 @@ export class AventusMigration {
 			viewColumn: ViewColumn.Active,
 		}, {
 			enableScripts: true,
-			retainContextWhenHidden: true
+			retainContextWhenHidden: true,
 		});
+
+		const iconUri = Uri.joinPath(context.extensionUri, 'icons', 'icon.png');
+		panel.iconPath = iconUri;
 
 		this.setHtmlForWebview(context, panel.webview)
 
@@ -129,6 +132,34 @@ export class AventusMigration {
 				}
 			}
 		})
+
+		comm.addRouteWithResponse<{}, string | undefined>({
+			channel: "chooseFolder",
+			callback: async () => {
+				const options: OpenDialogOptions = {
+					canSelectFiles: false,    // Bloque la sélection de fichiers
+					canSelectFolders: true,   // Autorise la sélection de dossiers
+					canSelectMany: false,     // Un seul dossier à la fois
+					openLabel: 'Choose this folder' // Texte du bouton de validation
+				};
+
+				const folderUri = await window.showOpenDialog(options);
+
+				if (folderUri && folderUri.length > 0) {
+					return folderUri[0].fsPath
+				}
+				return undefined;
+			}
+		});
+
+		comm.addRouteWithResponse<{ folder: string, filename: string, content: string }, string | undefined>({
+			channel: "writeFile",
+			callback: async ({ folder, filename, content }, params) => {
+				const output = join(folder, filename);
+				writeFileSync(output, content);
+				window.showTextDocument(Uri.parse(pathToUri(output)));
+			}
+		});
 
 		return panel;
 	}
@@ -234,5 +265,8 @@ export class AventusMigration {
 		txt = txt.replace(/\$nonce/g, nonce);
 		txt = txt.replace(/\$csp/g, webview.cspSource);
 		webview.html = txt
+
+
+		
 	}
 }

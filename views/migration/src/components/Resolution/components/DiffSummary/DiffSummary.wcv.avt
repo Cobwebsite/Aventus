@@ -1,6 +1,6 @@
 <div class="empty-state">
     <span class="empty-icon">✨</span>
-    <p>Aucune différence structurelle détectée entre les deux schémas.</p>
+    <p>No difference find across both schemas.</p>
 </div>
 
 <av-summary-new></av-summary-new>

@@ -58,7 +58,7 @@ export class MainState {
         "tables": [
             {
                 "id": "t1",
-                "name": "Club",
+                "name": "Equipe",
                 "fields": [
                     { "id": "f1_1", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
                     { "id": "f1_2_new", "name": "Nom", "type": { "id": "varchar", "name": "varchar(255)" } },
@@ -124,4 +124,7 @@ export class MainState {
         renamedTables: [],
         tableComparisons: [],
     };
+
+    @Dynamic()
+    public accessor code: string = "";
 }

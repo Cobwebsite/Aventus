@@ -1,0 +1,19 @@
+:host {
+	display: flex;
+	overflow: hidden;
+	position: relative;
+	width: 100%;
+
+	pre {
+		background-color: transparent;
+		font-size: 0.85rem;
+		line-height: 1.6;
+		margin: 0;
+		width: 100%;
+	}
+
+	.hided {
+		display: none;
+	}
+
+}

@@ -454,6 +454,9 @@ let ResourceLoader=class ResourceLoader {
             else {
                 throw "unknow type " + _options.type + " to append into head";
             }
+            if (_options.nonce) {
+                tagEl.setAttribute("nonce", _options.nonce);
+            }
             document.head.appendChild(tagEl);
             let result = await this.loadTag(tagEl, _options.url);
             this.headerLoaded[_options.url] = true;
@@ -2538,6 +2541,7 @@ let Watcher=class Watcher {
                 callbacks[name] = [...callbacks[name]];
             }
             for (let name in callbacks) {
+                // for(let name in proxyData.callbacks) {
                 let pathToSend = rootPath;
                 if (name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");

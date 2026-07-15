@@ -154,49 +154,49 @@ export class ImportSchema extends BaseContent implements Aventus.DefaultComponen
      * 
      */
     protected async analyzeAndCompare() {
-        // if(this.dbTarget) {
-        //     if(!this.dbTarget.SavePassword && this.dbTarget.Password === undefined) {
-        //         const modal = new AskPasswordModal();
-        //         modal.dbName = this.dbTarget.Database;
-        //         const result = await modal.show();
-        //         if(result === null) return;
-        //         this.dbTarget.Password = result;
-        //     }
+        if(this.dbTarget) {
+            if(!this.dbTarget.SavePassword && this.dbTarget.Password === undefined) {
+                const modal = new AskPasswordModal();
+                modal.dbName = this.dbTarget.Database;
+                const result = await modal.show();
+                if(result === null) return;
+                this.dbTarget.Password = result;
+            }
 
-        //     const schema = await Api.getSchema(this.dbTarget);
-        //     if(!schema) return;
-        //     MainState.instance.newSchema = schema;
-        // }
-        // else {
-        //     Alert.open({
-        //         title: "Missing data",
-        //         type: "error",
-        //         content: "You must select a final database or provide a schema"
-        //     });
-        //     return;
-        // }
+            const schema = await Api.getSchema(this.dbTarget);
+            if(!schema) return;
+            MainState.instance.newSchema = schema;
+        }
+        else {
+            Alert.open({
+                title: "Missing data",
+                type: "error",
+                content: "You must select a final database or provide a schema"
+            });
+            return;
+        }
 
-        // if(this.dbSource) {
-        //     if(!this.dbSource.SavePassword && this.dbSource.Password === undefined) {
-        //         const modal = new AskPasswordModal();
-        //         modal.dbName = this.dbSource.Database;
-        //         const result = await modal.show();
-        //         if(result === null) return;
-        //         this.dbSource.Password = result;
-        //     }
+        if(this.dbSource) {
+            if(!this.dbSource.SavePassword && this.dbSource.Password === undefined) {
+                const modal = new AskPasswordModal();
+                modal.dbName = this.dbSource.Database;
+                const result = await modal.show();
+                if(result === null) return;
+                this.dbSource.Password = result;
+            }
 
-        //     const schema = await Api.getSchema(this.dbSource);
-        //     if(!schema) return;
-        //     MainState.instance.oldSchema = schema;
-        // }
-        // else {
-        //     MainState.instance.oldSchema = {
-        //         databaseType: MainState.instance.newSchema.databaseType,
-        //         name: MainState.instance.newSchema.name,
-        //         relationships: [],
-        //         tables: [],
-        //     };
-        // }
+            const schema = await Api.getSchema(this.dbSource);
+            if(!schema) return;
+            MainState.instance.oldSchema = schema;
+        }
+        else {
+            MainState.instance.oldSchema = {
+                databaseType: MainState.instance.newSchema.databaseType,
+                name: MainState.instance.newSchema.name,
+                relationships: [],
+                tables: [],
+            };
+        }
 
         Generator.compareSchemas();
         MainState.instance.step = 1;

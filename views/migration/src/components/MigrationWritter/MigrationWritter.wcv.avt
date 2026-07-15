@@ -1,7 +1,5 @@
 <div class="section-header">
-    <h2>Code de Migration C# Généré</h2>
-    <p>Voici la classe de migration AventusSharp générée. Copiez ce code dans votre projet ou téléchargez le fichier.
-    </p>
+    <h2>Generated code</h2>
 </div>
 
 <div class="output-grid">
@@ -12,20 +10,25 @@
         </div>
         <div class="panel-body">
             <div class="form-group">
-                <om-input label="Nom de la migration :" :value="this.migrationName"></om-input>
-                <small>Identifiant unique de la migration (ex: 0001_update).</small>
+                <om-input label="Nom de la migration :" @bind="this.migrationName"></om-input>
+                <small>Unique identifier for the migration (ex: 0001_update).</small>
             </div>
             <div class="form-group">
-                <om-input label="Nom de la classe C# :" :value="this.migrationClassName"></om-input>
-                <small>Nom valide pour la classe C# héritant de <code>Migration</code>.</small>
+                <om-input label="C# classname" @bind="this.migrationClassName"></om-input>
+                <small>Valid name for the C# class inherit from <code>Migration</code>.</small>
+            </div>
+            <div class="form-group">
+                <om-input label="Save directory" @bind="this.saveDir">
+                    <mi-icon icon="folder" slot="append" @click="selectDir"></mi-icon>
+                </om-input>
             </div>
             <div class="quick-stats">
-                <h4>Statistiques :</h4>
+                <h4>Statistics :</h4>
                 <ul>
-                    <li>Tables créées : <span id="stat-created-tables">0</span></li>
-                    <li>Tables renommées : <span id="stat-renamed-tables">0</span></li>
-                    <li>Tables supprimées : <span id="stat-deleted-tables">0</span></li>
-                    <li>Modifications appliquées : <span id="stat-modified-tables">0</span></li>
+                    <li>Created tables : <span>{{ this.comparaison.addedTables.length }}</span></li>
+                    <li>Renamed tables : <span>{{ this.comparaison.renamedTables.length }}</span></li>
+                    <li>Deleted tables : <span>{{ this.comparaison.deletedTables.length }}</span></li>
+                    <li>Changes applied : <span>{{ this.statsModified }}</span></li>
                 </ul>
             </div>
         </div>
@@ -34,14 +37,14 @@
     <!-- Code Display Panel -->
     <div class="code-panel">
         <div class="panel-header">
-            <h3>Code Source C#</h3>
+            <h3>Source code C#</h3>
             <div class="code-actions">
-                <om-button outline>Copier</om-button>
-                <om-button>Télécharger</om-button>
+                <om-button outline @click="copy">Copy</om-button>
+                <om-button @click="save">Save</om-button>
             </div>
         </div>
         <div class="code-viewport">
-            <pre><code @element="csharpOutput"></code></pre>
+            <av-code language="csharp" @element="codeEl"></av-code>
         </div>
     </div>
 </div>

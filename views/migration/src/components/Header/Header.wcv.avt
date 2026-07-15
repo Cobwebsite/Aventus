@@ -1,5 +1,5 @@
 <nav class="app-nav">
-    <button class="nav-btn" active="{{ MainState.instance.step == 0 }}">1. Schémas</button>
-    <button class="nav-btn" active="{{ MainState.instance.step == 1 }}">2. Résolution & Diff</button>
-    <button class="nav-btn" active="{{ MainState.instance.step == 2 }}">3. Migration C#</button>
+    <button class="nav-btn" active="{{ MainState.instance.step == 0 }}">1. Schemas</button>
+    <button class="nav-btn" active="{{ MainState.instance.step == 1 }}">2. Resolution</button>
+    <button class="nav-btn" active="{{ MainState.instance.step == 2 }}">3. Migration</button>
 </nav>

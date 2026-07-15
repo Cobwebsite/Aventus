@@ -4,6 +4,7 @@
 export interface ResourceLoaderOptions {
     url: string;
     type?: 'js' | 'css' | 'img' | 'svg';
+    nonce?: string;
 }
 @Storybook({
     prefix: "Lib/ResourceLoader"
@@ -11,6 +12,7 @@ export interface ResourceLoaderOptions {
 export interface ResourceLoaderHeadOptions {
     url: string;
     type: 'js' | 'css';
+    nonce?: string;
 }
 @Storybook({
     prefix: "Lib/ResourceLoader"
@@ -43,6 +45,10 @@ export class ResourceLoader {
             }
             else {
                 throw "unknow type " + _options.type + " to append into head";
+            }
+
+            if(_options.nonce) {
+                tagEl.setAttribute("nonce", _options.nonce);
             }
             document.head.appendChild(tagEl);
             let result = await this.loadTag(tagEl, _options.url);
@@ -109,7 +115,7 @@ export class ResourceLoader {
             }
             let content = await this.fetching(options.url, blob);
             if(options.type == "img" && content.startsWith("data:text/html;")) {
-                console.error("Can't load img "+options.url);
+                console.error("Can't load img " + options.url);
                 content = "";
             }
             this.requestLoaded[options.url] = content;
