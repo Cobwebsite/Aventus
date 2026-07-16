@@ -7,6 +7,7 @@ import { Api } from "../../lib/Api.lib.avt";
 import type { DatabaseModel } from "../../data/DatabaseModel.lib.avt";
 import { compareObject, Watcher } from "Aventus@Main:Aventus.package.avt";
 import { AskPasswordModal } from "../AskPasswordModal/AskPasswordModal.wcl.avt";
+import type { Button } from "OneMoreUI:OneMoreUI.Components.Form.package.avt";
 
 
 type FormType = {
@@ -40,6 +41,9 @@ export class ImportSchema extends BaseContent implements Aventus.DefaultComponen
     public dbSource?: DatabaseModel = undefined;
     @Watch()
     public dbTarget?: DatabaseModel = undefined;
+
+    @ViewElement()
+    protected nextEl!: Button;
     //#endregion
 
 
@@ -150,10 +154,16 @@ export class ImportSchema extends BaseContent implements Aventus.DefaultComponen
         return "";
     }
 
+    protected async analyzeAndCompare() {
+        if(this.nextEl.loading) return;
+        this.nextEl.loading = true;
+        await this._analyzeAndCompare();
+        this.nextEl.loading = false;
+    }
     /**
      * 
      */
-    protected async analyzeAndCompare() {
+    protected async _analyzeAndCompare() {
         if(this.dbTarget) {
             if(!this.dbTarget.SavePassword && this.dbTarget.Password === undefined) {
                 const modal = new AskPasswordModal();

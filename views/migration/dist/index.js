@@ -6139,18 +6139,21 @@ let HttpResponse=class HttpResponse {
     async json() {
         if (!this.bodyUsed) {
             this.bodyContent = await this.response.json();
+            this.bodyUsed = true;
         }
         return Converter.transform(this.bodyContent);
     }
     async blob() {
         if (!this.bodyUsed) {
             this.bodyContent = await this.response.blob();
+            this.bodyUsed = true;
         }
         return this.bodyContent;
     }
     async text() {
         if (!this.bodyUsed) {
             this.bodyContent = await this.response.text();
+            this.bodyUsed = true;
         }
         return this.bodyContent;
     }
@@ -7018,8 +7021,8 @@ const Icon = class Icon extends Aventus.WebComponent {
     }
     static configure(config) {
         this.config = {
-            ...this.config,
             ...config,
+            ...this.config
         };
     }
 }
@@ -7991,6 +7994,9 @@ Form.Form = class Form extends Aventus.WebComponent {
             else if (await this.form.validate()) {
                 this.onSubmit.trigger();
             }
+        }
+        else {
+            this.onSubmit.trigger();
         }
     }
     static createFromController(controller, schema, config, config2) {
@@ -9844,7 +9850,7 @@ Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
     }
     onScrollEvent(e) {
         this.calculatePosition();
-        window.dispatchEvent(new CustomEvent("scroll"));
+        window.dispatchEvent(new CustomEvent("scroll", { detail: { source: this } }));
     }
     calculatePosition() {
         if (!this.hasAttribute('is-scrolling')) {
@@ -10317,6 +10323,14 @@ Components.Form.Select.BaseSelect.OptionsContainer = class OptionsContainer exte
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "scrollEl",
+      "ids": [
+        "optionscontainer_0"
+      ]
+    }
+  ],
   "injection": [
     {
       "id": "optionscontainer_0",
@@ -10502,6 +10516,7 @@ _n = Components.Form.Select.BaseSelect;Components.Form.Select.BaseSelect = clas
         this.loadElementsFromSlot = this.loadElementsFromSlot.bind(this);
         this.showOptions = this.showOptions.bind(this);
         this.hideOptions = this.hideOptions.bind(this);
+        this.hideOptionsScroll = this.hideOptionsScroll.bind(this);
     }
     __getStatic() {
         return BaseSelect;
@@ -10712,6 +10727,13 @@ _n = Components.Form.Select.BaseSelect;Components.Form.Select.BaseSelect = clas
     hideOptions() {
         this.optionsContainer.hide();
     }
+    hideOptionsScroll(e) {
+        if (e instanceof CustomEvent && e.detail.source instanceof _.Components.Display.Scrollable) {
+            if (e.detail.source == this.optionsContainer.scrollEl)
+                return;
+        }
+        this.optionsContainer.hide();
+    }
     blurOptions() {
         setTimeout(() => {
             this.optionsContainer.blur();
@@ -10773,7 +10795,7 @@ _n = Components.Form.Select.BaseSelect;Components.Form.Select.BaseSelect = clas
     postDestruction() {
         super.postDestruction();
         this.optionsContainer.remove();
-        window.removeEventListener("scroll", this.hideOptions);
+        window.removeEventListener("scroll", this.hideOptionsScroll);
     }
     postCreation() {
         super.postCreation();
@@ -10781,7 +10803,7 @@ _n = Components.Form.Select.BaseSelect;Components.Form.Select.BaseSelect = clas
         this.optionsContainer.init(this);
         this.loadElementsFromSlot();
         this.shadowRoot.removeChild(this.optionsContainer);
-        window.addEventListener("scroll", this.hideOptions);
+        window.addEventListener("scroll", this.hideOptionsScroll);
     }
     __6a2f0a13ce924d939c86d28d2861a8edmethod1() {
         return this.label;
@@ -15232,10 +15254,18 @@ const ImportSchema = class ImportSchema extends BaseContent {
     }
     __getHtml() {super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="section-header">    <h2>Data Sources</h2>    <p>Provide data source or schema to generate the migration</p></div><div class="schemas-grid">    <div class="schema-card">        <div class="card-header">            <h3>Database Source</h3>            <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>        </div>        <div class="list">            <template _id="importschema_0"></template>            <div class="add" _id="importschema_5">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.db.avt)</span>        </div>    </div>    <div class="schema-card">        <div class="card-header">            <h3>Database Final</h3>            <p>Provide the final data source model.</p>        </div>        <div class="list">            <template _id="importschema_6"></template>            <div class="add" _id="importschema_11">                <mi-icon icon="add"></mi-icon>            </div>        </div>        <div class="or">            OR        </div>        <div class="import-file">            <mi-icon icon="upload"></mi-icon>            <span>Import schema file (*.db.avt)</span>        </div>    </div></div><div class="action-footer">    <om-button _id="importschema_12">Compare schemas</om-button></div>` }
+        blocks: { 'default':`<div class="section-header">    <h2>Data Sources</h2>    <p>Provide data source or schema to generate the migration</p></div><div class="schemas-grid">    <div class="schema-card">        <div class="card-header">            <h3>Database Source</h3>            <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>        </div>        <div class="list">            <template _id="importschema_0"></template>            <div class="add" _id="importschema_5">                <mi-icon icon="add"></mi-icon>            </div>        </div>    </div>    <div class="schema-card">        <div class="card-header">            <h3>Database Final</h3>            <p>Provide the final data source model.</p>        </div>        <div class="list">            <template _id="importschema_6"></template>            <div class="add" _id="importschema_11">                <mi-icon icon="add"></mi-icon>            </div>        </div>    </div></div><div class="action-footer">    <om-button _id="importschema_12">Compare schemas</om-button></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "nextEl",
+      "ids": [
+        "importschema_12"
+      ]
+    }
+  ],
   "events": [
     {
       "eventName": "click",
@@ -15428,6 +15458,13 @@ const ImportSchema = class ImportSchema extends BaseContent {
         return "";
     }
     async analyzeAndCompare() {
+        if (this.nextEl.loading)
+            return;
+        this.nextEl.loading = true;
+        await this._analyzeAndCompare();
+        this.nextEl.loading = false;
+    }
+    async _analyzeAndCompare() {
         if (this.dbTarget) {
             if (!this.dbTarget.SavePassword && this.dbTarget.Password === undefined) {
                 const modal = new AskPasswordModal();
