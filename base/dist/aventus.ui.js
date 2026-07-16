@@ -5159,18 +5159,21 @@ let HttpResponse=class HttpResponse {
     async json() {
         if (!this.bodyUsed) {
             this.bodyContent = await this.response.json();
+            this.bodyUsed = true;
         }
         return Converter.transform(this.bodyContent);
     }
     async blob() {
         if (!this.bodyUsed) {
             this.bodyContent = await this.response.blob();
+            this.bodyUsed = true;
         }
         return this.bodyContent;
     }
     async text() {
         if (!this.bodyUsed) {
             this.bodyContent = await this.response.text();
+            this.bodyUsed = true;
         }
         return this.bodyContent;
     }
@@ -7895,6 +7898,9 @@ Form.Form = class Form extends Aventus.WebComponent {
             else if (await this.form.validate()) {
                 this.onSubmit.trigger();
             }
+        }
+        else {
+            this.onSubmit.trigger();
         }
     }
     static createFromController(controller, schema, config, config2) {

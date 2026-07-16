@@ -17,32 +17,17 @@
                     <mi-icon icon="delete" @click="deleteDatabaseSource" data-index="{{ i }}"></mi-icon>
                 </div>
             }
-            <!-- <div class="database">
-                <av-img src="/img/mssql.svg"></av-img>
-                <div>Saplio2 (localhost)</div>
-                <mi-icon icon="delete"></mi-icon>
-            </div>
-            <div class="database">
-                <av-img src="/img/postgresql.svg"></av-img>
-                <div>Saplio2 (localhost)</div>
-                <mi-icon icon="delete"></mi-icon>
-            </div>
-            <div class="database">
-                <av-img src="/img/sqlite.svg"></av-img>
-                <div>Saplio2 (localhost)</div>
-                <mi-icon icon="delete"></mi-icon>
-            </div> -->
             <div class="add" @click="createDatabaseSource">
                 <mi-icon icon="add"></mi-icon>
             </div>
         </div>
-        <div class="or">
+        <!-- <div class="or">
             OR
         </div>
         <div class="import-file">
             <mi-icon icon="upload"></mi-icon>
             <span>Import schema file (*.db.avt)</span>
-        </div>
+        </div> -->
     </div>
 
     <div class="schema-card">
@@ -63,15 +48,15 @@
                 <mi-icon icon="add"></mi-icon>
             </div>
         </div>
-        <div class="or">
+        <!-- <div class="or">
             OR
         </div>
         <div class="import-file">
             <mi-icon icon="upload"></mi-icon>
             <span>Import schema file (*.db.avt)</span>
-        </div>
+        </div> -->
     </div>
 </div>
 <div class="action-footer">
-    <om-button @click="analyzeAndCompare">Compare schemas</om-button>
+    <om-button @click="analyzeAndCompare" @element="nextEl">Compare schemas</om-button>
 </div>

@@ -1301,18 +1301,21 @@ let HttpResponse=class HttpResponse {
     bodyContent;
     async json() {
         if (!this.bodyUsed) {
+            this.bodyUsed = true;
             this.bodyContent = await this.response.json();
         }
         return Converter.transform(this.bodyContent);
     }
     async blob() {
         if (!this.bodyUsed) {
+            this.bodyUsed = true;
             this.bodyContent = await this.response.blob();
         }
         return this.bodyContent;
     }
     async text() {
         if (!this.bodyUsed) {
+            this.bodyUsed = true;
             this.bodyContent = await this.response.text();
         }
         return this.bodyContent;

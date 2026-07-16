@@ -1,7 +1,7 @@
 {
   "html": {
     "snippets": {
-      "block": "<block>${1}</block>",
+      "block": "<block name=\"${1}\">${2}</block>",
       "av-progress-circle": "<av-progress-circle>${1}</av-progress-circle>",
       "av-router-link": "<av-router-link>${1}</av-router-link>",
       "av-link": "<av-link>${1}</av-link>",
@@ -45,14 +45,10 @@
       "om-checkbox": "<om-checkbox>${1}</om-checkbox>",
       "om-table": "<om-table>${1}</om-table>",
       "om-table-row": "<om-table-row>${1}</om-table-row>",
-      "om-table-cell-string": "<om-table-cell-string>${1}</om-table-cell-string>",
       "om-table-cell-picture": "<om-table-cell-picture>${1}</om-table-cell-picture>",
-      "om-table-cell-number": "<om-table-cell-number>${1}</om-table-cell-number>",
       "om-table-cell-header": "<om-table-cell-header>${1}</om-table-cell-header>",
       "om-table-row-header": "<om-table-row-header>${1}</om-table-row-header>",
-      "om-table-cell-date": "<om-table-cell-date>${1}</om-table-cell-date>",
       "om-table-cell-checkbox": "<om-table-cell-checkbox>${1}</om-table-cell-checkbox>",
-      "om-table-cell-boolean": "<om-table-cell-boolean>${1}</om-table-cell-boolean>",
       "om-table-cell-action": "<om-table-cell-action>${1}</om-table-cell-action>",
       "om-tabs": "<om-tabs>${1}</om-tabs>",
       "om-tab": "<om-tab>${1}</om-tab>",
