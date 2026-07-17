@@ -37,6 +37,12 @@ const _ = {};
 
 
 let _n;
+let uuidv4=function uuidv4() {
+    let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
+    return uid;
+}
+__as1(_, 'uuidv4', uuidv4);
+
 let DateConverter=class DateConverter {
     static __converter = new DateConverter();
     static get converter() {
@@ -727,7 +733,10 @@ let Router=class Router {
         return new Promise(async (resolve) => {
             let result = new Aventus.ResultWithError();
             try {
-                let _uid = options.uid ? options.uid : Aventus.uuidv4();
+                let _uid = options.uid;
+                if (!_uid) {
+                    _uid = Aventus.uuidv4();
+                }
                 options.uid = _uid;
                 let timeoutInfo;
                 this.waitingList[_uid] = (channel, data) => {

@@ -37,6 +37,12 @@ const _ = {};
 
 
 let _n;
+let uuidv4=function uuidv4() {
+    let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
+    return uid;
+}
+__as1(_, 'uuidv4', uuidv4);
+
 let sleep=function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -757,7 +763,7 @@ let Callback=class Callback {
 Callback.Namespace=`Aventus`;
 __as1(_, 'Callback', Callback);
 
-let compareObject=function compareObject(obj1, obj2) {
+let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -766,17 +772,27 @@ let compareObject=function compareObject(obj1, obj2) {
         if (obj1.length !== obj2.length) {
             return false;
         }
-        for (let i = 0; i < obj1.length; i++) {
-            let foundElement = false;
-            for (let j = 0; j < obj2.length; j++) {
-                if (compareObject(obj1[i], obj2[j])) {
-                    obj2.splice(j, 1);
-                    foundElement = true;
-                    break;
+        if (tableOrder) {
+            for (let i = 0; i < obj1.length; i++) {
+                if (!compareObject(obj1[i], obj2[i])) {
+                    return false;
                 }
             }
-            if (!foundElement) {
-                return false;
+            return true;
+        }
+        else {
+            for (let i = 0; i < obj1.length; i++) {
+                let foundElement = false;
+                for (let j = 0; j < obj2.length; j++) {
+                    if (compareObject(obj1[i], obj2[j])) {
+                        obj2.splice(j, 1);
+                        foundElement = true;
+                        break;
+                    }
+                }
+                if (!foundElement) {
+                    return false;
+                }
             }
         }
         return true;
@@ -1478,6 +1494,7 @@ let Watcher=class Watcher {
                                 };
                             }
                         }
+                        // else if(prop == 'find') {
                         else {
                             result = element.bind(target);
                         }
@@ -1760,7 +1777,12 @@ let Watcher=class Watcher {
             }
             dones.push(proxyData.baseData);
             let aliasesDone = [];
-            for (let name in proxyData.callbacks) {
+            const callbacks = { ...proxyData.callbacks };
+            for (let name in callbacks) {
+                callbacks[name] = [...callbacks[name]];
+            }
+            for (let name in callbacks) {
+                // for(let name in proxyData.callbacks) {
                 let pathToSend = rootPath;
                 if (name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
@@ -1785,7 +1807,7 @@ let Watcher=class Watcher {
                         path: pathToSend
                     });
                 }
-                let cbs = [...proxyData.callbacks[name]];
+                let cbs = callbacks[name];
                 for (let cb of cbs) {
                     try {
                         cb(WatchAction[type], pathToSend, value, dones);
@@ -3579,6 +3601,8 @@ let TemplateInstance=class TemplateInstance {
             let regexArray = new RegExp("^\\[(\\d+?)\\]$");
             let regexObject = new RegExp("^([^\\.]*)$");
             let sub = (action, path, value) => {
+                if (this.isDestroyed)
+                    return;
                 if (path == "") {
                     this.renderLoopSimple(loop, simple);
                     return;
@@ -5145,18 +5169,21 @@ let HttpResponse=class HttpResponse {
     bodyContent;
     async json() {
         if (!this.bodyUsed) {
+            this.bodyUsed = true;
             this.bodyContent = await this.response.json();
         }
         return Converter.transform(this.bodyContent);
     }
     async blob() {
         if (!this.bodyUsed) {
+            this.bodyUsed = true;
             this.bodyContent = await this.response.blob();
         }
         return this.bodyContent;
     }
     async text() {
         if (!this.bodyUsed) {
+            this.bodyUsed = true;
             this.bodyContent = await this.response.text();
         }
         return this.bodyContent;
@@ -5896,6 +5923,9 @@ let ResourceLoader=class ResourceLoader {
             }
             else {
                 throw "unknow type " + _options.type + " to append into head";
+            }
+            if (_options.nonce) {
+                tagEl.setAttribute("nonce", _options.nonce);
             }
             document.head.appendChild(tagEl);
             let result = await this.loadTag(tagEl, _options.url);
@@ -6824,7 +6854,10 @@ let Router=class Router {
         return new Promise(async (resolve) => {
             let result = new Aventus.ResultWithError();
             try {
-                let _uid = options.uid ? options.uid : Aventus.uuidv4();
+                let _uid = options.uid;
+                if (!_uid) {
+                    _uid = Aventus.uuidv4();
+                }
                 options.uid = _uid;
                 let timeoutInfo;
                 this.waitingList[_uid] = (channel, data) => {
@@ -6989,8 +7022,8 @@ const Icon = class Icon extends Aventus.WebComponent {
     }
     static configure(config) {
         this.config = {
-            ...this.config,
             ...config,
+            ...this.config
         };
     }
 }
@@ -7282,6 +7315,9 @@ Form.Form = class Form extends Aventus.WebComponent {
             else if (await this.form.validate()) {
                 this.onSubmit.trigger();
             }
+        }
+        else {
+            this.onSubmit.trigger();
         }
     }
     static createFromController(controller, schema, config, config2) {
@@ -9067,7 +9103,7 @@ Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
     }
     onScrollEvent(e) {
         this.calculatePosition();
-        window.dispatchEvent(new CustomEvent("scroll"));
+        window.dispatchEvent(new CustomEvent("scroll", { detail: { source: this } }));
     }
     calculatePosition() {
         if (!this.hasAttribute('is-scrolling')) {

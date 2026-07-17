@@ -5,6 +5,7 @@
 	"build": [
 		{
 			"name": "Main",
+			"disabled": true,
 			"src": [
 				"./src/components/*",
 				"./src/data/*",
