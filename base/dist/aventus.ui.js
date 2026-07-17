@@ -5158,22 +5158,22 @@ let HttpResponse=class HttpResponse {
     bodyContent;
     async json() {
         if (!this.bodyUsed) {
-            this.bodyContent = await this.response.json();
             this.bodyUsed = true;
+            this.bodyContent = await this.response.json();
         }
         return Converter.transform(this.bodyContent);
     }
     async blob() {
         if (!this.bodyUsed) {
-            this.bodyContent = await this.response.blob();
             this.bodyUsed = true;
+            this.bodyContent = await this.response.blob();
         }
         return this.bodyContent;
     }
     async text() {
         if (!this.bodyUsed) {
-            this.bodyContent = await this.response.text();
             this.bodyUsed = true;
+            this.bodyContent = await this.response.text();
         }
         return this.bodyContent;
     }

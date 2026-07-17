@@ -6138,22 +6138,22 @@ let HttpResponse=class HttpResponse {
     bodyContent;
     async json() {
         if (!this.bodyUsed) {
-            this.bodyContent = await this.response.json();
             this.bodyUsed = true;
+            this.bodyContent = await this.response.json();
         }
         return Converter.transform(this.bodyContent);
     }
     async blob() {
         if (!this.bodyUsed) {
-            this.bodyContent = await this.response.blob();
             this.bodyUsed = true;
+            this.bodyContent = await this.response.blob();
         }
         return this.bodyContent;
     }
     async text() {
         if (!this.bodyUsed) {
-            this.bodyContent = await this.response.text();
             this.bodyUsed = true;
+            this.bodyContent = await this.response.text();
         }
         return this.bodyContent;
     }
@@ -6856,7 +6856,10 @@ let Router=class Router {
         return new Promise(async (resolve) => {
             let result = new Aventus.ResultWithError();
             try {
-                let _uid = options.uid ? options.uid : Aventus.uuidv4();
+                let _uid = options.uid;
+                if (!_uid) {
+                    _uid = Aventus.uuidv4();
+                }
                 options.uid = _uid;
                 let timeoutInfo;
                 this.waitingList[_uid] = (channel, data) => {

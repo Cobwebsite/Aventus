@@ -1,4 +1,4 @@
-import { VoidWithError } from "Aventus@Main:Aventus.package.avt";
+import { uuidv4, VoidWithError } from "Aventus@Main:Aventus.package.avt";
 import { Error, ErrorCode } from "./Error.lib.avt";
 
 export interface Route<T = any> {
@@ -139,7 +139,10 @@ export class Router {
         return new Promise<Aventus.ResultWithError<Aventus.ExtractFromError<T>>>(async (resolve) => {
             let result = new Aventus.ResultWithError<Aventus.ExtractFromError<T>>();
             try {
-                let _uid = options.uid ? options.uid : Aventus.uuidv4();
+                let _uid = options.uid;
+                if(!_uid) {
+                    _uid = uuidv4();
+                }
                 options.uid = _uid;
                 // No need to have an event listening bc the waiting list is trigger event if no event is listening
                 let timeoutInfo: number | undefined;
