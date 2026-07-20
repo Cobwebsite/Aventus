@@ -547,6 +547,10 @@
 			{
 				"command": "aventus.migration",
 				"title": "Aventus : Create migration"
+			},
+			{
+				"command": "aventus.emmet",
+				"title": "Aventus : Create emmet snippets"
 			}
 		],
 		"customEditors": [

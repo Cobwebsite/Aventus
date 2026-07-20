@@ -30,7 +30,7 @@ export class ManifestPackage {
 		}
 	}
 
-	public static write() {
+	public static write(force: boolean = false) {
 		const result: EmmetCustomDataSchema = {
 			html: {
 				snippets: {
@@ -53,10 +53,15 @@ export class ManifestPackage {
 		if (canWrite) {
 			const dir = uriToPath(GenericServer.getWorkspaceUri());
 			const emmetPath = join(dir, ".aventus", "emmet");
+			const snippetPath = join(emmetPath, "snippets.json");
+			if (!force && !existsSync(snippetPath)) {
+				this.done = true;
+				return;
+			}
 			if (!existsSync(emmetPath)) {
 				mkdirSync(emmetPath, { recursive: true })
 			}
-			writeFile(join(emmetPath, "snippets.json"), JSON.stringify(result, null, 2), "manifest");
+			writeFile(snippetPath, JSON.stringify(result, null, 2), "manifest");
 			this.done = true;
 		}
 
@@ -138,7 +143,7 @@ export class ManifestPackageMd {
 				else if (info.type == InfoType.function) {
 					this.loadFunction(info);
 				}
-				
+
 				// else if (info.type == InfoType.enum) {
 				// 	this.loadEnum(info);
 				// }

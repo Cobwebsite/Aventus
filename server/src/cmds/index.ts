@@ -44,6 +44,7 @@ import { UninstallTemplate } from './file-system/UninstallTemplate';
 import { Format } from './Format';
 import { Dependency } from './ai/Dependency';
 import { Rules } from './ai/Rules';
+import { Emmet } from './Emmet';
 
 export const Commands = {
     allCommandes: {
@@ -91,7 +92,8 @@ export const Commands = {
         [UninstallTemplate.cmd]: UninstallTemplate,
         [Format.cmd]: Format,
         [Dependency.cmd]: Dependency,
-        [Rules.cmd]: Rules
+        [Rules.cmd]: Rules,
+        [Emmet.cmd] : Emmet
     },
     execute: async function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];
