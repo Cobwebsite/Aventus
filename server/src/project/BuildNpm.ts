@@ -225,8 +225,6 @@ export class NpmBuilder {
 			});
 
 			response.result = result.outputFiles?.[0].text || "";
-
-			console.log(response.result.length);
 		} catch (e) {
 			let uri = this.build.fullname + "_npmErrors";
 			const error = (e + "").replace(/\0/g, "");

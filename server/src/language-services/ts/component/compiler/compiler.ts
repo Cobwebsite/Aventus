@@ -133,6 +133,7 @@ export class AventusWebcomponentCompiler {
         },
         convertibleName: '',
         tagName: '',
+        useDecorator: false,
     }
     private parentClassName: string = "";
     private parentClassNameNpm: string = "";
