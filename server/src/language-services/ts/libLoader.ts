@@ -17,7 +17,7 @@ const contents: { [name: string]: string } = {};
 export const serverFolder = () => GenericServer.extensionPath;
 let _node_modules_folder: string | undefined = undefined;
 const node_modules_folder = () => {
-	if(_node_modules_folder !== undefined) return _node_modules_folder;
+	if (_node_modules_folder !== undefined) return _node_modules_folder;
 
 	let currentPath = serverFolder();
 	while (currentPath !== resolve(currentPath, '..')) {
@@ -236,7 +236,7 @@ export function loadLibrary(name: string): string | undefined {
 	}
 
 	if (typeof content !== 'string') {
-		if (existsSync(libPath) && lstatSync(libPath).isFile()) {
+		if (typeof libPath == 'string' && existsSync(libPath) && lstatSync(libPath).isFile()) {
 			content = readFileSync(libPath).toString();
 		}
 		else if (showError) {

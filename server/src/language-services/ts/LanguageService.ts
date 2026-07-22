@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import { join, normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind, Type, ModuleKind } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind, Type, ModuleKind, getDefaultLibFilePath } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
@@ -101,7 +101,7 @@ export class AventusTsLanguageService {
                 };
             },
             getCurrentDirectory: () => '',
-            getDefaultLibFileName: (_options: CompilerOptions) => 'es2025.full',
+            getDefaultLibFileName: (_options: CompilerOptions) => getDefaultLibFilePath(_options),
             readFile: (fileName: string, _encoding?: string | undefined): string | undefined => {
                 if (this.filesLoaded[fileName]) {
                     return this.filesLoaded[fileName].file.contentInternal;
@@ -170,7 +170,7 @@ export class AventusTsLanguageService {
                 };
             },
             getCurrentDirectory: () => '',
-            getDefaultLibFileName: (_options: CompilerOptions) => 'es2025.full',
+            getDefaultLibFileName: (_options: CompilerOptions) => getDefaultLibFilePath(_options),
             readFile: (fileName: string, _encoding?: string | undefined): string | undefined => {
                 let result: string | undefined = undefined;
                 if (this.filesLoaded[fileName]) {
@@ -265,6 +265,7 @@ export class AventusTsLanguageService {
             const allNormalDiagnostics: DiagnosticTs[] = syntaxDiagnostics.concat(semanticDiagnostics);
             for (let diag of allNormalDiagnostics) {
                 if (avoidCodes.includes(diag.code)) { continue; } // Decorators not valid
+                
                 let msg = `${flattenDiagnosticMessageText(diag.messageText, '\n')}`
                 if (diag.reportsUnnecessary) {
                     result.push({
@@ -284,6 +285,7 @@ export class AventusTsLanguageService {
                     })
                 }
             }
+            
             return result;
         } catch (e) {
             this.printCatchError(e);
@@ -1637,8 +1639,8 @@ const compilerOptionsRead: CompilerOptions = {
     importHelpers: false,
     allowJs: true,
     checkJs: false,
-    lib: ['lib.es2025.full.d.ts'],
-    target: ScriptTarget.ES2025,
+    // lib: ['lib.es2025.full.d.ts'],
+    target: ScriptTarget.ESNext,
     module: ModuleKind.NodeNext,
     moduleDetection: ModuleDetectionKind.Force,
     moduleResolution: ModuleResolutionKind.NodeNext,
@@ -1657,8 +1659,8 @@ const compilerOptionsCompile: CompilerOptions = {
     importHelpers: false,
     allowJs: true,
     checkJs: false,
-    lib: ['lib.es2025.full.d.ts'],
-    target: ScriptTarget.ES2025,
+    // lib: ['lib.es2025.full.d.ts'],
+    target: ScriptTarget.ESNext,
     module: ModuleKind.NodeNext,
     moduleDetection: ModuleDetectionKind.Auto,
     moduleResolution: ModuleResolutionKind.NodeNext,

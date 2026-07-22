@@ -1290,6 +1290,20 @@
             <param name="item">The item to be updated.</param>
             <returns>A ResultWithError containing a single updated <typeparamref name="T"/> object.</returns>
         </member>
+        <member name="M:AventusSharp.Data.Migrations.MigrationGenerator.Generate(AventusSharp.Chart.DiagramObject,System.String,System.String)">
+            <summary>
+            Translates a DiagramObject (representing a database schema diagram) into a C# migration class source code.
+            </summary>
+            <param name="diagram">The schema diagram object.</param>
+            <param name="migrationName">The internal name of the migration (e.g. "0000_init").</param>
+            <param name="className">The class name of the migration (e.g. "DemoMigration").</param>
+            <returns>C# code of the migration class.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Migrations.MigrationGenerator.GenerateToFile(AventusSharp.Chart.DiagramObject,System.String,System.String,System.String)">
+            <summary>
+            Translates a DiagramObject into a C# migration class and saves it directly to a file.
+            </summary>
+        </member>
         <member name="M:AventusSharp.Data.Storable`1.Create(System.Collections.Generic.List{`0})">
             <summary>
             Create inside the DM a bunch of elements and return them
