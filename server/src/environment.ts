@@ -50,7 +50,6 @@ async function installWindowsEnvironment(
 	variableName: string,
 	binPath: string,
 ): Promise<void> {
-
 	const script = String.raw`
 $ErrorActionPreference = 'Stop'
 
@@ -58,12 +57,19 @@ $variableName = $env:AVENTUS_VARIABLE_NAME
 $binPath = $env:AVENTUS_BIN_PATH
 $target = [System.EnvironmentVariableTarget]::User
 
-[System.Environment]::SetEnvironmentVariable(
+# Récupère l'ancienne valeur avant toute modification.
+$oldBinPath = [System.Environment]::GetEnvironmentVariable(
     $variableName,
-    $binPath,
     $target
 )
 
+# Si la variable contient déjà le bon chemin, aucune modification.
+if (
+    -not [string]::IsNullOrWhiteSpace($oldBinPath) -and
+    $oldBinPath.TrimEnd('\', '/') -ieq $binPath.TrimEnd('\', '/')
+) {
+    exit 0
+}
 
 $currentPath = [System.Environment]::GetEnvironmentVariable(
     'Path',
@@ -74,37 +80,69 @@ if ($null -eq $currentPath) {
     $currentPath = ''
 }
 
-$pathReference = '%' + $variableName + '%'
-
 $entries = @(
     $currentPath -split ';' |
     ForEach-Object { $_.Trim() } |
     Where-Object { $_ -ne '' }
 )
 
-$alreadyPresent = $false
+$newEntries = [System.Collections.Generic.List[string]]::new()
+$newBinPathAlreadyPresent = $false
 
 foreach ($entry in $entries) {
-    if ($entry.TrimEnd('\') -ieq $pathReference.TrimEnd('\')) {
-        $alreadyPresent = $true
-        break
-    }
-}
+    $normalizedEntry = $entry.TrimEnd('\', '/')
 
-if (-not $alreadyPresent) {
-    if ([string]::IsNullOrWhiteSpace($currentPath)) {
-        $newPath = $pathReference
-    }
-    else {
-        $newPath = $currentPath.TrimEnd(';') + ';' + $pathReference
+    # Supprime l'ancienne valeur complète de AVENTUS_BIN du Path.
+    if (
+        -not [string]::IsNullOrWhiteSpace($oldBinPath) -and
+        $normalizedEntry -ieq $oldBinPath.TrimEnd('\', '/')
+    ) {
+        continue
     }
 
-    [System.Environment]::SetEnvironmentVariable(
-        'Path',
-        $newPath,
-        $target
-    )
+    # Supprime aussi une éventuelle ancienne référence %AVENTUS_BIN%.
+    $variableReference = '%' + $variableName + '%'
+
+    if (
+        $normalizedEntry -ieq $variableReference.TrimEnd('\', '/')
+    ) {
+        continue
+    }
+
+    # Évite d'ajouter le nouveau chemin plusieurs fois.
+    if (
+        $normalizedEntry -ieq $binPath.TrimEnd('\', '/')
+    ) {
+        if (-not $newBinPathAlreadyPresent) {
+            $newEntries.Add($entry)
+            $newBinPathAlreadyPresent = $true
+        }
+
+        continue
+    }
+
+    $newEntries.Add($entry)
 }
+
+# Ajoute le nouveau chemin complet s'il n'existe pas.
+if (-not $newBinPathAlreadyPresent) {
+    $newEntries.Add($binPath)
+}
+
+$newPath = $newEntries -join ';'
+
+# Met à jour la variable et le Path seulement après avoir traité l'ancienne valeur.
+[System.Environment]::SetEnvironmentVariable(
+    $variableName,
+    $binPath,
+    $target
+)
+
+[System.Environment]::SetEnvironmentVariable(
+    'Path',
+    $newPath,
+    $target
+)
 `;
 
 	const powershell =

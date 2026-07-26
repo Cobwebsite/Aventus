@@ -99,7 +99,7 @@ export class Static {
                                 await FilesManager.getInstance().registerFile(doc);
                                 cssFile = this.project.scssFiles[pathToUri(filePath)];
                             }
-                            cssFile.addOutPath(resultPath, this.name);
+                            await cssFile.addOutPath(resultPath, this.name);
                         }
                     }
                     else {

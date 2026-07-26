@@ -179,6 +179,11 @@ export class FilesManager {
                         }
                     }
                 }
+                for (let _static of config.static) {
+                    if (!statics || statics.includes(_static.name ?? "")) {
+                        await readDir(_static.inputPathFolder);
+                    }
+                }
 
                 Statistics.startSendLoadFile();
                 project.loadFiles();
