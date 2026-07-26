@@ -175,18 +175,16 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		return null;
 	}
 
-	public addOutPath(path: string, staticName: string) {
+	public async addOutPath(path: string, staticName: string) {
 		if (this.file.shortname.startsWith("_")) {
 			return;
 		}
 		if (!this.staticNamebyOutPath[path]) {
 			this.staticNamebyOutPath[path] = staticName;
 			if (!this.savedOnce) {
-				this.onSave();
+				await this.onSave();
 			}
-			else {
-				this.export();
-			}
+			this.export();
 		}
 	}
 

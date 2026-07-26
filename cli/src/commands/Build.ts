@@ -87,11 +87,14 @@ export class Build extends Action<BuildOptions> {
 		}
 		await Server.start({
 			configPath: configPath,
+			loadFiles: true,
+			buildOnly: options['no-statics'],
+			noBuild: options['no-builds'],
 			builds: options.builds,
 			statics: options.statics,
 			logLevel: options.verbose ? LogLevel.Debug : LogLevel.Error,
 			errorByBuild: true,
-			useStats: options.silent ? false : true
+			useStats: options.silent ? false : true,
 		});
 
 		if (options.json) {
