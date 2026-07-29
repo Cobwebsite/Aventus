@@ -21,6 +21,30 @@ export class PhpExport {
 			return;
 		}
 
+		if (!exist("php")) {
+			GenericServer.showErrorMessage("Php isn't installed on your system");
+			return;
+		}
+		if (!exist("php-converter")) {
+			try {
+				if (!exist("composer")) {
+					GenericServer.showErrorMessage("composer isn't installed on your system");
+					return;
+				}
+				if (await GenericServer.ask("php-converter is missing. Can I install it?")) {
+					await execAsync("composer global require aventus/transpiler");
+				}
+
+				if (!exist("php-converter")) {
+					GenericServer.showErrorMessage("Can't find the converter. Run the command : composer global require aventus/transpiler");
+					return;
+				}
+			}
+			catch (e) {
+				GenericServer.showErrorMessage(e + "");
+				return;
+			}
+		}
 		if (!uri || !uri.endsWith(AventusExtension.PhpConfig)) {
 			let filesUri = Object.keys(PhpManager.getInstance().files);
 			if (filesUri.length == 1) {
@@ -48,10 +72,7 @@ export class PhpExport {
 				return;
 			}
 		}
-		if (!exist("php")) {
-			GenericServer.showErrorMessage("Php isn't installed on your system");
-			return;
-		}
+
 		let phpProjName = ''
 		try {
 			let pathComposer = uriToPath(uri.replace(AventusExtension.PhpConfig, "composer.json"));
