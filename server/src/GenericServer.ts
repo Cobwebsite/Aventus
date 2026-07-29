@@ -276,7 +276,7 @@ export class GenericServer {
 		}
 		if (this.isIDE)
 			this.runUpdate();
-		initEnvironnment(params.extensionPath);
+		// initEnvironnment(params.extensionPath);
 		GenericServer.debug(params)
 	}
 	protected async onInitialized() {

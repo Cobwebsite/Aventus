@@ -28,7 +28,8 @@ export class Server {
 	}
 	public static async load() {
 		// this.realServer = (await import('./RealServer')).RealServer
-		this.realServer = (await (eval('import("./RealServer.js")'))).default.RealServer
+		const indirectEval = eval;
+		this.realServer = (await (indirectEval('import("./RealServer.js")'))).default.RealServer
 		// this.realServer = RealServer;
 		this.realServer['_interaction'] = Interaction
 	}

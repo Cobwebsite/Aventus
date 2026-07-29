@@ -1,8 +1,6 @@
 import { sync as exist } from 'command-exists';
 import { GenericServer } from '../../GenericServer';
-import { join } from 'path';
 import { execAsync, uriToPath } from '../../tools';
-import { FilesManager } from '../../files/FilesManager';
 import { SelectItem } from '../../IConnection';
 import { AventusExtension } from '../../definition';
 import { readFileSync } from 'fs';
@@ -22,6 +20,26 @@ export class SharpExport {
 			return;
 		}
 
+		if (!exist("dotnet")) {
+			GenericServer.showErrorMessage("Dotnet isn't installed on your system");
+			return;
+		}
+		if (!exist("csharp-converter")) {
+			try {
+				if(await GenericServer.ask("csharp-converter is missing. Can I install it?")) {
+					await execAsync("dotnet tool install --global AventusSharp.Converter");
+				}
+
+				if (!exist("csharp-converter")) {
+					GenericServer.showErrorMessage("Can't find the converter. Run the command : dotnet tool install --global AventusSharp.Converter");
+					return;
+				}
+			}
+			catch (e) {
+				GenericServer.showErrorMessage(e + "");
+				return;
+			}
+		}
 		if (!uri || !uri.endsWith(AventusExtension.CsharpConfig)) {
 			let filesUri = Object.keys(CSharpManager.getInstance().files);
 			if (filesUri.length == 1) {
@@ -49,10 +67,6 @@ export class SharpExport {
 				return;
 			}
 		}
-		if (!exist("dotnet")) {
-			GenericServer.showErrorMessage("Dotnet isn't installed on your system");
-			return;
-		}
 		let csProjName = ''
 		try {
 			let ctx = readFileSync(uriToPath(uri), 'utf-8');
@@ -65,9 +79,8 @@ export class SharpExport {
 		this.isCompiling = true;
 		Compiling.send(csProjName, 'compiling');
 		try {
-			let execPath = join(GenericServer.extensionPath, "lib", "bin", "CSharpToTypescript", "CSharpToTypescript.dll")
 			let csProj = uriToPath(uri);
-			const { stdout } = await execAsync("dotnet " + execPath + " " + csProj);
+			const { stdout } = await execAsync("csharp-converter " + csProj);
 			let result = stdout.toString()
 			if (result.indexOf("Error : ") == -1) {
 				Compiling.send(csProjName, 'success');

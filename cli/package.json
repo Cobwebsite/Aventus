@@ -5,7 +5,10 @@
   "version": "0.0.14",
   "icon": "icons/logo.png",
   "bin": {
-    "aventus": "./out/cli.js"
+    "aventus": "./out/cli.js",
+    "av": "./out/cli.js",
+    "csharp-converter": "./lib/bin/csharp-converter",
+    "php-converter": "./lib/bin/php-converter"
   },
   "repository": {
     "type": "git",
