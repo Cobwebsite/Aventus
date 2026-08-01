@@ -2,13 +2,11 @@
   "name": "@aventusjs/cli",
   "displayName": "Aventus CLI",
   "description": "This official CLI to compile Aventus Framework",
-  "version": "0.0.14",
+  "version": "0.0.22",
   "icon": "icons/logo.png",
   "bin": {
     "aventus": "./out/cli.js",
-    "av": "./out/cli.js",
-    "csharp-converter": "./lib/bin/csharp-converter",
-    "php-converter": "./lib/bin/php-converter"
+    "av": "./out/cli.js"
   },
   "repository": {
     "type": "git",
@@ -21,7 +19,31 @@
   },
   "license": "MIT",
   "dependencies": {
-    "typescript": "^5.5.3"
+    "@inquirer/core": "^11.1.9",
+		"ajv": "^8.20.0",
+		"archiver": "^7.0.1",
+		"chokidar": "^5.0.0",
+		"commander": "^14.0.3",
+		"connect": "^3.7.0",
+		"esbuild": "^0.28.0",
+		"inquirer-file-tree-selection-prompt": "^2.0.5",
+		"open": "^11.0.0",
+		"postcss": "^8.5.12",
+		"sass": "^1.99.0",
+		"send": "^1.2.1",
+		"serve-index": "^1.9.2",
+		"sudo-prompt": "^9.2.1",
+		"terser": "^5.46.2",
+		"typescript": "^6.0.3",
+		"uglify-js": "^3.19.3",
+		"unzipper": "^0.12.3",
+		"vscode-css-languageservice": "^6.3.10",
+		"vscode-html-languageservice": "^5.6.2",
+		"vscode-json-languageservice": "^5.7.2",
+		"vscode-languageclient": "^9.0.1",
+		"vscode-languageserver": "^9.0.1",
+		"vscode-languageserver-textdocument": "^1.0.12",
+		"ws": "^8.20.0"
   },
   "devDependencies": {
     "yoctocolors-cjs": "^2.1.2"

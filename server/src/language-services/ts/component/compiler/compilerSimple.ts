@@ -705,7 +705,7 @@
 //         } catch (e) {
 
 //         }
-//         let matchContent = /\{((\s|\S)*)\}/gm.exec(fieldsCompiled);
+//         let matchContent = /\{([\s\S]*)\}/gm.exec(fieldsCompiled);
 //         if (matchContent) {
 //             variablesSimpleTxt = matchContent[1].trim();
 //         }
@@ -719,7 +719,7 @@
 //             } catch (e) {
 
 //             }
-//             let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fieldsCompiledHotReload);
+//             let matchContentHotReload = /\{([\s\S]*)\}/gm.exec(fieldsCompiledHotReload);
 //             if (matchContentHotReload) {
 //                 variablesSimpleHotReloadTxt = matchContentHotReload[1].trim();
 //             }
@@ -734,7 +734,7 @@
 //             } catch (e) {
 
 //             }
-//             let matchContentNpm = /\{((\s|\S)*)\}/gm.exec(fieldsCompiledNpm);
+//             let matchContentNpm = /\{([\s\S]*)\}/gm.exec(fieldsCompiledNpm);
 //             if (matchContentNpm) {
 //                 variablesSimpleNpmTxt = matchContentNpm[1].trim();
 //             }

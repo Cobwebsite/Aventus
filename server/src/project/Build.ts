@@ -1248,7 +1248,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                     let txt = info.npm.defTs;
                     if (info.isExported.external) {
                         if (txt.startsWith("/**")) {
-                            const match = /\/\*\*(\s|\S)*?\*\/((\r)?(\n)?)*/.exec(txt);
+                            const match = /\/\*\*[\s\S]*?\*\/((\r)?(\n)?)*/.exec(txt);
                             if (match) {
                                 txt = txt.replace(match[0], match[0] + "export ");
 
@@ -1590,7 +1590,10 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 
                     let insertIndex = 0;
                     if (infoExternal.content != 'noCode') {
-
+                        if (!Array.isArray(infoExternal.content.dependencies)) {
+                            console.log("Problem with " + infoExternal.content.fullName)
+                            console.log(infoExternal.content)
+                        }
                         for (let dependency of infoExternal.content.dependencies) {
                             let cloneBeforeLoop = { ...indexByUri };
                             let strongDep = dependency.isStrong ? alreadyLookedStrong : {};

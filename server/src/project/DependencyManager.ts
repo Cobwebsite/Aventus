@@ -346,16 +346,35 @@ export class DependencyManager {
 
 			let firstLine = await this.readFirstLine(packageTempPath);
 			let regexInfo = /\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)/g.exec(firstLine);
-			if (!regexInfo) return null;
+			if (!regexInfo) {
+				console.error(`Invalid package header for "${name}@${version}". First line:`, JSON.stringify(firstLine));
+				return null;
+			}
 			let packageName = regexInfo[1];
 			let v1 = Number(regexInfo[2]);
 			let v2 = Number(regexInfo[3]);
 			let v3 = Number(regexInfo[4]);
 			let packageVersion = v1 + '.' + v2 + '.' + v3;
 
+			if (packageName !== name) {
+				console.error(
+					`Package name mismatch: requested "${name}", downloaded "${packageName}"`
+				);
+				return null;
+			}
+
+			if (packageVersion !== version) {
+				console.error(
+					`Package version mismatch: requested "${version}", downloaded "${packageVersion}"`
+				);
+				return null;
+			}
 		}
 
-		if (!packageTempPath) return null;
+		if (!packageTempPath) {
+			console.error(`Package file not found after extracting "${name}@${version}" into "${uri}"`);
+			return null;
+		}
 		const packageUri = pathToUri(packageTempPath);
 		let file = await FilesManager.getInstance().registerFilePackage(packageUri)
 		const packageFile = this.loadPackage(file, build);
@@ -366,14 +385,31 @@ export class DependencyManager {
 	}
 	private extractZip(zipPath: string, outputDir: string) {
 		return new Promise<boolean>((resolve) => {
-			createReadStream(zipPath)
-				.pipe(Extract({ path: outputDir }))
-				.on("close", () => resolve(true))
-				.on("error", (err) => {
-					console.error("Extract error ", err)
-					resolve(false)
-				});
-		})
+			let completed = false;
+
+			const finish = (result: boolean) => {
+				if (completed) return;
+				completed = true;
+				resolve(result);
+			};
+
+			const input = createReadStream(zipPath);
+			const extractor = Extract({ path: outputDir });
+
+			input.on("error", (error) => {
+				console.error(`Can't read ZIP "${zipPath}":`, error);
+				finish(false);
+			});
+
+			extractor.on("close", () => finish(true));
+
+			extractor.on("error", (error) => {
+				console.error(`Can't extract ZIP "${zipPath}":`, error);
+				finish(false);
+			});
+
+			input.pipe(extractor);
+		});
 	}
 	private findPackage(path: string): string | null {
 		let result: string | null = null;
@@ -515,29 +551,85 @@ export class DependencyManager {
 
 	private downloadFile(fileUri: string, httpUri: string): Promise<boolean> {
 		return new Promise<boolean>((resolve) => {
-			const file = createWriteStream(fileUri);
-			try {
-				let fct = httpUri.startsWith("https") ? gets : get
-				fct(httpUri, function (response) {
-					response.pipe(file);
 
-					// after download completed close filestream
-					file.on("finish", () => {
-						file.close();
+			const cleanup = () => {
+				try {
+					if (existsSync(fileUri)) {
+						unlinkSync(fileUri);
+					}
+				}
+				catch {
+					// Ignore cleanup errors
+				}
+			};
+
+			const requestFunction = httpUri.startsWith("https:") ? gets : get;
+
+			const request = requestFunction(httpUri, (response) => {
+				const statusCode = response.statusCode ?? 0;
+
+				if (
+					statusCode >= 300 &&
+					statusCode < 400 &&
+					response.headers.location
+				) {
+					response.resume();
+
+					this.downloadFile(fileUri, response.headers.location)
+						.then(resolve)
+						.catch(() => resolve(false));
+
+					return;
+				}
+
+				if (statusCode < 200 || statusCode >= 300) {
+					console.error(
+						`Download failed: HTTP ${statusCode} for ${httpUri}`
+					);
+
+					response.resume();
+					cleanup();
+					resolve(false);
+					return;
+				}
+
+				const file = createWriteStream(fileUri);
+
+				file.on("error", (error) => {
+					console.error(`File write error for ${fileUri}:`, error);
+					response.destroy();
+					cleanup();
+					resolve(false);
+				});
+
+				response.on("error", (error) => {
+					console.error(`HTTP response error for ${httpUri}:`, error);
+					file.destroy();
+					cleanup();
+					resolve(false);
+				});
+
+				file.on("finish", () => {
+					file.close((error) => {
+						if (error) {
+							console.error(`File close error for ${fileUri}:`, error);
+							cleanup();
+							resolve(false);
+							return;
+						}
+
 						resolve(true);
 					});
-					file.on("error", () => {
-						file.close();
-						unlinkSync(fileUri);
-						resolve(false);
-					})
 				});
-			} catch (e) {
-				file.close();
-				unlinkSync(fileUri);
-				resolve(false);
-			}
 
+				response.pipe(file);
+			});
+
+			request.on("error", (error) => {
+				console.error(`HTTP request error for ${httpUri}:`, error);
+				cleanup();
+				resolve(false);
+			});
 		})
 	}
 
