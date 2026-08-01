@@ -28,7 +28,7 @@ export class AventusStaticFile extends AventusTsFile {
         let docVisible = "";
         let docNpm = "";
         if (definitionPath.endsWith(AventusExtension.Definition) && existsSync(definitionPath)) {
-            docVisible = readFileSync(definitionPath, 'utf8').replace(/declare global \{((\s|\S)*)\}/gm, '$1');
+            docVisible = readFileSync(definitionPath, 'utf8').replace(/declare global \{([\s\S]*)\}/gm, '$1');
         }
         let definitionNpmPath = currentPath.replace(this.extension, AventusExtension.DefinitionNpm);
         if (definitionNpmPath.endsWith(AventusExtension.DefinitionNpm) && existsSync(definitionNpmPath)) {
@@ -65,6 +65,7 @@ export class AventusStaticFile extends AventusTsFile {
                 internal: false
             }, // actually its exported if written correctly
             convertibleName: '',
+            useDecorator: false
         }]);
     }
     protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {

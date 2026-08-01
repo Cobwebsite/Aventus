@@ -38,18 +38,22 @@ export interface AventusPackageTsFileExportNoCode {
 }
 export class AventusPackageFile extends AventusBaseFile {
 	public static getQuickInfo(file: AventusFile): { name: string, version: { major: number, minor: number, patch: number } } | undefined {
-		if (file.contentUser.match(/\/\/#region js def \/\/((\s|\S)*)\/\/#endregion js def \/\//g)) {
-			let regexInfo = /^\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)$/gm.exec(file.contentUser);
-			if (regexInfo) {
-				return {
-					name: regexInfo[1],
-					version: {
-						major: Number(regexInfo[2]),
-						minor: Number(regexInfo[3]),
-						patch: Number(regexInfo[4]),
+		try {
+			if (/\/\/#region js def \/\/([\s\S]*?)\/\/#endregion js def \/\//.test(file.contentUser)) {
+				let regexInfo = /^\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)$/gm.exec(file.contentUser);
+				if (regexInfo) {
+					return {
+						name: regexInfo[1],
+						version: {
+							major: Number(regexInfo[2]),
+							minor: Number(regexInfo[3]),
+							patch: Number(regexInfo[4]),
+						}
 					}
 				}
 			}
+		} catch (e) {
+			console.error(e)
 		}
 		return undefined;
 	}
@@ -160,7 +164,7 @@ export class AventusPackageFile extends AventusBaseFile {
 
 
 	private separeSection() {
-		if (this.file.contentUser.match(/\/\/#region js def \/\/((\s|\S)*)\/\/#endregion js def \/\//g)) {
+		if (this.file.contentUser.match(/\/\/#region js def \/\/([\s\S]*?)\/\/#endregion js def \/\//g)) {
 			let regexInfo = /^\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)$/gm.exec(this.file.contentUser);
 			if (regexInfo) {
 				this.name = regexInfo[1];
@@ -168,38 +172,38 @@ export class AventusPackageFile extends AventusBaseFile {
 				this.version.minor = Number(regexInfo[3]);
 				this.version.patch = Number(regexInfo[4]);
 			}
-			let jsDefToImport = /((\s|\S)*)\/\/#endregion js def \/\//g.exec(this.file.contentUser);
+			let jsDefToImport = /([\s\S]*?)\/\/#endregion js def \/\//g.exec(this.file.contentUser);
 			let jsDef = "";
 			if (jsDefToImport) {
 				jsDef = jsDefToImport[0];
 			}
 
-			let jsSrcToImport = /\/\/#region js src \/\/((\s|\S)*)\/\/#endregion js src \/\//g.exec(this.file.contentUser);
+			let jsSrcToImport = /\/\/#region js src \/\/([\s\S]*?)\/\/#endregion js src \/\//g.exec(this.file.contentUser);
 			let jsSrc = "";
 			if (jsSrcToImport) {
 				jsSrc = jsSrcToImport[1];
 			}
 
-			let scssToImport = /\/\/#region css \/\/((\s|\S)*)\/\/#endregion css \/\//g.exec(this.file.contentUser);
+			let scssToImport = /\/\/#region css \/\/([\s\S]*?)\/\/#endregion css \/\//g.exec(this.file.contentUser);
 			let scssTxt = "";
 			if (scssToImport) {
 				scssTxt = scssToImport[1];
 			}
 
-			let scssDefToImport = /\/\/#region css def \/\/((\s|\S)*)\/\/#endregion css def \/\//g.exec(this.file.contentUser);
+			let scssDefToImport = /\/\/#region css def \/\/([\s\S]*?)\/\/#endregion css def \/\//g.exec(this.file.contentUser);
 			let scssDefTxt = "";
 			if (scssDefToImport) {
 				scssDefTxt = scssDefToImport[1];
 			}
 
 
-			let htmlToImport = /\/\/#region html \/\/((\s|\S)*)\/\/#endregion html \/\//g.exec(this.file.contentUser);
+			let htmlToImport = /\/\/#region html \/\/([\s\S]*?)\/\/#endregion html \/\//g.exec(this.file.contentUser);
 			let htmlTxt = "";
 			if (htmlToImport) {
 				htmlTxt = htmlToImport[1];
 			}
 
-			let depsToImport = /\/\/#region dependencies \/\/((\s|\S)*)\/\/#endregion dependencies \/\//g.exec(this.file.contentUser);
+			let depsToImport = /\/\/#region dependencies \/\/([\s\S]*?)\/\/#endregion dependencies \/\//g.exec(this.file.contentUser);
 			let depsTxt = "";
 			if (depsToImport) {
 				depsTxt = depsToImport[1];

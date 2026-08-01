@@ -463,9 +463,9 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     }
 
     private splitDocument(): SplittedTxt {
-        let regexScript = /<script>((\s|\S)*)<\/script>/g;
-        let regexTemplate = /<template>((\s|\S)*)<\/template>/g;
-        let regexStyle = /<style>((\s|\S)*)<\/style>/g;
+        let regexScript = /<script>([\s\S]*)<\/script>/g;
+        let regexTemplate = /<template>([\s\S]*)<\/template>/g;
+        let regexStyle = /<style>([\s\S]*)<\/style>/g;
 
         let resultTxt: SplittedTxt = {
             cssText: null,
@@ -515,9 +515,9 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
 
 
     public static getRegion(file: AventusFile): SplittedTxt {
-        let regexScript = /<script>((\s|\S)*)<\/script>/g;
-        let regexTemplate = /<template>((\s|\S)*)<\/template>/g;
-        let regexStyle = /<style>((\s|\S)*)<\/style>/g;
+        let regexScript = /<script>([\s\S]*?)<\/script>/g;
+        let regexTemplate = /<template>([\s\S]*?)<\/template>/g;
+        let regexStyle = /<style>([\s\S]*?)<\/style>/g;
 
         let resultTxt: SplittedTxt = {
             cssText: null,

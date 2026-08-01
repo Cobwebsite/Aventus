@@ -699,7 +699,7 @@ export class ParserHtml {
 	private manageSlotAndBlock(finalTxt: string) {
 		let body = finalTxt;
 		let removeBody = body;
-		let regexBlock = /<block.*?( name="(.*?)")?>((\s|\S)*?)<\/block>/g
+		let regexBlock = /<block.*?( name="(.*?)")?>([\s\S]*?)<\/block>/g
 		let result: RegExpExecArray | null;
 		while (result = regexBlock.exec(body)) {
 			this.blocksInfo[result[2]] = result[3];
@@ -710,7 +710,7 @@ export class ParserHtml {
 			this.blocksInfo['default'] = removeBody;
 		}
 
-		let regexSlot = /<slot.*?( name="(.*?)")?>(\s|\S)*?<\/slot>/g
+		let regexSlot = /<slot.*?( name="(.*?)")?>[\s\S]*?<\/slot>/g
 		while (result = regexSlot.exec(body)) {
 			if (!result[2]) {
 				result[2] = "default";

@@ -1,11 +1,11 @@
 declare global {
-    function t(key: keyof Aventus.AventusI18n, params: { [key: string]: string; } = {}): string;
-    function tDyn(key: string, params: { [key: string]: string; } = {}): string;
+    function t(key: keyof Aventus.AventusI18n, params?: { [key: string]: string; }): string;
+    function tDyn(key: string, params?: { [key: string]: string; }): string;
     declare namespace Aventus {
         interface WebComponent extends HTMLElement {
-            t: (key: keyof Aventus.AventusI18n, params: { [key: string]: string; } = {}) => string;
-            tDyn(key: string, params: { [key: string]: string; } = {}): string;
+            t: (key: keyof Aventus.AventusI18n, params?: { [key: string]: string; }) => string;
+            tDyn(key: string, params?: { [key: string]: string; }): string;
         }
-        interface AventusI18n { };
+        interface AventusI18n { }
     }
 }

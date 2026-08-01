@@ -669,7 +669,7 @@ export class AventusWebcomponentCompiler {
 
             let fullClassFct = `class MyCompilationClassAventus {${this.classInfo.constructorContent}}`;
             let fctCompiled = transpile(fullClassFct, AventusTsLanguageService.getCompilerOptionsCompile());
-            let matchContent = /\{((\s|\S)*)\}/gm.exec(fctCompiled);
+            let matchContent = /\{([\s\S]*)\}/gm.exec(fctCompiled);
             if (matchContent) {
                 methodsTxt = matchContent[1].trim();
             }
@@ -677,7 +677,7 @@ export class AventusWebcomponentCompiler {
             if (HttpServer.isRunning) {
                 let fullClassFctHotReload = `class MyCompilationClassAventus {${this.classInfo.constructorContentHotReload}}`;
                 let fctCompiledHotReload = transpile(fullClassFctHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
-                let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fctCompiledHotReload);
+                let matchContentHotReload = /\{([\s\S]*)\}/gm.exec(fctCompiledHotReload);
                 if (matchContentHotReload) {
                     methodsTxtHotReload = matchContentHotReload[1].trim();
                 }
@@ -686,7 +686,7 @@ export class AventusWebcomponentCompiler {
             if (this.templateNpm) {
                 let fullClassFctNpm = `class MyCompilationClassAventus {${this.classInfo.constructorContentNpm}}`;
                 let fctCompiledNpm = transpile(fullClassFctNpm, AventusTsLanguageService.getCompilerOptionsCompile());
-                let matchContentNpm = /\{((\s|\S)*)\}/gm.exec(fctCompiledNpm);
+                let matchContentNpm = /\{([\s\S]*)\}/gm.exec(fctCompiledNpm);
                 if (matchContentNpm) {
                     methodsTxtNpm = matchContentNpm[1].trim();
                 }
@@ -978,7 +978,7 @@ export class AventusWebcomponentCompiler {
         } catch (e) {
 
         }
-        let matchContent = /\{((\s|\S)*)\}/gm.exec(fieldsCompiled);
+        let matchContent = /\{([\s\S]*)\}/gm.exec(fieldsCompiled);
         if (matchContent) {
             variablesSimpleTxt = matchContent[1].trim();
         }
@@ -992,7 +992,7 @@ export class AventusWebcomponentCompiler {
             } catch (e) {
 
             }
-            let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fieldsCompiledHotReload);
+            let matchContentHotReload = /\{([\s\S]*)\}/gm.exec(fieldsCompiledHotReload);
             if (matchContentHotReload) {
                 variablesSimpleHotReloadTxt = matchContentHotReload[1].trim();
             }
@@ -1007,7 +1007,7 @@ export class AventusWebcomponentCompiler {
             } catch (e) {
 
             }
-            let matchContentNpm = /\{((\s|\S)*)\}/gm.exec(fieldsCompiledNpm);
+            let matchContentNpm = /\{([\s\S]*)\}/gm.exec(fieldsCompiledNpm);
             if (matchContentNpm) {
                 variablesSimpleNpmTxt = matchContentNpm[1].trim();
             }
@@ -1437,7 +1437,7 @@ export class AventusWebcomponentCompiler {
                 }
                 let fullClassFct = `class MyCompilationClassAventus {${fullTxt}}`;
                 let fctCompiled = transpile(fullClassFct, AventusTsLanguageService.getCompilerOptionsCompile());
-                let matchContent = /\{((\s|\S)*)\}/gm.exec(fctCompiled);
+                let matchContent = /\{([\s\S]*)\}/gm.exec(fctCompiled);
                 if (matchContent) {
                     methodsTxt = matchContent[1].trim();
                 }
@@ -1445,7 +1445,7 @@ export class AventusWebcomponentCompiler {
                 if (HttpServer.isRunning) {
                     let fullClassFctHotReload = `class MyCompilationClassAventus {${fullTxtHotReload}}`;
                     let fctCompiledHotReload = transpile(fullClassFctHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
-                    let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fctCompiledHotReload);
+                    let matchContentHotReload = /\{([\s\S]*)\}/gm.exec(fctCompiledHotReload);
                     if (matchContentHotReload) {
                         methodsTxtHotReload = matchContentHotReload[1].trim();
                     }
@@ -1454,7 +1454,7 @@ export class AventusWebcomponentCompiler {
                 if (this.templateNpm) {
                     let fullClassFctNpm = `class MyCompilationClassAventus {${fullTxtNpm}}`;
                     let fctCompiledNpm = transpile(fullClassFctNpm, AventusTsLanguageService.getCompilerOptionsCompile());
-                    let matchContentNpm = /\{((\s|\S)*)\}/gm.exec(fctCompiledNpm);
+                    let matchContentNpm = /\{([\s\S]*)\}/gm.exec(fctCompiledNpm);
                     if (matchContentNpm) {
                         methodsTxtNpm = matchContentNpm[1].trim();
                     }

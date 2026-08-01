@@ -14,8 +14,44 @@ const isExternal = (id) => {
 const resolvePart = {
   alias: {
     '@server': resolve(__dirname, '../server/src')
-  }
+  },
+  extensions: ['.ts', '.js', '.json', '.cjs'],
+  mainFields: ['module', 'main'],
 };
+
+const externalPackage = [
+  'vscode',
+  'bufferutil',
+  'utf-8-validate',
+  'emitter',
+
+  "@inquirer/core",
+  "archiver",
+  "chokidar",
+  "commander",
+  "connect",
+  "esbuild",
+  "inquirer-file-tree-selection-prompt",
+  "open",
+  "postcss",
+  "sass",
+  "send",
+  "serve-index",
+  "sudo-prompt",
+  "terser",
+  "typescript",
+  "uglify-js",
+  "unzipper",
+  "vscode",
+  "vscode-css-languageservice",
+  "vscode-html-languageservice",
+  "vscode-json-languageservice",
+  "vscode-languageclient",
+  "vscode-languageserver",
+  "vscode-languageserver-textdocument",
+  "ws",
+  '@aws-sdk/client-s3',
+]
 
 const sharedConfig = {
   resolve: resolvePart,
@@ -24,13 +60,9 @@ const sharedConfig = {
     if (nodeBuiltins.includes(id)) return true;
 
     if (id.startsWith('@server')) return false;
-    
-    // Si l'import ne commence ni par un point, ni par un slash, 
-    // et que ce n'est pas un chemin absolu Windows (ex: C:\), c'est un package NPM !
-    const isPackageNpm = /^[^./\\]/.test(id) && !/^[A-Z]:\\/i.test(id);
-    
-    return isPackageNpm;
-  }, // 🌟 On applique le filtre d'exclusion global
+
+    return externalPackage.includes(id);
+  },
 };
 
 export default withDefaults([
