@@ -1,5 +1,4 @@
 import { existsSync, mkdirSync, readFileSync, unlinkSync } from "fs";
-import { EOL } from "os";
 import { join, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
@@ -20,7 +19,7 @@ import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
 import { RegisterBuild } from '../notification/RegisterBuild';
 import { UnregisterBuild } from '../notification/UnregisterBuild';
-import { createErrorTsPos, getFolder, replaceNotImportAliases, simplifyUri, Timer, uriToPath, writeFile } from "../tools";
+import { createErrorTsPos, EOL, getFolder, replaceNotImportAliases, simplifyUri, Timer, uriToPath, writeFile } from "../tools";
 import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
 import { DependencyManager } from './DependencyManager';
@@ -1966,7 +1965,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 
         if (errorsTxt.length > 0) {
             let uri = this.buildConfig.fullname + "_dependencyErrors";
-            DebugFileAdd.send(uri, errorsTxt.join("\r\n"));
+            DebugFileAdd.send(uri, errorsTxt.join(EOL));
             result.errors.push({
                 title: "Dependencies errors",
                 file: uri

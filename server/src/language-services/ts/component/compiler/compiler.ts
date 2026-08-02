@@ -1,7 +1,7 @@
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusErrorCode, AventusExtension } from "../../../../definition";
 import { Build } from "../../../../project/Build";
-import { createErrorHTMLPos, createErrorTs, createErrorTsPos, createErrorTsSection } from "../../../../tools";
+import { createErrorHTMLPos, createErrorTs, createErrorTsPos, createErrorTsSection, EOL } from "../../../../tools";
 import { AventusHTMLFile } from "../../../html/File";
 import { AventusWebSCSSFile } from "../../../scss/File";
 import { AventusWebComponentLogicalFile } from "../File";
@@ -9,7 +9,6 @@ import { CompileComponentResult, CustomFieldModel, CustomTypeAttribute, FieldTyp
 import { AventusWebcomponentTemplate } from "./Template";
 import { transpile } from "typescript";
 import { AventusTsLanguageService, CompileTsResult, getSectionStart } from "../../LanguageService";
-import { EOL } from "os";
 import { HTMLDoc } from "../../../html/helper/definition";
 import { SCSSDoc } from "../../../scss/helper/CSSCustomNode";
 import { AventusFile } from '../../../../files/AventusFile';

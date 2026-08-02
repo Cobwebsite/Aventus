@@ -11,9 +11,10 @@ import { INJECTED_CODE } from './injectedCode';
 import { WebSocket, WebSocketServer } from 'ws';
 import { ServerStart } from '../notification/httpServer/ServerStart';
 import { ServerStop } from '../notification/httpServer/ServerStop';
-import open, {Options} from 'open'
+import open, { Options } from 'open'
 import { LiveServerSettings, SettingsManager } from '../settings/Settings';
 import { GenericServer } from '../GenericServer';
+import { EOL } from '../tools';
 
 export class HttpServer {
 	private static instance: HttpServer;
@@ -126,7 +127,7 @@ export class HttpServer {
 	public portInUse(address: string, port: number) {
 		return new Promise<boolean>((resolve, reject) => {
 			var server = testPortServer(function (socket) {
-				socket.write('Echo server\r\n');
+				socket.write('Echo server' + EOL);
 				socket.pipe(socket);
 			});
 

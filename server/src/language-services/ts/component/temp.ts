@@ -7,7 +7,6 @@
 // import { AventusExtension, AventusLanguageId } from '../../../definition';
 // import { AventusBaseFile } from '../../BaseFile';
 // import { AventusHTMLFile } from '../../html/File';
-// import { EOL } from 'os';
 // import { GenericServer } from '../../../GenericServer';
 // import { SemicolonPreference } from 'typescript';
 // import { setFormationOptions } from '../LanguageService';

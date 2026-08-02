@@ -1,4 +1,4 @@
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, rmSync, unlinkSync } from 'fs';
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync } from 'fs';
 import { AventusConfigBuild, AventusConfigBuildDependency, IncludeType } from '../language-services/json/definition';
 import { join } from 'path';
 import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_I18N_PATH, AVENTUS_DEF_PHP_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
@@ -405,6 +405,9 @@ export class DependencyManager {
 
 			extractor.on("error", (error) => {
 				console.error(`Can't extract ZIP "${zipPath}":`, error);
+				if ((error + '').includes("Error: invalid signature: 0x4f44213c")) {
+					console.log(readFileSync(zipPath, 'utf8'));
+				}
 				finish(false);
 			});
 

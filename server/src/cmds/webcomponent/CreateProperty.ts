@@ -1,4 +1,3 @@
-import { EOL } from 'os';
 import { TextEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusLanguageId } from '../../definition';
@@ -7,7 +6,7 @@ import { FilesManager } from '../../files/FilesManager';
 import { AventusWebComponentLogicalFile } from '../../language-services/ts/component/File';
 import { EditFile } from '../../notification/EditFile';
 import { GenericServer } from '../../GenericServer';
-import { reorderList } from '../../tools';
+import { EOL, reorderList } from '../../tools';
 import { SelectItem } from '../../IConnection';
 
 export class CreateProperty {

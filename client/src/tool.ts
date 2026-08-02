@@ -1,6 +1,8 @@
 import { sep } from 'path';
 import { OutputChannel, window } from 'vscode';
 
+export const EOL = "\n";
+
 export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
         return path;

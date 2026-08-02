@@ -11,13 +11,13 @@ import { ClassInfo } from '../parser/ClassInfo';
 import { AventusConfigBuildDependency } from '../../json/definition';
 import { InfoType } from '../parser/BaseInfo';
 import { GenericServer } from '../../../GenericServer';
-import { EOL } from 'os';
 import { AliasInfo } from '../parser/AliasInfo';
 import { EnumInfo } from '../parser/EnumInfo';
 import { FunctionInfo } from '../parser/FunctionInfo';
 import { VariableInfo } from '../parser/VariableInfo';
 import { ParserTs } from '../parser/ParserTs';
 import { SlotsInfo } from '../../html/File';
+import { EOL } from '../../../tools';
 
 
 export interface AventusPackageTsFileExport {

@@ -1,9 +1,8 @@
 import { CancellationToken, CustomTextEditorProvider, Disposable, ExtensionContext, Range, TextDocument, Uri, Webview, WebviewPanel, window, workspace, WorkspaceEdit } from 'vscode';
-import { getNonce } from '../tool';
+import { EOL, getNonce } from '../tool';
 import { normalize } from 'path';
 import { readFileSync } from 'fs';
 import { Communication } from './_Communication';
-import { EOL } from 'os';
 
 export class AventusDBEditor implements CustomTextEditorProvider {
 

@@ -63,7 +63,7 @@ export default createPrompt<void, LogConfig>((config, done) => {
 		if (errorsTxt.length === 0) {
 			return 'No error';
 		}
-		return errorsTxt.join('\r\n');
+		return errorsTxt.join('\n');
 	}, [errors]);
 
 	useKeypress(async (key, rl) => {

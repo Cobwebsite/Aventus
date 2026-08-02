@@ -1,12 +1,12 @@
 import { TextEdit } from 'vscode-languageserver';
 import { FilesManager } from '../../files/FilesManager';
 import { AventusWebComponentLogicalFile } from '../../language-services/ts/component/File';
-import { EOL } from 'os';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusLanguageId } from '../../definition';
 import { InternalAventusFile } from '../../files/AventusFile';
 import { EditFile } from '../../notification/EditFile';
 import { GenericServer } from '../../GenericServer';
+import { EOL } from '../../tools';
 
 export class CreateWatch {
 	static cmd: string = "aventus.wc.create.watch";

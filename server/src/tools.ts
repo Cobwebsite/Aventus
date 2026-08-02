@@ -15,6 +15,8 @@ import { createHash } from 'crypto';
 export const execAsync = promisify(exec);
 export const statAsync = promisify(stat);
 
+export const EOL = "\n";
+
 export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
         return path;
@@ -338,6 +340,7 @@ export function setValueToObject(path: string, obj: any, value: any) {
 
 const md5HashFile: { [path: string]: string } = {};
 export function writeFile(outputFile: string, txt: string, type: "build" | "static" | "storybook" | "manifest", name?: string) {
+    txt = txt.replace(/\r\n/g, "\n")
     let hash = md5(txt);
     const folder = dirname(outputFile);
     if (!existsSync(folder)) {

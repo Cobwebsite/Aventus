@@ -13,7 +13,6 @@
 // import { BaseInfo, InfoType } from '../../parser/BaseInfo';
 // import { ClassInfo } from '../../parser/ClassInfo';
 // import { createErrorTs, createErrorTsPos } from '../../../../tools';
-// import { EOL } from 'os';
 // import { DebuggerDecorator } from '../../parser/decorators/DebuggerDecorator';
 // import { TagNameDecorator } from '../../parser/decorators/TagNameDecorator';
 // import { RequiredDecorator } from '../../parser/decorators/RequiredDecorator';
