@@ -1,4 +1,3 @@
-import { EOL } from 'os';
 import { TextEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusLanguageId } from '../../definition';
@@ -7,7 +6,7 @@ import { FilesManager } from '../../files/FilesManager';
 import { EditFile } from '../../notification/EditFile';
 import { GenericServer } from '../../GenericServer';
 import { SelectItem } from '../../IConnection';
-import { reorderList } from '../../tools';
+import { EOL, reorderList } from '../../tools';
 
 export class CreateAttribute {
 	static cmd: string = "aventus.wc.create.attribute";

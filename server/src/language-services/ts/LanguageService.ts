@@ -1,11 +1,10 @@
-import { EOL } from 'os';
 import { join, normalize, sep } from 'path';
 import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind, Type, ModuleKind, getDefaultLibFilePath } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
-import { convertRange, getWordAtText, normalizePath, normalizeUri, uriToPath } from '../../tools';
+import { convertRange, EOL, getWordAtText, normalizePath, normalizeUri, uriToPath } from '../../tools';
 import { AventusTsFile } from './File';
 import { loadLibrary, loadNodeModules, loadTypescriptLib } from './libLoader';
 import { BaseInfo, InfoType } from './parser/BaseInfo';
@@ -265,7 +264,7 @@ export class AventusTsLanguageService {
             const allNormalDiagnostics: DiagnosticTs[] = syntaxDiagnostics.concat(semanticDiagnostics);
             for (let diag of allNormalDiagnostics) {
                 if (avoidCodes.includes(diag.code)) { continue; } // Decorators not valid
-                
+
                 let msg = `${flattenDiagnosticMessageText(diag.messageText, '\n')}`
                 if (diag.reportsUnnecessary) {
                     result.push({
@@ -285,7 +284,7 @@ export class AventusTsLanguageService {
                     })
                 }
             }
-            
+
             return result;
         } catch (e) {
             this.printCatchError(e);
@@ -407,7 +406,7 @@ export class AventusTsLanguageService {
                                             if (!newImport[0].includes(AventusExtension.Package)) {
                                                 if (newImport[1].startsWith(".")) {
                                                     let finalPath = this.simplifyPath(newImport[1], tsFile.file.uri);
-                                                    item.detail += "\r\nimport from " + finalPath;
+                                                    item.detail += EOL + "import from " + finalPath;
                                                     txtChange.newText = txtChange.newText.replace(newImport[1], finalPath);
                                                 }
 
@@ -1208,8 +1207,8 @@ export class AventusTsLanguageService {
             if (doc.length > 0) {
                 let namespaceTxt = element.namespace;
                 if (namespaceTxt.length > 0) {
-                    rawDoc = "namespace " + namespaceTxt + " {\r\n" + rawDoc + "}\r\n";
-                    doc = "namespace " + namespaceTxt + " {\r\n" + doc + "}\r\n";
+                    rawDoc = "namespace " + namespaceTxt + " {" + EOL + "" + rawDoc + "}" + EOL;
+                    doc = "namespace " + namespaceTxt + " {" + EOL + "" + doc + "}" + EOL;
                 }
                 if (element.isExported) {
                     result.docVisible = doc;

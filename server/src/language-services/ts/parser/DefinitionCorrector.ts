@@ -1,6 +1,7 @@
 import { ArrayTypeNode, ClassDeclaration, ConstructorDeclaration, createSourceFile, EntityName, ExpressionWithTypeArguments, forEachChild, GetAccessorDeclaration, HeritageClause, MethodDeclaration, PropertyDeclaration, QualifiedName, ScriptTarget, SetAccessorDeclaration, SyntaxKind, TypeNode, TypeReferenceNode, UnionTypeNode } from 'typescript';
 import { BaseInfo } from './BaseInfo';
 import { ClassInfo } from './ClassInfo';
+import { EOL } from '../../../tools';
 
 export class DefinitionCorrector {
 	private static allChanges: {
@@ -31,7 +32,7 @@ export class DefinitionCorrector {
 				var classInfo: ClassDeclaration = <ClassDeclaration>x;
 				for (let decorator of element.decorators) {
 					if (decorator.name != "Debugger") {
-						this.addChange(decorator.content + "\r\n", classInfo.getStart(), classInfo.getStart());
+						this.addChange(decorator.content + EOL, classInfo.getStart(), classInfo.getStart());
 					}
 				}
 				if (classInfo.typeParameters) {
@@ -105,7 +106,7 @@ export class DefinitionCorrector {
 			if (method) {
 				let decorators = method.decorators;
 				for (let decorator of decorators) {
-					this.addChange(decorator.content + "\r\n\t", node.getStart(), node.getStart());
+					this.addChange(decorator.content + EOL + "\t", node.getStart(), node.getStart());
 				}
 			}
 		}
@@ -121,7 +122,7 @@ export class DefinitionCorrector {
 		if (property) {
 			let decorators = property.decorators;
 			for (let decorator of decorators) {
-				this.addChange(decorator.content + "\r\n\t", node.getStart(), node.getStart());
+				this.addChange(decorator.content + EOL + "\t", node.getStart(), node.getStart());
 			}
 		}
 	}

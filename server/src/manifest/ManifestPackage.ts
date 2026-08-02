@@ -1,10 +1,9 @@
 import { join } from 'path';
 import { GenericServer } from '../GenericServer';
 import { AventusPackageFile, AventusPackageTsFileExport } from '../language-services/ts/package/File';
-import { uriToPath, writeFile } from '../tools';
+import { EOL, uriToPath, writeFile } from '../tools';
 import { EmmetCustomDataSchema } from './EmmetCustomDataSchema';
 import { existsSync, mkdirSync } from 'fs';
-import { EOL } from 'os';
 import { InfoType } from '../language-services/ts/parser/BaseInfo';
 import { PropertyDecorator } from '../language-services/ts/parser/decorators/PropertyDecorator';
 import { AttributeDecorator } from '../language-services/ts/parser/decorators/AttributeDecorator';

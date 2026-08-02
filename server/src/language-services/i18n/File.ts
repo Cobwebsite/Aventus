@@ -8,6 +8,7 @@ import { I18nParsed, I18nParser } from './Parser';
 import { AventusExtension } from '../../definition';
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
 import { ClassInfo } from '../ts/parser/ClassInfo';
+import { EOL } from '../../tools';
 
 export type AventusI18nFileSrcParsed = { [key: string]: { [locale: string]: string } };
 export type AventusI18nExported = { [locales: string]: { [key: string]: string } };
@@ -45,7 +46,7 @@ export class AventusI18nFile extends AventusBaseFile {
 			this.transformForExport();
 			if (this.file instanceof InternalAventusFile) {
 				if (this.isGlobal) {
-					const values = this.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(",\r\n")
+					const values = this.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(","+EOL)
 					const content = `declare global {
 	namespace Aventus { 
 		interface AventusI18n {

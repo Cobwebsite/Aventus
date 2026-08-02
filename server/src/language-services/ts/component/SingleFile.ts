@@ -1,4 +1,3 @@
-import { EOL } from 'os';
 import { Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusExtension, AventusLanguageId } from "../../../definition";
@@ -9,6 +8,7 @@ import { AventusHTMLFile } from "../../html/File";
 import { AventusWebSCSSFile } from "../../scss/File";
 import { AventusWebComponentLogicalFile } from './File';
 import { AventusI18nFile } from '../../i18n/File';
+import { EOL } from '../../../tools';
 
 interface AventusWebComponentSingleFileRegion<T extends AventusBaseFile> {
     start: number,

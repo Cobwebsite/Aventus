@@ -8,6 +8,6 @@ const logo = [
 
 export function printLogo() {
      console.log("\x1b[31m")
-     console.log(logo.join("\r\n"));
+     console.log(logo.join("\n"));
      console.log('\x1b[0m')
 }

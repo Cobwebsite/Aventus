@@ -7,9 +7,8 @@ import { ConvertibleDecorator } from './decorators/ConvertibleDecorator';
 import { IStoryContentInterface, IStoryContentClass, IStoryContentObject, IStoryContentObjectMethod, IStoryContentReturn, IStoryContentObjectProperty } from '@aventusjs/storybook';
 import { TypeInfo } from './TypeInfo';
 import { StorybookDecorator } from './decorators/StorybookDecorator';
-import { EOL } from 'os';
 import { ListCallbacks } from '../component/compiler/def';
-import { md5 } from '../../../tools';
+import { EOL, md5 } from '../../../tools';
 
 
 export class ClassInfo extends BaseInfo {

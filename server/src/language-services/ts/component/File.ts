@@ -1,5 +1,4 @@
 import { existsSync, unlinkSync, writeFileSync } from 'fs';
-import { EOL } from 'os';
 import { Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../../../definition";
@@ -11,7 +10,7 @@ import { AventusTsFile } from "../File";
 import { AventusWebcomponentCompiler } from "./compiler/compiler";
 import { CompileComponentResult } from "./compiler/def";
 import { ClassInfo } from '../parser/ClassInfo';
-import { md5, replaceNotImportAliases } from '../../../tools';
+import { EOL, md5, replaceNotImportAliases } from '../../../tools';
 import { QuickParser } from './QuickParser';
 import { HTMLFormat } from '../../html/parser/definition';
 import { join } from 'path';
@@ -605,7 +604,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return super.t(key as keyof Aventus.AventusI18n, params);
     }`
                         newContent += methodTxt + "\n";
-                        const values = i18n.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(",\r\n")
+                        const values = i18n.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join("," + EOL)
                         contentAfter += `\ntype ${this.componentClassName}__Generated = {
     ${values}
 }`;

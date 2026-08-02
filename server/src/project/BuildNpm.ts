@@ -1,8 +1,7 @@
-import { EOL } from 'os';
 import { Build, BuildErrors } from './Build';
 import { Compiled } from '../notification/Compiled';
 import { DebugFileAdd } from '../notification/DebugFileAdd';
-import { md5 } from '../tools';
+import { EOL, md5 } from '../tools';
 import { build } from 'esbuild';
 import { dirname, join, resolve } from 'path';
 import { existsSync } from 'fs';
