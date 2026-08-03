@@ -426,7 +426,12 @@ export class ParserHtml {
 		//#region loop though nodes to find if and for
 		let realJsTxt = txt;
 		const sliceText = (start: number, end?: number) => realJsTxt.slice(start, end);
-		let srcFile = createSourceFile("sample.ts", txt.replace(/\{\{|\}\}/g, "  ").replace(/<(\/?.*?)>/g, "'$1'"), ScriptTarget.ESNext, true);
+		// Only replace actual HTML tags. The previous expression also matched a
+		// comparison such as `i < items.length` up to the next `>` on the same
+		// line. In that case TypeScript parsed a corrupted if/for block and the
+		// generated <if>/<l> transformations could consume part of its HTML.
+		const htmlTagRegex = /<\/?[A-Za-z][A-Za-z0-9:_-]*(?:\s+(?:[^"'<>]|"[^"]*"|'[^']*')*)?\s*\/?>/g;
+		let srcFile = createSourceFile("sample.ts", txt.replace(/\{\{|\}\}/g, "  ").replace(htmlTagRegex, tag => "'" + tag.slice(1, -1) + "'"), ScriptTarget.ESNext, true);
 		let transformations: { newText: string, start: number, end: number }[] = [];
 		const loop = (node: Node, lvl: number) => {
 			forEachChild(node, x => {
