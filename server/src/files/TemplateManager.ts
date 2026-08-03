@@ -1,4 +1,4 @@
-import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'fs';
+import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync } from 'fs';
 import { GenericServer } from '../GenericServer';
 import { dirname, join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';

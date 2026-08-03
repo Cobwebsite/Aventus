@@ -419,7 +419,7 @@ export class AventusSCSSLanguageService {
                     type: "*"
                 }
                 const commentTxt = match[1].trim();
-                const array = commentTxt.split("\n");
+                const array = commentTxt.replace(/\r\n?/g, "\n").split("\n");
                 for (let item of array) {
                     let foundTag = false;
                     item = item.replace("*", "").trim();

@@ -82,5 +82,5 @@ export class MergeComponent {
 }
 
 function addTab(text) {
-	return text.split("\n").join("\n\t");
+	return text.replace(/\r\n?/g, "\n").split("\n").join("\n\t");
 }

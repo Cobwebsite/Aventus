@@ -1240,7 +1240,7 @@ export class AventusTsLanguageService {
                     let replacement = `})(${element.fullName} || (${element.fullName} = {}))`
                     finalCompiled = finalCompiled.replaceAll(toReplace, replacement);
                     if (element.fullName.includes(".")) {
-                        let splitted = finalCompiled.split("\n");
+                        let splitted = finalCompiled.replace(/\r\n?/g, "\n").split("\n");
                         splitted.splice(0, 1);
                         finalCompiled = splitted.join("\n");
                     }
