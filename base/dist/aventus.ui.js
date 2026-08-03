@@ -6602,7 +6602,9 @@ this.__addPropertyActions("stroke_width", ((target) => {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="container" _id="progresscircle_0"></div><div class="content">	<slot></slot></div>` }
+        blocks: { 'default':`<div class="container" _id="progresscircle_0"></div><div class="content">
+	<slot></slot>
+</div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();
@@ -7046,7 +7048,13 @@ get 'reverse'() { return this.getBoolAttr('reverse') }
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'header':`<slot name="header"></slot>`,'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="title" _id="collapse_0">    <slot name="header"></slot></div><div class="collapse" _id="collapse_1">    <div class="content">        <slot></slot>    </div></div>` }
+        blocks: { 'default':`<div class="title" _id="collapse_0">
+    <slot name="header"></slot>
+</div><div class="collapse" _id="collapse_1">
+    <div class="content">
+        <slot></slot>
+    </div>
+</div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();
@@ -7435,7 +7443,9 @@ Layout.Tabs.Tabs = class Tabs extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="header" _id="tabs_0"></div><div class="body" _id="tabs_1">	<slot></slot></div>` }
+        blocks: { 'default':`<div class="header" _id="tabs_0"></div><div class="body" _id="tabs_1">
+	<slot></slot>
+</div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();
@@ -8886,7 +8896,24 @@ this.__addPropertyActions("ruler_size", ((target) => {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="lock" _id="gridhelper_0">    <svg class="close" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>    </svg>    <svg class="open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>        <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>    </svg></div><div class="ruler-top" _id="gridhelper_1">    <div class="ruler-content" _id="gridhelper_2"></div></div><div class="ruler-left" _id="gridhelper_3">    <div class="ruler-content" _id="gridhelper_4"></div></div><div class="grid" _id="gridhelper_5">    <div class="cols" _id="gridhelper_6"></div>    <div class="rows" _id="gridhelper_7"></div></div><div class="guides" _id="gridhelper_8"></div>` }
+        blocks: { 'default':`<div class="lock" _id="gridhelper_0">
+    <svg class="close" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+    <svg class="open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+    </svg>
+</div><div class="ruler-top" _id="gridhelper_1">
+    <div class="ruler-content" _id="gridhelper_2"></div>
+</div><div class="ruler-left" _id="gridhelper_3">
+    <div class="ruler-content" _id="gridhelper_4"></div>
+</div><div class="grid" _id="gridhelper_5">
+    <div class="cols" _id="gridhelper_6"></div>
+    <div class="rows" _id="gridhelper_7"></div>
+</div><div class="guides" _id="gridhelper_8">
+</div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();
@@ -9796,7 +9823,27 @@ get 'flex'() { return this.getBoolAttr('flex') }
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
+        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">
+    <div class="content-zoom" _id="scrollable_1">
+        <div class="content-hidder" _id="scrollable_2">
+            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">
+                <slot></slot>
+            </div>
+        </div>
+    </div>
+    <div class="scroller-wrapper">
+        <div class="container-scroller vertical" _id="scrollable_4">
+            <div class="shadow-scroller">
+                <div class="scroller" _id="scrollable_5"></div>
+            </div>
+        </div>
+        <div class="container-scroller horizontal" _id="scrollable_6">
+            <div class="shadow-scroller">
+                <div class="scroller" _id="scrollable_7"></div>
+            </div>
+        </div>
+    </div>
+</div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();
@@ -10745,7 +10792,9 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="modal" _id="modalelement_0">	<slot></slot></div>` }
+        blocks: { 'default':`<div class="modal" _id="modalelement_0">
+	<slot></slot>
+</div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();

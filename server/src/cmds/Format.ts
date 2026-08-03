@@ -25,7 +25,6 @@ export class Format {
 					await file.applyTextEdits(textEdits);
 					let newContent = file.contentUser;
 					if(oldContent != newContent) {
-						console.log(textEdits);
 						writeFileSync(uriToPath(uriTemp), file.contentUser)
 					}
 				} catch (e) {

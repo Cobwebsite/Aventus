@@ -1206,7 +1206,7 @@ function parseTxt(value: string, valueStart: number): {
 			resultTemp.variables = anaylseVariables(m[1], resultTemp.variables);
 			let params = resultTemp.variables.map(p => "c.data." + p).join(",");
 			let content = "${c.print(c.comp." + resultTemp.name + "(" + params + "))}";
-			result.txt = result.txt.replace(m[0], content);
+			result.txt = result.txt.replace(m[0], content).replace(/\r\n?/g, "\n");
 			result.changes.push(resultTemp);
 		}
 	}

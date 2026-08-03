@@ -1,13 +1,12 @@
 import { Diagnostic, Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Location, CodeLens, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusFile } from '../../files/AventusFile';
-import { Build } from '../../project/Build';
 import { AventusGlobalBaseFile } from '../GlobalBaseFile';
 import { normalize, sep } from 'path';
 import { FilesManager } from '../../files/FilesManager';
 import { AventusExtension } from '../../definition';
 import { createErrorScss, createErrorScssPos, writeFile } from '../../tools';
 import { Project } from '../../project/Project';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { Exception, compileString } from 'sass';
 import { GenericServer } from '../../GenericServer';
 import { SettingsManager } from '../../settings/Settings';
