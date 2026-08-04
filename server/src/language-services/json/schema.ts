@@ -511,7 +511,7 @@ export const AventusSharpSchema: JSONSchema = {
                 createRouter: { type: "boolean", default: true, description: "Create a router that your route will use" },
                 routerName: { type: "string", default: "GeneratedRouter", description: "The name of the router to generate" },
                 uri: { type: "string", default: "", pattern: "^(?=\s*$)|^(\\/[a-zA-Z0-9_-]+?){1,}$", description: "Define the base uri for your router (ex: /api)" },
-                host: { type: "string", default: "https://localhost:5000", pattern: "^http(s)?:\\/\\/[a-zA-Z0-9_-]*?(:[0-9]{3,4})?$", description: "Define the host that the router will use" },
+                host: { type: "string", default: "https://localhost:5000", description: "Define the host that the router will use" },
                 parent: { type: "string", default: "Aventus.HttpRouter", description: "Define the parent type to use for your router" },
                 parentFile: { type: "string", default: "", description: "Define the parent file to use for your router" },
                 namespace: { type: "string", default: "Routes", description: "Define the namespace for your router" },
