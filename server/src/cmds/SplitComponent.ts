@@ -1,11 +1,11 @@
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { FilesManager } from '../files/FilesManager';
 import { AventusWebComponentSingleFile } from '../language-services/ts/component/SingleFile';
 import { CloseFile } from '../notification/CloseFile';
 import { OpenFile } from '../notification/OpenFile';
-import { uriToPath } from '../tools';
+import { unlinkSync, uriToPath } from '../tools';
 
 export class SplitComponent {
 	static cmd: string = "aventus.component.split";

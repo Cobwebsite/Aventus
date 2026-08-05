@@ -1,14 +1,3 @@
-// export function Dynamic() {
-//     return function (initialValue: unknown, context: ClassFieldDecoratorContext) {
-//         debugger;
-//         context.addInitializer(function (this: any) {
-//             debugger;
-//             // Ici, 'this' est l'instance de ta classe !
-//             console.log("Instance créée :", this);
-//         });
-//     };
-// }
-
 import { Watcher } from "Aventus@Main:Aventus.package.avt";
 
 type callback = (target: any, value: any) => void;
@@ -50,11 +39,3 @@ export function Dynamic(cb?: callback): AvAccessorDecorator {
         };
     };
 }
-
-// export function Dynamic2(config?: OverrideViewConfig) {
-//     return function (originalClass: Function, context: ClassDecoratorContext): any {
-//         debugger;
-
-//         return originalClass;
-//     };
-// };

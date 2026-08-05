@@ -1,6 +1,0 @@
-export enum ErrorCode {
-    unknow,
-    differentChannel,
-    timeout
-}
-export class Error extends Aventus.GenericError<ErrorCode>{ }

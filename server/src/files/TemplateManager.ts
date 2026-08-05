@@ -1,10 +1,10 @@
-import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync } from 'fs';
+import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'fs';
 import { GenericServer } from '../GenericServer';
 import { dirname, join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';
 import { TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
-import { execAsync, setValueToObject, uriToPath } from '../tools';
+import { execAsync, setValueToObject, unlinkSync, uriToPath } from '../tools';
 import { AventusExtension } from '../definition';
 import { get } from 'http';
 import { get as gets } from 'https';

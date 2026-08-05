@@ -1,10 +1,10 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { rmdirSync, unlinkSync, writeFileSync } from 'fs';
+import { rmdirSync, writeFileSync } from 'fs';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { FilesManager } from '../files/FilesManager';
 import { CloseFile } from '../notification/CloseFile';
 import { OpenFile } from '../notification/OpenFile';
-import { uriToPath } from '../tools';
+import { unlinkSync, uriToPath } from '../tools';
 
 export class MergeComponent {
 	static cmd: string = "aventus.component.merge";

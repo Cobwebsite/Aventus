@@ -6,7 +6,7 @@ import { AventusErrorCode, AventusExtension, AventusLanguageId } from "./definit
 import { SectionType } from './language-services/ts/LanguageService';
 import { AventusFile } from './files/AventusFile';
 import { AventusConfig } from './language-services/json/definition';
-import { existsSync, mkdirSync, stat, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, stat, unlinkSync as rmSync, writeFileSync } from 'fs';
 import { Statistics } from './notification/Statistics';
 import { promisify } from 'util';
 import { exec } from 'child_process';
@@ -357,6 +357,14 @@ export function writeFile(outputFile: string, txt: string, type: "build" | "stat
 export function md5(data: string): string {
     return createHash('md5').update(data).digest('hex');
 }
+
+export function unlinkSync(path: string) {
+    try {
+        if (existsSync(path))
+            rmSync(path)
+    } catch { }
+}
+
 
 export class Timer {
     private static timers: { [name: string]: [number, number] } = {}

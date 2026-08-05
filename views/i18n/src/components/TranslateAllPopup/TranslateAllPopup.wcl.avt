@@ -33,7 +33,8 @@ export class TranslateAllPopup extends GenericPopup implements Aventus.DefaultCo
 
     //#region methods
     public async run() {
-        this.closeBtn['disabled'] = true;
+        let closeBtn = this.closeBtn as any;
+        closeBtn['disabled'] = true;
         this.is_running = true;
 
         await Aventus.sleep(5000);
@@ -55,8 +56,7 @@ export class TranslateAllPopup extends GenericPopup implements Aventus.DefaultCo
             }
         }
 
-
-        this.closeBtn['disabled'] = false;
+        closeBtn['disabled'] = false;
         this.is_running = false;
     }
 

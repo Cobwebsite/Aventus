@@ -12,11 +12,9 @@
 			],
 			"dependencies": {
 				"Aventus@UI": {},
-				"OneMoreUI": {
-					"isLocal": true
-				},
-				"VscodeView@Main": {
-					"isLocal": true,
+				"OneMoreUI": "1.0.3",
+				"VscodeView": {
+					"version": "1.0.1",
 					"include": "full"
 				}
 			},

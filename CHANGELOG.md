@@ -1,5 +1,29 @@
 # Change Log
 
+## 1.5.0 (2026-08-)
+
+### Features
+ - Add color detection for oklch
+ - Add space key to shortcutmanager
+ - Allow ` inside html view
+ - Change aventus cli to be more user friendly + start only server part needed
+ - Upgrade from ts5 to ts6
+ - Improve template
+ - Correct node_modules with rollup
+ - Add DB view editor for file *.db.avt
+ - Add Migration view creator for AventusSharp projet
+ - Extract csharp and php transpiler. Now it ll download the package need from nuget/packagist
+ - Allow import file from path alias
+ - Add emmet snippets via command : "Aventus : Create emmet snippets"
+ - Export c# route from compiled dll to improve route generation
+ - Add cache to request + cachable generation from c#
+
+### Bug Fixes
+ - Correct inheritance with same name
+ - Correct i18n loading
+ - Correct config dependances => dependencies
+ - Correct EOL to have same build file across linux/mac/windows
+
 ## 1.4.1 (2025-10-23)
 
 ### Features

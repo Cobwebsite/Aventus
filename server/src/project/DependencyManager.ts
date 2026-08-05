@@ -1,8 +1,8 @@
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync } from 'fs';
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'fs';
 import { AventusConfigBuild, AventusConfigBuildDependency, IncludeType } from '../language-services/json/definition';
 import { join } from 'path';
 import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_I18N_PATH, AVENTUS_DEF_PHP_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
-import { pathToUri } from '../tools';
+import { pathToUri, unlinkSync } from '../tools';
 import { AventusExtension } from '../definition';
 import { AventusPackageFile } from '../language-services/ts/package/File';
 import { Build } from './Build';

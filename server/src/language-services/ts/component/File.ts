@@ -1,4 +1,4 @@
-import { existsSync, unlinkSync, writeFileSync } from 'fs';
+import { existsSync, writeFileSync } from 'fs';
 import { Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../../../definition";
@@ -10,7 +10,7 @@ import { AventusTsFile } from "../File";
 import { AventusWebcomponentCompiler } from "./compiler/compiler";
 import { CompileComponentResult } from "./compiler/def";
 import { ClassInfo } from '../parser/ClassInfo';
-import { EOL, md5, replaceNotImportAliases } from '../../../tools';
+import { EOL, md5, replaceNotImportAliases, unlinkSync } from '../../../tools';
 import { QuickParser } from './QuickParser';
 import { HTMLFormat } from '../../html/parser/definition';
 import { join } from 'path';

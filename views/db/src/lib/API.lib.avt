@@ -1,6 +1,7 @@
 import { Callback } from "Aventus@Main:Aventus.package.avt";
 import { DEFAULT_SCHEMA } from "./DefaultSchema.lib.avt";
 import type { Schema } from "./Definition.lib.avt";
+import { Process } from "Aventus@UI:Aventus.package.avt";
 
 export class API {
     public static readonly onIsDirtyChange: Callback<(value: boolean) => void> = new Callback();
@@ -25,14 +26,11 @@ export class API {
 
     public static async loadSchema(): Promise<Schema | undefined> {
         if(VscodeView.Router.isVscode) {
-            const result = await VscodeView.Router.getInstance().sendWithResponse<Schema>({
+            const result = await Process.execute(VscodeView.Router.getInstance().sendWithResponse<Schema>({
                 channel: "getData",
-            });
-            if(result.result) {
-                return result.result;
-            }
-            else if(result.errors.length > 0) {
-                alert(result.errors[0].message);
+            }));
+            if(result) {
+                return result;
             }
         }
         else {

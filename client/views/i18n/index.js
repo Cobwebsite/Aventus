@@ -1,122 +1,10 @@
 var npmCompilation;
 (npmCompilation||(npmCompilation = {}));
 (function (npmCompilation) {
-	var _ = (function () {
-    'use strict';
-
-    /**
-     * @license
-     * Copyright 2019 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */
-    const t$3=globalThis,e$7=t$3.ShadowRoot&&(void 0===t$3.ShadyCSS||t$3.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s$3=Symbol(),o$6=new WeakMap;let n$4 = class n{constructor(t,e,o){if(this._$cssResult$=!0,o!==s$3)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e;}get styleSheet(){let t=this.o;const s=this.t;if(e$7&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=o$6.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&o$6.set(s,t));}return t}toString(){return this.cssText}};const r$6=t=>new n$4("string"==typeof t?t:t+"",void 0,s$3),i$4=(t,...e)=>{const o=1===t.length?t[0]:e.reduce(((e,s,o)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[o+1]),t[0]);return new n$4(o,t,s$3)},S$1=(s,o)=>{if(e$7)s.adoptedStyleSheets=o.map((t=>t instanceof CSSStyleSheet?t:t.styleSheet));else for(const e of o){const o=document.createElement("style"),n=t$3.litNonce;void 0!==n&&o.setAttribute("nonce",n),o.textContent=e.cssText,s.appendChild(o);}},c$3=e$7?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return r$6(e)})(t):t;
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */const{is:i$3,defineProperty:e$6,getOwnPropertyDescriptor:h$1,getOwnPropertyNames:r$5,getOwnPropertySymbols:o$5,getPrototypeOf:n$3}=Object,a$1=globalThis,c$2=a$1.trustedTypes,l$1=c$2?c$2.emptyScript:"",p$2=a$1.reactiveElementPolyfillSupport,d$1=(t,s)=>t,u$3={toAttribute(t,s){switch(s){case Boolean:t=t?l$1:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t);}return t},fromAttribute(t,s){let i=t;switch(s){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t);}catch(t){i=null;}}return i}},f$1=(t,s)=>!i$3(t,s),b={attribute:!0,type:String,converter:u$3,reflect:!1,useDefault:!1,hasChanged:f$1};Symbol.metadata??=Symbol("metadata"),a$1.litPropertyMetadata??=new WeakMap;let y$1 = class y extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t);}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,s=b){if(s.state&&(s.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(t)&&((s=Object.create(s)).wrapped=!0),this.elementProperties.set(t,s),!s.noAccessor){const i=Symbol(),h=this.getPropertyDescriptor(t,i,s);void 0!==h&&e$6(this.prototype,t,h);}}static getPropertyDescriptor(t,s,i){const{get:e,set:r}=h$1(this.prototype,t)??{get(){return this[s]},set(t){this[s]=t;}};return {get:e,set(s){const h=e?.call(this);r?.call(this,s),this.requestUpdate(t,h,i);},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??b}static _$Ei(){if(this.hasOwnProperty(d$1("elementProperties")))return;const t=n$3(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties);}static finalize(){if(this.hasOwnProperty(d$1("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(d$1("properties"))){const t=this.properties,s=[...r$5(t),...o$5(t)];for(const i of s)this.createProperty(i,t[i]);}const t=this[Symbol.metadata];if(null!==t){const s=litPropertyMetadata.get(t);if(void 0!==s)for(const[t,i]of s)this.elementProperties.set(t,i);}this._$Eh=new Map;for(const[t,s]of this.elementProperties){const i=this._$Eu(t,s);void 0!==i&&this._$Eh.set(i,t);}this.elementStyles=this.finalizeStyles(this.styles);}static finalizeStyles(s){const i=[];if(Array.isArray(s)){const e=new Set(s.flat(1/0).reverse());for(const s of e)i.unshift(c$3(s));}else void 0!==s&&i.push(c$3(s));return i}static _$Eu(t,s){const i=s.attribute;return !1===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev();}_$Ev(){this._$ES=new Promise((t=>this.enableUpdating=t)),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach((t=>t(this)));}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.();}removeController(t){this._$EO?.delete(t);}_$E_(){const t=new Map,s=this.constructor.elementProperties;for(const i of s.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t);}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return S$1(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach((t=>t.hostConnected?.()));}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach((t=>t.hostDisconnected?.()));}attributeChangedCallback(t,s,i){this._$AK(t,i);}_$ET(t,s){const i=this.constructor.elementProperties.get(t),e=this.constructor._$Eu(t,i);if(void 0!==e&&!0===i.reflect){const h=(void 0!==i.converter?.toAttribute?i.converter:u$3).toAttribute(s,i.type);this._$Em=t,null==h?this.removeAttribute(e):this.setAttribute(e,h),this._$Em=null;}}_$AK(t,s){const i=this.constructor,e=i._$Eh.get(t);if(void 0!==e&&this._$Em!==e){const t=i.getPropertyOptions(e),h="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:u$3;this._$Em=e,this[e]=h.fromAttribute(s,t.type)??this._$Ej?.get(e)??null,this._$Em=null;}}requestUpdate(t,s,i){if(void 0!==t){const e=this.constructor,h=this[t];if(i??=e.getPropertyOptions(t),!((i.hasChanged??f$1)(h,s)||i.useDefault&&i.reflect&&h===this._$Ej?.get(t)&&!this.hasAttribute(e._$Eu(t,i))))return;this.C(t,s,i);}!1===this.isUpdatePending&&(this._$ES=this._$EP());}C(t,s,{useDefault:i,reflect:e,wrapped:h},r){i&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,r??s??this[t]),!0!==h||void 0!==r)||(this._$AL.has(t)||(this.hasUpdated||i||(s=void 0),this._$AL.set(t,s)),!0===e&&this._$Em!==t&&(this._$Eq??=new Set).add(t));}async _$EP(){this.isUpdatePending=!0;try{await this._$ES;}catch(t){Promise.reject(t);}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,s]of this._$Ep)this[t]=s;this._$Ep=void 0;}const t=this.constructor.elementProperties;if(t.size>0)for(const[s,i]of t){const{wrapped:t}=i,e=this[s];!0!==t||this._$AL.has(s)||void 0===e||this.C(s,void 0,i,e);}}let t=!1;const s=this._$AL;try{t=this.shouldUpdate(s),t?(this.willUpdate(s),this._$EO?.forEach((t=>t.hostUpdate?.())),this.update(s)):this._$EM();}catch(s){throw t=!1,this._$EM(),s}t&&this._$AE(s);}willUpdate(t){}_$AE(t){this._$EO?.forEach((t=>t.hostUpdated?.())),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t);}_$EM(){this._$AL=new Map,this.isUpdatePending=!1;}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return !0}update(t){this._$Eq&&=this._$Eq.forEach((t=>this._$ET(t,this[t]))),this._$EM();}updated(t){}firstUpdated(t){}};y$1.elementStyles=[],y$1.shadowRootOptions={mode:"open"},y$1[d$1("elementProperties")]=new Map,y$1[d$1("finalized")]=new Map,p$2?.({ReactiveElement:y$1}),(a$1.reactiveElementVersions??=[]).push("2.1.0");
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */
-    const t$2=globalThis,i$2=t$2.trustedTypes,s$2=i$2?i$2.createPolicy("lit-html",{createHTML:t=>t}):void 0,e$5="$lit$",h=`lit$${Math.random().toFixed(9).slice(2)}$`,o$4="?"+h,n$2=`<${o$4}>`,r$4=document,l=()=>r$4.createComment(""),c$1=t=>null===t||"object"!=typeof t&&"function"!=typeof t,a=Array.isArray,u$2=t=>a(t)||"function"==typeof t?.[Symbol.iterator],d="[ \t\n\f\r]",f=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,v$1=/-->/g,_=/>/g,m$1=RegExp(`>|${d}(?:([^\\s"'>=/]+)(${d}*=${d}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),p$1=/'/g,g=/"/g,$=/^(?:script|style|textarea|title)$/i,y=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),x=y(1),T=Symbol.for("lit-noChange"),E=Symbol.for("lit-nothing"),A=new WeakMap,C=r$4.createTreeWalker(r$4,129);function P(t,i){if(!a(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==s$2?s$2.createHTML(i):i}const V=(t,i)=>{const s=t.length-1,o=[];let r,l=2===i?"<svg>":3===i?"<math>":"",c=f;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,y=0;for(;y<s.length&&(c.lastIndex=y,u=c.exec(s),null!==u);)y=c.lastIndex,c===f?"!--"===u[1]?c=v$1:void 0!==u[1]?c=_:void 0!==u[2]?($.test(u[2])&&(r=RegExp("</"+u[2],"g")),c=m$1):void 0!==u[3]&&(c=m$1):c===m$1?">"===u[0]?(c=r??f,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?m$1:'"'===u[3]?g:p$1):c===g||c===p$1?c=m$1:c===v$1||c===_?c=f:(c=m$1,r=void 0);const x=c===m$1&&t[i+1].startsWith("/>")?" ":"";l+=c===f?s+n$2:d>=0?(o.push(a),s.slice(0,d)+e$5+s.slice(d)+h+x):s+h+(-2===d?i:x);}return [P(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),o]};class N{constructor({strings:t,_$litType$:s},n){let r;this.parts=[];let c=0,a=0;const u=t.length-1,d=this.parts,[f,v]=V(t,s);if(this.el=N.createElement(f,n),C.currentNode=this.el.content,2===s||3===s){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=C.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(e$5)){const i=v[a++],s=r.getAttribute(t).split(h),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:c,name:e[2],strings:s,ctor:"."===e[1]?H:"?"===e[1]?I:"@"===e[1]?L:k}),r.removeAttribute(t);}else t.startsWith(h)&&(d.push({type:6,index:c}),r.removeAttribute(t));if($.test(r.tagName)){const t=r.textContent.split(h),s=t.length-1;if(s>0){r.textContent=i$2?i$2.emptyScript:"";for(let i=0;i<s;i++)r.append(t[i],l()),C.nextNode(),d.push({type:2,index:++c});r.append(t[s],l());}}}else if(8===r.nodeType)if(r.data===o$4)d.push({type:2,index:c});else {let t=-1;for(;-1!==(t=r.data.indexOf(h,t+1));)d.push({type:7,index:c}),t+=h.length-1;}c++;}}static createElement(t,i){const s=r$4.createElement("template");return s.innerHTML=t,s}}function S(t,i,s=t,e){if(i===T)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=c$1(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(!1),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=S(t,h._$AS(t,i.values),h,e)),i}let M$1 = class M{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??r$4).importNode(i,!0);C.currentNode=e;let h=C.nextNode(),o=0,n=0,l=s[0];for(;void 0!==l;){if(o===l.index){let i;2===l.type?i=new R(h,h.nextSibling,this,t):1===l.type?i=new l.ctor(h,l.name,l.strings,this,t):6===l.type&&(i=new z(h,this,t)),this._$AV.push(i),l=s[++n];}o!==l?.index&&(h=C.nextNode(),o++);}return C.currentNode=r$4,e}p(t){let i=0;for(const s of this._$AV)void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}};class R{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=E,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??!0;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=S(this,t,i),c$1(t)?t===E||null==t||""===t?(this._$AH!==E&&this._$AR(),this._$AH=E):t!==this._$AH&&t!==T&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):u$2(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==E&&c$1(this._$AH)?this._$AA.nextSibling.data=t:this.T(r$4.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=N.createElement(P(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new M$1(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=A.get(t.strings);return void 0===i&&A.set(t.strings,i=new N(t)),i}k(t){a(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new R(this.O(l()),this.O(l()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,i){for(this._$AP?.(!1,!0,i);t&&t!==this._$AB;){const i=t.nextSibling;t.remove(),t=i;}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class k{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=E,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=E;}_$AI(t,i=this,s,e){const h=this.strings;let o=!1;if(void 0===h)t=S(this,t,i,0),o=!c$1(t)||t!==this._$AH&&t!==T,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=S(this,e[s+n],i,n),r===T&&(r=this._$AH[n]),o||=!c$1(r)||r!==this._$AH[n],r===E?t=E:t!==E&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===E?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class H extends k{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===E?void 0:t;}}class I extends k{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==E);}}class L extends k{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=S(this,t,i,0)??E)===T)return;const s=this._$AH,e=t===E&&s!==E||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==E&&(s===E||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){S(this,t);}}const Z={M:e$5,P:h,A:o$4,C:1,L:V,R:M$1,D:u$2,V:S,I:R,H:k,N:I,U:L,B:H,F:z},j=t$2.litHtmlPolyfillSupport;j?.(N,R),(t$2.litHtmlVersions??=[]).push("3.3.0");const B=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new R(i.insertBefore(l(),t),t,void 0,s??{});}return h._$AI(t),h};
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */const s$1=globalThis;let i$1 = class i extends y$1{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=B(r,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1);}render(){return T}};i$1._$litElement$=!0,i$1["finalized"]=!0,s$1.litElementHydrateSupport?.({LitElement:i$1});const o$3=s$1.litElementPolyfillSupport;o$3?.({LitElement:i$1});(s$1.litElementVersions??=[]).push("4.2.0");
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */const o$2={attribute:!0,type:String,converter:u$3,reflect:!1,hasChanged:f$1},r$3=(t=o$2,e,r)=>{const{kind:n,metadata:i}=r;let s=globalThis.litPropertyMetadata.get(i);if(void 0===s&&globalThis.litPropertyMetadata.set(i,s=new Map),"setter"===n&&((t=Object.create(t)).wrapped=!0),s.set(r.name,t),"accessor"===n){const{name:o}=r;return {set(r){const n=e.get.call(this);e.set.call(this,r),this.requestUpdate(o,n,t);},init(e){return void 0!==e&&this.C(o,void 0,t,e),e}}}if("setter"===n){const{name:o}=r;return function(r){const n=this[o];e.call(this,r),this.requestUpdate(o,n,t);}}throw Error("Unsupported decorator location: "+n)};function n$1(t){return (e,o)=>"object"==typeof o?r$3(t,e,o):((t,e,o)=>{const r=e.hasOwnProperty(o);return e.constructor.createProperty(o,t),r?Object.getOwnPropertyDescriptor(e,o):void 0})(t,e,o)}
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */function r$2(r){return n$1({...r,state:!0,attribute:!1})}
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */
-    const e$4=(e,t,c)=>(c.configurable=!0,c.enumerable=!0,Reflect.decorate&&"object"!=typeof t&&Object.defineProperty(e,t,c),c);
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */function e$3(e,r){return (n,s,i)=>{const o=t=>t.renderRoot?.querySelector(e)??null;if(r){const{get:e,set:r}="object"==typeof s?n:i??(()=>{const t=Symbol();return {get(){return this[t]},set(e){this[t]=e;}}})();return e$4(n,s,{get(){let t=e.call(this);return void 0===t&&(t=o(this),(null!==t||this.hasUpdated)&&r.call(this,t)),t}})}return e$4(n,s,{get(){return o(this)}})}}
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */
-    let e$2;function r$1(r){return (n,o)=>e$4(n,o,{get(){return (this.renderRoot??(e$2??=document.createDocumentFragment())).querySelectorAll(r)}})}
-
-    /**
-     * @license
-     * Copyright 2021 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */function o$1(o){return (e,n)=>{const{slot:r,selector:s}=o??{},c="slot"+(r?`[name=${r}]`:":not([name])");return e$4(e,n,{get(){const t=this.renderRoot?.querySelector(c),e=t?.assignedElements(o)??[];return void 0===s?e:e.filter((t=>t.matches(s)))}})}}
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */function n(n){return (o,r)=>{const{slot:e}=n??{},s="slot"+(e?`[name=${e}]`:":not([name])");return e$4(o,r,{get(){const t=this.renderRoot?.querySelector(s);return t?.assignedNodes(n)??[]}})}}
-
-    const VERSION = '1.15.0';
-    const CONFIG_KEY = '__vscodeElements_disableRegistryWarning__';
-    class VscElement extends i$1 {
-        /** VSCode Elements version */
-        get version() {
-            return VERSION;
-        }
-    }
-    /**
-     * Own implementation of Lit's customElement decorator.
-     */
-    const customElement = (tagName) => {
-        return (classOrTarget) => {
-            const customElementClass = customElements.get(tagName);
-            if (!customElementClass) {
-                customElements.define(tagName, classOrTarget);
-                return;
-            }
-            if (CONFIG_KEY in window) {
-                return;
-            }
-            const el = document.createElement(tagName);
-            const anotherVersion = el?.version;
-            let message = '';
-            if (!anotherVersion) {
-                console.warn(tagName, 'is already registered by an unknown custom element handler class.');
-                message +=
-                    'is already registered by an unknown custom element handler class.';
-            }
-            else if (anotherVersion !== VERSION) {
-                message +=
-                    'is already registered by a different version of VSCode Elements. ';
-                message += `This version is "${VERSION}", while the other one is "${anotherVersion}".`;
-            }
-            else {
-                message +=
-                    'is already registered by the same version of VSCode Elements. ';
-            }
-            console.warn(`[VSCode Elements] ${tagName} ${message}\nTo suppress this warning, set window.${CONFIG_KEY} to true`);
-        };
-    };
-
-    var defaultStyles = i$4 `
+	var _=(()=>{var Lt=Object.defineProperty;var Bs=Object.getOwnPropertyDescriptor;var Ts=Object.getOwnPropertyNames;var zs=Object.prototype.hasOwnProperty;var to=(r,e)=>{for(var t in e)Lt(r,t,{get:e[t],enumerable:!0})},Ds=(r,e,t,o)=>{if(e&&typeof e=="object"||typeof e=="function")for(let i of Ts(e))!zs.call(r,i)&&i!==t&&Lt(r,i,{get:()=>e[i],enumerable:!(o=Bs(e,i))||o.enumerable});return r};var Ls=r=>Ds(Lt({},"__esModule",{value:!0}),r);var Zi={};to(Zi,{default:()=>Xi});var eo={};to(eo,{VscodeBadge:()=>Oe,VscodeButton:()=>V,VscodeCheckbox:()=>F,VscodeCheckboxGroup:()=>ce,VscodeCollapsible:()=>ue,VscodeContextMenu:()=>Q,VscodeContextMenuItem:()=>ie,VscodeDivider:()=>Re,VscodeFormContainer:()=>re,VscodeFormGroup:()=>Be,VscodeFormHelper:()=>Ge,VscodeIcon:()=>Y,VscodeLabel:()=>fe,VscodeMultiSelect:()=>X,VscodeOption:()=>de,VscodeProgressRing:()=>me,VscodeRadio:()=>T,VscodeRadioGroup:()=>ee,VscodeScrollable:()=>L,VscodeSingleSelect:()=>N,VscodeSplitLayout:()=>M,VscodeTabHeader:()=>K,VscodeTabPanel:()=>te,VscodeTable:()=>I,VscodeTableBody:()=>ze,VscodeTableCell:()=>ve,VscodeTableHeader:()=>De,VscodeTableHeaderCell:()=>Le,VscodeTableRow:()=>Me,VscodeTabs:()=>ne,VscodeTextarea:()=>E,VscodeTextfield:()=>C,VscodeToolbarButton:()=>se,VscodeToolbarContainer:()=>tt,VscodeTree:()=>q});var pt=globalThis,ut=pt.ShadowRoot&&(pt.ShadyCSS===void 0||pt.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,Mt=Symbol(),oo=new WeakMap,ot=class{constructor(e,t,o){if(this._$cssResult$=!0,o!==Mt)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o,t=this.t;if(ut&&e===void 0){let o=t!==void 0&&t.length===1;o&&(e=oo.get(t)),e===void 0&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),o&&oo.set(t,e))}return e}toString(){return this.cssText}},be=r=>new ot(typeof r=="string"?r:r+"",void 0,Mt),h=(r,...e)=>{let t=r.length===1?r[0]:e.reduce(((o,i,s)=>o+(n=>{if(n._$cssResult$===!0)return n.cssText;if(typeof n=="number")return n;throw Error("Value passed to 'css' function must be a 'css' function result: "+n+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+r[s+1]),r[0]);return new ot(t,r,Mt)},so=(r,e)=>{if(ut)r.adoptedStyleSheets=e.map((t=>t instanceof CSSStyleSheet?t:t.styleSheet));else for(let t of e){let o=document.createElement("style"),i=pt.litNonce;i!==void 0&&o.setAttribute("nonce",i),o.textContent=t.cssText,r.appendChild(o)}},Ft=ut?r=>r:r=>r instanceof CSSStyleSheet?(e=>{let t="";for(let o of e.cssRules)t+=o.cssText;return be(t)})(r):r;var{is:Ms,defineProperty:Fs,getOwnPropertyDescriptor:Hs,getOwnPropertyNames:js,getOwnPropertySymbols:qs,getPrototypeOf:Ns}=Object,ft=globalThis,io=ft.trustedTypes,Us=io?io.emptyScript:"",Ws=ft.reactiveElementPolyfillSupport,st=(r,e)=>r,it={toAttribute(r,e){switch(e){case Boolean:r=r?Us:null;break;case Object:case Array:r=r==null?r:JSON.stringify(r)}return r},fromAttribute(r,e){let t=r;switch(e){case Boolean:t=r!==null;break;case Number:t=r===null?null:Number(r);break;case Object:case Array:try{t=JSON.parse(r)}catch{t=null}}return t}},mt=(r,e)=>!Ms(r,e),ro={attribute:!0,type:String,converter:it,reflect:!1,useDefault:!1,hasChanged:mt};Symbol.metadata??=Symbol("metadata"),ft.litPropertyMetadata??=new WeakMap;var he=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=ro){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){let o=Symbol(),i=this.getPropertyDescriptor(e,o,t);i!==void 0&&Fs(this.prototype,e,i)}}static getPropertyDescriptor(e,t,o){let{get:i,set:s}=Hs(this.prototype,e)??{get(){return this[t]},set(n){this[t]=n}};return{get:i,set(n){let l=i?.call(this);s?.call(this,n),this.requestUpdate(e,l,o)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??ro}static _$Ei(){if(this.hasOwnProperty(st("elementProperties")))return;let e=Ns(this);e.finalize(),e.l!==void 0&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(st("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(st("properties"))){let t=this.properties,o=[...js(t),...qs(t)];for(let i of o)this.createProperty(i,t[i])}let e=this[Symbol.metadata];if(e!==null){let t=litPropertyMetadata.get(e);if(t!==void 0)for(let[o,i]of t)this.elementProperties.set(o,i)}this._$Eh=new Map;for(let[t,o]of this.elementProperties){let i=this._$Eu(t,o);i!==void 0&&this._$Eh.set(i,t)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){let t=[];if(Array.isArray(e)){let o=new Set(e.flat(1/0).reverse());for(let i of o)t.unshift(Ft(i))}else e!==void 0&&t.push(Ft(e));return t}static _$Eu(e,t){let o=t.attribute;return o===!1?void 0:typeof o=="string"?o:typeof e=="string"?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise((e=>this.enableUpdating=e)),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach((e=>e(this)))}addController(e){(this._$EO??=new Set).add(e),this.renderRoot!==void 0&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){let e=new Map,t=this.constructor.elementProperties;for(let o of t.keys())this.hasOwnProperty(o)&&(e.set(o,this[o]),delete this[o]);e.size>0&&(this._$Ep=e)}createRenderRoot(){let e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return so(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach((e=>e.hostConnected?.()))}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach((e=>e.hostDisconnected?.()))}attributeChangedCallback(e,t,o){this._$AK(e,o)}_$ET(e,t){let o=this.constructor.elementProperties.get(e),i=this.constructor._$Eu(e,o);if(i!==void 0&&o.reflect===!0){let s=(o.converter?.toAttribute!==void 0?o.converter:it).toAttribute(t,o.type);this._$Em=e,s==null?this.removeAttribute(i):this.setAttribute(i,s),this._$Em=null}}_$AK(e,t){let o=this.constructor,i=o._$Eh.get(e);if(i!==void 0&&this._$Em!==i){let s=o.getPropertyOptions(i),n=typeof s.converter=="function"?{fromAttribute:s.converter}:s.converter?.fromAttribute!==void 0?s.converter:it;this._$Em=i,this[i]=n.fromAttribute(t,s.type)??this._$Ej?.get(i)??null,this._$Em=null}}requestUpdate(e,t,o){if(e!==void 0){let i=this.constructor,s=this[e];if(o??=i.getPropertyOptions(e),!((o.hasChanged??mt)(s,t)||o.useDefault&&o.reflect&&s===this._$Ej?.get(e)&&!this.hasAttribute(i._$Eu(e,o))))return;this.C(e,t,o)}this.isUpdatePending===!1&&(this._$ES=this._$EP())}C(e,t,{useDefault:o,reflect:i,wrapped:s},n){o&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,n??t??this[e]),s!==!0||n!==void 0)||(this._$AL.has(e)||(this.hasUpdated||o||(t=void 0),this._$AL.set(e,t)),i===!0&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(t){Promise.reject(t)}let e=this.scheduleUpdate();return e!=null&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(let[i,s]of this._$Ep)this[i]=s;this._$Ep=void 0}let o=this.constructor.elementProperties;if(o.size>0)for(let[i,s]of o){let{wrapped:n}=s,l=this[i];n!==!0||this._$AL.has(i)||l===void 0||this.C(i,void 0,s,l)}}let e=!1,t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach((o=>o.hostUpdate?.())),this.update(t)):this._$EM()}catch(o){throw e=!1,this._$EM(),o}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach((t=>t.hostUpdated?.())),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach((t=>this._$ET(t,this[t]))),this._$EM()}updated(e){}firstUpdated(e){}};he.elementStyles=[],he.shadowRootOptions={mode:"open"},he[st("elementProperties")]=new Map,he[st("finalized")]=new Map,Ws?.({ReactiveElement:he}),(ft.reactiveElementVersions??=[]).push("2.1.0");var jt=globalThis,vt=jt.trustedTypes,no=vt?vt.createPolicy("lit-html",{createHTML:r=>r}):void 0,qt="$lit$",pe=`lit$${Math.random().toFixed(9).slice(2)}$`,Nt="?"+pe,Ks=`<${Nt}>`,$e=document,nt=()=>$e.createComment(""),lt=r=>r===null||typeof r!="object"&&typeof r!="function",Ut=Array.isArray,uo=r=>Ut(r)||typeof r?.[Symbol.iterator]=="function",Ht=`[ 	
+\f\r]`,rt=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,lo=/-->/g,ao=/>/g,ke=RegExp(`>|${Ht}(?:([^\\s"'>=/]+)(${Ht}*=${Ht}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`,"g"),co=/'/g,ho=/"/g,fo=/^(?:script|style|textarea|title)$/i,Wt=r=>(e,...t)=>({_$litType$:r,strings:e,values:t}),c=Wt(1),sr=Wt(2),ir=Wt(3),G=Symbol.for("lit-noChange"),m=Symbol.for("lit-nothing"),po=new WeakMap,Ee=$e.createTreeWalker($e,129);function mo(r,e){if(!Ut(r)||!r.hasOwnProperty("raw"))throw Error("invalid template strings array");return no!==void 0?no.createHTML(e):e}var vo=(r,e)=>{let t=r.length-1,o=[],i,s=e===2?"<svg>":e===3?"<math>":"",n=rt;for(let l=0;l<t;l++){let d=r[l],b,y,v=-1,x=0;for(;x<d.length&&(n.lastIndex=x,y=n.exec(d),y!==null);)x=n.lastIndex,n===rt?y[1]==="!--"?n=lo:y[1]!==void 0?n=ao:y[2]!==void 0?(fo.test(y[2])&&(i=RegExp("</"+y[2],"g")),n=ke):y[3]!==void 0&&(n=ke):n===ke?y[0]===">"?(n=i??rt,v=-1):y[1]===void 0?v=-2:(v=n.lastIndex-y[2].length,b=y[1],n=y[3]===void 0?ke:y[3]==='"'?ho:co):n===ho||n===co?n=ke:n===lo||n===ao?n=rt:(n=ke,i=void 0);let w=n===ke&&r[l+1].startsWith("/>")?" ":"";s+=n===rt?d+Ks:v>=0?(o.push(b),d.slice(0,v)+qt+d.slice(v)+pe+w):d+pe+(v===-2?l:w)}return[mo(r,s+(r[t]||"<?>")+(e===2?"</svg>":e===3?"</math>":"")),o]},at=class r{constructor({strings:e,_$litType$:t},o){let i;this.parts=[];let s=0,n=0,l=e.length-1,d=this.parts,[b,y]=vo(e,t);if(this.el=r.createElement(b,o),Ee.currentNode=this.el.content,t===2||t===3){let v=this.el.content.firstChild;v.replaceWith(...v.childNodes)}for(;(i=Ee.nextNode())!==null&&d.length<l;){if(i.nodeType===1){if(i.hasAttributes())for(let v of i.getAttributeNames())if(v.endsWith(qt)){let x=y[n++],w=i.getAttribute(v).split(pe),z=/([.?@])?(.*)/.exec(x);d.push({type:1,index:s,name:z[2],strings:w,ctor:z[1]==="."?_t:z[1]==="?"?gt:z[1]==="@"?yt:Ie}),i.removeAttribute(v)}else v.startsWith(pe)&&(d.push({type:6,index:s}),i.removeAttribute(v));if(fo.test(i.tagName)){let v=i.textContent.split(pe),x=v.length-1;if(x>0){i.textContent=vt?vt.emptyScript:"";for(let w=0;w<x;w++)i.append(v[w],nt()),Ee.nextNode(),d.push({type:2,index:++s});i.append(v[x],nt())}}}else if(i.nodeType===8)if(i.data===Nt)d.push({type:2,index:s});else{let v=-1;for(;(v=i.data.indexOf(pe,v+1))!==-1;)d.push({type:7,index:s}),v+=pe.length-1}s++}}static createElement(e,t){let o=$e.createElement("template");return o.innerHTML=e,o}};function Se(r,e,t=r,o){if(e===G)return e;let i=o!==void 0?t._$Co?.[o]:t._$Cl,s=lt(e)?void 0:e._$litDirective$;return i?.constructor!==s&&(i?._$AO?.(!1),s===void 0?i=void 0:(i=new s(r),i._$AT(r,t,o)),o!==void 0?(t._$Co??=[])[o]=i:t._$Cl=i),i!==void 0&&(e=Se(r,i._$AS(r,e.values),i,o)),e}var bt=class{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){let{el:{content:t},parts:o}=this._$AD,i=(e?.creationScope??$e).importNode(t,!0);Ee.currentNode=i;let s=Ee.nextNode(),n=0,l=0,d=o[0];for(;d!==void 0;){if(n===d.index){let b;d.type===2?b=new je(s,s.nextSibling,this,e):d.type===1?b=new d.ctor(s,d.name,d.strings,this,e):d.type===6&&(b=new xt(s,this,e)),this._$AV.push(b),d=o[++l]}n!==d?.index&&(s=Ee.nextNode(),n++)}return Ee.currentNode=$e,i}p(e){let t=0;for(let o of this._$AV)o!==void 0&&(o.strings!==void 0?(o._$AI(e,o,t),t+=o.strings.length-2):o._$AI(e[t])),t++}},je=class r{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,o,i){this.type=2,this._$AH=m,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=o,this.options=i,this._$Cv=i?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode,t=this._$AM;return t!==void 0&&e?.nodeType===11&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=Se(this,e,t),lt(e)?e===m||e==null||e===""?(this._$AH!==m&&this._$AR(),this._$AH=m):e!==this._$AH&&e!==G&&this._(e):e._$litType$!==void 0?this.$(e):e.nodeType!==void 0?this.T(e):uo(e)?this.k(e):this._(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==m&&lt(this._$AH)?this._$AA.nextSibling.data=e:this.T($e.createTextNode(e)),this._$AH=e}$(e){let{values:t,_$litType$:o}=e,i=typeof o=="number"?this._$AC(e):(o.el===void 0&&(o.el=at.createElement(mo(o.h,o.h[0]),this.options)),o);if(this._$AH?._$AD===i)this._$AH.p(t);else{let s=new bt(i,this),n=s.u(this.options);s.p(t),this.T(n),this._$AH=s}}_$AC(e){let t=po.get(e.strings);return t===void 0&&po.set(e.strings,t=new at(e)),t}k(e){Ut(this._$AH)||(this._$AH=[],this._$AR());let t=this._$AH,o,i=0;for(let s of e)i===t.length?t.push(o=new r(this.O(nt()),this.O(nt()),this,this.options)):o=t[i],o._$AI(s),i++;i<t.length&&(this._$AR(o&&o._$AB.nextSibling,i),t.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e&&e!==this._$AB;){let o=e.nextSibling;e.remove(),e=o}}setConnected(e){this._$AM===void 0&&(this._$Cv=e,this._$AP?.(e))}},Ie=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,o,i,s){this.type=1,this._$AH=m,this._$AN=void 0,this.element=e,this.name=t,this._$AM=i,this.options=s,o.length>2||o[0]!==""||o[1]!==""?(this._$AH=Array(o.length-1).fill(new String),this.strings=o):this._$AH=m}_$AI(e,t=this,o,i){let s=this.strings,n=!1;if(s===void 0)e=Se(this,e,t,0),n=!lt(e)||e!==this._$AH&&e!==G,n&&(this._$AH=e);else{let l=e,d,b;for(e=s[0],d=0;d<s.length-1;d++)b=Se(this,l[o+d],t,d),b===G&&(b=this._$AH[d]),n||=!lt(b)||b!==this._$AH[d],b===m?e=m:e!==m&&(e+=(b??"")+s[d+1]),this._$AH[d]=b}n&&!i&&this.j(e)}j(e){e===m?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??"")}},_t=class extends Ie{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===m?void 0:e}},gt=class extends Ie{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==m)}},yt=class extends Ie{constructor(e,t,o,i,s){super(e,t,o,i,s),this.type=5}_$AI(e,t=this){if((e=Se(this,e,t,0)??m)===G)return;let o=this._$AH,i=e===m&&o!==m||e.capture!==o.capture||e.once!==o.once||e.passive!==o.passive,s=e!==m&&(o===m||i);i&&this.element.removeEventListener(this.name,this,o),s&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){typeof this._$AH=="function"?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}},xt=class{constructor(e,t,o){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=o}get _$AU(){return this._$AM._$AU}_$AI(e){Se(this,e)}},bo={M:qt,P:pe,A:Nt,C:1,L:vo,R:bt,D:uo,V:Se,I:je,H:Ie,N:gt,U:yt,B:_t,F:xt},Gs=jt.litHtmlPolyfillSupport;Gs?.(at,je),(jt.litHtmlVersions??=[]).push("3.3.0");var wt=(r,e,t)=>{let o=t?.renderBefore??e,i=o._$litPart$;if(i===void 0){let s=t?.renderBefore??null;o._$litPart$=i=new je(e.insertBefore(nt(),s),s,void 0,t??{})}return i._$AI(r),i};var Kt=globalThis,D=class extends he{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){let e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){let t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=wt(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return G}};D._$litElement$=!0,D.finalized=!0,Kt.litElementHydrateSupport?.({LitElement:D});var Ys=Kt.litElementPolyfillSupport;Ys?.({LitElement:D});(Kt.litElementVersions??=[]).push("4.2.0");var Xs={attribute:!0,type:String,converter:it,reflect:!1,hasChanged:mt},Zs=(r=Xs,e,t)=>{let{kind:o,metadata:i}=t,s=globalThis.litPropertyMetadata.get(i);if(s===void 0&&globalThis.litPropertyMetadata.set(i,s=new Map),o==="setter"&&((r=Object.create(r)).wrapped=!0),s.set(t.name,r),o==="accessor"){let{name:n}=t;return{set(l){let d=e.get.call(this);e.set.call(this,l),this.requestUpdate(n,d,r)},init(l){return l!==void 0&&this.C(n,void 0,r,l),l}}}if(o==="setter"){let{name:n}=t;return function(l){let d=this[n];e.call(this,l),this.requestUpdate(n,d,r)}}throw Error("Unsupported decorator location: "+o)};function a(r){return(e,t)=>typeof t=="object"?Zs(r,e,t):((o,i,s)=>{let n=i.hasOwnProperty(s);return i.constructor.createProperty(s,o),n?Object.getOwnPropertyDescriptor(i,s):void 0})(r,e,t)}function _(r){return a({...r,state:!0,attribute:!1})}var ae=(r,e,t)=>(t.configurable=!0,t.enumerable=!0,Reflect.decorate&&typeof e!="object"&&Object.defineProperty(r,e,t),t);function S(r,e){return(t,o,i)=>{let s=n=>n.renderRoot?.querySelector(r)??null;if(e){let{get:n,set:l}=typeof o=="object"?t:i??(()=>{let d=Symbol();return{get(){return this[d]},set(b){this[d]=b}}})();return ae(t,o,{get(){let d=n.call(this);return d===void 0&&(d=s(this),(d!==null||this.hasUpdated)&&l.call(this,d)),d}})}return ae(t,o,{get(){return s(this)}})}}var Js;function _o(r){return(e,t)=>ae(e,t,{get(){return(this.renderRoot??(Js??=document.createDocumentFragment())).querySelectorAll(r)}})}function H(r){return(e,t)=>{let{slot:o,selector:i}=r??{},s="slot"+(o?`[name=${o}]`:":not([name])");return ae(e,t,{get(){let n=this.renderRoot?.querySelector(s),l=n?.assignedElements(r)??[];return i===void 0?l:l.filter((d=>d.matches(i)))}})}}function go(r){return(e,t)=>{let{slot:o}=r??{},i="slot"+(o?`[name=${o}]`:":not([name])");return ae(e,t,{get(){return this.renderRoot?.querySelector(i)?.assignedNodes(r)??[]}})}}var Gt="1.15.0",yo="__vscodeElements_disableRegistryWarning__",u=class extends D{get version(){return Gt}},p=r=>e=>{if(!customElements.get(r)){customElements.define(r,e);return}if(yo in window)return;let i=document.createElement(r)?.version,s="";i?i!==Gt?(s+="is already registered by a different version of VSCode Elements. ",s+=`This version is "${Gt}", while the other one is "${i}".`):s+="is already registered by the same version of VSCode Elements. ":(console.warn(r,"is already registered by an unknown custom element handler class."),s+="is already registered by an unknown custom element handler class."),console.warn(`[VSCode Elements] ${r} ${s}
+To suppress this warning, set window.${yo} to true`)};var f=h`
   :host([hidden]) {
     display: none;
   }
@@ -127,30 +15,7 @@ var npmCompilation;
     opacity: 0.4;
     pointer-events: none;
   }
-`;
-
-    const DEFAULT_LINE_HEIGHT = 16;
-    const DEFAULT_FONT_SIZE = 13;
-    const INPUT_LINE_HEIGHT_RATIO = DEFAULT_LINE_HEIGHT / DEFAULT_FONT_SIZE;
-    function getDefaultFontStack() {
-        if (navigator.userAgent.indexOf('Linux') > -1) {
-            return 'system-ui, "Ubuntu", "Droid Sans", sans-serif';
-        }
-        else if (navigator.userAgent.indexOf('Mac') > -1) {
-            return '-apple-system, BlinkMacSystemFont, sans-serif';
-        }
-        else if (navigator.userAgent.indexOf('Windows') > -1) {
-            return '"Segoe WPC", "Segoe UI", sans-serif';
-        }
-        else {
-            return 'sans-serif';
-        }
-    }
-
-    const defaultFontStack$2 = r$6(getDefaultFontStack());
-    const styles$w = [
-        defaultStyles,
-        i$4 `
+`;var xo=1.2307692307692308;function qe(){return navigator.userAgent.indexOf("Linux")>-1?'system-ui, "Ubuntu", "Droid Sans", sans-serif':navigator.userAgent.indexOf("Mac")>-1?"-apple-system, BlinkMacSystemFont, sans-serif":navigator.userAgent.indexOf("Windows")>-1?'"Segoe WPC", "Segoe UI", sans-serif':"sans-serif"}var Qs=be(qe()),ei=[f,h`
     :host {
       background-color: var(--vscode-badge-background, #616161);
       border: 1px solid var(--vscode-contrastBorder, transparent);
@@ -158,7 +23,7 @@ var npmCompilation;
       box-sizing: border-box;
       color: var(--vscode-badge-foreground, #f8f8f8);
       display: inline-block;
-      font-family: var(--vscode-font-family, ${defaultFontStack$2});
+      font-family: var(--vscode-font-family, ${Qs});
       font-size: 11px;
       font-weight: 400;
       line-height: 14px;
@@ -195,101 +60,7 @@ var npmCompilation;
       min-width: 16px;
       padding: 3px 5px;
     }
-  `,
-    ];
-
-    var __decorate$B = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Show counts or status information. Badges can also be used within [Textfield](https://vscode-elements.github.io/components/textfield) and [TabHeader](https://vscode-elements.github.io/components/tabs) components.
-     *
-     * @tag vscode-badge
-     *
-     * @cssprop [--vscode-font-family=sans-serif] - A sans-serif font type depends on the host OS.
-     * @cssprop [--vscode-contrastBorder=transparent]
-     * @cssprop [--vscode-badge-background=#616161] - default and counter variant background color
-     * @cssprop [--vscode-badge-foreground=#f8f8f8] - default and counter variant foreground color
-     * @cssprop [--vscode-activityBarBadge-background=#0078d4] - activity bar variant background color
-     * @cssprop [--vscode-activityBarBadge-foreground=#ffffff] - activity bar variant foreground color
-     */
-    let VscodeBadge = class VscodeBadge extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.variant = 'default';
-        }
-        render() {
-            return x ` <slot></slot> `;
-        }
-    };
-    VscodeBadge.styles = styles$w;
-    __decorate$B([
-        n$1({ reflect: true })
-    ], VscodeBadge.prototype, "variant", void 0);
-    VscodeBadge = __decorate$B([
-        customElement('vscode-badge')
-    ], VscodeBadge);
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */
-    const t$1={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},e$1=t=>(...e)=>({_$litDirective$:t,values:e});class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}}
-
-    /**
-     * @license
-     * Copyright 2018 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */const e=e$1(class extends i{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"class"!==t.name||t.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter((s=>t[s])).join(" ")+" "}update(s,[i]){if(void 0===this.st){this.st=new Set,void 0!==s.strings&&(this.nt=new Set(s.strings.join(" ").split(/\s/).filter((t=>""!==t))));for(const t in i)i[t]&&!this.nt?.has(t)&&this.st.add(t);return this.render(i)}const r=s.element.classList;for(const t of this.st)t in i||(r.remove(t),this.st.delete(t));for(const t in i){const s=!!i[t];s===this.st.has(t)||this.nt?.has(t)||(s?(r.add(t),this.st.add(t)):(r.remove(t),this.st.delete(t)));}return T}});
-
-    /**
-     * @license
-     * Copyright 2018 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */const o=o=>o??E;
-
-    class StylePropertyMap extends i {
-        constructor(partInfo) {
-            super(partInfo);
-            this._prevProperties = {};
-            if (partInfo.type !== t$1.PROPERTY || partInfo.name !== 'style') {
-                throw new Error('The `stylePropertyMap` directive must be used in the `style` property');
-            }
-        }
-        update(part, [styleProps]) {
-            Object.entries(styleProps).forEach(([key, val]) => {
-                if (this._prevProperties[key] !== val) {
-                    if (key.startsWith('--')) {
-                        part.element.style.setProperty(key, val);
-                    }
-                    else {
-                        // @ts-expect-error I'm so sick of these stupid unresolvable TS errors.
-                        part.element.style[key] = val;
-                    }
-                    this._prevProperties[key] = val;
-                }
-            });
-            return T;
-        }
-        render(_styleProps) {
-            return T;
-        }
-    }
-    /**
-     * Implement a Lit directive similar to styleMap, but instead of setting styles via the style
-     * attribute (which violates CSP), it should apply styles using the style property.
-     *
-     * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy#unsafe-inline)
-     */
-    const stylePropertyMap = e$1(StylePropertyMap);
-
-    const styles$v = [
-        defaultStyles,
-        i$4 `
+  `],wo=ei;var Co=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Oe=class extends u{constructor(){super(...arguments),this.variant="default"}render(){return c` <slot></slot> `}};Oe.styles=wo;Co([a({reflect:!0})],Oe.prototype,"variant",void 0);Oe=Co([p("vscode-badge")],Oe);var Ne={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},Ue=r=>(...e)=>({_$litDirective$:r,values:e}),_e=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,t,o){this._$Ct=e,this._$AM=t,this._$Ci=o}_$AS(e,t){return this.update(e,t)}update(e,t){return this.render(...t)}};var g=Ue(class extends _e{constructor(r){if(super(r),r.type!==Ne.ATTRIBUTE||r.name!=="class"||r.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(r){return" "+Object.keys(r).filter((e=>r[e])).join(" ")+" "}update(r,[e]){if(this.st===void 0){this.st=new Set,r.strings!==void 0&&(this.nt=new Set(r.strings.join(" ").split(/\s/).filter((o=>o!==""))));for(let o in e)e[o]&&!this.nt?.has(o)&&this.st.add(o);return this.render(e)}let t=r.element.classList;for(let o of this.st)o in e||(t.remove(o),this.st.delete(o));for(let o in e){let i=!!e[o];i===this.st.has(o)||this.nt?.has(o)||(i?(t.add(o),this.st.add(o)):(t.remove(o),this.st.delete(o)))}return G}});var k=r=>r??m;var Yt=class extends _e{constructor(e){if(super(e),this._prevProperties={},e.type!==Ne.PROPERTY||e.name!=="style")throw new Error("The `stylePropertyMap` directive must be used in the `style` property")}update(e,[t]){return Object.entries(t).forEach(([o,i])=>{this._prevProperties[o]!==i&&(o.startsWith("--")?e.element.style.setProperty(o,i):e.element.style[o]=i,this._prevProperties[o]=i)}),G}render(e){return G}},B=Ue(Yt);var ti=[f,h`
     :host {
       color: var(--vscode-icon-foreground, #cccccc);
       display: inline-block;
@@ -349,148 +120,25 @@ var npmCompilation;
       animation-timing-function: linear;
       animation-iteration-count: infinite;
     }
-  `,
-    ];
-
-    var __decorate$A = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    var VscodeIcon_1;
-    /**
-     * Display a [Codicon](https://microsoft.github.io/vscode-codicons/dist/codicon.html).
-     * In "action-icon" mode it behaves like a button. In this case, it is
-     * recommended that a meaningful label is specified with the `label` property.
-     *
-     * @tag vscode-icon
-     *
-     * @cssprop [--vscode-icon-foreground=#cccccc]
-     * @cssprop [--vscode-toolbar-hoverBackground=rgba(90, 93, 94, 0.31)] - Hover state background color in `active-icon` mode
-     * @cssprop [--vscode-toolbar-activeBackground=rgba(99, 102, 103, 0.31)] - Active state background color in `active-icon` mode
-     * @cssprop [--vscode-focusBorder=#0078d4]
-     */
-    let VscodeIcon = VscodeIcon_1 = class VscodeIcon extends VscElement {
-        constructor() {
-            super(...arguments);
-            /**
-             * Set a meaningful label in `action-icon` mode for the screen readers
-             */
-            this.label = '';
-            /**
-             * [Codicon](https://microsoft.github.io/vscode-codicons/dist/codicon.html) icon name.
-             */
-            this.name = '';
-            /**
-             * Icon size in pixels
-             */
-            this.size = 16;
-            /**
-             * Enable rotation animation
-             */
-            this.spin = false;
-            /**
-             * Animation duration in seconds
-             */
-            this.spinDuration = 1.5;
-            /**
-             * Behaves like a button
-             */
-            this.actionIcon = false;
-            this._onButtonClick = (ev) => {
-                this.dispatchEvent(new CustomEvent('vsc-click', { detail: { originalEvent: ev } }));
-            };
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            const { href, nonce } = this._getStylesheetConfig();
-            VscodeIcon_1.stylesheetHref = href;
-            VscodeIcon_1.nonce = nonce;
-        }
-        /**
-         * For using web fonts in web components, the font stylesheet must be included
-         * twice: on the page and in the web component. This function looks for the
-         * font stylesheet on the page and returns the stylesheet URL and the nonce
-         * id.
-         */
-        _getStylesheetConfig() {
-            const linkElement = document.getElementById('vscode-codicon-stylesheet');
-            const href = linkElement?.getAttribute('href') || undefined;
-            const nonce = linkElement?.nonce || undefined;
-            if (!linkElement) {
-                let msg = '[VSCode Elements] To use the Icon component, the codicons.css file must be included in the page with the id `vscode-codicon-stylesheet`! ';
-                msg +=
-                    'See https://vscode-elements.github.io/components/icon/ for more details.';
-                console.warn(msg);
-            }
-            return { nonce, href };
-        }
-        render() {
-            const { stylesheetHref, nonce } = VscodeIcon_1;
-            const content = x `<span
-      class=${e({
-            codicon: true,
-            ['codicon-' + this.name]: true,
-            spin: this.spin,
-        })}
-      .style=${stylePropertyMap({
-            animationDuration: String(this.spinDuration) + 's',
-            fontSize: this.size + 'px',
-            height: this.size + 'px',
-            width: this.size + 'px',
-        })}
-    ></span>`;
-            const wrapped = this.actionIcon
-                ? x ` <button
+  `],ko=ti;var Ae=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},ct,Y=ct=class extends u{constructor(){super(...arguments),this.label="",this.name="",this.size=16,this.spin=!1,this.spinDuration=1.5,this.actionIcon=!1,this._onButtonClick=e=>{this.dispatchEvent(new CustomEvent("vsc-click",{detail:{originalEvent:e}}))}}connectedCallback(){super.connectedCallback();let{href:e,nonce:t}=this._getStylesheetConfig();ct.stylesheetHref=e,ct.nonce=t}_getStylesheetConfig(){let e=document.getElementById("vscode-codicon-stylesheet"),t=e?.getAttribute("href")||void 0,o=e?.nonce||void 0;if(!e){let i="[VSCode Elements] To use the Icon component, the codicons.css file must be included in the page with the id `vscode-codicon-stylesheet`! ";i+="See https://vscode-elements.github.io/components/icon/ for more details.",console.warn(i)}return{nonce:o,href:t}}render(){let{stylesheetHref:e,nonce:t}=ct,o=c`<span
+      class=${g({codicon:!0,["codicon-"+this.name]:!0,spin:this.spin})}
+      .style=${B({animationDuration:String(this.spinDuration)+"s",fontSize:this.size+"px",height:this.size+"px",width:this.size+"px"})}
+    ></span>`,i=this.actionIcon?c` <button
           class="button"
           @click=${this._onButtonClick}
           aria-label=${this.label}
         >
-          ${content}
-        </button>`
-                : x ` <span class="icon" aria-hidden="true" role="presentation"
-          >${content}</span
-        >`;
-            return x `
+          ${o}
+        </button>`:c` <span class="icon" aria-hidden="true" role="presentation"
+          >${o}</span
+        >`;return c`
       <link
         rel="stylesheet"
-        href=${o(stylesheetHref)}
-        nonce=${o(nonce)}
+        href=${k(e)}
+        nonce=${k(t)}
       >
-      ${wrapped}
-    `;
-        }
-    };
-    VscodeIcon.styles = styles$v;
-    VscodeIcon.stylesheetHref = '';
-    VscodeIcon.nonce = '';
-    __decorate$A([
-        n$1()
-    ], VscodeIcon.prototype, "label", void 0);
-    __decorate$A([
-        n$1({ type: String })
-    ], VscodeIcon.prototype, "name", void 0);
-    __decorate$A([
-        n$1({ type: Number })
-    ], VscodeIcon.prototype, "size", void 0);
-    __decorate$A([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeIcon.prototype, "spin", void 0);
-    __decorate$A([
-        n$1({ type: Number, attribute: 'spin-duration' })
-    ], VscodeIcon.prototype, "spinDuration", void 0);
-    __decorate$A([
-        n$1({ type: Boolean, reflect: true, attribute: 'action-icon' })
-    ], VscodeIcon.prototype, "actionIcon", void 0);
-    VscodeIcon = VscodeIcon_1 = __decorate$A([
-        customElement('vscode-icon')
-    ], VscodeIcon);
-
-    const defaultFontStack$1 = r$6(getDefaultFontStack());
-    const styles$u = [
-        defaultStyles,
-        i$4 `
+      ${i}
+    `}};Y.styles=ko;Y.stylesheetHref="";Y.nonce="";Ae([a()],Y.prototype,"label",void 0);Ae([a({type:String})],Y.prototype,"name",void 0);Ae([a({type:Number})],Y.prototype,"size",void 0);Ae([a({type:Boolean,reflect:!0})],Y.prototype,"spin",void 0);Ae([a({type:Number,attribute:"spin-duration"})],Y.prototype,"spinDuration",void 0);Ae([a({type:Boolean,reflect:!0,attribute:"action-icon"})],Y.prototype,"actionIcon",void 0);Y=ct=Ae([p("vscode-icon")],Y);var oi=be(qe()),si=[f,h`
     :host {
       background-color: var(--vscode-button-background, #0078d4);
       border-color: var(--vscode-button-border, transparent);
@@ -500,7 +148,7 @@ var npmCompilation;
       color: var(--vscode-button-foreground, #ffffff);
       cursor: pointer;
       display: inline-block;
-      font-family: var(--vscode-font-family, ${defaultFontStack$1});
+      font-family: var(--vscode-font-family, ${oi});
       font-size: var(--vscode-font-size, 13px);
       font-weight: var(--vscode-font-weight, normal);
       line-height: 22px;
@@ -605,337 +253,23 @@ var npmCompilation;
       display: block;
       margin-left: 3px;
     }
-  `,
-    ];
-
-    var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Clickable element that are used to trigger actions.
-     *
-     * @tag vscode-button
-     *
-     * @fires vsc-click Dispatched only when button is not in disabled state.
-     *
-     * @cssprop [--vscode-button-background=#0078d4]
-     * @cssprop [--vscode-button-foreground=#ffffff]
-     * @cssprop [--vscode-button-border=var(--vscode-button-background, rgba(255, 255, 255, 0.07))]
-     * @cssprop [--vscode-button-hoverBackground=#026ec1]
-     * @cssprop [--vscode-font-family=sans-serif] - A sans-serif font type depends on the host OS.
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-font-weight=normal]
-     * @cssprop [--vscode-button-secondaryForeground=#cccccc]
-     * @cssprop [--vscode-button-secondaryBackground=#313131]
-     * @cssprop [--vscode-button-secondaryHoverBackground=#3c3c3c]
-     * @cssprop [--vscode-focusBorder=#0078d4]
-     */
-    let VscodeButton = class VscodeButton extends VscElement {
-        get form() {
-            return this._internals.form;
-        }
-        constructor() {
-            super();
-            this.autofocus = false;
-            /** @internal */
-            this.tabIndex = 0;
-            /**
-             * Button has a less prominent style.
-             */
-            this.secondary = false;
-            /** @internal */
-            this.role = 'button';
-            this.disabled = false;
-            /**
-             * A [Codicon](https://microsoft.github.io/vscode-codicons/dist/codicon.html) before the label
-             */
-            this.icon = '';
-            /**
-             * Spin property for the icon
-             */
-            this.iconSpin = false;
-            /**
-             * A [Codicon](https://microsoft.github.io/vscode-codicons/dist/codicon.html) after the label
-             */
-            this.iconAfter = '';
-            /**
-             * Spin property for the after icon
-             */
-            this.iconAfterSpin = false;
-            this.focused = false;
-            this.name = undefined;
-            this.type = 'button';
-            this.value = '';
-            this._prevTabindex = 0;
-            this._handleFocus = () => {
-                this.focused = true;
-            };
-            this._handleBlur = () => {
-                this.focused = false;
-            };
-            this.addEventListener('keydown', this._handleKeyDown.bind(this));
-            this.addEventListener('click', this._handleClick.bind(this));
-            this._internals = this.attachInternals();
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            if (this.autofocus) {
-                if (this.tabIndex < 0) {
-                    this.tabIndex = 0;
-                }
-                this.updateComplete.then(() => {
-                    this.focus();
-                    this.requestUpdate();
-                });
-            }
-            this.addEventListener('focus', this._handleFocus);
-            this.addEventListener('blur', this._handleBlur);
-        }
-        disconnectedCallback() {
-            super.disconnectedCallback();
-            this.removeEventListener('focus', this._handleFocus);
-            this.removeEventListener('blur', this._handleBlur);
-        }
-        update(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        changedProperties) {
-            super.update(changedProperties);
-            if (changedProperties.has('value')) {
-                this._internals.setFormValue(this.value);
-            }
-            if (changedProperties.has('disabled')) {
-                if (this.disabled) {
-                    // Save the original tabIndex, which may have been modified by the user.
-                    this._prevTabindex = this.tabIndex;
-                    // It's a native property, we don't care about re-rendering.
-                    // eslint-disable-next-line lit/no-property-change-update
-                    this.tabIndex = -1;
-                }
-                else {
-                    // eslint-disable-next-line lit/no-property-change-update
-                    this.tabIndex = this._prevTabindex;
-                }
-            }
-        }
-        _executeAction() {
-            if (this.type === 'submit' && this._internals.form) {
-                this._internals.form.requestSubmit();
-            }
-            if (this.type === 'reset' && this._internals.form) {
-                this._internals.form.reset();
-            }
-        }
-        _handleKeyDown(event) {
-            if ((event.key === 'Enter' || event.key === ' ') &&
-                !this.hasAttribute('disabled')) {
-                /**
-                 * @deprecated
-                 * Please use the standard `click` event.
-                 */
-                this.dispatchEvent(new CustomEvent('vsc-click', {
-                    detail: {
-                        originalEvent: new MouseEvent('click'),
-                    },
-                }));
-                const syntheticClick = new MouseEvent('click', {
-                    bubbles: true,
-                    cancelable: true,
-                });
-                syntheticClick.synthetic = true;
-                this.dispatchEvent(syntheticClick);
-                this._executeAction();
-            }
-        }
-        _handleClick(event) {
-            if (event.synthetic) {
-                return;
-            }
-            if (!this.hasAttribute('disabled')) {
-                this.dispatchEvent(new CustomEvent('vsc-click', {
-                    detail: {
-                        originalEvent: event,
-                    },
-                }));
-                this._executeAction();
-            }
-        }
-        render() {
-            const hasIcon = this.icon !== '';
-            const hasIconAfter = this.iconAfter !== '';
-            const wrapperClasses = {
-                wrapper: true,
-                'has-icon-before': hasIcon,
-                'has-icon-after': hasIconAfter,
-            };
-            const iconElem = hasIcon
-                ? x `<vscode-icon
+  `],Eo=si;var j=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},V=class extends u{get form(){return this._internals.form}constructor(){super(),this.autofocus=!1,this.tabIndex=0,this.secondary=!1,this.role="button",this.disabled=!1,this.icon="",this.iconSpin=!1,this.iconAfter="",this.iconAfterSpin=!1,this.focused=!1,this.name=void 0,this.type="button",this.value="",this._prevTabindex=0,this._handleFocus=()=>{this.focused=!0},this._handleBlur=()=>{this.focused=!1},this.addEventListener("keydown",this._handleKeyDown.bind(this)),this.addEventListener("click",this._handleClick.bind(this)),this._internals=this.attachInternals()}connectedCallback(){super.connectedCallback(),this.autofocus&&(this.tabIndex<0&&(this.tabIndex=0),this.updateComplete.then(()=>{this.focus(),this.requestUpdate()})),this.addEventListener("focus",this._handleFocus),this.addEventListener("blur",this._handleBlur)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener("focus",this._handleFocus),this.removeEventListener("blur",this._handleBlur)}update(e){super.update(e),e.has("value")&&this._internals.setFormValue(this.value),e.has("disabled")&&(this.disabled?(this._prevTabindex=this.tabIndex,this.tabIndex=-1):this.tabIndex=this._prevTabindex)}_executeAction(){this.type==="submit"&&this._internals.form&&this._internals.form.requestSubmit(),this.type==="reset"&&this._internals.form&&this._internals.form.reset()}_handleKeyDown(e){if((e.key==="Enter"||e.key===" ")&&!this.hasAttribute("disabled")){this.dispatchEvent(new CustomEvent("vsc-click",{detail:{originalEvent:new MouseEvent("click")}}));let t=new MouseEvent("click",{bubbles:!0,cancelable:!0});t.synthetic=!0,this.dispatchEvent(t),this._executeAction()}}_handleClick(e){e.synthetic||this.hasAttribute("disabled")||(this.dispatchEvent(new CustomEvent("vsc-click",{detail:{originalEvent:e}})),this._executeAction())}render(){let e=this.icon!=="",t=this.iconAfter!=="",o={wrapper:!0,"has-icon-before":e,"has-icon-after":t},i=e?c`<vscode-icon
           name=${this.icon}
           ?spin=${this.iconSpin}
-          spin-duration=${o(this.iconSpinDuration)}
+          spin-duration=${k(this.iconSpinDuration)}
           class="icon"
-        ></vscode-icon>`
-                : E;
-            const iconAfterElem = hasIconAfter
-                ? x `<vscode-icon
+        ></vscode-icon>`:m,s=t?c`<vscode-icon
           name=${this.iconAfter}
           ?spin=${this.iconAfterSpin}
-          spin-duration=${o(this.iconAfterSpinDuration)}
+          spin-duration=${k(this.iconAfterSpinDuration)}
           class="icon-after"
-        ></vscode-icon>`
-                : E;
-            return x `
-      <span class=${e(wrapperClasses)}>
-        ${iconElem}
+        ></vscode-icon>`:m;return c`
+      <span class=${g(o)}>
+        ${i}
         <slot></slot>
-        ${iconAfterElem}
+        ${s}
       </span>
-    `;
-        }
-    };
-    VscodeButton.styles = styles$u;
-    /** @internal */
-    VscodeButton.formAssociated = true;
-    __decorate$z([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeButton.prototype, "autofocus", void 0);
-    __decorate$z([
-        n$1({ type: Number, reflect: true })
-    ], VscodeButton.prototype, "tabIndex", void 0);
-    __decorate$z([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeButton.prototype, "secondary", void 0);
-    __decorate$z([
-        n$1({ reflect: true })
-    ], VscodeButton.prototype, "role", void 0);
-    __decorate$z([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeButton.prototype, "disabled", void 0);
-    __decorate$z([
-        n$1()
-    ], VscodeButton.prototype, "icon", void 0);
-    __decorate$z([
-        n$1({ type: Boolean, reflect: true, attribute: 'icon-spin' })
-    ], VscodeButton.prototype, "iconSpin", void 0);
-    __decorate$z([
-        n$1({ type: Number, reflect: true, attribute: 'icon-spin-duration' })
-    ], VscodeButton.prototype, "iconSpinDuration", void 0);
-    __decorate$z([
-        n$1({ attribute: 'icon-after' })
-    ], VscodeButton.prototype, "iconAfter", void 0);
-    __decorate$z([
-        n$1({ type: Boolean, reflect: true, attribute: 'icon-after-spin' })
-    ], VscodeButton.prototype, "iconAfterSpin", void 0);
-    __decorate$z([
-        n$1({
-            type: Number,
-            reflect: true,
-            attribute: 'icon-after-spin-duration',
-        })
-    ], VscodeButton.prototype, "iconAfterSpinDuration", void 0);
-    __decorate$z([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeButton.prototype, "focused", void 0);
-    __decorate$z([
-        n$1({ type: String, reflect: true })
-    ], VscodeButton.prototype, "name", void 0);
-    __decorate$z([
-        n$1({ reflect: true })
-    ], VscodeButton.prototype, "type", void 0);
-    __decorate$z([
-        n$1()
-    ], VscodeButton.prototype, "value", void 0);
-    VscodeButton = __decorate$z([
-        customElement('vscode-button')
-    ], VscodeButton);
-
-    var __decorate$y = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    class FormButtonWidgetBase extends VscElement {
-        constructor() {
-            super();
-            this.focused = false;
-            this._prevTabindex = 0;
-            this._handleFocus = () => {
-                this.focused = true;
-            };
-            this._handleBlur = () => {
-                this.focused = false;
-            };
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.addEventListener('focus', this._handleFocus);
-            this.addEventListener('blur', this._handleBlur);
-        }
-        disconnectedCallback() {
-            super.disconnectedCallback();
-            this.removeEventListener('focus', this._handleFocus);
-            this.removeEventListener('blur', this._handleBlur);
-        }
-        attributeChangedCallback(name, oldVal, newVal) {
-            super.attributeChangedCallback(name, oldVal, newVal);
-            if (name === 'disabled' && this.hasAttribute('disabled')) {
-                this._prevTabindex = this.tabIndex;
-                this.tabIndex = -1;
-            }
-            else if (name === 'disabled' && !this.hasAttribute('disabled')) {
-                this.tabIndex = this._prevTabindex;
-            }
-        }
-    }
-    __decorate$y([
-        n$1({ type: Boolean, reflect: true })
-    ], FormButtonWidgetBase.prototype, "focused", void 0);
-
-    var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    const LabelledCheckboxOrRadioMixin = (superClass) => {
-        class LabelledCheckboxOrRadio extends superClass {
-            constructor() {
-                super(...arguments);
-                this._label = '';
-                this._slottedText = '';
-            }
-            set label(val) {
-                this._label = val;
-                if (this._slottedText === '') {
-                    this.setAttribute('aria-label', val);
-                }
-            }
-            get label() {
-                return this._label;
-            }
-            _handleSlotChange() {
-                this._slottedText = this.textContent ? this.textContent.trim() : '';
-                if (this._slottedText !== '') {
-                    this.setAttribute('aria-label', this._slottedText);
-                }
-            }
-            _renderLabelAttribute() {
-                return this._slottedText === ''
-                    ? x `<span class="label-attr">${this._label}</span>`
-                    : x `${E}`;
-            }
-        }
-        __decorate$x([
-            n$1()
-        ], LabelledCheckboxOrRadio.prototype, "label", null);
-        return LabelledCheckboxOrRadio;
-    };
-
-    var baseStyles = [
-        i$4 `
+    `}};V.styles=Eo;V.formAssociated=!0;j([a({type:Boolean,reflect:!0})],V.prototype,"autofocus",void 0);j([a({type:Number,reflect:!0})],V.prototype,"tabIndex",void 0);j([a({type:Boolean,reflect:!0})],V.prototype,"secondary",void 0);j([a({reflect:!0})],V.prototype,"role",void 0);j([a({type:Boolean,reflect:!0})],V.prototype,"disabled",void 0);j([a()],V.prototype,"icon",void 0);j([a({type:Boolean,reflect:!0,attribute:"icon-spin"})],V.prototype,"iconSpin",void 0);j([a({type:Number,reflect:!0,attribute:"icon-spin-duration"})],V.prototype,"iconSpinDuration",void 0);j([a({attribute:"icon-after"})],V.prototype,"iconAfter",void 0);j([a({type:Boolean,reflect:!0,attribute:"icon-after-spin"})],V.prototype,"iconAfterSpin",void 0);j([a({type:Number,reflect:!0,attribute:"icon-after-spin-duration"})],V.prototype,"iconAfterSpinDuration",void 0);j([a({type:Boolean,reflect:!0})],V.prototype,"focused",void 0);j([a({type:String,reflect:!0})],V.prototype,"name",void 0);j([a({reflect:!0})],V.prototype,"type",void 0);j([a()],V.prototype,"value",void 0);V=j([p("vscode-button")],V);var ii=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Pe=class extends u{constructor(){super(),this.focused=!1,this._prevTabindex=0,this._handleFocus=()=>{this.focused=!0},this._handleBlur=()=>{this.focused=!1}}connectedCallback(){super.connectedCallback(),this.addEventListener("focus",this._handleFocus),this.addEventListener("blur",this._handleBlur)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener("focus",this._handleFocus),this.removeEventListener("blur",this._handleBlur)}attributeChangedCallback(e,t,o){super.attributeChangedCallback(e,t,o),e==="disabled"&&this.hasAttribute("disabled")?(this._prevTabindex=this.tabIndex,this.tabIndex=-1):e==="disabled"&&!this.hasAttribute("disabled")&&(this.tabIndex=this._prevTabindex)}};ii([a({type:Boolean,reflect:!0})],Pe.prototype,"focused",void 0);var ri=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Ct=r=>{class e extends r{constructor(){super(...arguments),this._label="",this._slottedText=""}set label(o){this._label=o,this._slottedText===""&&this.setAttribute("aria-label",o)}get label(){return this._label}_handleSlotChange(){this._slottedText=this.textContent?this.textContent.trim():"",this._slottedText!==""&&this.setAttribute("aria-label",this._slottedText)}_renderLabelAttribute(){return this._slottedText===""?c`<span class="label-attr">${this._label}</span>`:c`${m}`}}return ri([a()],e.prototype,"label",null),e};var kt=[h`
     :host {
       color: var(--vscode-foreground, #cccccc);
       display: inline-block;
@@ -1024,13 +358,7 @@ var npmCompilation;
     :host([disabled]) .label {
       cursor: default;
     }
-  `,
-    ];
-
-    const styles$t = [
-        defaultStyles,
-        baseStyles,
-        i$4 `
+  `];var ni=[f,kt,h`
     :host(:invalid) .icon,
     :host([invalid]) .icon {
       background-color: var(--vscode-inputValidation-errorBackground, #5a1d1d);
@@ -1052,219 +380,7 @@ var npmCompilation;
       outline: 1px solid var(--vscode-focusBorder, #0078d4);
       outline-offset: -1px;
     }
-  `,
-    ];
-
-    var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Allows users to select one or more options from a set. When participating in a form, it supports
-     * the `:invalid` pseudo class. Otherwise the error styles can be applied through the `invalid`
-     * property.
-     *
-     * @tag vscode-checkbox
-     *
-     * @attr name - Name which is used as a variable name in the data of the form-container.
-     * @attr label - Attribute pair of the `label` property.
-     * @prop label - Label text. It is only applied if component's innerHTML doesn't contain any text.
-     *
-     * @fires {Event} change - Dispatched when checked state is changed. The event is bubbled, so it can be listened on a parent element like the `CheckboxGroup`.
-     * @fires {Event} invalid - Dispatched when the element is invalid and `checkValidity()` has been called or the form containing this element is submitted.
-     *
-     * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/invalid_event)
-     *
-     * @cssprop [--vscode-font-family=sans-serif]
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-font-weight=normal]
-     * @cssprop [--vscode-foreground=#cccccc]
-     * @cssprop [--vscode-settings-checkboxBackground=#313131]
-     * @cssprop [--vscode-settings-checkboxBorder=#3c3c3c]
-     * @cssprop [--vscode-settings-checkboxForeground=#cccccc]
-     * @cssprop [--vscode-focusBorder=#0078d4]
-     * @cssprop [--vscode-inputValidation-errorBackground=#5a1d1d]
-     * @cssprop [--vscode-inputValidation-errorBorder=#be1100]
-     */
-    let VscodeCheckbox = class VscodeCheckbox extends LabelledCheckboxOrRadioMixin(FormButtonWidgetBase) {
-        set checked(newVal) {
-            this._checked = newVal;
-            this._manageRequired();
-            this.requestUpdate();
-        }
-        get checked() {
-            return this._checked;
-        }
-        set required(newVal) {
-            this._required = newVal;
-            this._manageRequired();
-            this.requestUpdate();
-        }
-        get required() {
-            return this._required;
-        }
-        get form() {
-            return this._internals.form;
-        }
-        get validity() {
-            return this._internals.validity;
-        }
-        get validationMessage() {
-            return this._internals.validationMessage;
-        }
-        get willValidate() {
-            return this._internals.willValidate;
-        }
-        /**
-         * Returns `true` if the element's value is valid; otherwise, it returns `false`.
-         * If the element's value is invalid, an invalid event is triggered on the element.
-         *
-         * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/checkValidity)
-         */
-        checkValidity() {
-            return this._internals.checkValidity();
-        }
-        /**
-         * Returns `true` if the element's value is valid; otherwise, it returns `false`.
-         * If the element's value is invalid, an invalid event is triggered on the element, and the
-         * browser displays an error message to the user.
-         *
-         * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/reportValidity)
-         */
-        reportValidity() {
-            return this._internals.reportValidity();
-        }
-        constructor() {
-            super();
-            /**
-             * Automatically focus on the element when the page loads.
-             *
-             * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/autofocus)
-             */
-            this.autofocus = false;
-            this._checked = false;
-            /**
-             * The element's initial checked state, which will be restored when the containing form is reset.
-             */
-            this.defaultChecked = false;
-            this.invalid = false;
-            this.name = undefined;
-            /**
-             * Associate a value to the checkbox. According to the native checkbox [specification](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox#value_2), If the component participates in a form:
-             *
-             * - If it is unchecked, the value will not be submitted.
-             * - If it is checked but the value is not set, `on` will be submitted.
-             * - If it is checked and value is set, the value will be submitted.
-             */
-            this.value = '';
-            this.disabled = false;
-            this.indeterminate = false;
-            this._required = false;
-            /** @internal */
-            this.type = 'checkbox';
-            this._handleClick = (ev) => {
-                ev.preventDefault();
-                if (this.disabled) {
-                    return;
-                }
-                this._toggleState();
-            };
-            this._handleKeyDown = (ev) => {
-                if (!this.disabled && (ev.key === 'Enter' || ev.key === ' ')) {
-                    ev.preventDefault();
-                    if (ev.key === ' ') {
-                        this._toggleState();
-                    }
-                    if (ev.key === 'Enter') {
-                        this._internals.form?.requestSubmit();
-                    }
-                }
-            };
-            this._internals = this.attachInternals();
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.addEventListener('keydown', this._handleKeyDown);
-            this.updateComplete.then(() => {
-                this._manageRequired();
-                this._setActualFormValue();
-            });
-        }
-        disconnectedCallback() {
-            this.removeEventListener('keydown', this._handleKeyDown);
-        }
-        update(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        changedProperties) {
-            super.update(changedProperties);
-            if (changedProperties.has('checked')) {
-                this.ariaChecked = this.checked ? 'true' : 'false';
-            }
-        }
-        /** @internal */
-        formResetCallback() {
-            this.checked = this.defaultChecked;
-        }
-        /** @internal */
-        formStateRestoreCallback(state, _mode) {
-            if (state) {
-                this.checked = true;
-            }
-        }
-        // Sets the value of the control according to the native checkbox behavior.
-        // - If the checkbox is unchecked, the value will be null, so the control will
-        //   excluded from the form.
-        // - If the control is checked but the value is not set, the value will be "on".
-        // - If the control is checked and value is set, the value won't be changed.
-        _setActualFormValue() {
-            let actualValue = '';
-            if (this.checked) {
-                actualValue = !this.value ? 'on' : this.value;
-            }
-            else {
-                actualValue = null;
-            }
-            this._internals.setFormValue(actualValue);
-        }
-        _toggleState() {
-            this.checked = !this.checked;
-            this.indeterminate = false;
-            this._setActualFormValue();
-            this._manageRequired();
-            this.dispatchEvent(new Event('change', { bubbles: true }));
-            /** @deprecated */
-            this.dispatchEvent(new CustomEvent('vsc-change', {
-                detail: {
-                    checked: this.checked,
-                    label: this.label,
-                    value: this.value,
-                },
-                bubbles: true,
-                composed: true,
-            }));
-        }
-        _manageRequired() {
-            if (!this.checked && this.required) {
-                this._internals.setValidity({
-                    valueMissing: true,
-                }, 'Please check this box if you want to proceed.', this._inputEl ?? undefined);
-            }
-            else {
-                this._internals.setValidity({});
-            }
-        }
-        render() {
-            const iconClasses = e({
-                icon: true,
-                checked: this.checked,
-                indeterminate: this.indeterminate,
-            });
-            const labelInnerClasses = e({
-                'label-inner': true,
-            });
-            const icon = x `<svg
+  `],$o=ni;var oe=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},F=class extends Ct(Pe){set checked(e){this._checked=e,this._manageRequired(),this.requestUpdate()}get checked(){return this._checked}set required(e){this._required=e,this._manageRequired(),this.requestUpdate()}get required(){return this._required}get form(){return this._internals.form}get validity(){return this._internals.validity}get validationMessage(){return this._internals.validationMessage}get willValidate(){return this._internals.willValidate}checkValidity(){return this._internals.checkValidity()}reportValidity(){return this._internals.reportValidity()}constructor(){super(),this.autofocus=!1,this._checked=!1,this.defaultChecked=!1,this.invalid=!1,this.name=void 0,this.value="",this.disabled=!1,this.indeterminate=!1,this._required=!1,this.type="checkbox",this._handleClick=e=>{e.preventDefault(),!this.disabled&&this._toggleState()},this._handleKeyDown=e=>{!this.disabled&&(e.key==="Enter"||e.key===" ")&&(e.preventDefault(),e.key===" "&&this._toggleState(),e.key==="Enter"&&this._internals.form?.requestSubmit())},this._internals=this.attachInternals()}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this._handleKeyDown),this.updateComplete.then(()=>{this._manageRequired(),this._setActualFormValue()})}disconnectedCallback(){this.removeEventListener("keydown",this._handleKeyDown)}update(e){super.update(e),e.has("checked")&&(this.ariaChecked=this.checked?"true":"false")}formResetCallback(){this.checked=this.defaultChecked}formStateRestoreCallback(e,t){e&&(this.checked=!0)}_setActualFormValue(){let e="";this.checked?e=this.value?this.value:"on":e=null,this._internals.setFormValue(e)}_toggleState(){this.checked=!this.checked,this.indeterminate=!1,this._setActualFormValue(),this._manageRequired(),this.dispatchEvent(new Event("change",{bubbles:!0})),this.dispatchEvent(new CustomEvent("vsc-change",{detail:{checked:this.checked,label:this.label,value:this.value},bubbles:!0,composed:!0}))}_manageRequired(){!this.checked&&this.required?this._internals.setValidity({valueMissing:!0},"Please check this box if you want to proceed.",this._inputEl??void 0):this._internals.setValidity({})}render(){let e=g({icon:!0,checked:this.checked,indeterminate:this.indeterminate}),t=g({"label-inner":!0}),o=c`<svg
       width="16"
       height="16"
       viewBox="0 0 16 16"
@@ -1277,12 +393,7 @@ var npmCompilation;
         clip-rule="evenodd"
         d="M14.431 3.323l-8.47 10-.79-.036-3.35-4.77.818-.574 2.978 4.24 8.051-9.506.764.646z"
       />
-    </svg>`;
-            const check = this.checked && !this.indeterminate ? icon : E;
-            const indeterminate = this.indeterminate
-                ? x `<span class="indeterminate-icon"></span>`
-                : E;
-            return x `
+    </svg>`,i=this.checked&&!this.indeterminate?o:m,s=this.indeterminate?c`<span class="indeterminate-icon"></span>`:m;return c`
       <div class="wrapper">
         <input
           ?autofocus=${this.autofocus}
@@ -1292,65 +403,15 @@ var npmCompilation;
           ?checked=${this.checked}
           value=${this.value}
         >
-        <div class=${iconClasses}>${indeterminate}${check}</div>
+        <div class=${e}>${s}${i}</div>
         <label for="input" class="label" @click=${this._handleClick}>
-          <span class=${labelInnerClasses}>
+          <span class=${t}>
             ${this._renderLabelAttribute()}
             <slot @slotchange=${this._handleSlotChange}></slot>
           </span>
         </label>
       </div>
-    `;
-        }
-    };
-    VscodeCheckbox.styles = styles$t;
-    /** @internal */
-    VscodeCheckbox.formAssociated = true;
-    /** @internal */
-    VscodeCheckbox.shadowRootOptions = {
-        ...i$1.shadowRootOptions,
-        delegatesFocus: true,
-    };
-    __decorate$w([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeCheckbox.prototype, "autofocus", void 0);
-    __decorate$w([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeCheckbox.prototype, "checked", null);
-    __decorate$w([
-        n$1({ type: Boolean, reflect: true, attribute: 'default-checked' })
-    ], VscodeCheckbox.prototype, "defaultChecked", void 0);
-    __decorate$w([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeCheckbox.prototype, "invalid", void 0);
-    __decorate$w([
-        n$1({ reflect: true })
-    ], VscodeCheckbox.prototype, "name", void 0);
-    __decorate$w([
-        n$1()
-    ], VscodeCheckbox.prototype, "value", void 0);
-    __decorate$w([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeCheckbox.prototype, "disabled", void 0);
-    __decorate$w([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeCheckbox.prototype, "indeterminate", void 0);
-    __decorate$w([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeCheckbox.prototype, "required", null);
-    __decorate$w([
-        n$1()
-    ], VscodeCheckbox.prototype, "type", void 0);
-    __decorate$w([
-        e$3('#input')
-    ], VscodeCheckbox.prototype, "_inputEl", void 0);
-    VscodeCheckbox = __decorate$w([
-        customElement('vscode-checkbox')
-    ], VscodeCheckbox);
-
-    const styles$s = [
-        defaultStyles,
-        i$4 `
+    `}};F.styles=$o;F.formAssociated=!0;F.shadowRootOptions={...D.shadowRootOptions,delegatesFocus:!0};oe([a({type:Boolean,reflect:!0})],F.prototype,"autofocus",void 0);oe([a({type:Boolean,reflect:!0})],F.prototype,"checked",null);oe([a({type:Boolean,reflect:!0,attribute:"default-checked"})],F.prototype,"defaultChecked",void 0);oe([a({type:Boolean,reflect:!0})],F.prototype,"invalid",void 0);oe([a({reflect:!0})],F.prototype,"name",void 0);oe([a()],F.prototype,"value",void 0);oe([a({type:Boolean,reflect:!0})],F.prototype,"disabled",void 0);oe([a({type:Boolean,reflect:!0})],F.prototype,"indeterminate",void 0);oe([a({type:Boolean,reflect:!0})],F.prototype,"required",null);oe([a()],F.prototype,"type",void 0);oe([S("#input")],F.prototype,"_inputEl",void 0);F=oe([p("vscode-checkbox")],F);var li=[f,h`
     :host {
       display: block;
     }
@@ -1380,49 +441,11 @@ var npmCompilation;
     :host([variant='vertical']) ::slotted(vscode-checkbox:last-child) {
       margin-bottom: 0;
     }
-  `,
-    ];
-
-    var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Arranges a group of checkboxes horizontally or vertically.
-     *
-     * @tag vscode-checkbox-group
-     */
-    let VscodeCheckboxGroup = class VscodeCheckboxGroup extends VscElement {
-        constructor() {
-            super(...arguments);
-            /** @internal */
-            this.role = 'group';
-            this.variant = 'horizontal';
-        }
-        render() {
-            return x `
+  `],So=li;var Xt=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},ce=class extends u{constructor(){super(...arguments),this.role="group",this.variant="horizontal"}render(){return c`
       <div class="wrapper">
         <slot></slot>
       </div>
-    `;
-        }
-    };
-    VscodeCheckboxGroup.styles = styles$s;
-    __decorate$v([
-        n$1({ reflect: true })
-    ], VscodeCheckboxGroup.prototype, "role", void 0);
-    __decorate$v([
-        n$1({ reflect: true })
-    ], VscodeCheckboxGroup.prototype, "variant", void 0);
-    VscodeCheckboxGroup = __decorate$v([
-        customElement('vscode-checkbox-group')
-    ], VscodeCheckboxGroup);
-
-    const styles$r = [
-        defaultStyles,
-        i$4 `
+    `}};ce.styles=So;Xt([a({reflect:!0})],ce.prototype,"role",void 0);Xt([a({reflect:!0})],ce.prototype,"variant",void 0);ce=Xt([p("vscode-checkbox-group")],ce);var ai=[f,h`
     .collapsible {
       background-color: var(--vscode-sideBar-background, #181818);
     }
@@ -1511,62 +534,7 @@ var npmCompilation;
     .collapsible.open .collapsible-body {
       display: block;
     }
-  `,
-    ];
-
-    var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Allows users to reveal or hide related content on a page.
-     *
-     * @tag vscode-collapsible
-     *
-     * @slot - Main content.
-     * @slot actions - You can place any action icon in this slot in the header, but it's also possible to use any HTML element in it. It's only visible when the component is open.
-     * @slot decorations - The elements placed in the decorations slot are always visible.
-     *
-     * @fires {VscCollapsibleToggleEvent} vsc-collapsible-toggle - Dispatched when the content visibility is changed.
-     *
-     * @cssprop [--vscode-sideBar-background=#181818] - Background color
-     * @cssprop [--vscode-focusBorder=#0078d4] - Focus border color
-     * @cssprop [--vscode-font-family=sans-serif] - Header font family
-     * @cssprop [--vscode-sideBarSectionHeader-background=#181818] - Header background
-     * @cssprop [--vscode-icon-foreground=#cccccc] - Arrow icon color
-     * @cssprop [--vscode-sideBarTitle-foreground=#cccccc] - Header font color
-     *
-     * @csspart body - Container for the toggleable content of the component. The container's overflow content is hidden by default. This CSS part can serve as an escape hatch to modify this behavior.
-     */
-    let VscodeCollapsible = class VscodeCollapsible extends VscElement {
-        constructor() {
-            super(...arguments);
-            /** Component heading text */
-            this.title = '';
-            /** Less prominent text than the title in the header */
-            this.description = '';
-            this.open = false;
-        }
-        _emitToggleEvent() {
-            this.dispatchEvent(new CustomEvent('vsc-collapsible-toggle', {
-                detail: { open: this.open },
-            }));
-        }
-        _onHeaderClick() {
-            this.open = !this.open;
-            this._emitToggleEvent();
-        }
-        _onHeaderKeyDown(event) {
-            if (event.key === 'Enter') {
-                this.open = !this.open;
-                this._emitToggleEvent();
-            }
-        }
-        render() {
-            const classes = e({ collapsible: true, open: this.open });
-            const icon = x `<svg
+  `],Io=ai;var Et=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},ue=class extends u{constructor(){super(...arguments),this.title="",this.description="",this.open=!1}_emitToggleEvent(){this.dispatchEvent(new CustomEvent("vsc-collapsible-toggle",{detail:{open:this.open}}))}_onHeaderClick(){this.open=!this.open,this._emitToggleEvent()}_onHeaderKeyDown(e){e.key==="Enter"&&(this.open=!this.open,this._emitToggleEvent())}render(){let e=g({collapsible:!0,open:this.open}),t=c`<svg
       width="16"
       height="16"
       viewBox="0 0 16 16"
@@ -1579,12 +547,8 @@ var npmCompilation;
         clip-rule="evenodd"
         d="M10.072 8.024L5.715 3.667l.618-.62L11 7.716v.618L6.333 13l-.618-.619 4.357-4.357z"
       />
-    </svg>`;
-            const descriptionMarkup = this.description
-                ? x `<span class="description">${this.description}</span>`
-                : E;
-            return x `
-      <div class=${classes}>
+    </svg>`,o=this.description?c`<span class="description">${this.description}</span>`:m;return c`
+      <div class=${e}>
         <div
           class="collapsible-header"
           tabindex="0"
@@ -1592,8 +556,8 @@ var npmCompilation;
           @click=${this._onHeaderClick}
           @keydown=${this._onHeaderKeyDown}
         >
-          ${icon}
-          <h3 class="title">${this.title}${descriptionMarkup}</h3>
+          ${t}
+          <h3 class="title">${this.title}${o}</h3>
           <div class="header-slots">
             <div class="actions"><slot name="actions"></slot></div>
             <div class="decorations"><slot name="decorations"></slot></div>
@@ -1603,26 +567,7 @@ var npmCompilation;
           <slot></slot>
         </div>
       </div>
-    `;
-        }
-    };
-    VscodeCollapsible.styles = styles$r;
-    __decorate$u([
-        n$1({ type: String })
-    ], VscodeCollapsible.prototype, "title", void 0);
-    __decorate$u([
-        n$1()
-    ], VscodeCollapsible.prototype, "description", void 0);
-    __decorate$u([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeCollapsible.prototype, "open", void 0);
-    VscodeCollapsible = __decorate$u([
-        customElement('vscode-collapsible')
-    ], VscodeCollapsible);
-
-    const styles$q = [
-        defaultStyles,
-        i$4 `
+    `}};ue.styles=Io;Et([a({type:String})],ue.prototype,"title",void 0);Et([a()],ue.prototype,"description",void 0);Et([a({type:Boolean,reflect:!0})],ue.prototype,"open",void 0);ue=Et([p("vscode-collapsible")],ue);var ci=[f,h`
     :host {
       display: block;
       font-family: var(--vscode-font-family, sans-serif);
@@ -1691,99 +636,20 @@ var npmCompilation;
       padding: 0 22px;
       text-align: right;
     }
-  `,
-    ];
-
-    var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-context-menu-item
-     *
-     * Child component of [ContextMenu](/components/context-menu/).
-     *
-     * @cssprop [--vscode-font-family=sans-serif]
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-font-weight=normal]
-     * @cssprop [--vscode-menu-background=#1f1f1f]
-     * @cssprop [--vscode-menu-selectionBorder=transparent]
-     * @cssprop [--vscode-menu-foreground=#cccccc]
-     * @cssprop [--vscode-menu-selectionBackground=#0078d4]
-     * @cssprop [--vscode-menu-selectionForeground=#ffffff]
-     * @cssprop [--vscode-menu-separatorBackground=#454545]
-     */
-    let VscodeContextMenuItem = class VscodeContextMenuItem extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.label = '';
-            this.keybinding = '';
-            this.value = '';
-            this.separator = false;
-            this.tabindex = 0;
-        }
-        onItemClick() {
-            /** @internal */
-            this.dispatchEvent(new CustomEvent('vsc-click', {
-                detail: {
-                    label: this.label,
-                    keybinding: this.keybinding,
-                    value: this.value || this.label,
-                    separator: this.separator,
-                    tabindex: this.tabindex,
-                },
-                bubbles: true,
-                composed: true,
-            }));
-        }
-        render() {
-            return x `
-      ${this.separator
-            ? x `
+  `],Oo=ci;var We=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},ie=class extends u{constructor(){super(...arguments),this.label="",this.keybinding="",this.value="",this.separator=!1,this.tabindex=0}onItemClick(){this.dispatchEvent(new CustomEvent("vsc-click",{detail:{label:this.label,keybinding:this.keybinding,value:this.value||this.label,separator:this.separator,tabindex:this.tabindex},bubbles:!0,composed:!0}))}render(){return c`
+      ${this.separator?c`
             <div class="context-menu-item separator">
               <span class="ruler"></span>
             </div>
-          `
-            : x `
+          `:c`
             <div class="context-menu-item">
               <a @click=${this.onItemClick}>
-                ${this.label
-                ? x `<span class="label">${this.label}</span>`
-                : E}
-                ${this.keybinding
-                ? x `<span class="keybinding">${this.keybinding}</span>`
-                : E}
+                ${this.label?c`<span class="label">${this.label}</span>`:m}
+                ${this.keybinding?c`<span class="keybinding">${this.keybinding}</span>`:m}
               </a>
             </div>
           `}
-    `;
-        }
-    };
-    VscodeContextMenuItem.styles = styles$q;
-    __decorate$t([
-        n$1({ type: String })
-    ], VscodeContextMenuItem.prototype, "label", void 0);
-    __decorate$t([
-        n$1({ type: String })
-    ], VscodeContextMenuItem.prototype, "keybinding", void 0);
-    __decorate$t([
-        n$1({ type: String })
-    ], VscodeContextMenuItem.prototype, "value", void 0);
-    __decorate$t([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeContextMenuItem.prototype, "separator", void 0);
-    __decorate$t([
-        n$1({ type: Number })
-    ], VscodeContextMenuItem.prototype, "tabindex", void 0);
-    VscodeContextMenuItem = __decorate$t([
-        customElement('vscode-context-menu-item')
-    ], VscodeContextMenuItem);
-
-    const styles$p = [
-        defaultStyles,
-        i$4 `
+    `}};ie.styles=Oo;We([a({type:String})],ie.prototype,"label",void 0);We([a({type:String})],ie.prototype,"keybinding",void 0);We([a({type:String})],ie.prototype,"value",void 0);We([a({type:Boolean,reflect:!0})],ie.prototype,"separator",void 0);We([a({type:Number})],ie.prototype,"tabindex",void 0);ie=We([p("vscode-context-menu-item")],ie);var di=[f,h`
     :host {
       display: block;
       font-family: var(--vscode-font-family, sans-serif);
@@ -1808,251 +674,24 @@ var npmCompilation;
     .context-menu:focus {
       outline: 0;
     }
-  `,
-    ];
-
-    var __decorate$s = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-context-menu
-     *
-     * @fires {VscMenuSelectEvent} vsc-menu-select - Emitted when a menu item is clicked
-     *
-     * @cssprop [--vscode-font-family=sans-serif]
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-font-weight=normal]
-     * @cssprop [--vscode-menu-background=#1f1f1f]
-     * @cssprop [--vscode-menu-border=#454545]
-     * @cssprop [--vscode-menu-foreground=#cccccc]
-     * @cssprop [--vscode-widget-shadow=rgba(0, 0, 0, 0.36)]
-     */
-    let VscodeContextMenu = class VscodeContextMenu extends VscElement {
-        set data(data) {
-            this._data = data;
-            const indexes = [];
-            data.forEach((v, i) => {
-                if (!v.separator) {
-                    indexes.push(i);
-                }
-            });
-            this._clickableItemIndexes = indexes;
-        }
-        get data() {
-            return this._data;
-        }
-        set show(show) {
-            this._show = show;
-            this._selectedClickableItemIndex = -1;
-            if (show) {
-                this.updateComplete.then(() => {
-                    if (this._wrapperEl) {
-                        this._wrapperEl.focus();
-                    }
-                    requestAnimationFrame(() => {
-                        document.addEventListener('click', this._onClickOutsideBound, {
-                            once: true,
-                        });
-                    });
-                });
-            }
-        }
-        get show() {
-            return this._show;
-        }
-        constructor() {
-            super();
-            /**
-             * By default, the menu closes when an item is clicked. This attribute prevents the menu from closing.
-             */
-            this.preventClose = false;
-            /** @internal */
-            this.tabIndex = 0;
-            /* connectedCallback(): void {
-              super.connectedCallback();
-              document.addEventListener('click', this._onClickOutsideBound);
-            }
-          
-            disconnectedCallback(): void {
-              super.disconnectedCallback();
-              document.removeEventListener('click', this._onClickOutsideBound);
-            } */
-            this._selectedClickableItemIndex = -1;
-            this._show = false;
-            this._data = [];
-            this._clickableItemIndexes = [];
-            this._onClickOutsideBound = this._onClickOutside.bind(this);
-            this.addEventListener('keydown', this._onKeyDown);
-        }
-        _onClickOutside(ev) {
-            if (!ev.composedPath().includes(this)) {
-                this.show = false;
-            }
-        }
-        _onKeyDown(ev) {
-            const { key } = ev;
-            if (key === 'ArrowUp' ||
-                key === 'ArrowDown' ||
-                key === 'Escape' ||
-                key === 'Enter') {
-                ev.preventDefault();
-            }
-            switch (key) {
-                case 'ArrowUp':
-                    this._handleArrowUp();
-                    break;
-                case 'ArrowDown':
-                    this._handleArrowDown();
-                    break;
-                case 'Escape':
-                    this._handleEscape();
-                    break;
-                case 'Enter':
-                    this._handleEnter();
-                    break;
-            }
-        }
-        _handleArrowUp() {
-            if (this._selectedClickableItemIndex === 0) {
-                this._selectedClickableItemIndex = this._clickableItemIndexes.length - 1;
-            }
-            else {
-                this._selectedClickableItemIndex -= 1;
-            }
-        }
-        _handleArrowDown() {
-            if (this._selectedClickableItemIndex + 1 <
-                this._clickableItemIndexes.length) {
-                this._selectedClickableItemIndex += 1;
-            }
-            else {
-                this._selectedClickableItemIndex = 0;
-            }
-        }
-        _handleEscape() {
-            this.show = false;
-            document.removeEventListener('click', this._onClickOutsideBound);
-        }
-        _dispatchSelectEvent(selectedOption) {
-            const { keybinding, label, value, separator, tabindex } = selectedOption;
-            this.dispatchEvent(new CustomEvent('vsc-context-menu-select', {
-                detail: {
-                    keybinding,
-                    label,
-                    separator,
-                    tabindex,
-                    value,
-                },
-            }));
-        }
-        _dispatchLegacySelectEvent(selectedOption) {
-            const { keybinding, label, value, separator, tabindex } = selectedOption;
-            const detail = {
-                keybinding,
-                label,
-                value,
-                separator,
-                tabindex,
-            };
-            /** @deprecated - Renamed to `vsc-context-menu-select` */
-            this.dispatchEvent(new CustomEvent('vsc-select', {
-                detail,
-                bubbles: true,
-                composed: true,
-            }));
-        }
-        _handleEnter() {
-            if (this._selectedClickableItemIndex === -1) {
-                return;
-            }
-            const realItemIndex = this._clickableItemIndexes[this._selectedClickableItemIndex];
-            const options = this._wrapperEl.querySelectorAll('vscode-context-menu-item');
-            const selectedOption = options[realItemIndex];
-            this._dispatchLegacySelectEvent(selectedOption);
-            this._dispatchSelectEvent(selectedOption);
-            if (!this.preventClose) {
-                this.show = false;
-                document.removeEventListener('click', this._onClickOutsideBound);
-            }
-        }
-        _onItemClick(event) {
-            const et = event.currentTarget;
-            this._dispatchLegacySelectEvent(et);
-            this._dispatchSelectEvent(et);
-            if (!this.preventClose) {
-                this.show = false;
-            }
-        }
-        _onItemMouseOver(event) {
-            const el = event.target;
-            const index = el.dataset.index ? +el.dataset.index : -1;
-            const found = this._clickableItemIndexes.findIndex((item) => item === index);
-            if (found !== -1) {
-                this._selectedClickableItemIndex = found;
-            }
-        }
-        _onItemMouseOut() {
-            this._selectedClickableItemIndex = -1;
-        }
-        render() {
-            if (!this._show) {
-                return x `${E}`;
-            }
-            const selectedIndex = this._clickableItemIndexes[this._selectedClickableItemIndex];
-            return x `
+  `],Ao=di;var ge=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Q=class extends u{set data(e){this._data=e;let t=[];e.forEach((o,i)=>{o.separator||t.push(i)}),this._clickableItemIndexes=t}get data(){return this._data}set show(e){this._show=e,this._selectedClickableItemIndex=-1,e&&this.updateComplete.then(()=>{this._wrapperEl&&this._wrapperEl.focus(),requestAnimationFrame(()=>{document.addEventListener("click",this._onClickOutsideBound,{once:!0})})})}get show(){return this._show}constructor(){super(),this.preventClose=!1,this.tabIndex=0,this._selectedClickableItemIndex=-1,this._show=!1,this._data=[],this._clickableItemIndexes=[],this._onClickOutsideBound=this._onClickOutside.bind(this),this.addEventListener("keydown",this._onKeyDown)}_onClickOutside(e){e.composedPath().includes(this)||(this.show=!1)}_onKeyDown(e){let{key:t}=e;switch((t==="ArrowUp"||t==="ArrowDown"||t==="Escape"||t==="Enter")&&e.preventDefault(),t){case"ArrowUp":this._handleArrowUp();break;case"ArrowDown":this._handleArrowDown();break;case"Escape":this._handleEscape();break;case"Enter":this._handleEnter();break;default:}}_handleArrowUp(){this._selectedClickableItemIndex===0?this._selectedClickableItemIndex=this._clickableItemIndexes.length-1:this._selectedClickableItemIndex-=1}_handleArrowDown(){this._selectedClickableItemIndex+1<this._clickableItemIndexes.length?this._selectedClickableItemIndex+=1:this._selectedClickableItemIndex=0}_handleEscape(){this.show=!1,document.removeEventListener("click",this._onClickOutsideBound)}_dispatchSelectEvent(e){let{keybinding:t,label:o,value:i,separator:s,tabindex:n}=e;this.dispatchEvent(new CustomEvent("vsc-context-menu-select",{detail:{keybinding:t,label:o,separator:s,tabindex:n,value:i}}))}_dispatchLegacySelectEvent(e){let{keybinding:t,label:o,value:i,separator:s,tabindex:n}=e,l={keybinding:t,label:o,value:i,separator:s,tabindex:n};this.dispatchEvent(new CustomEvent("vsc-select",{detail:l,bubbles:!0,composed:!0}))}_handleEnter(){if(this._selectedClickableItemIndex===-1)return;let e=this._clickableItemIndexes[this._selectedClickableItemIndex],o=this._wrapperEl.querySelectorAll("vscode-context-menu-item")[e];this._dispatchLegacySelectEvent(o),this._dispatchSelectEvent(o),this.preventClose||(this.show=!1,document.removeEventListener("click",this._onClickOutsideBound))}_onItemClick(e){let t=e.currentTarget;this._dispatchLegacySelectEvent(t),this._dispatchSelectEvent(t),this.preventClose||(this.show=!1)}_onItemMouseOver(e){let t=e.target,o=t.dataset.index?+t.dataset.index:-1,i=this._clickableItemIndexes.findIndex(s=>s===o);i!==-1&&(this._selectedClickableItemIndex=i)}_onItemMouseOut(){this._selectedClickableItemIndex=-1}render(){if(!this._show)return c`${m}`;let e=this._clickableItemIndexes[this._selectedClickableItemIndex];return c`
       <div class="context-menu" tabindex="0">
-        ${this.data
-            ? this.data.map(({ label = '', keybinding = '', value = '', separator = false, tabindex = 0, }, index) => x `
+        ${this.data?this.data.map(({label:t="",keybinding:o="",value:i="",separator:s=!1,tabindex:n=0},l)=>c`
                 <vscode-context-menu-item
-                  label=${label}
-                  keybinding=${keybinding}
-                  value=${value}
-                  ?separator=${separator}
-                  ?selected=${index === selectedIndex}
-                  tabindex=${tabindex}
+                  label=${t}
+                  keybinding=${o}
+                  value=${i}
+                  ?separator=${s}
+                  ?selected=${l===e}
+                  tabindex=${n}
                   @vsc-click=${this._onItemClick}
                   @mouseover=${this._onItemMouseOver}
                   @mouseout=${this._onItemMouseOut}
-                  data-index=${index}
+                  data-index=${l}
                 ></vscode-context-menu-item>
-              `)
-            : x `<slot></slot>`}
+              `):c`<slot></slot>`}
       </div>
-    `;
-        }
-    };
-    VscodeContextMenu.styles = styles$p;
-    __decorate$s([
-        n$1({ type: Array, attribute: false })
-    ], VscodeContextMenu.prototype, "data", null);
-    __decorate$s([
-        n$1({ type: Boolean, reflect: true, attribute: 'prevent-close' })
-    ], VscodeContextMenu.prototype, "preventClose", void 0);
-    __decorate$s([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeContextMenu.prototype, "show", null);
-    __decorate$s([
-        n$1({ type: Number, reflect: true })
-    ], VscodeContextMenu.prototype, "tabIndex", void 0);
-    __decorate$s([
-        r$2()
-    ], VscodeContextMenu.prototype, "_selectedClickableItemIndex", void 0);
-    __decorate$s([
-        r$2()
-    ], VscodeContextMenu.prototype, "_show", void 0);
-    __decorate$s([
-        e$3('.context-menu')
-    ], VscodeContextMenu.prototype, "_wrapperEl", void 0);
-    VscodeContextMenu = __decorate$s([
-        customElement('vscode-context-menu')
-    ], VscodeContextMenu);
-
-    const styles$o = [
-        defaultStyles,
-        i$4 `
+    `}};Q.styles=Ao;ge([a({type:Array,attribute:!1})],Q.prototype,"data",null);ge([a({type:Boolean,reflect:!0,attribute:"prevent-close"})],Q.prototype,"preventClose",void 0);ge([a({type:Boolean,reflect:!0})],Q.prototype,"show",null);ge([a({type:Number,reflect:!0})],Q.prototype,"tabIndex",void 0);ge([_()],Q.prototype,"_selectedClickableItemIndex",void 0);ge([_()],Q.prototype,"_show",void 0);ge([S(".context-menu")],Q.prototype,"_wrapperEl",void 0);Q=ge([p("vscode-context-menu")],Q);var hi=[f,h`
     :host {
       background-color: var(--vscode-foreground, #cccccc);
       display: block;
@@ -2061,229 +700,16 @@ var npmCompilation;
       margin-top: 10px;
       opacity: 0.4;
     }
-  `,
-    ];
-
-    var __decorate$r = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-divider
-     *
-     * @cssprop [--vscode-foreground=#cccccc]
-     */
-    let VscodeDivider = class VscodeDivider extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.role = 'separator';
-        }
-        render() {
-            return x ``;
-        }
-    };
-    VscodeDivider.styles = styles$o;
-    __decorate$r([
-        n$1({ reflect: true })
-    ], VscodeDivider.prototype, "role", void 0);
-    VscodeDivider = __decorate$r([
-        customElement('vscode-divider')
-    ], VscodeDivider);
-
-    const styles$n = [
-        defaultStyles,
-        i$4 `
+  `],Po=hi;var Ro=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Re=class extends u{constructor(){super(...arguments),this.role="separator"}render(){return c``}};Re.styles=Po;Ro([a({reflect:!0})],Re.prototype,"role",void 0);Re=Ro([p("vscode-divider")],Re);var pi=[f,h`
     :host {
       display: block;
       max-width: 727px;
     }
-  `,
-    ];
-
-    var __decorate$q = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    var FormGroupLayout;
-    (function (FormGroupLayout) {
-        FormGroupLayout["HORIZONTAL"] = "horizontal";
-        FormGroupLayout["VERTICAL"] = "vertical";
-    })(FormGroupLayout || (FormGroupLayout = {}));
-    const isTextInput = (el) => {
-        return ['vscode-textfield', 'vscode-textarea'].includes(el.tagName.toLocaleLowerCase());
-    };
-    const isSingleSelect = (el) => {
-        return el.tagName.toLocaleLowerCase() === 'vscode-single-select';
-    };
-    const isMultiSelect = (el) => {
-        return el.tagName.toLocaleLowerCase() === 'vscode-multi-select';
-    };
-    const isCheckbox = (el) => {
-        return el.tagName.toLocaleLowerCase() === 'vscode-checkbox';
-    };
-    const isRadio = (el) => {
-        return el.tagName.toLocaleLowerCase() === 'vscode-radio';
-    };
-    /**
-     * @tag vscode-form-container
-     */
-    let VscodeFormContainer = class VscodeFormContainer extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.breakpoint = 490;
-            this._responsive = false;
-            this._firstUpdateComplete = false;
-            this._resizeObserverCallbackBound = this._resizeObserverCallback.bind(this);
-        }
-        set responsive(isResponsive) {
-            this._responsive = isResponsive;
-            if (this._firstUpdateComplete) {
-                if (isResponsive) {
-                    this._activateResponsiveLayout();
-                }
-                else {
-                    this._deactivateResizeObserver();
-                }
-            }
-        }
-        get responsive() {
-            return this._responsive;
-        }
-        /** @deprecated - Use the native `<form>` element instead. */
-        get data() {
-            return this._collectFormData();
-        }
-        _collectFormData() {
-            const query = [
-                'vscode-textfield',
-                'vscode-textarea',
-                'vscode-single-select',
-                'vscode-multi-select',
-                'vscode-checkbox',
-                'vscode-radio',
-            ].join(',');
-            const vscFormWidgets = this.querySelectorAll(query);
-            const data = {};
-            vscFormWidgets.forEach((widget) => {
-                if (!widget.hasAttribute('name')) {
-                    return;
-                }
-                const name = widget.getAttribute('name');
-                if (!name) {
-                    return;
-                }
-                if (isCheckbox(widget) && widget.checked) {
-                    data[name] = Array.isArray(data[name])
-                        ? [...data[name], widget.value]
-                        : [widget.value];
-                }
-                else if (isMultiSelect(widget)) {
-                    data[name] = widget.value;
-                }
-                else if (isCheckbox(widget) && !widget.checked) {
-                    data[name] = Array.isArray(data[name]) ? data[name] : [];
-                }
-                else if ((isRadio(widget) && widget.checked) ||
-                    isTextInput(widget) ||
-                    isSingleSelect(widget)) {
-                    data[name] = widget.value;
-                }
-                else if (isRadio(widget) && !widget.checked) {
-                    data[name] = data[name] ? data[name] : '';
-                }
-            });
-            return data;
-        }
-        _toggleCompactLayout(layout) {
-            this._assignedFormGroups.forEach((group) => {
-                if (!group.dataset.originalVariant) {
-                    group.dataset.originalVariant = group.variant;
-                }
-                const oVariant = group.dataset.originalVariant;
-                if (layout === FormGroupLayout.VERTICAL && oVariant === 'horizontal') {
-                    group.variant = 'vertical';
-                }
-                else {
-                    group.variant = oVariant;
-                }
-                const checkboxOrRadioGroup = group.querySelectorAll('vscode-checkbox-group, vscode-radio-group');
-                checkboxOrRadioGroup.forEach((widgetGroup) => {
-                    if (!widgetGroup.dataset.originalVariant) {
-                        widgetGroup.dataset.originalVariant = widgetGroup.variant;
-                    }
-                    const originalVariant = widgetGroup.dataset.originalVariant;
-                    if (layout === FormGroupLayout.HORIZONTAL &&
-                        originalVariant === FormGroupLayout.HORIZONTAL) {
-                        widgetGroup.variant = 'horizontal';
-                    }
-                    else {
-                        widgetGroup.variant = 'vertical';
-                    }
-                });
-            });
-        }
-        _resizeObserverCallback(entries) {
-            let wrapperWidth = 0;
-            for (const entry of entries) {
-                wrapperWidth = entry.contentRect.width;
-            }
-            const nextLayout = wrapperWidth < this.breakpoint
-                ? FormGroupLayout.VERTICAL
-                : FormGroupLayout.HORIZONTAL;
-            if (nextLayout !== this._currentFormGroupLayout) {
-                this._toggleCompactLayout(nextLayout);
-                this._currentFormGroupLayout = nextLayout;
-            }
-        }
-        _activateResponsiveLayout() {
-            this._resizeObserver = new ResizeObserver(this._resizeObserverCallbackBound);
-            this._resizeObserver.observe(this._wrapperElement);
-        }
-        _deactivateResizeObserver() {
-            this._resizeObserver?.disconnect();
-            this._resizeObserver = null;
-        }
-        firstUpdated() {
-            this._firstUpdateComplete = true;
-            if (this._responsive) {
-                this._activateResponsiveLayout();
-            }
-        }
-        render() {
-            return x `
+  `],Vo=pi;var Ke=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Ve;(function(r){r.HORIZONTAL="horizontal",r.VERTICAL="vertical"})(Ve||(Ve={}));var ui=r=>["vscode-textfield","vscode-textarea"].includes(r.tagName.toLocaleLowerCase()),fi=r=>r.tagName.toLocaleLowerCase()==="vscode-single-select",mi=r=>r.tagName.toLocaleLowerCase()==="vscode-multi-select",Bo=r=>r.tagName.toLocaleLowerCase()==="vscode-checkbox",To=r=>r.tagName.toLocaleLowerCase()==="vscode-radio",re=class extends u{constructor(){super(...arguments),this.breakpoint=490,this._responsive=!1,this._firstUpdateComplete=!1,this._resizeObserverCallbackBound=this._resizeObserverCallback.bind(this)}set responsive(e){this._responsive=e,this._firstUpdateComplete&&(e?this._activateResponsiveLayout():this._deactivateResizeObserver())}get responsive(){return this._responsive}get data(){return this._collectFormData()}_collectFormData(){let e=["vscode-textfield","vscode-textarea","vscode-single-select","vscode-multi-select","vscode-checkbox","vscode-radio"].join(","),t=this.querySelectorAll(e),o={};return t.forEach(i=>{if(!i.hasAttribute("name"))return;let s=i.getAttribute("name");s&&(Bo(i)&&i.checked?o[s]=Array.isArray(o[s])?[...o[s],i.value]:[i.value]:mi(i)?o[s]=i.value:Bo(i)&&!i.checked?o[s]=Array.isArray(o[s])?o[s]:[]:To(i)&&i.checked||ui(i)||fi(i)?o[s]=i.value:To(i)&&!i.checked&&(o[s]=o[s]?o[s]:""))}),o}_toggleCompactLayout(e){this._assignedFormGroups.forEach(t=>{t.dataset.originalVariant||(t.dataset.originalVariant=t.variant);let o=t.dataset.originalVariant;e===Ve.VERTICAL&&o==="horizontal"?t.variant="vertical":t.variant=o,t.querySelectorAll("vscode-checkbox-group, vscode-radio-group").forEach(s=>{s.dataset.originalVariant||(s.dataset.originalVariant=s.variant);let n=s.dataset.originalVariant;e===Ve.HORIZONTAL&&n===Ve.HORIZONTAL?s.variant="horizontal":s.variant="vertical"})})}_resizeObserverCallback(e){let t=0;for(let i of e)t=i.contentRect.width;let o=t<this.breakpoint?Ve.VERTICAL:Ve.HORIZONTAL;o!==this._currentFormGroupLayout&&(this._toggleCompactLayout(o),this._currentFormGroupLayout=o)}_activateResponsiveLayout(){this._resizeObserver=new ResizeObserver(this._resizeObserverCallbackBound),this._resizeObserver.observe(this._wrapperElement)}_deactivateResizeObserver(){this._resizeObserver?.disconnect(),this._resizeObserver=null}firstUpdated(){this._firstUpdateComplete=!0,this._responsive&&this._activateResponsiveLayout()}render(){return c`
       <div class="wrapper">
         <slot></slot>
       </div>
-    `;
-        }
-    };
-    VscodeFormContainer.styles = styles$n;
-    __decorate$q([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeFormContainer.prototype, "responsive", null);
-    __decorate$q([
-        n$1({ type: Number })
-    ], VscodeFormContainer.prototype, "breakpoint", void 0);
-    __decorate$q([
-        n$1({ type: Object })
-    ], VscodeFormContainer.prototype, "data", null);
-    __decorate$q([
-        e$3('.wrapper')
-    ], VscodeFormContainer.prototype, "_wrapperElement", void 0);
-    __decorate$q([
-        o$1({ selector: 'vscode-form-group' })
-    ], VscodeFormContainer.prototype, "_assignedFormGroups", void 0);
-    VscodeFormContainer = __decorate$q([
-        customElement('vscode-form-container')
-    ], VscodeFormContainer);
-
-    const styles$m = [
-        defaultStyles,
-        i$4 `
+    `}};re.styles=Vo;Ke([a({type:Boolean,reflect:!0})],re.prototype,"responsive",null);Ke([a({type:Number})],re.prototype,"breakpoint",void 0);Ke([a({type:Object})],re.prototype,"data",null);Ke([S(".wrapper")],re.prototype,"_wrapperElement",void 0);Ke([H({selector:"vscode-form-group"})],re.prototype,"_assignedFormGroups",void 0);re=Ke([p("vscode-form-container")],re);var vi=[f,h`
     :host {
       --label-right-margin: 14px;
       --label-width: 150px;
@@ -2368,45 +794,11 @@ var npmCompilation;
     ::slotted(vscode-button) {
       margin-right: 4px;
     }
-  `,
-    ];
-
-    var __decorate$p = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-form-group
-     *
-     * @cssprop [--label-width=150px] - The width of the label in horizontal mode
-     * @cssprop [--label-right-margin=14px] - The right margin of the label in horizontal mode
-     */
-    let VscodeFormGroup = class VscodeFormGroup extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.variant = 'horizontal';
-        }
-        render() {
-            return x `
+  `],zo=vi;var Do=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Be=class extends u{constructor(){super(...arguments),this.variant="horizontal"}render(){return c`
       <div class="wrapper">
         <slot></slot>
       </div>
-    `;
-        }
-    };
-    VscodeFormGroup.styles = styles$m;
-    __decorate$p([
-        n$1({ reflect: true })
-    ], VscodeFormGroup.prototype, "variant", void 0);
-    VscodeFormGroup = __decorate$p([
-        customElement('vscode-form-group')
-    ], VscodeFormGroup);
-
-    const styles$l = [
-        defaultStyles,
-        i$4 `
+    `}};Be.styles=zo;Do([a({reflect:!0})],Be.prototype,"variant",void 0);Be=Do([p("vscode-form-group")],Be);var bi=[f,h`
     :host {
       display: block;
       line-height: 1.4em;
@@ -2419,17 +811,7 @@ var npmCompilation;
     :host([vertical]) {
       margin-left: 0;
     }
-  `,
-    ];
-
-    var __decorate$o = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    const lightDOMStyles = new CSSStyleSheet();
-    lightDOMStyles.replaceSync(`
+  `],Lo=bi;var _i=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Zt=new CSSStyleSheet;Zt.replaceSync(`
   vscode-form-helper * {
     margin: 0;
   }
@@ -2437,43 +819,7 @@ var npmCompilation;
   vscode-form-helper *:not(:last-child) {
     margin-bottom: 8px;
   }
-`);
-    /**
-     * Adds more detailed description to a [FromGroup](https://bendera.github.io/vscode-webview-elements/components/vscode-form-group/)
-     *
-     * @tag vscode-form-helper
-     *
-     * @cssprop --vsc-foreground-translucent - Default text color. 90% transparency version of `--vscode-foreground` by default.
-     */
-    let VscodeFormHelper = class VscodeFormHelper extends VscElement {
-        constructor() {
-            super();
-            this._injectLightDOMStyles();
-        }
-        _injectLightDOMStyles() {
-            const found = document.adoptedStyleSheets.find((s) => s === lightDOMStyles);
-            if (!found) {
-                document.adoptedStyleSheets.push(lightDOMStyles);
-            }
-        }
-        render() {
-            return x `<slot></slot>`;
-        }
-    };
-    VscodeFormHelper.styles = styles$l;
-    VscodeFormHelper = __decorate$o([
-        customElement('vscode-form-helper')
-    ], VscodeFormHelper);
-
-    let counter = 0;
-    const uniqueId = (prefix = '') => {
-        counter++;
-        return `${prefix}${counter}`;
-    };
-
-    const styles$k = [
-        defaultStyles,
-        i$4 `
+`);var Ge=class extends u{constructor(){super(),this._injectLightDOMStyles()}_injectLightDOMStyles(){document.adoptedStyleSheets.find(t=>t===Zt)||document.adoptedStyleSheets.push(Zt)}render(){return c`<slot></slot>`}};Ge.styles=Lo;Ge=_i([p("vscode-form-helper")],Ge);var Mo=0,gi=(r="")=>(Mo++,`${r}${Mo}`),$t=gi;var yi=[f,h`
     :host {
       display: block;
     }
@@ -2503,164 +849,14 @@ var npmCompilation;
     :host([variant='vertical']) ::slotted(vscode-radio:last-child) {
       margin-bottom: 0;
     }
-  `,
-    ];
-
-    var __decorate$n = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-radio-group
-     *
-     * @fires {Event} change - Dispatched when a child radio button is changed.
-     */
-    let VscodeRadioGroup = class VscodeRadioGroup extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.variant = 'horizontal';
-            /** @internal */
-            this.role = 'radiogroup';
-            this._focusedRadio = -1;
-            this._checkedRadio = -1;
-            this._firstContentLoaded = false;
-            this._onKeyDownBound = this._onKeyDown.bind(this);
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.addEventListener('keydown', this._onKeyDownBound);
-        }
-        disconnectedCallback() {
-            super.disconnectedCallback();
-            this.removeEventListener('keydown', this._onKeyDownBound);
-        }
-        _uncheckPreviousChecked(prevChecked, prevFocused) {
-            if (prevChecked !== -1) {
-                this._radios[prevChecked].checked = false;
-            }
-            if (prevFocused !== -1) {
-                this._radios[prevFocused].tabIndex = -1;
-            }
-        }
-        _afterCheck() {
-            this._focusedRadio = this._checkedRadio;
-            this._radios[this._checkedRadio].checked = true;
-            this._radios[this._checkedRadio].tabIndex = 0;
-            this._radios[this._checkedRadio].focus();
-        }
-        _checkPrev() {
-            const prevChecked = this._radios.findIndex((r) => r.checked);
-            const prevFocused = this._radios.findIndex((r) => r.focused);
-            const startPos = prevFocused !== -1 ? prevFocused : prevChecked;
-            this._uncheckPreviousChecked(prevChecked, prevFocused);
-            if (startPos === -1) {
-                this._checkedRadio = this._radios.length - 1;
-            }
-            else if (startPos - 1 >= 0) {
-                this._checkedRadio = startPos - 1;
-            }
-            else {
-                this._checkedRadio = this._radios.length - 1;
-            }
-            this._afterCheck();
-        }
-        _checkNext() {
-            const prevChecked = this._radios.findIndex((r) => r.checked);
-            const prevFocused = this._radios.findIndex((r) => r.focused);
-            const startPos = prevFocused !== -1 ? prevFocused : prevChecked;
-            this._uncheckPreviousChecked(prevChecked, prevFocused);
-            if (startPos === -1) {
-                this._checkedRadio = 0;
-            }
-            else if (startPos + 1 < this._radios.length) {
-                this._checkedRadio = startPos + 1;
-            }
-            else {
-                this._checkedRadio = 0;
-            }
-            this._afterCheck();
-        }
-        _onKeyDown(ev) {
-            const { key } = ev;
-            const listenedKeys = ['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'];
-            if (listenedKeys.includes(key)) {
-                ev.preventDefault();
-            }
-            if (key === 'ArrowRight' || key === 'ArrowDown') {
-                this._checkNext();
-            }
-            if (key === 'ArrowLeft' || key === 'ArrowUp') {
-                this._checkPrev();
-            }
-        }
-        _onChange(ev) {
-            const clickedIndex = this._radios.findIndex((r) => r === ev.target);
-            if (clickedIndex !== -1) {
-                if (this._focusedRadio !== -1) {
-                    this._radios[this._focusedRadio].tabIndex = -1;
-                }
-                if (this._checkedRadio !== -1 && this._checkedRadio !== clickedIndex) {
-                    this._radios[this._checkedRadio].checked = false;
-                }
-                this._focusedRadio = clickedIndex;
-                this._checkedRadio = clickedIndex;
-                this._radios[clickedIndex].tabIndex = 0;
-            }
-        }
-        _onSlotChange() {
-            if (!this._firstContentLoaded) {
-                const autoFocusedRadio = this._radios.findIndex((r) => r.autofocus);
-                if (autoFocusedRadio > -1) {
-                    this._focusedRadio = autoFocusedRadio;
-                }
-                this._firstContentLoaded = true;
-            }
-            this._radios.forEach((r, i) => {
-                // if _focusedRadio is not set, the first radio should be focusable
-                if (this._focusedRadio > -1) {
-                    r.tabIndex = i === this._focusedRadio ? 0 : -1;
-                }
-                else {
-                    r.tabIndex = i === 0 ? 0 : -1;
-                }
-            });
-        }
-        render() {
-            return x `
+  `],Fo=yi;var Ye=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},ee=class extends u{constructor(){super(...arguments),this.variant="horizontal",this.role="radiogroup",this._focusedRadio=-1,this._checkedRadio=-1,this._firstContentLoaded=!1,this._onKeyDownBound=this._onKeyDown.bind(this)}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this._onKeyDownBound)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener("keydown",this._onKeyDownBound)}_uncheckPreviousChecked(e,t){e!==-1&&(this._radios[e].checked=!1),t!==-1&&(this._radios[t].tabIndex=-1)}_afterCheck(){this._focusedRadio=this._checkedRadio,this._radios[this._checkedRadio].checked=!0,this._radios[this._checkedRadio].tabIndex=0,this._radios[this._checkedRadio].focus()}_checkPrev(){let e=this._radios.findIndex(i=>i.checked),t=this._radios.findIndex(i=>i.focused),o=t!==-1?t:e;this._uncheckPreviousChecked(e,t),o===-1?this._checkedRadio=this._radios.length-1:o-1>=0?this._checkedRadio=o-1:this._checkedRadio=this._radios.length-1,this._afterCheck()}_checkNext(){let e=this._radios.findIndex(i=>i.checked),t=this._radios.findIndex(i=>i.focused),o=t!==-1?t:e;this._uncheckPreviousChecked(e,t),o===-1?this._checkedRadio=0:o+1<this._radios.length?this._checkedRadio=o+1:this._checkedRadio=0,this._afterCheck()}_onKeyDown(e){let{key:t}=e;["ArrowLeft","ArrowUp","ArrowRight","ArrowDown"].includes(t)&&e.preventDefault(),(t==="ArrowRight"||t==="ArrowDown")&&this._checkNext(),(t==="ArrowLeft"||t==="ArrowUp")&&this._checkPrev()}_onChange(e){let t=this._radios.findIndex(o=>o===e.target);t!==-1&&(this._focusedRadio!==-1&&(this._radios[this._focusedRadio].tabIndex=-1),this._checkedRadio!==-1&&this._checkedRadio!==t&&(this._radios[this._checkedRadio].checked=!1),this._focusedRadio=t,this._checkedRadio=t,this._radios[t].tabIndex=0)}_onSlotChange(){if(!this._firstContentLoaded){let e=this._radios.findIndex(t=>t.autofocus);e>-1&&(this._focusedRadio=e),this._firstContentLoaded=!0}this._radios.forEach((e,t)=>{this._focusedRadio>-1?e.tabIndex=t===this._focusedRadio?0:-1:e.tabIndex=t===0?0:-1})}render(){return c`
       <div class="wrapper">
         <slot
           @slotchange=${this._onSlotChange}
           @vsc-change=${this._onChange}
         ></slot>
       </div>
-    `;
-        }
-    };
-    VscodeRadioGroup.styles = styles$k;
-    __decorate$n([
-        n$1({ reflect: true })
-    ], VscodeRadioGroup.prototype, "variant", void 0);
-    __decorate$n([
-        n$1({ reflect: true })
-    ], VscodeRadioGroup.prototype, "role", void 0);
-    __decorate$n([
-        o$1({ selector: 'vscode-radio' })
-    ], VscodeRadioGroup.prototype, "_radios", void 0);
-    __decorate$n([
-        r$2()
-    ], VscodeRadioGroup.prototype, "_focusedRadio", void 0);
-    __decorate$n([
-        r$2()
-    ], VscodeRadioGroup.prototype, "_checkedRadio", void 0);
-    VscodeRadioGroup = __decorate$n([
-        customElement('vscode-radio-group')
-    ], VscodeRadioGroup);
-
-    const styles$j = [
-        defaultStyles,
-        i$4 `
+    `}};ee.styles=Fo;Ye([a({reflect:!0})],ee.prototype,"variant",void 0);Ye([a({reflect:!0})],ee.prototype,"role",void 0);Ye([H({selector:"vscode-radio"})],ee.prototype,"_radios",void 0);Ye([_()],ee.prototype,"_focusedRadio",void 0);Ye([_()],ee.prototype,"_checkedRadio",void 0);ee=Ye([p("vscode-radio-group")],ee);var xi=[f,h`
     :host {
       display: inline-block;
       height: 40px;
@@ -2791,225 +987,25 @@ var npmCompilation;
       background-repeat: no-repeat;
       background-position: right bottom;
     }
-  `,
-    ];
-
-    var __decorate$m = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Multi-line text input.
-     *
-     * When participating in a form, it supports the `:invalid` pseudo class. Otherwise the error styles
-     * can be applied through the `invalid` property.
-     *
-     * @tag vscode-textarea
-     *
-     * @fires {InputEvent} input
-     * @fires {Event} change
-     *
-     * @cssprop [--vscode-scrollbar-shadow=#000000]
-     * @cssprop [--vscode-settings-textInputBackground=#313131]
-     * @cssprop [--vscode-settings-textInputBorder=transparent]
-     * @cssprop [--vscode-settings-textInputForeground=#cccccc]
-     * @cssprop [--vscode-input-placeholderForeground=#989898]
-     * @cssprop [--vscode-font-family=sans-serif]
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-font-weight=normal]
-     * @cssprop [--vscode-editor-background=#1f1f1f]
-     * @cssprop [--vscode-editor-foreground=#cccccc]
-     * @cssprop [--vscode-editor-font-family=monospace]
-     * @cssprop [--vscode-editor-font-size=14px]
-     * @cssprop [--vscode-editor-font-weight=normal]
-     * @cssprop [--vscode-editor-inlineValuesForeground=rgba(255, 255, 255, 0.5)]
-     * @cssprop [--vscode-focusBorder=#0078d4]
-     * @cssprop [--vscode-scrollbarSlider-background=rgba(121, 121, 121, 0.4)]
-     * @cssprop [--vscode-scrollbarSlider-hoverBackground=rgba(100, 100, 100, 0.7)]
-     * @cssprop [--vscode-scrollbarSlider-activeBackground=rgba(191, 191, 191, 0.4)]
-     */
-    let VscodeTextarea = class VscodeTextarea extends VscElement {
-        set value(val) {
-            this._value = val;
-            this._internals.setFormValue(val);
-        }
-        get value() {
-            return this._value;
-        }
-        /**
-         * Getter for the inner textarea element if it needs to be accessed for some reason.
-         */
-        get wrappedElement() {
-            return this._textareaEl;
-        }
-        get form() {
-            return this._internals.form;
-        }
-        /** @internal */
-        get type() {
-            return 'textarea';
-        }
-        get validity() {
-            return this._internals.validity;
-        }
-        get validationMessage() {
-            return this._internals.validationMessage;
-        }
-        get willValidate() {
-            return this._internals.willValidate;
-        }
-        /**
-         * Lowercase alias to minLength
-         */
-        set minlength(val) {
-            this.minLength = val;
-        }
-        get minlength() {
-            return this.minLength;
-        }
-        /**
-         * Lowercase alias to maxLength
-         */
-        set maxlength(val) {
-            this.maxLength = val;
-        }
-        get maxlength() {
-            return this.maxLength;
-        }
-        // #endregion
-        constructor() {
-            super();
-            // #region properties, setters/getters
-            this.autocomplete = undefined;
-            this.autofocus = false;
-            this.defaultValue = '';
-            this.disabled = false;
-            this.invalid = false;
-            this.label = '';
-            this.maxLength = undefined;
-            this.minLength = undefined;
-            this.rows = undefined;
-            this.cols = undefined;
-            this.name = undefined;
-            this.placeholder = undefined;
-            this.readonly = false;
-            this.resize = 'none';
-            this.required = false;
-            this.spellcheck = false;
-            /**
-             * Use monospace fonts. The font family, weight, size, and color will be the same as set in the
-             * VSCode code editor.
-             */
-            this.monospace = false;
-            this._value = '';
-            this._textareaPointerCursor = false;
-            this._shadow = false;
-            this._internals = this.attachInternals();
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.updateComplete.then(() => {
-                this._textareaEl.checkValidity();
-                this._setValidityFromInput();
-                this._internals.setFormValue(this._textareaEl.value);
-            });
-        }
-        updated(changedProperties) {
-            const validationRelatedProps = ['maxLength', 'minLength', 'required'];
-            for (const key of changedProperties.keys()) {
-                if (validationRelatedProps.includes(String(key))) {
-                    this.updateComplete.then(() => {
-                        this._setValidityFromInput();
-                    });
-                    break;
-                }
-            }
-        }
-        /** @internal */
-        formResetCallback() {
-            this.value = this.defaultValue;
-        }
-        /** @internal */
-        formStateRestoreCallback(state, _mode) {
-            this.updateComplete.then(() => {
-                this._value = state;
-            });
-        }
-        checkValidity() {
-            return this._internals.checkValidity();
-        }
-        reportValidity() {
-            return this._internals.reportValidity();
-        }
-        _setValidityFromInput() {
-            this._internals.setValidity(this._textareaEl.validity, this._textareaEl.validationMessage, this._textareaEl);
-        }
-        _dataChanged() {
-            this._value = this._textareaEl.value;
-            this._internals.setFormValue(this._textareaEl.value);
-        }
-        _handleChange(ev) {
-            this._dataChanged();
-            this._setValidityFromInput();
-            this.dispatchEvent(new Event('change'));
-            /** @deprecated */
-            this.dispatchEvent(new CustomEvent('vsc-change', {
-                detail: { data: this.value, originalEvent: ev },
-            }));
-        }
-        _handleInput(ev) {
-            this._dataChanged();
-            this._setValidityFromInput();
-            /** @deprecated */
-            this.dispatchEvent(new CustomEvent('vsc-input', {
-                detail: { data: ev.data, originalEvent: ev },
-            }));
-        }
-        _handleMouseMove(ev) {
-            if (this._textareaEl.clientHeight >= this._textareaEl.scrollHeight) {
-                this._textareaPointerCursor = false;
-                return;
-            }
-            const SCROLLBAR_WIDTH = 14;
-            const BORDER_WIDTH = 1;
-            const br = this._textareaEl.getBoundingClientRect();
-            const x = ev.clientX;
-            this._textareaPointerCursor =
-                x >= br.left + br.width - SCROLLBAR_WIDTH - BORDER_WIDTH * 2;
-        }
-        _handleScroll() {
-            this._shadow = this._textareaEl.scrollTop > 0;
-        }
-        render() {
-            return x `
+  `],Ho=xi;var P=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},E=class extends u{set value(e){this._value=e,this._internals.setFormValue(e)}get value(){return this._value}get wrappedElement(){return this._textareaEl}get form(){return this._internals.form}get type(){return"textarea"}get validity(){return this._internals.validity}get validationMessage(){return this._internals.validationMessage}get willValidate(){return this._internals.willValidate}set minlength(e){this.minLength=e}get minlength(){return this.minLength}set maxlength(e){this.maxLength=e}get maxlength(){return this.maxLength}constructor(){super(),this.autocomplete=void 0,this.autofocus=!1,this.defaultValue="",this.disabled=!1,this.invalid=!1,this.label="",this.maxLength=void 0,this.minLength=void 0,this.rows=void 0,this.cols=void 0,this.name=void 0,this.placeholder=void 0,this.readonly=!1,this.resize="none",this.required=!1,this.spellcheck=!1,this.monospace=!1,this._value="",this._textareaPointerCursor=!1,this._shadow=!1,this._internals=this.attachInternals()}connectedCallback(){super.connectedCallback(),this.updateComplete.then(()=>{this._textareaEl.checkValidity(),this._setValidityFromInput(),this._internals.setFormValue(this._textareaEl.value)})}updated(e){let t=["maxLength","minLength","required"];for(let o of e.keys())if(t.includes(String(o))){this.updateComplete.then(()=>{this._setValidityFromInput()});break}}formResetCallback(){this.value=this.defaultValue}formStateRestoreCallback(e,t){this.updateComplete.then(()=>{this._value=e})}checkValidity(){return this._internals.checkValidity()}reportValidity(){return this._internals.reportValidity()}_setValidityFromInput(){this._internals.setValidity(this._textareaEl.validity,this._textareaEl.validationMessage,this._textareaEl)}_dataChanged(){this._value=this._textareaEl.value,this._internals.setFormValue(this._textareaEl.value)}_handleChange(e){this._dataChanged(),this._setValidityFromInput(),this.dispatchEvent(new Event("change")),this.dispatchEvent(new CustomEvent("vsc-change",{detail:{data:this.value,originalEvent:e}}))}_handleInput(e){this._dataChanged(),this._setValidityFromInput(),this.dispatchEvent(new CustomEvent("vsc-input",{detail:{data:e.data,originalEvent:e}}))}_handleMouseMove(e){if(this._textareaEl.clientHeight>=this._textareaEl.scrollHeight){this._textareaPointerCursor=!1;return}let t=14,o=1,i=this._textareaEl.getBoundingClientRect(),s=e.clientX;this._textareaPointerCursor=s>=i.left+i.width-t-o*2}_handleScroll(){this._shadow=this._textareaEl.scrollTop>0}render(){return c`
       <div
-        class=${e({
-            shadow: true,
-            visible: this._shadow,
-        })}
+        class=${g({shadow:!0,visible:this._shadow})}
       ></div>
       <textarea
-        autocomplete=${o(this.autocomplete)}
+        autocomplete=${k(this.autocomplete)}
         ?autofocus=${this.autofocus}
         ?disabled=${this.disabled}
         aria-label=${this.label}
         id="textarea"
-        class=${e({
-            monospace: this.monospace,
-            'cursor-pointer': this._textareaPointerCursor,
-        })}
-        maxlength=${o(this.maxLength)}
-        minlength=${o(this.minLength)}
-        rows=${o(this.rows)}
-        cols=${o(this.cols)}
-        name=${o(this.name)}
-        placeholder=${o(this.placeholder)}
+        class=${g({monospace:this.monospace,"cursor-pointer":this._textareaPointerCursor})}
+        maxlength=${k(this.maxLength)}
+        minlength=${k(this.minLength)}
+        rows=${k(this.rows)}
+        cols=${k(this.cols)}
+        name=${k(this.name)}
+        placeholder=${k(this.placeholder)}
         ?readonly=${this.readonly}
-        .style=${stylePropertyMap({
-            resize: this.resize,
-        })}
+        .style=${B({resize:this.resize})}
         ?required=${this.required}
         spellcheck=${this.spellcheck}
         @change=${this._handleChange}
@@ -3018,93 +1014,7 @@ var npmCompilation;
         @scroll=${this._handleScroll}
         .value=${this._value}
       ></textarea>
-    `;
-        }
-    };
-    VscodeTextarea.styles = styles$j;
-    /**
-     * @internal
-     */
-    VscodeTextarea.formAssociated = true;
-    /** @internal */
-    VscodeTextarea.shadowRootOptions = {
-        ...i$1.shadowRootOptions,
-        delegatesFocus: true,
-    };
-    __decorate$m([
-        n$1()
-    ], VscodeTextarea.prototype, "autocomplete", void 0);
-    __decorate$m([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextarea.prototype, "autofocus", void 0);
-    __decorate$m([
-        n$1({ attribute: 'default-value' })
-    ], VscodeTextarea.prototype, "defaultValue", void 0);
-    __decorate$m([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextarea.prototype, "disabled", void 0);
-    __decorate$m([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextarea.prototype, "invalid", void 0);
-    __decorate$m([
-        n$1({ attribute: false })
-    ], VscodeTextarea.prototype, "label", void 0);
-    __decorate$m([
-        n$1({ type: Number })
-    ], VscodeTextarea.prototype, "maxLength", void 0);
-    __decorate$m([
-        n$1({ type: Number })
-    ], VscodeTextarea.prototype, "minLength", void 0);
-    __decorate$m([
-        n$1({ type: Number })
-    ], VscodeTextarea.prototype, "rows", void 0);
-    __decorate$m([
-        n$1({ type: Number })
-    ], VscodeTextarea.prototype, "cols", void 0);
-    __decorate$m([
-        n$1()
-    ], VscodeTextarea.prototype, "name", void 0);
-    __decorate$m([
-        n$1()
-    ], VscodeTextarea.prototype, "placeholder", void 0);
-    __decorate$m([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextarea.prototype, "readonly", void 0);
-    __decorate$m([
-        n$1()
-    ], VscodeTextarea.prototype, "resize", void 0);
-    __decorate$m([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextarea.prototype, "required", void 0);
-    __decorate$m([
-        n$1({ type: Boolean })
-    ], VscodeTextarea.prototype, "spellcheck", void 0);
-    __decorate$m([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextarea.prototype, "monospace", void 0);
-    __decorate$m([
-        n$1()
-    ], VscodeTextarea.prototype, "value", null);
-    __decorate$m([
-        e$3('#textarea')
-    ], VscodeTextarea.prototype, "_textareaEl", void 0);
-    __decorate$m([
-        r$2()
-    ], VscodeTextarea.prototype, "_value", void 0);
-    __decorate$m([
-        r$2()
-    ], VscodeTextarea.prototype, "_textareaPointerCursor", void 0);
-    __decorate$m([
-        r$2()
-    ], VscodeTextarea.prototype, "_shadow", void 0);
-    VscodeTextarea = __decorate$m([
-        customElement('vscode-textarea')
-    ], VscodeTextarea);
-
-    const defaultFontStack = r$6(getDefaultFontStack());
-    const styles$i = [
-        defaultStyles,
-        i$4 `
+    `}};E.styles=Ho;E.formAssociated=!0;E.shadowRootOptions={...D.shadowRootOptions,delegatesFocus:!0};P([a()],E.prototype,"autocomplete",void 0);P([a({type:Boolean,reflect:!0})],E.prototype,"autofocus",void 0);P([a({attribute:"default-value"})],E.prototype,"defaultValue",void 0);P([a({type:Boolean,reflect:!0})],E.prototype,"disabled",void 0);P([a({type:Boolean,reflect:!0})],E.prototype,"invalid",void 0);P([a({attribute:!1})],E.prototype,"label",void 0);P([a({type:Number})],E.prototype,"maxLength",void 0);P([a({type:Number})],E.prototype,"minLength",void 0);P([a({type:Number})],E.prototype,"rows",void 0);P([a({type:Number})],E.prototype,"cols",void 0);P([a()],E.prototype,"name",void 0);P([a()],E.prototype,"placeholder",void 0);P([a({type:Boolean,reflect:!0})],E.prototype,"readonly",void 0);P([a()],E.prototype,"resize",void 0);P([a({type:Boolean,reflect:!0})],E.prototype,"required",void 0);P([a({type:Boolean})],E.prototype,"spellcheck",void 0);P([a({type:Boolean,reflect:!0})],E.prototype,"monospace",void 0);P([a()],E.prototype,"value",null);P([S("#textarea")],E.prototype,"_textareaEl",void 0);P([_()],E.prototype,"_value",void 0);P([_()],E.prototype,"_textareaPointerCursor",void 0);P([_()],E.prototype,"_shadow",void 0);E=P([p("vscode-textarea")],E);var jo=be(qe()),wi=[f,h`
     :host {
       align-items: center;
       background-color: var(--vscode-settings-textInputBackground, #313131);
@@ -3159,7 +1069,7 @@ var npmCompilation;
       box-sizing: border-box;
       color: var(--vscode-settings-textInputForeground, #cccccc);
       display: block;
-      font-family: var(--vscode-font-family, ${defaultFontStack});
+      font-family: var(--vscode-font-family, ${jo});
       font-size: var(--vscode-font-size, 13px);
       font-weight: var(--vscode-font-weight, 'normal');
       line-height: 18px;
@@ -3193,7 +1103,7 @@ var npmCompilation;
       border-radius: 2px;
       color: var(--vscode-button-foreground, #ffffff);
       cursor: pointer;
-      font-family: var(--vscode-font-family, ${defaultFontStack});
+      font-family: var(--vscode-font-family, ${jo});
       font-size: var(--vscode-font-size, 13px);
       font-weight: var(--vscode-font-weight, 'normal');
       line-height: 20px;
@@ -3203,266 +1113,26 @@ var npmCompilation;
     input[type='file']::file-selector-button:hover {
       background-color: var(--vscode-button-hoverBackground, #026ec1);
     }
-  `,
-    ];
-
-    var __decorate$l = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * A simple inline textfield
-     *
-     * When participating in a form, it supports the `:invalid` pseudo class. Otherwise the error styles
-     * can be applied through the `invalid` property.
-     *
-     * @tag vscode-textfield
-     *
-     * @slot content-before - A slot before the editable area but inside of the component. It is used to place icons.
-     * @slot content-after - A slot after the editable area but inside of the component. It is used to place icons.
-     *
-     * @fires {InputEvent} input
-     * @fires {Event} change
-     *
-     * @cssprop [--vscode-settings-textInputBackground=#313131]
-     * @cssprop [--vscode-settings-textInputBorder=var(--vscode-settings-textInputBackground, #3c3c3c)]
-     * @cssprop [--vscode-settings-textInputForeground=#cccccc]
-     * @cssprop [--vscode-settings-textInputBackground=#313131]
-     * @cssprop [--vscode-focusBorder=#0078d4]
-     * @cssprop [--vscode-font-family=sans-serif] - A sans-serif font type depends on the host OS.
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-font-weight=normal]
-     * @cssprop [--vscode-inputValidation-errorBorder=#be1100]
-     * @cssprop [--vscode-inputValidation-errorBackground=#5a1d1d]
-     * @cssprop [--vscode-input-placeholderForeground=#989898]
-     * @cssprop [--vscode-button-background=#0078d4]
-     * @cssprop [--vscode-button-foreground=#ffffff]
-     * @cssprop [--vscode-button-hoverBackground=#026ec1]
-     */
-    let VscodeTextfield = class VscodeTextfield extends VscElement {
-        /**
-         * Same as the `type` of the native `<input>` element but only a subset of types are supported.
-         * The supported ones are: `color`,`date`,`datetime-local`,`email`,`file`,`month`,`number`,`password`,`search`,`tel`,`text`,`time`,`url`,`week`
-         */
-        set type(val) {
-            const validTypes = [
-                'color',
-                'date',
-                'datetime-local',
-                'email',
-                'file',
-                'month',
-                'number',
-                'password',
-                'search',
-                'tel',
-                'text',
-                'time',
-                'url',
-                'week',
-            ];
-            this._type = (validTypes.includes(val) ? val : 'text');
-        }
-        get type() {
-            return this._type;
-        }
-        set value(val) {
-            if (this.type !== 'file') {
-                this._value = val;
-                this._internals.setFormValue(val);
-            }
-            this.updateComplete.then(() => {
-                this._setValidityFromInput();
-            });
-        }
-        get value() {
-            return this._value;
-        }
-        /**
-         * Lowercase alias to minLength
-         */
-        set minlength(val) {
-            this.minLength = val;
-        }
-        get minlength() {
-            return this.minLength;
-        }
-        /**
-         * Lowercase alias to maxLength
-         */
-        set maxlength(val) {
-            this.maxLength = val;
-        }
-        get maxlength() {
-            return this.maxLength;
-        }
-        get form() {
-            return this._internals.form;
-        }
-        get validity() {
-            return this._internals.validity;
-        }
-        get validationMessage() {
-            return this._internals.validationMessage;
-        }
-        get willValidate() {
-            return this._internals.willValidate;
-        }
-        /**
-         * Check the component's validity state when built-in validation is used.
-         * Built-in validation is triggered when any validation-related attribute is set. Validation-related
-         * attributes are: `max, maxlength, min, minlength, pattern, required, step`.
-         * See this [the MDN reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/checkValidity) for more details.
-         * @returns {boolean}
-         */
-        checkValidity() {
-            this._setValidityFromInput();
-            return this._internals.checkValidity();
-        }
-        reportValidity() {
-            this._setValidityFromInput();
-            return this._internals.reportValidity();
-        }
-        get wrappedElement() {
-            return this._inputEl;
-        }
-        constructor() {
-            super();
-            this.autocomplete = undefined;
-            this.autofocus = false;
-            this.defaultValue = '';
-            this.disabled = false;
-            this.focused = false;
-            /**
-             * Set error styles on the component. This is only intended to apply styles when custom error
-             * validation is implemented. To check whether the component is valid, use the checkValidity method.
-             */
-            this.invalid = false;
-            /**
-             * @internal
-             * Set `aria-label` for the inner input element. Should not be set,
-             * vscode-label will do it automatically.
-             */
-            this.label = '';
-            this.max = undefined;
-            this.maxLength = undefined;
-            this.min = undefined;
-            this.minLength = undefined;
-            this.multiple = false;
-            this.name = undefined;
-            /**
-             * Specifies a regular expression the form control's value should match.
-             * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/pattern)
-             */
-            this.pattern = undefined;
-            this.placeholder = undefined;
-            this.readonly = false;
-            this.required = false;
-            this.step = undefined;
-            this._value = '';
-            this._type = 'text';
-            this._internals = this.attachInternals();
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.updateComplete.then(() => {
-                this._inputEl.checkValidity();
-                this._setValidityFromInput();
-                this._internals.setFormValue(this._inputEl.value);
-            });
-        }
-        attributeChangedCallback(name, old, value) {
-            super.attributeChangedCallback(name, old, value);
-            const validationRelatedAttributes = [
-                'max',
-                'maxlength',
-                'min',
-                'minlength',
-                'pattern',
-                'required',
-                'step',
-            ];
-            if (validationRelatedAttributes.includes(name)) {
-                this.updateComplete.then(() => {
-                    this._setValidityFromInput();
-                });
-            }
-        }
-        /** @internal */
-        formResetCallback() {
-            this.value = this.defaultValue;
-            this.requestUpdate();
-        }
-        /** @internal */
-        formStateRestoreCallback(state, _mode) {
-            this.value = state;
-        }
-        _dataChanged() {
-            this._value = this._inputEl.value;
-            if (this.type === 'file' && this._inputEl.files) {
-                for (const f of this._inputEl.files) {
-                    this._internals.setFormValue(f);
-                }
-            }
-            else {
-                this._internals.setFormValue(this._inputEl.value);
-            }
-        }
-        _setValidityFromInput() {
-            if (this._inputEl) {
-                this._internals.setValidity(this._inputEl.validity, this._inputEl.validationMessage, this._inputEl);
-            }
-        }
-        _onInput(ev) {
-            this._dataChanged();
-            this._setValidityFromInput();
-            // native input event dispatched automatically
-            /** @deprecated */
-            this.dispatchEvent(new CustomEvent('vsc-input', { detail: { data: ev.data, originalEvent: ev } }));
-        }
-        _onChange(ev) {
-            this._dataChanged();
-            this._setValidityFromInput();
-            this.dispatchEvent(new Event('change'));
-            /** @deprecated */
-            this.dispatchEvent(new CustomEvent('vsc-change', {
-                detail: { data: this.value, originalEvent: ev },
-            }));
-        }
-        _onFocus() {
-            this.focused = true;
-        }
-        _onBlur() {
-            this.focused = false;
-        }
-        _onKeyDown(ev) {
-            if (ev.key === 'Enter' && this._internals.form) {
-                this._internals.form?.requestSubmit();
-            }
-        }
-        render() {
-            return x `
+  `],qo=wi;var A=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},C=class extends u{set type(e){let t=["color","date","datetime-local","email","file","month","number","password","search","tel","text","time","url","week"];this._type=t.includes(e)?e:"text"}get type(){return this._type}set value(e){this.type!=="file"&&(this._value=e,this._internals.setFormValue(e)),this.updateComplete.then(()=>{this._setValidityFromInput()})}get value(){return this._value}set minlength(e){this.minLength=e}get minlength(){return this.minLength}set maxlength(e){this.maxLength=e}get maxlength(){return this.maxLength}get form(){return this._internals.form}get validity(){return this._internals.validity}get validationMessage(){return this._internals.validationMessage}get willValidate(){return this._internals.willValidate}checkValidity(){return this._setValidityFromInput(),this._internals.checkValidity()}reportValidity(){return this._setValidityFromInput(),this._internals.reportValidity()}get wrappedElement(){return this._inputEl}constructor(){super(),this.autocomplete=void 0,this.autofocus=!1,this.defaultValue="",this.disabled=!1,this.focused=!1,this.invalid=!1,this.label="",this.max=void 0,this.maxLength=void 0,this.min=void 0,this.minLength=void 0,this.multiple=!1,this.name=void 0,this.pattern=void 0,this.placeholder=void 0,this.readonly=!1,this.required=!1,this.step=void 0,this._value="",this._type="text",this._internals=this.attachInternals()}connectedCallback(){super.connectedCallback(),this.updateComplete.then(()=>{this._inputEl.checkValidity(),this._setValidityFromInput(),this._internals.setFormValue(this._inputEl.value)})}attributeChangedCallback(e,t,o){super.attributeChangedCallback(e,t,o),["max","maxlength","min","minlength","pattern","required","step"].includes(e)&&this.updateComplete.then(()=>{this._setValidityFromInput()})}formResetCallback(){this.value=this.defaultValue,this.requestUpdate()}formStateRestoreCallback(e,t){this.value=e}_dataChanged(){if(this._value=this._inputEl.value,this.type==="file"&&this._inputEl.files)for(let e of this._inputEl.files)this._internals.setFormValue(e);else this._internals.setFormValue(this._inputEl.value)}_setValidityFromInput(){this._inputEl&&this._internals.setValidity(this._inputEl.validity,this._inputEl.validationMessage,this._inputEl)}_onInput(e){this._dataChanged(),this._setValidityFromInput(),this.dispatchEvent(new CustomEvent("vsc-input",{detail:{data:e.data,originalEvent:e}}))}_onChange(e){this._dataChanged(),this._setValidityFromInput(),this.dispatchEvent(new Event("change")),this.dispatchEvent(new CustomEvent("vsc-change",{detail:{data:this.value,originalEvent:e}}))}_onFocus(){this.focused=!0}_onBlur(){this.focused=!1}_onKeyDown(e){e.key==="Enter"&&this._internals.form&&this._internals.form?.requestSubmit()}render(){return c`
       <slot name="content-before"></slot>
       <input
         id="input"
         type=${this.type}
         ?autofocus=${this.autofocus}
-        autocomplete=${o(this.autocomplete)}
+        autocomplete=${k(this.autocomplete)}
         aria-label=${this.label}
         ?disabled=${this.disabled}
-        max=${o(this.max)}
-        maxlength=${o(this.maxLength)}
-        min=${o(this.min)}
-        minlength=${o(this.minLength)}
+        max=${k(this.max)}
+        maxlength=${k(this.maxLength)}
+        min=${k(this.min)}
+        minlength=${k(this.minLength)}
         ?multiple=${this.multiple}
-        name=${o(this.name)}
-        pattern=${o(this.pattern)}
-        placeholder=${o(this.placeholder)}
+        name=${k(this.name)}
+        pattern=${k(this.pattern)}
+        placeholder=${k(this.placeholder)}
         ?readonly=${this.readonly}
         ?required=${this.required}
-        step=${o(this.step)}
+        step=${k(this.step)}
         .value=${this._value}
         @blur=${this._onBlur}
         @change=${this._onChange}
@@ -3471,99 +1141,13 @@ var npmCompilation;
         @keydown=${this._onKeyDown}
       >
       <slot name="content-after"></slot>
-    `;
-        }
-    };
-    VscodeTextfield.styles = styles$i;
-    /** @internal */
-    VscodeTextfield.formAssociated = true;
-    /** @internal */
-    VscodeTextfield.shadowRootOptions = {
-        ...i$1.shadowRootOptions,
-        delegatesFocus: true,
-    };
-    __decorate$l([
-        n$1()
-    ], VscodeTextfield.prototype, "autocomplete", void 0);
-    __decorate$l([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextfield.prototype, "autofocus", void 0);
-    __decorate$l([
-        n$1({ attribute: 'default-value' })
-    ], VscodeTextfield.prototype, "defaultValue", void 0);
-    __decorate$l([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextfield.prototype, "disabled", void 0);
-    __decorate$l([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextfield.prototype, "focused", void 0);
-    __decorate$l([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextfield.prototype, "invalid", void 0);
-    __decorate$l([
-        n$1({ attribute: false })
-    ], VscodeTextfield.prototype, "label", void 0);
-    __decorate$l([
-        n$1({ type: Number })
-    ], VscodeTextfield.prototype, "max", void 0);
-    __decorate$l([
-        n$1({ type: Number })
-    ], VscodeTextfield.prototype, "maxLength", void 0);
-    __decorate$l([
-        n$1({ type: Number })
-    ], VscodeTextfield.prototype, "min", void 0);
-    __decorate$l([
-        n$1({ type: Number })
-    ], VscodeTextfield.prototype, "minLength", void 0);
-    __decorate$l([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextfield.prototype, "multiple", void 0);
-    __decorate$l([
-        n$1({ reflect: true })
-    ], VscodeTextfield.prototype, "name", void 0);
-    __decorate$l([
-        n$1()
-    ], VscodeTextfield.prototype, "pattern", void 0);
-    __decorate$l([
-        n$1()
-    ], VscodeTextfield.prototype, "placeholder", void 0);
-    __decorate$l([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextfield.prototype, "readonly", void 0);
-    __decorate$l([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTextfield.prototype, "required", void 0);
-    __decorate$l([
-        n$1({ type: Number })
-    ], VscodeTextfield.prototype, "step", void 0);
-    __decorate$l([
-        n$1({ reflect: true })
-    ], VscodeTextfield.prototype, "type", null);
-    __decorate$l([
-        n$1()
-    ], VscodeTextfield.prototype, "value", null);
-    __decorate$l([
-        e$3('#input')
-    ], VscodeTextfield.prototype, "_inputEl", void 0);
-    __decorate$l([
-        r$2()
-    ], VscodeTextfield.prototype, "_value", void 0);
-    __decorate$l([
-        r$2()
-    ], VscodeTextfield.prototype, "_type", void 0);
-    VscodeTextfield = __decorate$l([
-        customElement('vscode-textfield')
-    ], VscodeTextfield);
-
-    const styles$h = [
-        defaultStyles,
-        i$4 `
+    `}};C.styles=qo;C.formAssociated=!0;C.shadowRootOptions={...D.shadowRootOptions,delegatesFocus:!0};A([a()],C.prototype,"autocomplete",void 0);A([a({type:Boolean,reflect:!0})],C.prototype,"autofocus",void 0);A([a({attribute:"default-value"})],C.prototype,"defaultValue",void 0);A([a({type:Boolean,reflect:!0})],C.prototype,"disabled",void 0);A([a({type:Boolean,reflect:!0})],C.prototype,"focused",void 0);A([a({type:Boolean,reflect:!0})],C.prototype,"invalid",void 0);A([a({attribute:!1})],C.prototype,"label",void 0);A([a({type:Number})],C.prototype,"max",void 0);A([a({type:Number})],C.prototype,"maxLength",void 0);A([a({type:Number})],C.prototype,"min",void 0);A([a({type:Number})],C.prototype,"minLength",void 0);A([a({type:Boolean,reflect:!0})],C.prototype,"multiple",void 0);A([a({reflect:!0})],C.prototype,"name",void 0);A([a()],C.prototype,"pattern",void 0);A([a()],C.prototype,"placeholder",void 0);A([a({type:Boolean,reflect:!0})],C.prototype,"readonly",void 0);A([a({type:Boolean,reflect:!0})],C.prototype,"required",void 0);A([a({type:Number})],C.prototype,"step",void 0);A([a({reflect:!0})],C.prototype,"type",null);A([a()],C.prototype,"value",null);A([S("#input")],C.prototype,"_inputEl",void 0);A([_()],C.prototype,"_value",void 0);A([_()],C.prototype,"_type",void 0);C=A([p("vscode-textfield")],C);var Ci=[f,h`
     :host {
       color: var(--vscode-foreground, #cccccc);
       font-family: var(--vscode-font-family, sans-serif);
       font-size: var(--vscode-font-size, 13px);
       font-weight: 600;
-      line-height: ${INPUT_LINE_HEIGHT_RATIO};
+      line-height: ${xo};
       cursor: default;
       display: block;
       padding: 5px 0;
@@ -3585,114 +1169,13 @@ var npmCompilation;
       color: var(--vscode-foreground, #cccccc);
       opacity: 0.9;
     }
-  `,
-    ];
-
-    var __decorate$k = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-label
-     *
-     * @cssprop [--vscode-font-family=sans-serif]
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-foreground=#cccccc]
-     */
-    let VscodeLabel = class VscodeLabel extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.required = false;
-            this._id = '';
-            this._htmlFor = '';
-            this._connected = false;
-        }
-        set htmlFor(val) {
-            this._htmlFor = val;
-            this.setAttribute('for', val);
-            if (this._connected) {
-                this._connectWithTarget();
-            }
-        }
-        get htmlFor() {
-            return this._htmlFor;
-        }
-        set id(val) {
-            this._id = val;
-        }
-        get id() {
-            return this._id;
-        }
-        attributeChangedCallback(name, old, value) {
-            super.attributeChangedCallback(name, old, value);
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this._connected = true;
-            if (this._id === '') {
-                this._id = uniqueId('vscode-label-');
-                this.setAttribute('id', this._id);
-            }
-            this._connectWithTarget();
-        }
-        _getTarget() {
-            let target = null;
-            if (this._htmlFor) {
-                const root = this.getRootNode({ composed: false });
-                if (root) {
-                    target = root.querySelector(`#${this._htmlFor}`);
-                }
-            }
-            return target;
-        }
-        async _connectWithTarget() {
-            await this.updateComplete;
-            const target = this._getTarget();
-            if (target instanceof VscodeRadioGroup ||
-                target instanceof VscodeCheckboxGroup) {
-                target.setAttribute('aria-labelledby', this._id);
-            }
-            let label = '';
-            if (this.textContent) {
-                label = this.textContent.trim();
-            }
-            if (target instanceof VscodeTextfield || target instanceof VscodeTextarea) {
-                target.label = label;
-            }
-        }
-        _handleClick() {
-            const target = this._getTarget();
-            if (target && 'focus' in target) {
-                target.focus();
-            }
-        }
-        render() {
-            return x `
+  `],No=Ci;var St=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},fe=class extends u{constructor(){super(...arguments),this.required=!1,this._id="",this._htmlFor="",this._connected=!1}set htmlFor(e){this._htmlFor=e,this.setAttribute("for",e),this._connected&&this._connectWithTarget()}get htmlFor(){return this._htmlFor}set id(e){this._id=e}get id(){return this._id}attributeChangedCallback(e,t,o){super.attributeChangedCallback(e,t,o)}connectedCallback(){super.connectedCallback(),this._connected=!0,this._id===""&&(this._id=$t("vscode-label-"),this.setAttribute("id",this._id)),this._connectWithTarget()}_getTarget(){let e=null;if(this._htmlFor){let t=this.getRootNode({composed:!1});t&&(e=t.querySelector(`#${this._htmlFor}`))}return e}async _connectWithTarget(){await this.updateComplete;let e=this._getTarget();(e instanceof ee||e instanceof ce)&&e.setAttribute("aria-labelledby",this._id);let t="";this.textContent&&(t=this.textContent.trim()),(e instanceof C||e instanceof E)&&(e.label=t)}_handleClick(){let e=this._getTarget();e&&"focus"in e&&e.focus()}render(){return c`
       <label
-        class=${e({ wrapper: true, required: this.required })}
+        class=${g({wrapper:!0,required:this.required})}
         @click=${this._handleClick}
         ><slot></slot
       ></label>
-    `;
-        }
-    };
-    VscodeLabel.styles = styles$h;
-    __decorate$k([
-        n$1({ reflect: true, attribute: 'for' })
-    ], VscodeLabel.prototype, "htmlFor", null);
-    __decorate$k([
-        n$1()
-    ], VscodeLabel.prototype, "id", null);
-    __decorate$k([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeLabel.prototype, "required", void 0);
-    VscodeLabel = __decorate$k([
-        customElement('vscode-label')
-    ], VscodeLabel);
-
-    const chevronDownIcon = x `
+    `}};fe.styles=No;St([a({reflect:!0,attribute:"for"})],fe.prototype,"htmlFor",null);St([a()],fe.prototype,"id",null);St([a({type:Boolean,reflect:!0})],fe.prototype,"required",void 0);fe=St([p("vscode-label")],fe);var Xe=c`
   <span class="icon">
     <svg
       width="16"
@@ -3708,878 +1191,44 @@ var npmCompilation;
       />
     </svg>
   </span>
-`;
-
-    /**
-     * @license
-     * Copyright 2020 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */const {I:t}=Z,s=()=>document.createComment(""),r=(o,i,n)=>{const e=o._$AA.parentNode,l=void 0===i?o._$AB:i._$AA;if(void 0===n){const i=e.insertBefore(s(),l),c=e.insertBefore(s(),l);n=new t(i,c,o,o.options);}else {const t=n._$AB.nextSibling,i=n._$AM,c=i!==o;if(c){let t;n._$AQ?.(o),n._$AM=o,void 0!==n._$AP&&(t=o._$AU)!==i._$AU&&n._$AP(t);}if(t!==l||c){let o=n._$AA;for(;o!==t;){const t=o.nextSibling;e.insertBefore(o,l),o=t;}}}return n},v=(o,t,i=o)=>(o._$AI(t,i),o),u$1={},m=(o,t=u$1)=>o._$AH=t,p=o=>o._$AH,M=o=>{o._$AP?.(!1,!0);let t=o._$AA;const i=o._$AB.nextSibling;for(;t!==i;){const o=t.nextSibling;t.remove(),t=o;}};
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */
-    const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c=e$1(class extends i{constructor(e){if(super(e),e.type!==t$1.CHILD)throw Error("repeat() can only be used in text expressions")}dt(e,s,t){let r;void 0===t?t=s:void 0!==s&&(r=s);const l=[],o=[];let i=0;for(const s of e)l[i]=r?r(s,i):i,o[i]=t(s,i),i++;return {values:o,keys:l}}render(e,s,t){return this.dt(e,s,t).values}update(s,[t,r$1,c]){const d=p(s),{values:p$1,keys:a}=this.dt(t,r$1,c);if(!Array.isArray(d))return this.ut=a,p$1;const h=this.ut??=[],v$1=[];let m$1,y,x=0,j=d.length-1,k=0,w=p$1.length-1;for(;x<=j&&k<=w;)if(null===d[x])x++;else if(null===d[j])j--;else if(h[x]===a[k])v$1[k]=v(d[x],p$1[k]),x++,k++;else if(h[j]===a[w])v$1[w]=v(d[j],p$1[w]),j--,w--;else if(h[x]===a[w])v$1[w]=v(d[x],p$1[w]),r(s,v$1[w+1],d[x]),x++,w--;else if(h[j]===a[k])v$1[k]=v(d[j],p$1[k]),r(s,d[x],d[j]),j--,k++;else if(void 0===m$1&&(m$1=u(a,k,w),y=u(h,x,j)),m$1.has(h[x]))if(m$1.has(h[j])){const e=y.get(a[k]),t=void 0!==e?d[e]:null;if(null===t){const e=r(s,d[x]);v(e,p$1[k]),v$1[k]=e;}else v$1[k]=v(t,p$1[k]),r(s,d[x],t),d[e]=null;k++;}else M(d[j]),j--;else M(d[x]),x++;for(;k<=w;){const e=r(s,v$1[w+1]);v(e,p$1[k]),v$1[k++]=e;}for(;x<=j;){const e=d[x++];null!==e&&M(e);}return this.ut=a,m(s,v$1),T}});
-
-    var __decorate$j = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-option
-     */
-    let VscodeOption = class VscodeOption extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.description = '';
-            this.selected = false;
-            this.disabled = false;
-            this._initialized = false;
-            this._handleSlotChange = () => {
-                if (this._initialized) {
-                    /** @internal */
-                    this.dispatchEvent(new Event('vsc-option-state-change', { bubbles: true }));
-                }
-            };
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.updateComplete.then(() => {
-                this._initialized = true;
-            });
-        }
-        willUpdate(changedProperties) {
-            if (this._initialized &&
-                (changedProperties.has('description') ||
-                    changedProperties.has('value') ||
-                    changedProperties.has('selected') ||
-                    changedProperties.has('disabled'))) {
-                /** @internal */
-                this.dispatchEvent(new Event('vsc-option-state-change', { bubbles: true }));
-            }
-        }
-        render() {
-            return x `<slot @slotchange=${this._handleSlotChange}></slot>`;
-        }
-    };
-    VscodeOption.styles = defaultStyles;
-    __decorate$j([
-        n$1({ type: String })
-    ], VscodeOption.prototype, "value", void 0);
-    __decorate$j([
-        n$1({ type: String })
-    ], VscodeOption.prototype, "description", void 0);
-    __decorate$j([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeOption.prototype, "selected", void 0);
-    __decorate$j([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeOption.prototype, "disabled", void 0);
-    VscodeOption = __decorate$j([
-        customElement('vscode-option')
-    ], VscodeOption);
-
-    const startsWithPerTermSearch = (subject, pattern) => {
-        const result = {
-            match: false,
-            ranges: [],
-        };
-        const lcSubject = subject.toLowerCase();
-        const lcPattern = pattern.toLowerCase();
-        const terms = lcSubject.split(' ');
-        let offset = 0;
-        terms.forEach((t, i) => {
-            if (i > 0) {
-                offset += terms[i - 1].length + 1;
-            }
-            if (result.match) {
-                return;
-            }
-            const foundIndex = t.indexOf(lcPattern);
-            const patternLength = lcPattern.length;
-            if (foundIndex === 0) {
-                result.match = true;
-                result.ranges.push([
-                    offset + foundIndex,
-                    Math.min(offset + foundIndex + patternLength, subject.length),
-                ]);
-            }
-        });
-        return result;
-    };
-    const startsWithSearch = (subject, pattern) => {
-        const result = {
-            match: false,
-            ranges: [],
-        };
-        const foundIndex = subject.toLowerCase().indexOf(pattern.toLowerCase());
-        if (foundIndex === 0) {
-            result.match = true;
-            result.ranges = [[0, pattern.length]];
-        }
-        return result;
-    };
-    const containsSearch = (subject, pattern) => {
-        const result = {
-            match: false,
-            ranges: [],
-        };
-        const foundIndex = subject.toLowerCase().indexOf(pattern.toLowerCase());
-        if (foundIndex > -1) {
-            result.match = true;
-            result.ranges = [[foundIndex, foundIndex + pattern.length]];
-        }
-        return result;
-    };
-    const fuzzySearch = (subject, pattern) => {
-        const result = {
-            match: false,
-            ranges: [],
-        };
-        let fromIndex = 0;
-        let foundIndex = 0;
-        const iMax = pattern.length - 1;
-        const lcSubject = subject.toLowerCase();
-        const lcPattern = pattern.toLowerCase();
-        for (let i = 0; i <= iMax; i++) {
-            foundIndex = lcSubject.indexOf(lcPattern[i], fromIndex);
-            if (foundIndex === -1) {
-                return {
-                    match: false,
-                    ranges: [],
-                };
-            }
-            result.match = true;
-            result.ranges.push([foundIndex, foundIndex + 1]);
-            fromIndex = foundIndex + 1;
-        }
-        return result;
-    };
-    const filterOptionsByPattern = (list, pattern, method) => {
-        const filtered = [];
-        list.forEach((op) => {
-            let result;
-            switch (method) {
-                case 'startsWithPerTerm':
-                    result = startsWithPerTermSearch(op.label, pattern);
-                    break;
-                case 'startsWith':
-                    result = startsWithSearch(op.label, pattern);
-                    break;
-                case 'contains':
-                    result = containsSearch(op.label, pattern);
-                    break;
-                default:
-                    result = fuzzySearch(op.label, pattern);
-            }
-            if (result.match) {
-                filtered.push({ ...op, ranges: result.ranges });
-            }
-        });
-        return filtered;
-    };
-    const preventSpaces = (text) => {
-        const res = [];
-        if (text === ' ') {
-            res.push(x `&nbsp;`);
-            return res;
-        }
-        if (text.indexOf(' ') === 0) {
-            res.push(x `&nbsp;`);
-        }
-        res.push(x `${text.trimStart().trimEnd()}`);
-        if (text.lastIndexOf(' ') === text.length - 1) {
-            res.push(x `&nbsp;`);
-        }
-        return res;
-    };
-    const highlightRanges = (text, ranges) => {
-        const res = [];
-        const rl = ranges.length;
-        if (rl < 1) {
-            return x `${text}`;
-        }
-        ranges.forEach((r, i) => {
-            const match = text.substring(r[0], r[1]);
-            if (i === 0 && r[0] !== 0) {
-                // text before the first range
-                res.push(...preventSpaces(text.substring(0, ranges[0][0])));
-            }
-            if (i > 0 && i < rl && r[0] - ranges[i - 1][1] !== 0) {
-                // text before the current range
-                res.push(...preventSpaces(text.substring(ranges[i - 1][1], r[0])));
-            }
-            res.push(x `<b>${preventSpaces(match)}</b>`);
-            if (i === rl - 1 && r[1] < text.length) {
-                // text after the last range
-                res.push(...preventSpaces(text.substring(r[1], text.length)));
-            }
-        });
-        return res;
-    };
-    function findNextSelectableOptionIndex(options, fromIndex) {
-        let result = 0;
-        if (fromIndex < 0 || !options[fromIndex] || !options[fromIndex + 1]) {
-            return result;
-        }
-        for (let i = fromIndex + 1; i < options.length; i++) {
-            if (!options[i].disabled) {
-                result = i;
-                break;
-            }
-        }
-        return result;
-    }
-    function findPrevSelectableOptionIndex(options, fromIndex) {
-        let result = 0;
-        if (fromIndex < 0 || !options[fromIndex] || !options[fromIndex - 1]) {
-            return result;
-        }
-        for (let i = fromIndex - 1; i >= 0; i--) {
-            if (!options[i].disabled) {
-                result = i;
-                break;
-            }
-        }
-        return result;
-    }
-
-    var __decorate$i = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    const VISIBLE_OPTS = 10;
-    const OPT_HEIGHT = 22;
-    /**
-     * @cssprop --dropdown-z-index - workaround for dropdown z-index issues
-     */
-    class VscodeSelectBase extends VscElement {
-        /**
-         * The element cannot be used and is not focusable.
-         */
-        set disabled(newState) {
-            this._disabled = newState;
-            this.ariaDisabled = newState ? 'true' : 'false';
-            if (newState === true) {
-                this._originalTabIndex = this.tabIndex;
-                this.tabIndex = -1;
-            }
-            else {
-                this.tabIndex = this._originalTabIndex ?? 0;
-                this._originalTabIndex = undefined;
-            }
-            this.requestUpdate();
-        }
-        get disabled() {
-            return this._disabled;
-        }
-        /**
-         * Search method in the filtered list within the combobox mode.
-         *
-         * - contains - The list item includes the searched pattern at any position.
-         * - fuzzy - The list item contains the letters of the search pattern in the same order, but at any position.
-         * - startsWith - The search pattern matches the beginning of the searched text.
-         * - startsWithPerTerm - The search pattern matches the beginning of any word in the searched text.
-         *
-         * @default 'fuzzy'
-         */
-        set filter(val) {
-            const validValues = [
-                'contains',
-                'fuzzy',
-                'startsWith',
-                'startsWithPerTerm',
-            ];
-            if (validValues.includes(val)) {
-                this._filter = val;
-            }
-            else {
-                this._filter = 'fuzzy';
-                console.warn(`[VSCode Webview Elements] Invalid filter: "${val}", fallback to default. Valid values are: "contains", "fuzzy", "startsWith", "startsWithPerm".`, this);
-            }
-        }
-        get filter() {
-            return this._filter;
-        }
-        /**
-         * @attr [options=[]]
-         * @type {Option[]}
-         */
-        set options(opts) {
-            this._options = opts.map((op, index) => ({ ...op, index }));
-        }
-        get options() {
-            return this._options.map(({ label, value, description, selected, disabled }) => ({
-                label,
-                value,
-                description,
-                selected,
-                disabled,
-            }));
-        }
-        constructor() {
-            super();
-            /** @internal */
-            this.ariaExpanded = 'false';
-            this.creatable = false;
-            /**
-             * Options can be filtered by typing into a text input field.
-             */
-            this.combobox = false;
-            /**
-             * Sets the invalid state manually.
-             */
-            this.invalid = false;
-            /**
-             * Its value is true when element is focused.
-             */
-            this.focused = false;
-            /**
-             * Toggle the dropdown visibility.
-             */
-            this.open = false;
-            /**
-             * Position of the options list when visible.
-             */
-            this.position = 'below';
-            /** @internal */
-            this.tabIndex = 0;
-            this._firstUpdateCompleted = false;
-            this._activeIndex = -1;
-            this._currentDescription = '';
-            this._filter = 'fuzzy';
-            this._filterPattern = '';
-            this._selectedIndex = -1;
-            this._selectedIndexes = [];
-            this._options = [];
-            this._value = '';
-            this._values = [];
-            this._listScrollTop = 0;
-            this._isPlaceholderOptionActive = false;
-            this._isBeingFiltered = false;
-            /** @internal */
-            this._multiple = false;
-            /**
-             * @internal
-             * Quick-searchable map for searching a value in the options list.
-             * Keys are the options values, values are the option indexes.
-             */
-            this._valueOptionIndexMap = {};
-            this._isHoverForbidden = false;
-            this._disabled = false;
-            this._originalTabIndex = undefined;
-            this._onClickOutside = (event) => {
-                const path = event.composedPath();
-                const found = path.findIndex((et) => et === this);
-                if (found === -1) {
-                    this._toggleDropdown(false);
-                    window.removeEventListener('click', this._onClickOutside);
-                }
-            };
-            this._onMouseMove = () => {
-                this._isHoverForbidden = false;
-                window.removeEventListener('mousemove', this._onMouseMove);
-            };
-            this._onComponentKeyDown = (event) => {
-                if ([' ', 'ArrowUp', 'ArrowDown', 'Escape'].includes(event.key)) {
-                    event.stopPropagation();
-                    event.preventDefault();
-                }
-                if (event.key === 'Enter') {
-                    this._onEnterKeyDown(event);
-                }
-                if (event.key === ' ') {
-                    this._onSpaceKeyDown();
-                }
-                if (event.key === 'Escape') {
-                    this._toggleDropdown(false);
-                }
-                if (event.key === 'ArrowUp') {
-                    this._onArrowUpKeyDown();
-                }
-                if (event.key === 'ArrowDown') {
-                    this._onArrowDownKeyDown();
-                }
-            };
-            this._onComponentFocus = () => {
-                this.focused = true;
-            };
-            this._onComponentBlur = () => {
-                this.focused = false;
-            };
-            this.addEventListener('vsc-option-state-change', (ev) => {
-                ev.stopPropagation();
-                this._setStateFromSlottedElements();
-                this.requestUpdate();
-            });
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.addEventListener('keydown', this._onComponentKeyDown);
-            this.addEventListener('focus', this._onComponentFocus);
-            this.addEventListener('blur', this._onComponentBlur);
-        }
-        disconnectedCallback() {
-            super.disconnectedCallback();
-            this.removeEventListener('keydown', this._onComponentKeyDown);
-            this.removeEventListener('focus', this._onComponentFocus);
-            this.removeEventListener('blur', this._onComponentBlur);
-        }
-        firstUpdated(_changedProperties) {
-            this._firstUpdateCompleted = true;
-        }
-        willUpdate(changedProperties) {
-            if (changedProperties.has('required') && this._firstUpdateCompleted) {
-                this._manageRequired();
-            }
-        }
-        get _filteredOptions() {
-            if (!this.combobox || this._filterPattern === '') {
-                return this._options;
-            }
-            return filterOptionsByPattern(this._options, this._filterPattern, this._filter);
-        }
-        get _currentOptions() {
-            return this.combobox ? this._filteredOptions : this._options;
-        }
-        get _isSuggestedOptionVisible() {
-            if (!(this.combobox && this.creatable)) {
-                return false;
-            }
-            const filterPatternExistsAsOption = typeof this._valueOptionIndexMap[this._filterPattern] !== 'undefined';
-            const filtered = this._filterPattern.length > 0;
-            return !filterPatternExistsAsOption && filtered;
-        }
-        _manageRequired() { }
-        _setStateFromSlottedElements() {
-            const options = [];
-            let nextIndex = 0;
-            const optionElements = this._assignedOptions ?? [];
-            const selectedIndexes = [];
-            const values = [];
-            this._valueOptionIndexMap = {};
-            optionElements.forEach((el, i) => {
-                const { innerText, description, disabled } = el;
-                const value = typeof el.value === 'string' ? el.value : innerText.trim();
-                const selected = el.selected ?? false;
-                const op = {
-                    label: innerText.trim(),
-                    value,
-                    description,
-                    selected,
-                    index: nextIndex,
-                    disabled,
-                };
-                nextIndex = options.push(op);
-                if (selected && !this._multiple) {
-                    this._activeIndex = i;
-                }
-                if (selected) {
-                    selectedIndexes.push(options.length - 1);
-                    values.push(value);
-                }
-                this._valueOptionIndexMap[op.value] = op.index;
-            });
-            this._options = options;
-            if (selectedIndexes.length > 0) {
-                this._selectedIndex = selectedIndexes[0];
-                this._selectedIndexes = selectedIndexes;
-                this._value = values[0];
-                this._values = values;
-            }
-            if (!this._multiple && !this.combobox && selectedIndexes.length === 0) {
-                this._selectedIndex = this._options.length > 0 ? 0 : -1;
-            }
-        }
-        async _toggleDropdown(visible) {
-            this.open = visible;
-            this.ariaExpanded = String(visible);
-            if (visible && !this._multiple) {
-                this._activeIndex = this._selectedIndex;
-            }
-            if (visible && !this._multiple && !this.combobox) {
-                this._activeIndex = this._selectedIndex;
-                if (this._activeIndex > VISIBLE_OPTS - 1) {
-                    await this.updateComplete;
-                    this._listElement.scrollTop = Math.floor(this._activeIndex * OPT_HEIGHT);
-                }
-            }
-            if (visible) {
-                window.addEventListener('click', this._onClickOutside);
-            }
-            else {
-                window.removeEventListener('click', this._onClickOutside);
-            }
-        }
-        _createSuggestedOption() {
-            const nextSelectedIndex = this._options.length;
-            const op = document.createElement('vscode-option');
-            op.value = this._filterPattern;
-            B(this._filterPattern, op);
-            this.appendChild(op);
-            return nextSelectedIndex;
-        }
-        _dispatchChangeEvent() {
-            if (!this._multiple) {
-                /** @deprecated */
-                this.dispatchEvent(new CustomEvent('vsc-change', {
-                    detail: {
-                        selectedIndex: this._selectedIndex,
-                        value: this._value,
-                    },
-                }));
-            }
-            else {
-                /** @deprecated */
-                this.dispatchEvent(new CustomEvent('vsc-change', {
-                    detail: {
-                        selectedIndexes: this._selectedIndexes,
-                        value: this._values,
-                    },
-                }));
-            }
-            this.dispatchEvent(new Event('change'));
-            this.dispatchEvent(new Event('input'));
-        }
-        async _createAndSelectSuggestedOption() { }
-        _onFaceClick() {
-            this._toggleDropdown(!this.open);
-            if (this._multiple) {
-                this._activeIndex = 0;
-            }
-        }
-        _toggleComboboxDropdown() {
-            this._filterPattern = '';
-            this._toggleDropdown(!this.open);
-            if (this._multiple) {
-                this._activeIndex = -1;
-            }
-        }
-        _onComboboxButtonClick() {
-            this._toggleComboboxDropdown();
-        }
-        _onComboboxButtonKeyDown(ev) {
-            if (ev.key === 'Enter') {
-                this._toggleComboboxDropdown();
-            }
-        }
-        _onOptionMouseOver(ev) {
-            if (this._isHoverForbidden) {
-                return;
-            }
-            const el = ev.target;
-            if (!el.matches('.option')) {
-                return;
-            }
-            if (el.matches('.placeholder')) {
-                this._isPlaceholderOptionActive = true;
-                this._activeIndex = -1;
-            }
-            else {
-                this._isPlaceholderOptionActive = false;
-                this._activeIndex = Number(this.combobox ? el.dataset.filteredIndex : el.dataset.index);
-            }
-        }
-        _onPlaceholderOptionMouseOut() {
-            this._isPlaceholderOptionActive = false;
-        }
-        _onNoOptionsClick(ev) {
-            ev.stopPropagation();
-        }
-        _onEnterKeyDown(ev) {
-            this._isBeingFiltered = false;
-            const clickedOnAcceptButton = ev?.composedPath
-                ? ev
-                    .composedPath()
-                    .find((el) => el.matches
-                    ? el.matches('vscode-button.button-accept')
-                    : false)
-                : false;
-            if (clickedOnAcceptButton) {
-                return;
-            }
-            const list = this.combobox ? this._filteredOptions : this._options;
-            const showDropdownNext = !this.open;
-            this._toggleDropdown(showDropdownNext);
-            if (!this._multiple &&
-                !showDropdownNext &&
-                this._selectedIndex !== this._activeIndex) {
-                this._selectedIndex =
-                    this._activeIndex > -1 ? list[this._activeIndex].index : -1;
-                this._value =
-                    this._selectedIndex > -1
-                        ? this._options[this._selectedIndex].value
-                        : '';
-                this._dispatchChangeEvent();
-            }
-            if (this.combobox) {
-                if (this._isPlaceholderOptionActive) {
-                    this._createAndSelectSuggestedOption();
-                }
-                else {
-                    if (!this._multiple && !showDropdownNext) {
-                        this._selectedIndex =
-                            this._activeIndex > -1
-                                ? this._filteredOptions[this._activeIndex].index
-                                : -1;
-                    }
-                    if (!this._multiple && showDropdownNext) {
-                        this.updateComplete.then(() => {
-                            this._scrollActiveElementToTop();
-                        });
-                    }
-                }
-            }
-            if (this._multiple && showDropdownNext) {
-                this._activeIndex = 0;
-            }
-        }
-        _onSpaceKeyDown() {
-            if (!this.open) {
-                this._toggleDropdown(true);
-                return;
-            }
-            if (this.open && this._multiple && this._activeIndex > -1) {
-                const opts = this.combobox ? this._filteredOptions : this._options;
-                const selectedOption = opts[this._activeIndex];
-                const nextSelectedIndexes = [];
-                this._options[selectedOption.index].selected = !selectedOption.selected;
-                opts.forEach(({ index }) => {
-                    const { selected } = this._options[index];
-                    if (selected) {
-                        nextSelectedIndexes.push(index);
-                    }
-                });
-                this._selectedIndexes = nextSelectedIndexes;
-            }
-        }
-        _scrollActiveElementToTop() {
-            this._listElement.scrollTop = Math.floor(this._activeIndex * OPT_HEIGHT);
-        }
-        async _adjustOptionListScrollPos(direction, optionIndex) {
-            let numOpts = this.combobox
-                ? this._filteredOptions.length
-                : this._options.length;
-            const suggestedOptionVisible = this._isSuggestedOptionVisible;
-            if (suggestedOptionVisible) {
-                numOpts += 1;
-            }
-            if (numOpts <= VISIBLE_OPTS) {
-                return;
-            }
-            this._isHoverForbidden = true;
-            window.addEventListener('mousemove', this._onMouseMove);
-            const ulScrollTop = this._listElement.scrollTop;
-            const liPosY = optionIndex * OPT_HEIGHT;
-            const fullyVisible = liPosY >= ulScrollTop &&
-                liPosY <= ulScrollTop + VISIBLE_OPTS * OPT_HEIGHT - OPT_HEIGHT;
-            if (direction === 'down') {
-                if (!fullyVisible) {
-                    this._listElement.scrollTop =
-                        optionIndex * OPT_HEIGHT - (VISIBLE_OPTS - 1) * OPT_HEIGHT;
-                }
-            }
-            if (direction === 'up') {
-                if (!fullyVisible) {
-                    this._listElement.scrollTop = Math.floor(this._activeIndex * OPT_HEIGHT);
-                }
-            }
-        }
-        _onArrowUpKeyDown() {
-            if (this.open) {
-                if (this._activeIndex <= 0 && !(this.combobox && this.creatable)) {
-                    return;
-                }
-                if (this._isPlaceholderOptionActive) {
-                    const optionIndex = this._currentOptions.length - 1;
-                    this._activeIndex = optionIndex;
-                    this._isPlaceholderOptionActive = false;
-                }
-                else {
-                    const currentOptions = this.combobox
-                        ? this._filteredOptions
-                        : this._options;
-                    const prevSelectable = findPrevSelectableOptionIndex(currentOptions, this._activeIndex);
-                    if (prevSelectable > -1) {
-                        this._activeIndex = prevSelectable;
-                        this._adjustOptionListScrollPos('up', prevSelectable);
-                    }
-                }
-            }
-        }
-        _onArrowDownKeyDown() {
-            let numOpts = this.combobox
-                ? this._filteredOptions.length
-                : this._options.length;
-            const currentOptions = this.combobox
-                ? this._filteredOptions
-                : this._options;
-            const suggestedOptionVisible = this._isSuggestedOptionVisible;
-            if (suggestedOptionVisible) {
-                numOpts += 1;
-            }
-            if (this.open) {
-                if (this._isPlaceholderOptionActive && this._activeIndex === -1) {
-                    return;
-                }
-                if (suggestedOptionVisible && this._activeIndex === numOpts - 2) {
-                    this._isPlaceholderOptionActive = true;
-                    this._adjustOptionListScrollPos('down', numOpts - 1);
-                    this._activeIndex = -1;
-                }
-                else if (this._activeIndex < numOpts - 1) {
-                    const nextSelectable = findNextSelectableOptionIndex(currentOptions, this._activeIndex);
-                    if (nextSelectable > -1) {
-                        this._activeIndex = nextSelectable;
-                        this._adjustOptionListScrollPos('down', nextSelectable);
-                    }
-                }
-            }
-        }
-        _onSlotChange() {
-            this._setStateFromSlottedElements();
-            this.requestUpdate();
-        }
-        _onComboboxInputFocus(ev) {
-            ev.target.select();
-            this._isBeingFiltered = false;
-            this._filterPattern = '';
-        }
-        _onComboboxInputBlur() {
-            this._isBeingFiltered = false;
-        }
-        _onComboboxInputInput(ev) {
-            this._isBeingFiltered = true;
-            this._filterPattern = ev.target.value;
-            this._activeIndex = -1;
-            this._toggleDropdown(true);
-        }
-        _onComboboxInputClick() {
-            this._isBeingFiltered = this._filterPattern !== '';
-            this._toggleDropdown(true);
-        }
-        _onOptionClick(_ev) {
-            this._isBeingFiltered = false;
-            return;
-        }
-        _renderOptions() {
-            const list = this.combobox ? this._filteredOptions : this._options;
-            return x `
+`;var{I:ki}=bo;var Uo=()=>document.createComment(""),Ze=(r,e,t)=>{let o=r._$AA.parentNode,i=e===void 0?r._$AB:e._$AA;if(t===void 0){let s=o.insertBefore(Uo(),i),n=o.insertBefore(Uo(),i);t=new ki(s,n,r,r.options)}else{let s=t._$AB.nextSibling,n=t._$AM,l=n!==r;if(l){let d;t._$AQ?.(r),t._$AM=r,t._$AP!==void 0&&(d=r._$AU)!==n._$AU&&t._$AP(d)}if(s!==i||l){let d=t._$AA;for(;d!==s;){let b=d.nextSibling;o.insertBefore(d,i),d=b}}}return t},ye=(r,e,t=r)=>(r._$AI(e,t),r),Ei={},Wo=(r,e=Ei)=>r._$AH=e,Ko=r=>r._$AH,It=r=>{r._$AP?.(!1,!0);let e=r._$AA,t=r._$AB.nextSibling;for(;e!==t;){let o=e.nextSibling;e.remove(),e=o}};var Go=(r,e,t)=>{let o=new Map;for(let i=e;i<=t;i++)o.set(r[i],i);return o},Yo=Ue(class extends _e{constructor(r){if(super(r),r.type!==Ne.CHILD)throw Error("repeat() can only be used in text expressions")}dt(r,e,t){let o;t===void 0?t=e:e!==void 0&&(o=e);let i=[],s=[],n=0;for(let l of r)i[n]=o?o(l,n):n,s[n]=t(l,n),n++;return{values:s,keys:i}}render(r,e,t){return this.dt(r,e,t).values}update(r,[e,t,o]){let i=Ko(r),{values:s,keys:n}=this.dt(e,t,o);if(!Array.isArray(i))return this.ut=n,s;let l=this.ut??=[],d=[],b,y,v=0,x=i.length-1,w=0,z=s.length-1;for(;v<=x&&w<=z;)if(i[v]===null)v++;else if(i[x]===null)x--;else if(l[v]===n[w])d[w]=ye(i[v],s[w]),v++,w++;else if(l[x]===n[z])d[z]=ye(i[x],s[z]),x--,z--;else if(l[v]===n[z])d[z]=ye(i[v],s[z]),Ze(r,d[z+1],i[v]),v++,z--;else if(l[x]===n[w])d[w]=ye(i[x],s[w]),Ze(r,i[v],i[x]),x--,w++;else if(b===void 0&&(b=Go(n,w,z),y=Go(l,v,x)),b.has(l[v]))if(b.has(l[x])){let J=y.get(n[w]),He=J!==void 0?i[J]:null;if(He===null){let Ce=Ze(r,i[v]);ye(Ce,s[w]),d[w]=Ce}else d[w]=ye(He,s[w]),Ze(r,i[v],He),i[J]=null;w++}else It(i[x]),x--;else It(i[v]),v++;for(;w<=z;){let J=Ze(r,d[z+1]);ye(J,s[w]),d[w++]=J}for(;v<=x;){let J=i[v++];J!==null&&It(J)}return this.ut=n,Wo(r,d),G}});var Xo=f;var dt=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},de=class extends u{constructor(){super(...arguments),this.description="",this.selected=!1,this.disabled=!1,this._initialized=!1,this._handleSlotChange=()=>{this._initialized&&this.dispatchEvent(new Event("vsc-option-state-change",{bubbles:!0}))}}connectedCallback(){super.connectedCallback(),this.updateComplete.then(()=>{this._initialized=!0})}willUpdate(e){this._initialized&&(e.has("description")||e.has("value")||e.has("selected")||e.has("disabled"))&&this.dispatchEvent(new Event("vsc-option-state-change",{bubbles:!0}))}render(){return c`<slot @slotchange=${this._handleSlotChange}></slot>`}};de.styles=Xo;dt([a({type:String})],de.prototype,"value",void 0);dt([a({type:String})],de.prototype,"description",void 0);dt([a({type:Boolean,reflect:!0})],de.prototype,"selected",void 0);dt([a({type:Boolean,reflect:!0})],de.prototype,"disabled",void 0);de=dt([p("vscode-option")],de);var $i=(r,e)=>{let t={match:!1,ranges:[]},o=r.toLowerCase(),i=e.toLowerCase(),s=o.split(" "),n=0;return s.forEach((l,d)=>{if(d>0&&(n+=s[d-1].length+1),t.match)return;let b=l.indexOf(i),y=i.length;b===0&&(t.match=!0,t.ranges.push([n+b,Math.min(n+b+y,r.length)]))}),t},Si=(r,e)=>{let t={match:!1,ranges:[]};return r.toLowerCase().indexOf(e.toLowerCase())===0&&(t.match=!0,t.ranges=[[0,e.length]]),t},Ii=(r,e)=>{let t={match:!1,ranges:[]},o=r.toLowerCase().indexOf(e.toLowerCase());return o>-1&&(t.match=!0,t.ranges=[[o,o+e.length]]),t},Oi=(r,e)=>{let t={match:!1,ranges:[]},o=0,i=0,s=e.length-1,n=r.toLowerCase(),l=e.toLowerCase();for(let d=0;d<=s;d++){if(i=n.indexOf(l[d],o),i===-1)return{match:!1,ranges:[]};t.match=!0,t.ranges.push([i,i+1]),o=i+1}return t},Zo=(r,e,t)=>{let o=[];return r.forEach(i=>{let s;switch(t){case"startsWithPerTerm":s=$i(i.label,e);break;case"startsWith":s=Si(i.label,e);break;case"contains":s=Ii(i.label,e);break;default:s=Oi(i.label,e)}s.match&&o.push({...i,ranges:s.ranges})}),o},Ot=r=>{let e=[];return r===" "?(e.push(c`&nbsp;`),e):(r.indexOf(" ")===0&&e.push(c`&nbsp;`),e.push(c`${r.trimStart().trimEnd()}`),r.lastIndexOf(" ")===r.length-1&&e.push(c`&nbsp;`),e)},Jo=(r,e)=>{let t=[],o=e.length;return o<1?c`${r}`:(e.forEach((i,s)=>{let n=r.substring(i[0],i[1]);s===0&&i[0]!==0&&t.push(...Ot(r.substring(0,e[0][0]))),s>0&&s<o&&i[0]-e[s-1][1]!==0&&t.push(...Ot(r.substring(e[s-1][1],i[0]))),t.push(c`<b>${Ot(n)}</b>`),s===o-1&&i[1]<r.length&&t.push(...Ot(r.substring(i[1],r.length)))}),t)};function At(r,e){let t=0;if(e<0||!r[e]||!r[e+1])return t;for(let o=e+1;o<r.length;o++)if(!r[o].disabled){t=o;break}return t}function Pt(r,e){let t=0;if(e<0||!r[e]||!r[e-1])return t;for(let o=e-1;o>=0;o--)if(!r[o].disabled){t=o;break}return t}var O=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Rt=10,xe=22,$=class extends u{set disabled(e){this._disabled=e,this.ariaDisabled=e?"true":"false",e===!0?(this._originalTabIndex=this.tabIndex,this.tabIndex=-1):(this.tabIndex=this._originalTabIndex??0,this._originalTabIndex=void 0),this.requestUpdate()}get disabled(){return this._disabled}set filter(e){["contains","fuzzy","startsWith","startsWithPerTerm"].includes(e)?this._filter=e:(this._filter="fuzzy",console.warn(`[VSCode Webview Elements] Invalid filter: "${e}", fallback to default. Valid values are: "contains", "fuzzy", "startsWith", "startsWithPerm".`,this))}get filter(){return this._filter}set options(e){this._options=e.map((t,o)=>({...t,index:o}))}get options(){return this._options.map(({label:e,value:t,description:o,selected:i,disabled:s})=>({label:e,value:t,description:o,selected:i,disabled:s}))}constructor(){super(),this.ariaExpanded="false",this.creatable=!1,this.combobox=!1,this.invalid=!1,this.focused=!1,this.open=!1,this.position="below",this.tabIndex=0,this._firstUpdateCompleted=!1,this._activeIndex=-1,this._currentDescription="",this._filter="fuzzy",this._filterPattern="",this._selectedIndex=-1,this._selectedIndexes=[],this._options=[],this._value="",this._values=[],this._listScrollTop=0,this._isPlaceholderOptionActive=!1,this._isBeingFiltered=!1,this._multiple=!1,this._valueOptionIndexMap={},this._isHoverForbidden=!1,this._disabled=!1,this._originalTabIndex=void 0,this._onClickOutside=e=>{e.composedPath().findIndex(i=>i===this)===-1&&(this._toggleDropdown(!1),window.removeEventListener("click",this._onClickOutside))},this._onMouseMove=()=>{this._isHoverForbidden=!1,window.removeEventListener("mousemove",this._onMouseMove)},this._onComponentKeyDown=e=>{[" ","ArrowUp","ArrowDown","Escape"].includes(e.key)&&(e.stopPropagation(),e.preventDefault()),e.key==="Enter"&&this._onEnterKeyDown(e),e.key===" "&&this._onSpaceKeyDown(),e.key==="Escape"&&this._toggleDropdown(!1),e.key==="ArrowUp"&&this._onArrowUpKeyDown(),e.key==="ArrowDown"&&this._onArrowDownKeyDown()},this._onComponentFocus=()=>{this.focused=!0},this._onComponentBlur=()=>{this.focused=!1},this.addEventListener("vsc-option-state-change",e=>{e.stopPropagation(),this._setStateFromSlottedElements(),this.requestUpdate()})}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this._onComponentKeyDown),this.addEventListener("focus",this._onComponentFocus),this.addEventListener("blur",this._onComponentBlur)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener("keydown",this._onComponentKeyDown),this.removeEventListener("focus",this._onComponentFocus),this.removeEventListener("blur",this._onComponentBlur)}firstUpdated(e){this._firstUpdateCompleted=!0}willUpdate(e){e.has("required")&&this._firstUpdateCompleted&&this._manageRequired()}get _filteredOptions(){return!this.combobox||this._filterPattern===""?this._options:Zo(this._options,this._filterPattern,this._filter)}get _currentOptions(){return this.combobox?this._filteredOptions:this._options}get _isSuggestedOptionVisible(){if(!(this.combobox&&this.creatable))return!1;let e=typeof this._valueOptionIndexMap[this._filterPattern]<"u",t=this._filterPattern.length>0;return!e&&t}_manageRequired(){}_setStateFromSlottedElements(){let e=[],t=0,o=this._assignedOptions??[],i=[],s=[];this._valueOptionIndexMap={},o.forEach((n,l)=>{let{innerText:d,description:b,disabled:y}=n,v=typeof n.value=="string"?n.value:d.trim(),x=n.selected??!1,w={label:d.trim(),value:v,description:b,selected:x,index:t,disabled:y};t=e.push(w),x&&!this._multiple&&(this._activeIndex=l),x&&(i.push(e.length-1),s.push(v)),this._valueOptionIndexMap[w.value]=w.index}),this._options=e,i.length>0&&(this._selectedIndex=i[0],this._selectedIndexes=i,this._value=s[0],this._values=s),!this._multiple&&!this.combobox&&i.length===0&&(this._selectedIndex=this._options.length>0?0:-1)}async _toggleDropdown(e){this.open=e,this.ariaExpanded=String(e),e&&!this._multiple&&(this._activeIndex=this._selectedIndex),e&&!this._multiple&&!this.combobox&&(this._activeIndex=this._selectedIndex,this._activeIndex>Rt-1&&(await this.updateComplete,this._listElement.scrollTop=Math.floor(this._activeIndex*xe))),e?window.addEventListener("click",this._onClickOutside):window.removeEventListener("click",this._onClickOutside)}_createSuggestedOption(){let e=this._options.length,t=document.createElement("vscode-option");return t.value=this._filterPattern,wt(this._filterPattern,t),this.appendChild(t),e}_dispatchChangeEvent(){this._multiple?this.dispatchEvent(new CustomEvent("vsc-change",{detail:{selectedIndexes:this._selectedIndexes,value:this._values}})):this.dispatchEvent(new CustomEvent("vsc-change",{detail:{selectedIndex:this._selectedIndex,value:this._value}})),this.dispatchEvent(new Event("change")),this.dispatchEvent(new Event("input"))}async _createAndSelectSuggestedOption(){}_onFaceClick(){this._toggleDropdown(!this.open),this._multiple&&(this._activeIndex=0)}_toggleComboboxDropdown(){this._filterPattern="",this._toggleDropdown(!this.open),this._multiple&&(this._activeIndex=-1)}_onComboboxButtonClick(){this._toggleComboboxDropdown()}_onComboboxButtonKeyDown(e){e.key==="Enter"&&this._toggleComboboxDropdown()}_onOptionMouseOver(e){if(this._isHoverForbidden)return;let t=e.target;t.matches(".option")&&(t.matches(".placeholder")?(this._isPlaceholderOptionActive=!0,this._activeIndex=-1):(this._isPlaceholderOptionActive=!1,this._activeIndex=Number(this.combobox?t.dataset.filteredIndex:t.dataset.index)))}_onPlaceholderOptionMouseOut(){this._isPlaceholderOptionActive=!1}_onNoOptionsClick(e){e.stopPropagation()}_onEnterKeyDown(e){if(this._isBeingFiltered=!1,e?.composedPath?e.composedPath().find(s=>s.matches?s.matches("vscode-button.button-accept"):!1):!1)return;let o=this.combobox?this._filteredOptions:this._options,i=!this.open;this._toggleDropdown(i),!this._multiple&&!i&&this._selectedIndex!==this._activeIndex&&(this._selectedIndex=this._activeIndex>-1?o[this._activeIndex].index:-1,this._value=this._selectedIndex>-1?this._options[this._selectedIndex].value:"",this._dispatchChangeEvent()),this.combobox&&(this._isPlaceholderOptionActive?this._createAndSelectSuggestedOption():(!this._multiple&&!i&&(this._selectedIndex=this._activeIndex>-1?this._filteredOptions[this._activeIndex].index:-1),!this._multiple&&i&&this.updateComplete.then(()=>{this._scrollActiveElementToTop()}))),this._multiple&&i&&(this._activeIndex=0)}_onSpaceKeyDown(){if(!this.open){this._toggleDropdown(!0);return}if(this.open&&this._multiple&&this._activeIndex>-1){let e=this.combobox?this._filteredOptions:this._options,t=e[this._activeIndex],o=[];this._options[t.index].selected=!t.selected,e.forEach(({index:i})=>{let{selected:s}=this._options[i];s&&o.push(i)}),this._selectedIndexes=o}}_scrollActiveElementToTop(){this._listElement.scrollTop=Math.floor(this._activeIndex*xe)}async _adjustOptionListScrollPos(e,t){let o=this.combobox?this._filteredOptions.length:this._options.length;if(this._isSuggestedOptionVisible&&(o+=1),o<=Rt)return;this._isHoverForbidden=!0,window.addEventListener("mousemove",this._onMouseMove);let s=this._listElement.scrollTop,n=t*xe,l=n>=s&&n<=s+Rt*xe-xe;e==="down"&&(l||(this._listElement.scrollTop=t*xe-(Rt-1)*xe)),e==="up"&&(l||(this._listElement.scrollTop=Math.floor(this._activeIndex*xe)))}_onArrowUpKeyDown(){if(this.open){if(this._activeIndex<=0&&!(this.combobox&&this.creatable))return;if(this._isPlaceholderOptionActive){let e=this._currentOptions.length-1;this._activeIndex=e,this._isPlaceholderOptionActive=!1}else{let e=this.combobox?this._filteredOptions:this._options,t=Pt(e,this._activeIndex);t>-1&&(this._activeIndex=t,this._adjustOptionListScrollPos("up",t))}}}_onArrowDownKeyDown(){let e=this.combobox?this._filteredOptions.length:this._options.length,t=this.combobox?this._filteredOptions:this._options,o=this._isSuggestedOptionVisible;if(o&&(e+=1),this.open){if(this._isPlaceholderOptionActive&&this._activeIndex===-1)return;if(o&&this._activeIndex===e-2)this._isPlaceholderOptionActive=!0,this._adjustOptionListScrollPos("down",e-1),this._activeIndex=-1;else if(this._activeIndex<e-1){let i=At(t,this._activeIndex);i>-1&&(this._activeIndex=i,this._adjustOptionListScrollPos("down",i))}}}_onSlotChange(){this._setStateFromSlottedElements(),this.requestUpdate()}_onComboboxInputFocus(e){e.target.select(),this._isBeingFiltered=!1,this._filterPattern=""}_onComboboxInputBlur(){this._isBeingFiltered=!1}_onComboboxInputInput(e){this._isBeingFiltered=!0,this._filterPattern=e.target.value,this._activeIndex=-1,this._toggleDropdown(!0)}_onComboboxInputClick(){this._isBeingFiltered=this._filterPattern!=="",this._toggleDropdown(!0)}_onOptionClick(e){this._isBeingFiltered=!1}_renderOptions(){let e=this.combobox?this._filteredOptions:this._options;return c`
       <ul
         class="options"
         @click=${this._onOptionClick}
         @mouseover=${this._onOptionMouseOver}
       >
-        ${c(list, (op) => op.index, (op, index) => {
-            const optionClasses = {
-                active: index === this._activeIndex && !op.disabled,
-                disabled: op.disabled,
-                option: true,
-                selected: op.selected,
-            };
-            const checkboxClasses = {
-                'checkbox-icon': true,
-                checked: op.selected,
-            };
-            const labelText = (op.ranges?.length ?? 0 > 0)
-                ? highlightRanges(op.label, op.ranges ?? [])
-                : op.label;
-            return x `
+        ${Yo(e,t=>t.index,(t,o)=>{let i={active:o===this._activeIndex&&!t.disabled,disabled:t.disabled,option:!0,selected:t.selected},s={"checkbox-icon":!0,checked:t.selected},n=t.ranges?.length??!1?Jo(t.label,t.ranges??[]):t.label;return c`
               <li
-                class=${e(optionClasses)}
-                data-index=${op.index}
-                data-filtered-index=${index}
+                class=${g(i)}
+                data-index=${t.index}
+                data-filtered-index=${o}
               >
-                ${this._multiple
-                ? x `<span class=${e(checkboxClasses)}></span
-                      ><span class="option-label">${labelText}</span>`
-                : labelText}
+                ${this._multiple?c`<span class=${g(s)}></span
+                      ><span class="option-label">${n}</span>`:n}
               </li>
-            `;
-        })}
-        ${this._renderPlaceholderOption(list.length < 1)}
+            `})}
+        ${this._renderPlaceholderOption(e.length<1)}
       </ul>
-    `;
-        }
-        _renderPlaceholderOption(isListEmpty) {
-            if (!this.combobox) {
-                return E;
-            }
-            if (this._valueOptionIndexMap[this._filterPattern]) {
-                return E;
-            }
-            if (this.creatable && this._filterPattern.length > 0) {
-                return x `<li
-        class=${e({
-                option: true,
-                placeholder: true,
-                active: this._isPlaceholderOptionActive,
-            })}
+    `}_renderPlaceholderOption(e){return this.combobox?this._valueOptionIndexMap[this._filterPattern]?m:this.creatable&&this._filterPattern.length>0?c`<li
+        class=${g({option:!0,placeholder:!0,active:this._isPlaceholderOptionActive})}
         @mouseout=${this._onPlaceholderOptionMouseOut}
       >
         Add "${this._filterPattern}"
-      </li>`;
-            }
-            else {
-                return isListEmpty
-                    ? x `<li class="no-options" @click=${this._onNoOptionsClick}>
+      </li>`:e?c`<li class="no-options" @click=${this._onNoOptionsClick}>
             No options
-          </li>`
-                    : E;
-            }
-        }
-        _renderDescription() {
-            if (!this._options[this._activeIndex]) {
-                return E;
-            }
-            const { description } = this._options[this._activeIndex];
-            return description
-                ? x `<div class="description">${description}</div>`
-                : E;
-        }
-        _renderSelectFace() {
-            return x `${E}`;
-        }
-        _renderMultiSelectLabel() {
-            switch (this._selectedIndexes.length) {
-                case 0:
-                    return x `<span class="select-face-badge no-item"
+          </li>`:m:m}_renderDescription(){if(!this._options[this._activeIndex])return m;let{description:e}=this._options[this._activeIndex];return e?c`<div class="description">${e}</div>`:m}_renderSelectFace(){return c`${m}`}_renderMultiSelectLabel(){switch(this._selectedIndexes.length){case 0:return c`<span class="select-face-badge no-item"
           >No items selected</span
-        >`;
-                case 1:
-                    return x `<span class="select-face-badge">1 item selected</span>`;
-                default:
-                    return x `<span class="select-face-badge"
+        >`;case 1:return c`<span class="select-face-badge">1 item selected</span>`;default:return c`<span class="select-face-badge"
           >${this._selectedIndexes.length} items selected</span
-        >`;
-            }
-        }
-        _renderComboboxFace() {
-            let inputVal = '';
-            if (this._isBeingFiltered) {
-                inputVal = this._filterPattern;
-            }
-            else {
-                inputVal =
-                    this._selectedIndex > -1
-                        ? (this._options[this._selectedIndex]?.label ?? '')
-                        : '';
-            }
-            return x `
+        >`}}_renderComboboxFace(){let e="";return this._isBeingFiltered?e=this._filterPattern:e=this._selectedIndex>-1?this._options[this._selectedIndex]?.label??"":"",c`
       <div class="combobox-face face">
-        ${this._multiple ? this._renderMultiSelectLabel() : E}
+        ${this._multiple?this._renderMultiSelectLabel():m}
         <input
           class="combobox-input"
           spellcheck="false"
           type="text"
           autocomplete="off"
-          .value=${inputVal}
+          .value=${e}
           @focus=${this._onComboboxInputFocus}
           @blur=${this._onComboboxInputBlur}
           @input=${this._onComboboxInputInput}
@@ -4591,120 +1240,20 @@ var npmCompilation;
           @click=${this._onComboboxButtonClick}
           @keydown=${this._onComboboxButtonKeyDown}
         >
-          ${chevronDownIcon}
+          ${Xe}
         </button>
       </div>
-    `;
-        }
-        _renderDropdownControls() {
-            return x `${E}`;
-        }
-        _renderDropdown() {
-            const classes = e({
-                dropdown: true,
-                multiple: this._multiple,
-            });
-            return x `
-      <div class=${classes}>
-        ${this.position === 'above' ? this._renderDescription() : E}
+    `}_renderDropdownControls(){return c`${m}`}_renderDropdown(){let e=g({dropdown:!0,multiple:this._multiple});return c`
+      <div class=${e}>
+        ${this.position==="above"?this._renderDescription():m}
         ${this._renderOptions()} ${this._renderDropdownControls()}
-        ${this.position === 'below' ? this._renderDescription() : E}
+        ${this.position==="below"?this._renderDescription():m}
       </div>
-    `;
-        }
-        render() {
-            return x `
+    `}render(){return c`
       <slot class="main-slot" @slotchange=${this._onSlotChange}></slot>
-      ${this.combobox ? this._renderComboboxFace() : this._renderSelectFace()}
-      ${this.open ? this._renderDropdown() : E}
-    `;
-        }
-    }
-    __decorate$i([
-        n$1({ type: String, reflect: true, attribute: 'aria-expanded' })
-    ], VscodeSelectBase.prototype, "ariaExpanded", void 0);
-    __decorate$i([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeSelectBase.prototype, "creatable", void 0);
-    __decorate$i([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeSelectBase.prototype, "combobox", void 0);
-    __decorate$i([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeSelectBase.prototype, "disabled", null);
-    __decorate$i([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeSelectBase.prototype, "invalid", void 0);
-    __decorate$i([
-        n$1()
-    ], VscodeSelectBase.prototype, "filter", null);
-    __decorate$i([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeSelectBase.prototype, "focused", void 0);
-    __decorate$i([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeSelectBase.prototype, "open", void 0);
-    __decorate$i([
-        n$1({ type: Array })
-    ], VscodeSelectBase.prototype, "options", null);
-    __decorate$i([
-        n$1({ reflect: true })
-    ], VscodeSelectBase.prototype, "position", void 0);
-    __decorate$i([
-        n$1({ type: Number, attribute: true, reflect: true })
-    ], VscodeSelectBase.prototype, "tabIndex", void 0);
-    __decorate$i([
-        o$1({
-            flatten: true,
-            selector: 'vscode-option',
-        })
-    ], VscodeSelectBase.prototype, "_assignedOptions", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_activeIndex", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_currentDescription", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_filter", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_filteredOptions", null);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_filterPattern", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_selectedIndex", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_selectedIndexes", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_options", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_value", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_values", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_listScrollTop", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_isPlaceholderOptionActive", void 0);
-    __decorate$i([
-        r$2()
-    ], VscodeSelectBase.prototype, "_isBeingFiltered", void 0);
-    __decorate$i([
-        e$3('.options')
-    ], VscodeSelectBase.prototype, "_listElement", void 0);
-
-    var styles$g = [
-        defaultStyles,
-        i$4 `
+      ${this.combobox?this._renderComboboxFace():this._renderSelectFace()}
+      ${this.open?this._renderDropdown():m}
+    `}};O([a({type:String,reflect:!0,attribute:"aria-expanded"})],$.prototype,"ariaExpanded",void 0);O([a({type:Boolean,reflect:!0})],$.prototype,"creatable",void 0);O([a({type:Boolean,reflect:!0})],$.prototype,"combobox",void 0);O([a({type:Boolean,reflect:!0})],$.prototype,"disabled",null);O([a({type:Boolean,reflect:!0})],$.prototype,"invalid",void 0);O([a()],$.prototype,"filter",null);O([a({type:Boolean,reflect:!0})],$.prototype,"focused",void 0);O([a({type:Boolean,reflect:!0})],$.prototype,"open",void 0);O([a({type:Array})],$.prototype,"options",null);O([a({reflect:!0})],$.prototype,"position",void 0);O([a({type:Number,attribute:!0,reflect:!0})],$.prototype,"tabIndex",void 0);O([H({flatten:!0,selector:"vscode-option"})],$.prototype,"_assignedOptions",void 0);O([_()],$.prototype,"_activeIndex",void 0);O([_()],$.prototype,"_currentDescription",void 0);O([_()],$.prototype,"_filter",void 0);O([_()],$.prototype,"_filteredOptions",null);O([_()],$.prototype,"_filterPattern",void 0);O([_()],$.prototype,"_selectedIndex",void 0);O([_()],$.prototype,"_selectedIndexes",void 0);O([_()],$.prototype,"_options",void 0);O([_()],$.prototype,"_value",void 0);O([_()],$.prototype,"_values",void 0);O([_()],$.prototype,"_listScrollTop",void 0);O([_()],$.prototype,"_isPlaceholderOptionActive",void 0);O([_()],$.prototype,"_isBeingFiltered",void 0);O([S(".options")],$.prototype,"_listElement",void 0);var Vt=[f,h`
     :host {
       display: inline-block;
       max-width: 100%;
@@ -5091,280 +1640,19 @@ var npmCompilation;
     :host([position='above']) .description {
       border-width: 0 0 1px;
     }
-  `,
-    ];
-
-    var __decorate$h = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Allows to select multiple items from a list of options.
-     *
-     * When participating in a form, it supports the `:invalid` pseudo class. Otherwise the error styles
-     * can be applied through the `invalid` property.
-     *
-     * @tag vscode-multi-select
-     *
-     * @prop {boolean} invalid
-     * @attr {boolean} invalid
-     * @attr name - Name which is used as a variable name in the data of the form-container.
-     *
-     * @cssprop [--dropdown-z-index=2]
-     * @cssprop [--vscode-badge-background=#616161]
-     * @cssprop [--vscode-badge-foreground=#f8f8f8]
-     * @cssprop [--vscode-settings-dropdownBorder=#3c3c3c]
-     * @cssprop [--vscode-settings-checkboxBackground=#313131]
-     * @cssprop [--vscode-settings-dropdownBackground=#313131]
-     * @cssprop [--vscode-settings-dropdownForeground=#cccccc]
-     * @cssprop [--vscode-settings-dropdownListBorder=#454545]
-     * @cssprop [--vscode-focusBorder=#0078d4]
-     * @cssprop [--vscode-foreground=#cccccc]
-     * @cssprop [--vscode-font-family=sans-serif]
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-font-weight=normal]
-     * @cssprop [--vscode-inputValidation-errorBackground=#5a1d1d]
-     * @cssprop [--vscode-inputValidation-errorBorder=#be1100]
-     * @cssprop [--vscode-list-activeSelectionBackground=#04395e]
-     * @cssprop [--vscode-list-activeSelectionForeground=#ffffff]
-     * @cssprop [--vscode-list-focusOutline=#0078d4]
-     * @cssprop [--vscode-list-focusHighlightForeground=#2aaaff]
-     * @cssprop [--vscode-list-highlightForeground=#2aaaff]
-     * @cssprop [--vscode-list-hoverBackground=#2a2d2e]
-     * @cssprop [--vscode-list-hoverForeground=#ffffff]
-     */
-    let VscodeMultiSelect = class VscodeMultiSelect extends VscodeSelectBase {
-        set selectedIndexes(val) {
-            const newIndexes = [];
-            val.forEach((v) => {
-                if (typeof this._options[v] !== 'undefined') {
-                    if (!newIndexes.includes(v)) {
-                        this._options[v].selected = true;
-                        newIndexes.push(v);
-                    }
-                }
-            });
-            this._selectedIndexes = newIndexes;
-        }
-        get selectedIndexes() {
-            return this._selectedIndexes;
-        }
-        set value(val) {
-            const sanitizedVal = Array.isArray(val)
-                ? val.map((v) => String(v))
-                : [String(val)];
-            this._values = [];
-            this._selectedIndexes.forEach((i) => {
-                this._options[i].selected = false;
-            });
-            this._selectedIndexes = [];
-            sanitizedVal.forEach((v) => {
-                if (typeof this._valueOptionIndexMap[v] === 'number') {
-                    this._selectedIndexes.push(this._valueOptionIndexMap[v]);
-                    this._options[this._valueOptionIndexMap[v]].selected = true;
-                    this._values.push(v);
-                }
-            });
-            if (this._selectedIndexes.length > 0) {
-                this._requestedValueToSetLater = [];
-            }
-            else {
-                this._requestedValueToSetLater = Array.isArray(val) ? val : [val];
-            }
-            this._setFormValue();
-            this._manageRequired();
-        }
-        get value() {
-            return this._values;
-        }
-        get form() {
-            return this._internals.form;
-        }
-        /** @internal */
-        get type() {
-            return 'select-multiple';
-        }
-        get validity() {
-            return this._internals.validity;
-        }
-        get validationMessage() {
-            return this._internals.validationMessage;
-        }
-        get willValidate() {
-            return this._internals.willValidate;
-        }
-        checkValidity() {
-            return this._internals.checkValidity();
-        }
-        reportValidity() {
-            return this._internals.reportValidity();
-        }
-        constructor() {
-            super();
-            this.defaultValue = [];
-            this.required = false;
-            this.name = undefined;
-            this._requestedValueToSetLater = [];
-            this._onOptionClick = (ev) => {
-                const composedPath = ev.composedPath();
-                const optEl = composedPath.find((et) => {
-                    if ('matches' in et) {
-                        return et.matches('li.option');
-                    }
-                    return false;
-                });
-                if (!optEl) {
-                    return;
-                }
-                const isPlaceholderOption = optEl.classList.contains('placeholder');
-                if (isPlaceholderOption) {
-                    this._createAndSelectSuggestedOption();
-                    return;
-                }
-                const index = Number(optEl.dataset.index);
-                if (this._options[index]) {
-                    if (this._options[index].disabled) {
-                        return;
-                    }
-                    this._options[index].selected = !this._options[index].selected;
-                }
-                this._selectedIndexes = [];
-                this._values = [];
-                this._options.forEach((op) => {
-                    if (op.selected) {
-                        this._selectedIndexes.push(op.index);
-                        this._values.push(op.value);
-                    }
-                });
-                this._setFormValue();
-                this._manageRequired();
-                this._dispatchChangeEvent();
-            };
-            /** @internal */
-            this._multiple = true;
-            this._internals = this.attachInternals();
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.updateComplete.then(() => {
-                this._setDefaultValue();
-                this._manageRequired();
-            });
-        }
-        /** @internal */
-        formResetCallback() {
-            this.updateComplete.then(() => {
-                this.value = this.defaultValue;
-            });
-        }
-        /** @internal */
-        formStateRestoreCallback(state, _mode) {
-            const entries = Array.from(state.entries()).map((e) => String(e[1]));
-            this.updateComplete.then(() => {
-                this.value = entries;
-            });
-        }
-        _setDefaultValue() {
-            if (Array.isArray(this.defaultValue) && this.defaultValue.length > 0) {
-                const val = this.defaultValue.map((v) => String(v));
-                this.value = val;
-            }
-        }
-        _manageRequired() {
-            const { value } = this;
-            if (value.length === 0 && this.required) {
-                this._internals.setValidity({
-                    valueMissing: true,
-                }, 'Please select an item in the list.', this._faceElement);
-            }
-            else {
-                this._internals.setValidity({});
-            }
-        }
-        _setFormValue() {
-            const fd = new FormData();
-            this._values.forEach((v) => {
-                fd.append(this.name ?? '', v);
-            });
-            this._internals.setFormValue(fd);
-        }
-        async _createAndSelectSuggestedOption() {
-            super._createAndSelectSuggestedOption();
-            const nextIndex = this._createSuggestedOption();
-            await this.updateComplete;
-            this.selectedIndexes = [...this.selectedIndexes, nextIndex];
-            this._dispatchChangeEvent();
-            const opCreateEvent = new CustomEvent('vsc-multi-select-create-option', { detail: { value: this._options[nextIndex]?.value ?? '' } });
-            this.dispatchEvent(opCreateEvent);
-            this._toggleDropdown(false);
-            this._isPlaceholderOptionActive = false;
-        }
-        _onSlotChange() {
-            super._onSlotChange();
-            if (this._requestedValueToSetLater.length > 0) {
-                this.options.forEach((o, i) => {
-                    if (this._requestedValueToSetLater.includes(o.value)) {
-                        this._selectedIndexes.push(i);
-                        this._values.push(o.value);
-                        this._options[i].selected = true;
-                        this._requestedValueToSetLater =
-                            this._requestedValueToSetLater.filter((v) => v !== o.value);
-                    }
-                });
-            }
-        }
-        _onMultiAcceptClick() {
-            this._toggleDropdown(false);
-        }
-        _onMultiDeselectAllClick() {
-            this._selectedIndexes = [];
-            this._values = [];
-            this._options = this._options.map((op) => ({ ...op, selected: false }));
-            this._manageRequired();
-            this._dispatchChangeEvent();
-        }
-        _onMultiSelectAllClick() {
-            this._selectedIndexes = [];
-            this._values = [];
-            this._options = this._options.map((op) => ({ ...op, selected: true }));
-            this._options.forEach((op, index) => {
-                this._selectedIndexes.push(index);
-                this._values.push(op.value);
-                this._dispatchChangeEvent();
-            });
-            this._setFormValue();
-            this._manageRequired();
-        }
-        _renderLabel() {
-            switch (this._selectedIndexes.length) {
-                case 0:
-                    return x `<span class="select-face-badge no-item"
+  `];var Qo=Vt;var Te=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},X=class extends ${set selectedIndexes(e){let t=[];e.forEach(o=>{typeof this._options[o]<"u"&&(t.includes(o)||(this._options[o].selected=!0,t.push(o)))}),this._selectedIndexes=t}get selectedIndexes(){return this._selectedIndexes}set value(e){let t=Array.isArray(e)?e.map(o=>String(o)):[String(e)];this._values=[],this._selectedIndexes.forEach(o=>{this._options[o].selected=!1}),this._selectedIndexes=[],t.forEach(o=>{typeof this._valueOptionIndexMap[o]=="number"&&(this._selectedIndexes.push(this._valueOptionIndexMap[o]),this._options[this._valueOptionIndexMap[o]].selected=!0,this._values.push(o))}),this._selectedIndexes.length>0?this._requestedValueToSetLater=[]:this._requestedValueToSetLater=Array.isArray(e)?e:[e],this._setFormValue(),this._manageRequired()}get value(){return this._values}get form(){return this._internals.form}get type(){return"select-multiple"}get validity(){return this._internals.validity}get validationMessage(){return this._internals.validationMessage}get willValidate(){return this._internals.willValidate}checkValidity(){return this._internals.checkValidity()}reportValidity(){return this._internals.reportValidity()}constructor(){super(),this.defaultValue=[],this.required=!1,this.name=void 0,this._requestedValueToSetLater=[],this._onOptionClick=e=>{let o=e.composedPath().find(n=>"matches"in n?n.matches("li.option"):!1);if(!o)return;if(o.classList.contains("placeholder")){this._createAndSelectSuggestedOption();return}let s=Number(o.dataset.index);if(this._options[s]){if(this._options[s].disabled)return;this._options[s].selected=!this._options[s].selected}this._selectedIndexes=[],this._values=[],this._options.forEach(n=>{n.selected&&(this._selectedIndexes.push(n.index),this._values.push(n.value))}),this._setFormValue(),this._manageRequired(),this._dispatchChangeEvent()},this._multiple=!0,this._internals=this.attachInternals()}connectedCallback(){super.connectedCallback(),this.updateComplete.then(()=>{this._setDefaultValue(),this._manageRequired()})}formResetCallback(){this.updateComplete.then(()=>{this.value=this.defaultValue})}formStateRestoreCallback(e,t){let o=Array.from(e.entries()).map(i=>String(i[1]));this.updateComplete.then(()=>{this.value=o})}_setDefaultValue(){if(Array.isArray(this.defaultValue)&&this.defaultValue.length>0){let e=this.defaultValue.map(t=>String(t));this.value=e}}_manageRequired(){let{value:e}=this;e.length===0&&this.required?this._internals.setValidity({valueMissing:!0},"Please select an item in the list.",this._faceElement):this._internals.setValidity({})}_setFormValue(){let e=new FormData;this._values.forEach(t=>{e.append(this.name??"",t)}),this._internals.setFormValue(e)}async _createAndSelectSuggestedOption(){super._createAndSelectSuggestedOption();let e=this._createSuggestedOption();await this.updateComplete,this.selectedIndexes=[...this.selectedIndexes,e],this._dispatchChangeEvent();let t=new CustomEvent("vsc-multi-select-create-option",{detail:{value:this._options[e]?.value??""}});this.dispatchEvent(t),this._toggleDropdown(!1),this._isPlaceholderOptionActive=!1}_onSlotChange(){super._onSlotChange(),this._requestedValueToSetLater.length>0&&this.options.forEach((e,t)=>{this._requestedValueToSetLater.includes(e.value)&&(this._selectedIndexes.push(t),this._values.push(e.value),this._options[t].selected=!0,this._requestedValueToSetLater=this._requestedValueToSetLater.filter(o=>o!==e.value))})}_onMultiAcceptClick(){this._toggleDropdown(!1)}_onMultiDeselectAllClick(){this._selectedIndexes=[],this._values=[],this._options=this._options.map(e=>({...e,selected:!1})),this._manageRequired(),this._dispatchChangeEvent()}_onMultiSelectAllClick(){this._selectedIndexes=[],this._values=[],this._options=this._options.map(e=>({...e,selected:!0})),this._options.forEach((e,t)=>{this._selectedIndexes.push(t),this._values.push(e.value),this._dispatchChangeEvent()}),this._setFormValue(),this._manageRequired()}_renderLabel(){switch(this._selectedIndexes.length){case 0:return c`<span class="select-face-badge no-item"
           >No items selected</span
-        >`;
-                case 1:
-                    return x `<span class="select-face-badge">1 item selected</span>`;
-                default:
-                    return x `<span class="select-face-badge"
+        >`;case 1:return c`<span class="select-face-badge">1 item selected</span>`;default:return c`<span class="select-face-badge"
           >${this._selectedIndexes.length} items selected</span
-        >`;
-            }
-        }
-        _renderSelectFace() {
-            return x `
+        >`}}_renderSelectFace(){return c`
       <div
         class="select-face face multiselect"
         @click=${this._onFaceClick}
-        tabindex=${this.tabIndex > -1 ? 0 : -1}
+        tabindex=${this.tabIndex>-1?0:-1}
       >
-        ${this._renderLabel()} ${chevronDownIcon}
+        ${this._renderLabel()} ${Xe}
       </div>
-    `;
-        }
-        _renderDropdownControls() {
-            return this._filteredOptions.length > 0
-                ? x `
+    `}_renderDropdownControls(){return this._filteredOptions.length>0?c`
           <div class="dropdown-controls">
             <button
               type="button"
@@ -5390,42 +1678,7 @@ var npmCompilation;
               >OK</vscode-button
             >
           </div>
-        `
-                : x `${E}`;
-        }
-    };
-    VscodeMultiSelect.styles = styles$g;
-    /** @internal */
-    VscodeMultiSelect.shadowRootOptions = {
-        ...i$1.shadowRootOptions,
-        delegatesFocus: true,
-    };
-    VscodeMultiSelect.formAssociated = true;
-    __decorate$h([
-        n$1({ type: Array, attribute: 'default-value' })
-    ], VscodeMultiSelect.prototype, "defaultValue", void 0);
-    __decorate$h([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeMultiSelect.prototype, "required", void 0);
-    __decorate$h([
-        n$1({ reflect: true })
-    ], VscodeMultiSelect.prototype, "name", void 0);
-    __decorate$h([
-        n$1({ type: Array, attribute: false })
-    ], VscodeMultiSelect.prototype, "selectedIndexes", null);
-    __decorate$h([
-        n$1({ type: Array })
-    ], VscodeMultiSelect.prototype, "value", null);
-    __decorate$h([
-        e$3('.face')
-    ], VscodeMultiSelect.prototype, "_faceElement", void 0);
-    VscodeMultiSelect = __decorate$h([
-        customElement('vscode-multi-select')
-    ], VscodeMultiSelect);
-
-    const styles$f = [
-        defaultStyles,
-        i$4 `
+        `:c`${m}`}};X.styles=Qo;X.shadowRootOptions={...D.shadowRootOptions,delegatesFocus:!0};X.formAssociated=!0;Te([a({type:Array,attribute:"default-value"})],X.prototype,"defaultValue",void 0);Te([a({type:Boolean,reflect:!0})],X.prototype,"required",void 0);Te([a({reflect:!0})],X.prototype,"name",void 0);Te([a({type:Array,attribute:!1})],X.prototype,"selectedIndexes",null);Te([a({type:Array})],X.prototype,"value",null);Te([S(".face")],X.prototype,"_faceElement",void 0);X=Te([p("vscode-multi-select")],X);var Ai=[f,h`
     :host {
       align-items: center;
       display: block;
@@ -5471,29 +1724,7 @@ var npmCompilation;
         transform: rotate(1080deg);
       }
     }
-  `,
-    ];
-
-    var __decorate$g = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-progress-ring
-     *
-     * @cssprop [--vscode-progressBar-background=#0078d4]
-     */
-    let VscodeProgressRing = class VscodeProgressRing extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.ariaLabel = 'Loading';
-            this.ariaLive = 'assertive';
-            this.role = 'alert';
-        }
-        render() {
-            return x `<svg class="progress" part="progress" viewBox="0 0 16 16">
+  `],es=Ai;var Bt=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},me=class extends u{constructor(){super(...arguments),this.ariaLabel="Loading",this.ariaLive="assertive",this.role="alert"}render(){return c`<svg class="progress" part="progress" viewBox="0 0 16 16">
       <circle
         class="background"
         part="background"
@@ -5508,27 +1739,7 @@ var npmCompilation;
         cy="8px"
         r="7px"
       ></circle>
-    </svg>`;
-        }
-    };
-    VscodeProgressRing.styles = styles$f;
-    __decorate$g([
-        n$1({ reflect: true, attribute: 'aria-label' })
-    ], VscodeProgressRing.prototype, "ariaLabel", void 0);
-    __decorate$g([
-        n$1({ reflect: true, attribute: 'aria-live' })
-    ], VscodeProgressRing.prototype, "ariaLive", void 0);
-    __decorate$g([
-        n$1({ reflect: true })
-    ], VscodeProgressRing.prototype, "role", void 0);
-    VscodeProgressRing = __decorate$g([
-        customElement('vscode-progress-ring')
-    ], VscodeProgressRing);
-
-    const styles$e = [
-        defaultStyles,
-        baseStyles,
-        i$4 `
+    </svg>`}};me.styles=es;Bt([a({reflect:!0,attribute:"aria-label"})],me.prototype,"ariaLabel",void 0);Bt([a({reflect:!0,attribute:"aria-live"})],me.prototype,"ariaLive",void 0);Bt([a({reflect:!0})],me.prototype,"role",void 0);me=Bt([p("vscode-progress-ring")],me);var Pi=[f,kt,h`
     :host(:invalid) .icon,
     :host([invalid]) .icon {
       background-color: var(--vscode-inputValidation-errorBackground, #5a1d1d);
@@ -5555,237 +1766,7 @@ var npmCompilation;
       outline: 1px solid var(--vscode-focusBorder, #0078d4);
       outline-offset: -1px;
     }
-  `,
-    ];
-
-    var __decorate$f = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * When participating in a form, it supports the `:invalid` pseudo class. Otherwise the error styles
-     * can be applied through the `invalid` property.
-     *
-     * @tag vscode-radio
-     *
-     * @attr name - Name which is used as a variable name in the data of the form-container.
-     * @attr label - Attribute pair of the `label` property.
-     *
-     * @prop label - Label text. It is only applied if component's innerHTML doesn't contain any text.
-     *
-     * @fires {Event} change - Dispatched when checked state is changed.
-     * @fires {Event} invalid - Dispatched when the element is invalid and `checkValidity()` has been called or the form containing this element is submitted.
-     *
-     * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/invalid_event)
-     *
-     * @cssprop [--vscode-font-family=sans-serif]
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-font-weight=normal]
-     * @cssprop [--vscode-settings-checkboxBackground=#313131]
-     * @cssprop [--vscode-settings-checkboxBorder=#3c3c3c]
-     * @cssprop [--vscode-settings-checkboxForeground=#cccccc]
-     * @cssprop [--vscode-focusBorder=#0078d4]
-     * @cssprop [--vscode-inputValidation-errorBackground=#5a1d1d]
-     * @cssprop [--vscode-inputValidation-errorBorder=#be1100]
-     */
-    let VscodeRadio = class VscodeRadio extends LabelledCheckboxOrRadioMixin(FormButtonWidgetBase) {
-        constructor() {
-            super();
-            this.autofocus = false;
-            this.checked = false;
-            this.defaultChecked = false;
-            this.invalid = false;
-            /**
-             * Name which is used as a variable name in the data of the form-container.
-             */
-            this.name = '';
-            this.value = '';
-            this.disabled = false;
-            this.required = false;
-            /** @internal */
-            this.role = 'radio';
-            /** @internal */
-            this.tabIndex = 0;
-            this._slottedText = '';
-            /** @internal */
-            this.type = 'radio';
-            this._handleClick = () => {
-                if (this.disabled) {
-                    return;
-                }
-                if (!this.checked) {
-                    this._checkButton();
-                    this._handleValueChange();
-                    this._dispatchCustomEvent();
-                    this.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            };
-            this._handleKeyDown = (ev) => {
-                if (!this.disabled && (ev.key === 'Enter' || ev.key === ' ')) {
-                    ev.preventDefault();
-                    if (ev.key === ' ' && !this.checked) {
-                        this.checked = true;
-                        this._handleValueChange();
-                        this._dispatchCustomEvent();
-                        this.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                    if (ev.key === 'Enter') {
-                        this._internals.form?.requestSubmit();
-                    }
-                }
-            };
-            this._internals = this.attachInternals();
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.addEventListener('keydown', this._handleKeyDown);
-            this.addEventListener('click', this._handleClick);
-            this._handleValueChange();
-        }
-        disconnectedCallback() {
-            super.disconnectedCallback();
-            this.removeEventListener('keydown', this._handleKeyDown);
-            this.removeEventListener('click', this._handleClick);
-        }
-        update(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        changedProperties) {
-            super.update(changedProperties);
-            if (changedProperties.has('checked')) {
-                this._handleValueChange();
-            }
-            if (changedProperties.has('required')) {
-                this._handleValueChange();
-            }
-        }
-        get form() {
-            return this._internals.form;
-        }
-        get validity() {
-            return this._internals.validity;
-        }
-        get validationMessage() {
-            return this._internals.validationMessage;
-        }
-        get willValidate() {
-            return this._internals.willValidate;
-        }
-        checkValidity() {
-            return this._internals.checkValidity();
-        }
-        reportValidity() {
-            return this._internals.reportValidity();
-        }
-        /** @internal */
-        formResetCallback() {
-            const radios = this._getRadios();
-            radios.forEach((r) => {
-                r.checked = r.defaultChecked;
-            });
-            this.updateComplete.then(() => {
-                this._handleValueChange();
-            });
-        }
-        /** @internal */
-        formStateRestoreCallback(state, _mode) {
-            if (this.value === state && state !== '') {
-                this.checked = true;
-            }
-        }
-        _dispatchCustomEvent() {
-            /** @deprecated - Use the native `change` event instead. */
-            this.dispatchEvent(new CustomEvent('vsc-change', {
-                detail: {
-                    checked: this.checked,
-                    label: this.label,
-                    value: this.value,
-                },
-                bubbles: true,
-                composed: true,
-            }));
-        }
-        _getRadios() {
-            const root = this.getRootNode({ composed: true });
-            if (!root) {
-                return [];
-            }
-            const radios = root.querySelectorAll(`vscode-radio[name="${this.name}"]`);
-            return Array.from(radios);
-        }
-        _uncheckOthers(radios) {
-            radios.forEach((r) => {
-                if (r !== this) {
-                    r.checked = false;
-                }
-            });
-        }
-        _checkButton() {
-            const radios = this._getRadios();
-            this.checked = true;
-            radios.forEach((r) => {
-                if (r !== this) {
-                    r.checked = false;
-                }
-            });
-        }
-        /**
-         * @internal
-         */
-        setComponentValidity(isValid) {
-            if (isValid) {
-                this._internals.setValidity({});
-            }
-            else {
-                this._internals.setValidity({
-                    valueMissing: true,
-                }, 'Please select one of these options.', this._inputEl);
-            }
-        }
-        _setGroupValidity(radios, isValid) {
-            this.updateComplete.then(() => {
-                radios.forEach((r) => {
-                    r.setComponentValidity(isValid);
-                });
-            });
-        }
-        _setActualFormValue() {
-            let actualValue = '';
-            if (this.checked) {
-                actualValue = !this.value ? 'on' : this.value;
-            }
-            else {
-                actualValue = null;
-            }
-            this._internals.setFormValue(actualValue);
-        }
-        _handleValueChange() {
-            const radios = this._getRadios();
-            const anyRequired = radios.some((r) => {
-                return r.required;
-            });
-            this._setActualFormValue();
-            if (this.checked) {
-                this._uncheckOthers(radios);
-                this._setGroupValidity(radios, true);
-            }
-            else {
-                const anyChecked = !!radios.find((r) => r.checked);
-                const isInvalid = anyRequired && !anyChecked;
-                this._setGroupValidity(radios, !isInvalid);
-            }
-        }
-        render() {
-            const iconClasses = e({
-                icon: true,
-                checked: this.checked,
-            });
-            const labelInnerClasses = e({
-                'label-inner': true,
-                'is-slot-empty': this._slottedText === '',
-            });
-            return x `
+  `],ts=Pi;var Z=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},T=class extends Ct(Pe){constructor(){super(),this.autofocus=!1,this.checked=!1,this.defaultChecked=!1,this.invalid=!1,this.name="",this.value="",this.disabled=!1,this.required=!1,this.role="radio",this.tabIndex=0,this._slottedText="",this.type="radio",this._handleClick=()=>{this.disabled||this.checked||(this._checkButton(),this._handleValueChange(),this._dispatchCustomEvent(),this.dispatchEvent(new Event("change",{bubbles:!0})))},this._handleKeyDown=e=>{!this.disabled&&(e.key==="Enter"||e.key===" ")&&(e.preventDefault(),e.key===" "&&!this.checked&&(this.checked=!0,this._handleValueChange(),this._dispatchCustomEvent(),this.dispatchEvent(new Event("change",{bubbles:!0}))),e.key==="Enter"&&this._internals.form?.requestSubmit())},this._internals=this.attachInternals()}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this._handleKeyDown),this.addEventListener("click",this._handleClick),this._handleValueChange()}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener("keydown",this._handleKeyDown),this.removeEventListener("click",this._handleClick)}update(e){super.update(e),e.has("checked")&&this._handleValueChange(),e.has("required")&&this._handleValueChange()}get form(){return this._internals.form}get validity(){return this._internals.validity}get validationMessage(){return this._internals.validationMessage}get willValidate(){return this._internals.willValidate}checkValidity(){return this._internals.checkValidity()}reportValidity(){return this._internals.reportValidity()}formResetCallback(){this._getRadios().forEach(t=>{t.checked=t.defaultChecked}),this.updateComplete.then(()=>{this._handleValueChange()})}formStateRestoreCallback(e,t){this.value===e&&e!==""&&(this.checked=!0)}_dispatchCustomEvent(){this.dispatchEvent(new CustomEvent("vsc-change",{detail:{checked:this.checked,label:this.label,value:this.value},bubbles:!0,composed:!0}))}_getRadios(){let e=this.getRootNode({composed:!0});if(!e)return[];let t=e.querySelectorAll(`vscode-radio[name="${this.name}"]`);return Array.from(t)}_uncheckOthers(e){e.forEach(t=>{t!==this&&(t.checked=!1)})}_checkButton(){let e=this._getRadios();this.checked=!0,e.forEach(t=>{t!==this&&(t.checked=!1)})}setComponentValidity(e){e?this._internals.setValidity({}):this._internals.setValidity({valueMissing:!0},"Please select one of these options.",this._inputEl)}_setGroupValidity(e,t){this.updateComplete.then(()=>{e.forEach(o=>{o.setComponentValidity(t)})})}_setActualFormValue(){let e="";this.checked?e=this.value?this.value:"on":e=null,this._internals.setFormValue(e)}_handleValueChange(){let e=this._getRadios(),t=e.some(o=>o.required);if(this._setActualFormValue(),this.checked)this._uncheckOthers(e),this._setGroupValidity(e,!0);else{let o=!!e.find(s=>s.checked),i=t&&!o;this._setGroupValidity(e,!i)}}render(){let e=g({icon:!0,checked:this.checked}),t=g({"label-inner":!0,"is-slot-empty":this._slottedText===""});return c`
       <div class="wrapper">
         <input
           ?autofocus=${this.autofocus}
@@ -5796,377 +1777,23 @@ var npmCompilation;
           value=${this.value}
           tabindex=${this.tabIndex}
         >
-        <div class=${iconClasses}></div>
+        <div class=${e}></div>
         <label for="input" class="label" @click=${this._handleClick}>
-          <span class=${labelInnerClasses}>
+          <span class=${t}>
             ${this._renderLabelAttribute()}
             <slot @slotchange=${this._handleSlotChange}></slot>
           </span>
         </label>
       </div>
-    `;
-        }
-    };
-    VscodeRadio.styles = styles$e;
-    /** @internal */
-    VscodeRadio.formAssociated = true;
-    /** @internal */
-    VscodeRadio.shadowRootOptions = {
-        ...i$1.shadowRootOptions,
-        delegatesFocus: true,
-    };
-    __decorate$f([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeRadio.prototype, "autofocus", void 0);
-    __decorate$f([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeRadio.prototype, "checked", void 0);
-    __decorate$f([
-        n$1({ type: Boolean, reflect: true, attribute: 'default-checked' })
-    ], VscodeRadio.prototype, "defaultChecked", void 0);
-    __decorate$f([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeRadio.prototype, "invalid", void 0);
-    __decorate$f([
-        n$1({ reflect: true })
-    ], VscodeRadio.prototype, "name", void 0);
-    __decorate$f([
-        n$1()
-    ], VscodeRadio.prototype, "value", void 0);
-    __decorate$f([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeRadio.prototype, "disabled", void 0);
-    __decorate$f([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeRadio.prototype, "required", void 0);
-    __decorate$f([
-        n$1({ reflect: true })
-    ], VscodeRadio.prototype, "role", void 0);
-    __decorate$f([
-        n$1({ type: Number, reflect: true })
-    ], VscodeRadio.prototype, "tabIndex", void 0);
-    __decorate$f([
-        r$2()
-    ], VscodeRadio.prototype, "_slottedText", void 0);
-    __decorate$f([
-        e$3('#input')
-    ], VscodeRadio.prototype, "_inputEl", void 0);
-    __decorate$f([
-        n$1()
-    ], VscodeRadio.prototype, "type", void 0);
-    VscodeRadio = __decorate$f([
-        customElement('vscode-radio')
-    ], VscodeRadio);
-
-    var __decorate$e = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Allows to select an item from multiple options.
-     *
-     * When participating in a form, it supports the `:invalid` pseudo class. Otherwise the error styles
-     * can be applied through the `invalid` property.
-     *
-     * @tag vscode-single-select
-     *
-     * ## Types
-     *
-     * ```typescript
-     *interface Option {
-     *  label: string;
-     *  value: string;
-     *  description: string;
-     *  selected: boolean;
-     *  disabled: boolean;
-     *}
-     * ```
-     * @prop {boolean} invalid
-     * @attr {boolean} invalid
-     * @attr name - Name which is used as a variable name in the data of the form-container.
-     *
-     * @cssprop [--dropdown-z-index=2]
-     * @cssprop [--vscode-badge-background=#616161]
-     * @cssprop [--vscode-badge-foreground=#f8f8f8]
-     * @cssprop [--vscode-settings-dropdownBorder=#3c3c3c]
-     * @cssprop [--vscode-settings-checkboxBackground=#313131]
-     * @cssprop [--vscode-settings-dropdownBackground=#313131]
-     * @cssprop [--vscode-settings-dropdownForeground=#cccccc]
-     * @cssprop [--vscode-settings-dropdownListBorder=#454545]
-     * @cssprop [--vscode-focusBorder=#0078d4]
-     * @cssprop [--vscode-foreground=#cccccc]
-     * @cssprop [--vscode-font-family=sans-serif]
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-font-weight=normal]
-     * @cssprop [--vscode-inputValidation-errorBackground=#5a1d1d]
-     * @cssprop [--vscode-inputValidation-errorBorder=#be1100]
-     * @cssprop [--vscode-list-activeSelectionBackground=#04395e]
-     * @cssprop [--vscode-list-activeSelectionForeground=#ffffff]
-     * @cssprop [--vscode-list-focusOutline=#0078d4]
-     * @cssprop [--vscode-list-focusHighlightForeground=#2aaaff]
-     * @cssprop [--vscode-list-highlightForeground=#2aaaff]
-     * @cssprop [--vscode-list-hoverBackground=#2a2d2e]
-     * @cssprop [--vscode-list-hoverForeground=#ffffff]
-     */
-    let VscodeSingleSelect = class VscodeSingleSelect extends VscodeSelectBase {
-        set selectedIndex(val) {
-            this._selectedIndex = val;
-            if (this._options[val]) {
-                this._activeIndex = val;
-                this._value = this._options[val].value;
-                this._internals.setFormValue(this._value);
-                this._manageRequired();
-            }
-            else {
-                this._value = '';
-                this._internals.setFormValue('');
-                this._manageRequired();
-            }
-        }
-        get selectedIndex() {
-            return this._selectedIndex;
-        }
-        set value(val) {
-            if (this._options[this._selectedIndex]) {
-                this._options[this._selectedIndex].selected = false;
-            }
-            this._selectedIndex = this._options.findIndex((op) => op.value === val);
-            if (this._selectedIndex > -1) {
-                this._options[this._selectedIndex].selected = true;
-                this._value = val;
-                this._requestedValueToSetLater = '';
-            }
-            else {
-                this._value = '';
-                this._requestedValueToSetLater = val;
-            }
-            this._internals.setFormValue(this._value);
-            this._manageRequired();
-        }
-        get value() {
-            if (this._options[this._selectedIndex]) {
-                return this._options[this._selectedIndex]?.value ?? '';
-            }
-            return '';
-        }
-        get validity() {
-            return this._internals.validity;
-        }
-        get validationMessage() {
-            return this._internals.validationMessage;
-        }
-        get willValidate() {
-            return this._internals.willValidate;
-        }
-        checkValidity() {
-            return this._internals.checkValidity();
-        }
-        reportValidity() {
-            return this._internals.reportValidity();
-        }
-        updateInputValue() {
-            if (!this.combobox) {
-                return;
-            }
-            const input = this.renderRoot.querySelector('.combobox-input');
-            if (input) {
-                input.value = this._options[this._selectedIndex]
-                    ? this._options[this._selectedIndex].label
-                    : '';
-            }
-        }
-        constructor() {
-            super();
-            this.defaultValue = '';
-            /** @internal */
-            this.role = 'listbox';
-            this.name = undefined;
-            this.required = false;
-            /**
-             * This variable was introduced for cases where the value is set before the corresponding option
-             * exists. This can happen while a framework like Vue or React is rendering the component.
-             */
-            this._requestedValueToSetLater = '';
-            /** @internal */
-            this._multiple = false;
-            this._internals = this.attachInternals();
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.updateComplete.then(() => {
-                this._manageRequired();
-            });
-        }
-        /** @internal */
-        formResetCallback() {
-            this.value = this.defaultValue;
-        }
-        /** @internal */
-        formStateRestoreCallback(state, _mode) {
-            this.updateComplete.then(() => {
-                this.value = state;
-            });
-        }
-        /** @internal */
-        get type() {
-            return 'select-one';
-        }
-        get form() {
-            return this._internals.form;
-        }
-        async _createAndSelectSuggestedOption() {
-            const nextIndex = this._createSuggestedOption();
-            await this.updateComplete;
-            this.selectedIndex = nextIndex;
-            this._dispatchChangeEvent();
-            const opCreateEvent = new CustomEvent('vsc-single-select-create-option', { detail: { value: this._options[nextIndex]?.value ?? '' } });
-            this.dispatchEvent(opCreateEvent);
-            this._toggleDropdown(false);
-            this._isPlaceholderOptionActive = false;
-        }
-        _onSlotChange() {
-            super._onSlotChange();
-            if (this._requestedValueToSetLater) {
-                // the value is set before the available options are appended
-                const foundIndex = this._options.findIndex((op) => op.value === this._requestedValueToSetLater);
-                if (foundIndex > 0) {
-                    this._selectedIndex = foundIndex;
-                    this._requestedValueToSetLater = '';
-                }
-            }
-            if (this._selectedIndex > -1 && this._options.length > 0) {
-                this._internals.setFormValue(this._options[this._selectedIndex].value);
-                this._manageRequired();
-            }
-            else {
-                this._internals.setFormValue(null);
-                this._manageRequired();
-            }
-        }
-        _onArrowUpKeyDown() {
-            super._onArrowUpKeyDown();
-            if (this.open || this._selectedIndex <= 0) {
-                return;
-            }
-            const options = this.combobox ? this._filteredOptions : this._options;
-            const prevIndex = findPrevSelectableOptionIndex(options, this._activeIndex);
-            this._filterPattern = '';
-            this._selectedIndex = prevIndex;
-            this._activeIndex = prevIndex;
-            this._value = prevIndex > -1 ? this._options[prevIndex].value : '';
-            this._internals.setFormValue(this._value);
-            this._manageRequired();
-            this._dispatchChangeEvent();
-        }
-        _onArrowDownKeyDown() {
-            super._onArrowDownKeyDown();
-            if (this.open || this._selectedIndex >= this._options.length - 1) {
-                return;
-            }
-            const options = this.combobox ? this._filteredOptions : this._options;
-            const nextIndex = findNextSelectableOptionIndex(options, this._activeIndex);
-            this._filterPattern = '';
-            this._selectedIndex = nextIndex;
-            this._activeIndex = nextIndex;
-            this._value = nextIndex > -1 ? this._options[nextIndex].value : '';
-            this._internals.setFormValue(this._value);
-            this._manageRequired();
-            this._dispatchChangeEvent();
-        }
-        _onEnterKeyDown(ev) {
-            super._onEnterKeyDown(ev);
-            this.updateInputValue();
-            this._internals.setFormValue(this._value);
-            this._manageRequired();
-        }
-        _onOptionClick(ev) {
-            super._onOptionClick(ev);
-            const composedPath = ev.composedPath();
-            const optEl = composedPath.find((et) => {
-                const el = et;
-                if ('matches' in el) {
-                    return el.matches('li.option');
-                }
-                return;
-            });
-            if (!optEl || optEl.matches('.disabled')) {
-                return;
-            }
-            const isPlaceholderOption = optEl.classList.contains('placeholder');
-            if (isPlaceholderOption) {
-                if (this.creatable) {
-                    this._createAndSelectSuggestedOption();
-                }
-            }
-            else {
-                this._selectedIndex = Number(optEl.dataset.index);
-                this._value = this._options[this._selectedIndex].value;
-                this._toggleDropdown(false);
-                this._internals.setFormValue(this._value);
-                this._manageRequired();
-                this._dispatchChangeEvent();
-            }
-        }
-        _manageRequired() {
-            const { value } = this;
-            if (value === '' && this.required) {
-                this._internals.setValidity({ valueMissing: true }, 'Please select an item in the list.', this._face);
-            }
-            else {
-                this._internals.setValidity({});
-            }
-        }
-        _renderSelectFace() {
-            const label = this._options[this._selectedIndex]?.label ?? '';
-            return x `
+    `}};T.styles=ts;T.formAssociated=!0;T.shadowRootOptions={...D.shadowRootOptions,delegatesFocus:!0};Z([a({type:Boolean,reflect:!0})],T.prototype,"autofocus",void 0);Z([a({type:Boolean,reflect:!0})],T.prototype,"checked",void 0);Z([a({type:Boolean,reflect:!0,attribute:"default-checked"})],T.prototype,"defaultChecked",void 0);Z([a({type:Boolean,reflect:!0})],T.prototype,"invalid",void 0);Z([a({reflect:!0})],T.prototype,"name",void 0);Z([a()],T.prototype,"value",void 0);Z([a({type:Boolean,reflect:!0})],T.prototype,"disabled",void 0);Z([a({type:Boolean,reflect:!0})],T.prototype,"required",void 0);Z([a({reflect:!0})],T.prototype,"role",void 0);Z([a({type:Number,reflect:!0})],T.prototype,"tabIndex",void 0);Z([_()],T.prototype,"_slottedText",void 0);Z([S("#input")],T.prototype,"_inputEl",void 0);Z([a()],T.prototype,"type",void 0);T=Z([p("vscode-radio")],T);var os=Vt;var we=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},N=class extends ${set selectedIndex(e){this._selectedIndex=e,this._options[e]?(this._activeIndex=e,this._value=this._options[e].value,this._internals.setFormValue(this._value),this._manageRequired()):(this._value="",this._internals.setFormValue(""),this._manageRequired())}get selectedIndex(){return this._selectedIndex}set value(e){this._options[this._selectedIndex]&&(this._options[this._selectedIndex].selected=!1),this._selectedIndex=this._options.findIndex(t=>t.value===e),this._selectedIndex>-1?(this._options[this._selectedIndex].selected=!0,this._value=e,this._requestedValueToSetLater=""):(this._value="",this._requestedValueToSetLater=e),this._internals.setFormValue(this._value),this._manageRequired()}get value(){return this._options[this._selectedIndex]?this._options[this._selectedIndex]?.value??"":""}get validity(){return this._internals.validity}get validationMessage(){return this._internals.validationMessage}get willValidate(){return this._internals.willValidate}checkValidity(){return this._internals.checkValidity()}reportValidity(){return this._internals.reportValidity()}updateInputValue(){if(!this.combobox)return;let e=this.renderRoot.querySelector(".combobox-input");e&&(e.value=this._options[this._selectedIndex]?this._options[this._selectedIndex].label:"")}constructor(){super(),this.defaultValue="",this.role="listbox",this.name=void 0,this.required=!1,this._requestedValueToSetLater="",this._multiple=!1,this._internals=this.attachInternals()}connectedCallback(){super.connectedCallback(),this.updateComplete.then(()=>{this._manageRequired()})}formResetCallback(){this.value=this.defaultValue}formStateRestoreCallback(e,t){this.updateComplete.then(()=>{this.value=e})}get type(){return"select-one"}get form(){return this._internals.form}async _createAndSelectSuggestedOption(){let e=this._createSuggestedOption();await this.updateComplete,this.selectedIndex=e,this._dispatchChangeEvent();let t=new CustomEvent("vsc-single-select-create-option",{detail:{value:this._options[e]?.value??""}});this.dispatchEvent(t),this._toggleDropdown(!1),this._isPlaceholderOptionActive=!1}_onSlotChange(){if(super._onSlotChange(),this._requestedValueToSetLater){let e=this._options.findIndex(t=>t.value===this._requestedValueToSetLater);e>0&&(this._selectedIndex=e,this._requestedValueToSetLater="")}this._selectedIndex>-1&&this._options.length>0?(this._internals.setFormValue(this._options[this._selectedIndex].value),this._manageRequired()):(this._internals.setFormValue(null),this._manageRequired())}_onArrowUpKeyDown(){if(super._onArrowUpKeyDown(),this.open||this._selectedIndex<=0)return;let e=this.combobox?this._filteredOptions:this._options,t=Pt(e,this._activeIndex);this._filterPattern="",this._selectedIndex=t,this._activeIndex=t,this._value=t>-1?this._options[t].value:"",this._internals.setFormValue(this._value),this._manageRequired(),this._dispatchChangeEvent()}_onArrowDownKeyDown(){if(super._onArrowDownKeyDown(),this.open||this._selectedIndex>=this._options.length-1)return;let e=this.combobox?this._filteredOptions:this._options,t=At(e,this._activeIndex);this._filterPattern="",this._selectedIndex=t,this._activeIndex=t,this._value=t>-1?this._options[t].value:"",this._internals.setFormValue(this._value),this._manageRequired(),this._dispatchChangeEvent()}_onEnterKeyDown(e){super._onEnterKeyDown(e),this.updateInputValue(),this._internals.setFormValue(this._value),this._manageRequired()}_onOptionClick(e){super._onOptionClick(e);let o=e.composedPath().find(s=>{let n=s;if("matches"in n)return n.matches("li.option")});if(!o||o.matches(".disabled"))return;o.classList.contains("placeholder")?this.creatable&&this._createAndSelectSuggestedOption():(this._selectedIndex=Number(o.dataset.index),this._value=this._options[this._selectedIndex].value,this._toggleDropdown(!1),this._internals.setFormValue(this._value),this._manageRequired(),this._dispatchChangeEvent())}_manageRequired(){let{value:e}=this;e===""&&this.required?this._internals.setValidity({valueMissing:!0},"Please select an item in the list.",this._face):this._internals.setValidity({})}_renderSelectFace(){let e=this._options[this._selectedIndex]?.label??"";return c`
       <div
         class="select-face face"
         @click=${this._onFaceClick}
-        tabindex=${this.tabIndex > -1 ? 0 : -1}
+        tabindex=${this.tabIndex>-1?0:-1}
       >
-        <span class="text">${label}</span> ${chevronDownIcon}
+        <span class="text">${e}</span> ${Xe}
       </div>
-    `;
-        }
-    };
-    VscodeSingleSelect.styles = styles$g;
-    /** @internal */
-    VscodeSingleSelect.shadowRootOptions = {
-        ...i$1.shadowRootOptions,
-        delegatesFocus: true,
-    };
-    /** @internal */
-    VscodeSingleSelect.formAssociated = true;
-    __decorate$e([
-        n$1({ attribute: 'default-value' })
-    ], VscodeSingleSelect.prototype, "defaultValue", void 0);
-    __decorate$e([
-        n$1({ type: String, attribute: true, reflect: true })
-    ], VscodeSingleSelect.prototype, "role", void 0);
-    __decorate$e([
-        n$1({ reflect: true })
-    ], VscodeSingleSelect.prototype, "name", void 0);
-    __decorate$e([
-        n$1({ type: Number, attribute: 'selected-index' })
-    ], VscodeSingleSelect.prototype, "selectedIndex", null);
-    __decorate$e([
-        n$1({ type: String })
-    ], VscodeSingleSelect.prototype, "value", null);
-    __decorate$e([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeSingleSelect.prototype, "required", void 0);
-    __decorate$e([
-        e$3('.face')
-    ], VscodeSingleSelect.prototype, "_face", void 0);
-    VscodeSingleSelect = __decorate$e([
-        customElement('vscode-single-select')
-    ], VscodeSingleSelect);
-
-    const styles$d = [
-        defaultStyles,
-        i$4 `
+    `}};N.styles=os;N.shadowRootOptions={...D.shadowRootOptions,delegatesFocus:!0};N.formAssociated=!0;we([a({attribute:"default-value"})],N.prototype,"defaultValue",void 0);we([a({type:String,attribute:!0,reflect:!0})],N.prototype,"role",void 0);we([a({reflect:!0})],N.prototype,"name",void 0);we([a({type:Number,attribute:"selected-index"})],N.prototype,"selectedIndex",null);we([a({type:String})],N.prototype,"value",null);we([a({type:Boolean,reflect:!0})],N.prototype,"required",void 0);we([S(".face")],N.prototype,"_face",void 0);N=we([p("vscode-single-select")],N);var Ri=[f,h`
     :host {
       display: block;
       position: relative;
@@ -6269,212 +1896,22 @@ var npmCompilation;
     .content {
       overflow: hidden;
     }
-  `,
-    ];
-
-    var __decorate$d = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-scrollable
-     *
-     * @cssprop [--min-thumb-height=20px] - Scrollbar thumb minimum height
-     * @cssprop [--vscode-scrollbar-shadow=#000000]
-     * @cssprop [--vscode-scrollbarSlider-background=rgba(121, 121, 121, 0.4)]
-     * @cssprop [--vscode-scrollbarSlider-hoverBackground=rgba(100, 100, 100, 0.7)]
-     * @cssprop [--vscode-scrollbarSlider-activeBackground=rgba(191, 191, 191, 0.4)]
-     */
-    let VscodeScrollable = class VscodeScrollable extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.shadow = true;
-            this.scrolled = false;
-            this._isDragging = false;
-            this._thumbHeight = 0;
-            this._thumbY = 0;
-            this._thumbVisible = false;
-            this._thumbFade = false;
-            this._thumbActive = false;
-            this._scrollThumbStartY = 0;
-            this._mouseStartY = 0;
-            this._scrollbarVisible = true;
-            this._scrollbarTrackZ = 0;
-            this._resizeObserverCallback = () => {
-                this._updateScrollbar();
-            };
-            this._onSlotChange = () => {
-                this._zIndexFix();
-            };
-            this._onScrollThumbMouseMoveBound = this._onScrollThumbMouseMove.bind(this);
-            this._onScrollThumbMouseUpBound = this._onScrollThumbMouseUp.bind(this);
-            this._onComponentMouseOverBound = this._onComponentMouseOver.bind(this);
-            this._onComponentMouseOutBound = this._onComponentMouseOut.bind(this);
-        }
-        set scrollPos(val) {
-            this._scrollableContainer.scrollTop = val;
-        }
-        get scrollPos() {
-            if (!this._scrollableContainer) {
-                return 0;
-            }
-            return this._scrollableContainer.scrollTop;
-        }
-        get scrollMax() {
-            if (!this._scrollableContainer) {
-                return 0;
-            }
-            return this._scrollableContainer.scrollHeight;
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this._hostResizeObserver = new ResizeObserver(this._resizeObserverCallback);
-            this._contentResizeObserver = new ResizeObserver(this._resizeObserverCallback);
-            this.requestUpdate();
-            this.updateComplete.then(() => {
-                this._scrollableContainer.addEventListener('scroll', this._onScrollableContainerScroll.bind(this));
-                this._hostResizeObserver.observe(this);
-                this._contentResizeObserver.observe(this._contentElement);
-            });
-            this.addEventListener('mouseover', this._onComponentMouseOverBound);
-            this.addEventListener('mouseout', this._onComponentMouseOutBound);
-        }
-        disconnectedCallback() {
-            super.disconnectedCallback();
-            this._hostResizeObserver.unobserve(this);
-            this._hostResizeObserver.disconnect();
-            this._contentResizeObserver.unobserve(this._contentElement);
-            this._contentResizeObserver.disconnect();
-            this.removeEventListener('mouseover', this._onComponentMouseOverBound);
-            this.removeEventListener('mouseout', this._onComponentMouseOutBound);
-        }
-        _updateScrollbar() {
-            const compCr = this.getBoundingClientRect();
-            const contentCr = this._contentElement.getBoundingClientRect();
-            if (compCr.height >= contentCr.height) {
-                this._scrollbarVisible = false;
-            }
-            else {
-                this._scrollbarVisible = true;
-                this._thumbHeight = compCr.height * (compCr.height / contentCr.height);
-            }
-            this.requestUpdate();
-        }
-        _zIndexFix() {
-            let highestZ = 0;
-            this._assignedElements.forEach((n) => {
-                if ('style' in n) {
-                    const computedZIndex = window.getComputedStyle(n).zIndex;
-                    const isNumber = /([0-9-])+/g.test(computedZIndex);
-                    if (isNumber) {
-                        highestZ =
-                            Number(computedZIndex) > highestZ
-                                ? Number(computedZIndex)
-                                : highestZ;
-                    }
-                }
-            });
-            this._scrollbarTrackZ = highestZ + 1;
-            this.requestUpdate();
-        }
-        _onScrollThumbMouseDown(event) {
-            const cmpCr = this.getBoundingClientRect();
-            const thCr = this._scrollThumbElement.getBoundingClientRect();
-            this._mouseStartY = event.screenY;
-            this._scrollThumbStartY = thCr.top - cmpCr.top;
-            this._isDragging = true;
-            this._thumbActive = true;
-            document.addEventListener('mousemove', this._onScrollThumbMouseMoveBound);
-            document.addEventListener('mouseup', this._onScrollThumbMouseUpBound);
-        }
-        _onScrollThumbMouseMove(event) {
-            const predictedPos = this._scrollThumbStartY + (event.screenY - this._mouseStartY);
-            let nextPos = 0;
-            const cmpH = this.getBoundingClientRect().height;
-            const thumbH = this._scrollThumbElement.getBoundingClientRect().height;
-            const contentH = this._contentElement.getBoundingClientRect().height;
-            if (predictedPos < 0) {
-                nextPos = 0;
-            }
-            else if (predictedPos > cmpH - thumbH) {
-                nextPos = cmpH - thumbH;
-            }
-            else {
-                nextPos = predictedPos;
-            }
-            this._thumbY = nextPos;
-            this._scrollableContainer.scrollTop =
-                (nextPos / (cmpH - thumbH)) * (contentH - cmpH);
-        }
-        _onScrollThumbMouseUp(event) {
-            this._isDragging = false;
-            this._thumbActive = false;
-            const cr = this.getBoundingClientRect();
-            const { x, y, width, height } = cr;
-            const { pageX, pageY } = event;
-            if (pageX > x + width || pageX < x || pageY > y + height || pageY < y) {
-                this._thumbFade = true;
-                this._thumbVisible = false;
-            }
-            document.removeEventListener('mousemove', this._onScrollThumbMouseMoveBound);
-            document.removeEventListener('mouseup', this._onScrollThumbMouseUpBound);
-        }
-        _onScrollableContainerScroll() {
-            const scrollTop = this._scrollableContainer.scrollTop;
-            this.scrolled = scrollTop > 0;
-            const cmpH = this.getBoundingClientRect().height;
-            const thumbH = this._scrollThumbElement.getBoundingClientRect().height;
-            const contentH = this._contentElement.getBoundingClientRect().height;
-            const overflown = contentH - cmpH;
-            const ratio = scrollTop / overflown;
-            this._thumbY = ratio * (cmpH - thumbH);
-        }
-        _onComponentMouseOver() {
-            this._thumbVisible = true;
-            this._thumbFade = false;
-        }
-        _onComponentMouseOut() {
-            if (!this._thumbActive) {
-                this._thumbVisible = false;
-                this._thumbFade = true;
-            }
-        }
-        render() {
-            return x `
+  `],ss=Ri;var U=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},L=class extends u{constructor(){super(...arguments),this.shadow=!0,this.scrolled=!1,this._isDragging=!1,this._thumbHeight=0,this._thumbY=0,this._thumbVisible=!1,this._thumbFade=!1,this._thumbActive=!1,this._scrollThumbStartY=0,this._mouseStartY=0,this._scrollbarVisible=!0,this._scrollbarTrackZ=0,this._resizeObserverCallback=()=>{this._updateScrollbar()},this._onSlotChange=()=>{this._zIndexFix()},this._onScrollThumbMouseMoveBound=this._onScrollThumbMouseMove.bind(this),this._onScrollThumbMouseUpBound=this._onScrollThumbMouseUp.bind(this),this._onComponentMouseOverBound=this._onComponentMouseOver.bind(this),this._onComponentMouseOutBound=this._onComponentMouseOut.bind(this)}set scrollPos(e){this._scrollableContainer.scrollTop=e}get scrollPos(){return this._scrollableContainer?this._scrollableContainer.scrollTop:0}get scrollMax(){return this._scrollableContainer?this._scrollableContainer.scrollHeight:0}connectedCallback(){super.connectedCallback(),this._hostResizeObserver=new ResizeObserver(this._resizeObserverCallback),this._contentResizeObserver=new ResizeObserver(this._resizeObserverCallback),this.requestUpdate(),this.updateComplete.then(()=>{this._scrollableContainer.addEventListener("scroll",this._onScrollableContainerScroll.bind(this)),this._hostResizeObserver.observe(this),this._contentResizeObserver.observe(this._contentElement)}),this.addEventListener("mouseover",this._onComponentMouseOverBound),this.addEventListener("mouseout",this._onComponentMouseOutBound)}disconnectedCallback(){super.disconnectedCallback(),this._hostResizeObserver.unobserve(this),this._hostResizeObserver.disconnect(),this._contentResizeObserver.unobserve(this._contentElement),this._contentResizeObserver.disconnect(),this.removeEventListener("mouseover",this._onComponentMouseOverBound),this.removeEventListener("mouseout",this._onComponentMouseOutBound)}_updateScrollbar(){let e=this.getBoundingClientRect(),t=this._contentElement.getBoundingClientRect();e.height>=t.height?this._scrollbarVisible=!1:(this._scrollbarVisible=!0,this._thumbHeight=e.height*(e.height/t.height)),this.requestUpdate()}_zIndexFix(){let e=0;this._assignedElements.forEach(t=>{if("style"in t){let o=window.getComputedStyle(t).zIndex;/([0-9-])+/g.test(o)&&(e=Number(o)>e?Number(o):e)}}),this._scrollbarTrackZ=e+1,this.requestUpdate()}_onScrollThumbMouseDown(e){let t=this.getBoundingClientRect(),o=this._scrollThumbElement.getBoundingClientRect();this._mouseStartY=e.screenY,this._scrollThumbStartY=o.top-t.top,this._isDragging=!0,this._thumbActive=!0,document.addEventListener("mousemove",this._onScrollThumbMouseMoveBound),document.addEventListener("mouseup",this._onScrollThumbMouseUpBound)}_onScrollThumbMouseMove(e){let t=this._scrollThumbStartY+(e.screenY-this._mouseStartY),o=0,i=this.getBoundingClientRect().height,s=this._scrollThumbElement.getBoundingClientRect().height,n=this._contentElement.getBoundingClientRect().height;t<0?o=0:t>i-s?o=i-s:o=t,this._thumbY=o,this._scrollableContainer.scrollTop=o/(i-s)*(n-i)}_onScrollThumbMouseUp(e){this._isDragging=!1,this._thumbActive=!1;let t=this.getBoundingClientRect(),{x:o,y:i,width:s,height:n}=t,{pageX:l,pageY:d}=e;(l>o+s||l<o||d>i+n||d<i)&&(this._thumbFade=!0,this._thumbVisible=!1),document.removeEventListener("mousemove",this._onScrollThumbMouseMoveBound),document.removeEventListener("mouseup",this._onScrollThumbMouseUpBound)}_onScrollableContainerScroll(){let e=this._scrollableContainer.scrollTop;this.scrolled=e>0;let t=this.getBoundingClientRect().height,o=this._scrollThumbElement.getBoundingClientRect().height,s=this._contentElement.getBoundingClientRect().height-t,n=e/s;this._thumbY=n*(t-o)}_onComponentMouseOver(){this._thumbVisible=!0,this._thumbFade=!1}_onComponentMouseOut(){this._thumbActive||(this._thumbVisible=!1,this._thumbFade=!0)}render(){return c`
       <div
         class="scrollable-container"
-        .style=${stylePropertyMap({
-            userSelect: this._isDragging ? 'none' : 'auto',
-        })}
+        .style=${B({userSelect:this._isDragging?"none":"auto"})}
       >
         <div
-          class=${e({ shadow: true, visible: this.scrolled })}
-          .style=${stylePropertyMap({
-            zIndex: String(this._scrollbarTrackZ),
-        })}
+          class=${g({shadow:!0,visible:this.scrolled})}
+          .style=${B({zIndex:String(this._scrollbarTrackZ)})}
         ></div>
-        ${this._isDragging
-            ? x `<div class="prevent-interaction"></div>`
-            : E}
+        ${this._isDragging?c`<div class="prevent-interaction"></div>`:m}
         <div
-          class=${e({
-            'scrollbar-track': true,
-            hidden: !this._scrollbarVisible,
-        })}
+          class=${g({"scrollbar-track":!0,hidden:!this._scrollbarVisible})}
         >
           <div
-            class=${e({
-            'scrollbar-thumb': true,
-            visible: this._thumbVisible,
-            fade: this._thumbFade,
-            active: this._thumbActive,
-        })}
-            .style=${stylePropertyMap({
-            height: `${this._thumbHeight}px`,
-            top: `${this._thumbY}px`,
-        })}
+            class=${g({"scrollbar-thumb":!0,visible:this._thumbVisible,fade:this._thumbFade,active:this._thumbActive})}
+            .style=${B({height:`${this._thumbHeight}px`,top:`${this._thumbY}px`})}
             @mousedown=${this._onScrollThumbMouseDown}
           ></div>
         </div>
@@ -6482,59 +1919,7 @@ var npmCompilation;
           <slot @slotchange=${this._onSlotChange}></slot>
         </div>
       </div>
-    `;
-        }
-    };
-    VscodeScrollable.styles = styles$d;
-    __decorate$d([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeScrollable.prototype, "shadow", void 0);
-    __decorate$d([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeScrollable.prototype, "scrolled", void 0);
-    __decorate$d([
-        n$1({ type: Number, attribute: 'scroll-pos' })
-    ], VscodeScrollable.prototype, "scrollPos", null);
-    __decorate$d([
-        n$1({ type: Number, attribute: 'scroll-max' })
-    ], VscodeScrollable.prototype, "scrollMax", null);
-    __decorate$d([
-        r$2()
-    ], VscodeScrollable.prototype, "_isDragging", void 0);
-    __decorate$d([
-        r$2()
-    ], VscodeScrollable.prototype, "_thumbHeight", void 0);
-    __decorate$d([
-        r$2()
-    ], VscodeScrollable.prototype, "_thumbY", void 0);
-    __decorate$d([
-        r$2()
-    ], VscodeScrollable.prototype, "_thumbVisible", void 0);
-    __decorate$d([
-        r$2()
-    ], VscodeScrollable.prototype, "_thumbFade", void 0);
-    __decorate$d([
-        r$2()
-    ], VscodeScrollable.prototype, "_thumbActive", void 0);
-    __decorate$d([
-        e$3('.content')
-    ], VscodeScrollable.prototype, "_contentElement", void 0);
-    __decorate$d([
-        e$3('.scrollbar-thumb', true)
-    ], VscodeScrollable.prototype, "_scrollThumbElement", void 0);
-    __decorate$d([
-        e$3('.scrollable-container')
-    ], VscodeScrollable.prototype, "_scrollableContainer", void 0);
-    __decorate$d([
-        o$1()
-    ], VscodeScrollable.prototype, "_assignedElements", void 0);
-    VscodeScrollable = __decorate$d([
-        customElement('vscode-scrollable')
-    ], VscodeScrollable);
-
-    const styles$c = [
-        defaultStyles,
-        i$4 `
+    `}};L.styles=ss;U([a({type:Boolean,reflect:!0})],L.prototype,"shadow",void 0);U([a({type:Boolean,reflect:!0})],L.prototype,"scrolled",void 0);U([a({type:Number,attribute:"scroll-pos"})],L.prototype,"scrollPos",null);U([a({type:Number,attribute:"scroll-max"})],L.prototype,"scrollMax",null);U([_()],L.prototype,"_isDragging",void 0);U([_()],L.prototype,"_thumbHeight",void 0);U([_()],L.prototype,"_thumbY",void 0);U([_()],L.prototype,"_thumbVisible",void 0);U([_()],L.prototype,"_thumbFade",void 0);U([_()],L.prototype,"_thumbActive",void 0);U([S(".content")],L.prototype,"_contentElement",void 0);U([S(".scrollbar-thumb",!0)],L.prototype,"_scrollThumbElement",void 0);U([S(".scrollable-container")],L.prototype,"_scrollableContainer",void 0);U([H()],L.prototype,"_assignedElements",void 0);L=U([p("vscode-scrollable")],L);var Vi=[f,h`
     :host {
       --separator-border: var(--vscode-editorWidget-border, transparent);
 
@@ -6641,400 +2026,25 @@ var npmCompilation;
       cursor: ns-resize;
       width: 100%;
     }
-  `,
-    ];
-
-    var __decorate$c = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    var VscodeSplitLayout_1;
-    const DEFAULT_INITIAL_POSITION = '50%';
-    const DEFAULT_HANDLE_SIZE = 4;
-    const parseValue = (raw) => {
-        if (!raw) {
-            return { value: 0, unit: 'pixel' };
-        }
-        let unit;
-        let rawVal;
-        if (raw.endsWith('%')) {
-            unit = 'percent';
-            rawVal = +raw.substring(0, raw.length - 1);
-        }
-        else if (raw.endsWith('px')) {
-            unit = 'pixel';
-            rawVal = +raw.substring(0, raw.length - 2);
-        }
-        else {
-            unit = 'pixel';
-            rawVal = +raw;
-        }
-        const value = isNaN(rawVal) ? 0 : rawVal;
-        return { unit, value };
-    };
-    // Returns a percentage between 0 and 100
-    const pxToPercent = (current, max) => {
-        return max === 0 ? 0 : Math.min(100, (current / max) * 100);
-    };
-    const percentToPx = (current, max) => {
-        return max * (current / 100);
-    };
-    /**
-     * @tag vscode-split-layout
-     *
-     * @prop {'start' | 'end' | 'none'} fixedPane
-     *
-     * @cssprop [--hover-border=var(--vscode-sash-hoverBorder)]
-     */
-    let VscodeSplitLayout = VscodeSplitLayout_1 = class VscodeSplitLayout extends VscElement {
-        /**
-         * Direction of the divider.
-         */
-        set split(newVal) {
-            if (this._split === newVal) {
-                return;
-            }
-            this._split = newVal;
-            this.resetHandlePosition();
-        }
-        get split() {
-            return this._split;
-        }
-        /**
-         * Set the handle position programmatically. The value must include a unit,
-         * either `%` or `px`. If no unit is specified, the value is interpreted as
-         * `px`.
-         */
-        set handlePosition(newVal) {
-            this._rawHandlePosition = newVal;
-            this._handlePositionPropChanged();
-        }
-        get handlePosition() {
-            return this._rawHandlePosition;
-        }
-        /**
-         * The size of the fixed pane will not change when the component is resized.
-         */
-        set fixedPane(newVal) {
-            this._fixedPane = newVal;
-            this._fixedPanePropChanged();
-        }
-        get fixedPane() {
-            return this._fixedPane;
-        }
-        constructor() {
-            super();
-            this._split = 'vertical';
-            /**
-             * Controls whether the handle position should reset to the value set in the
-             * `initialHandlePosition` when it is double-clicked.
-             */
-            this.resetOnDblClick = false;
-            /**
-             * Controls the draggable area size in pixels. it is intended to use the value
-             * of `workbench.sash.size`.
-             */
-            this.handleSize = 4;
-            /**
-             * The handler position will reset to this position when it is double-clicked,
-             * or the `resetHandlePosition()` is called.
-             */
-            this.initialHandlePosition = DEFAULT_INITIAL_POSITION;
-            this._fixedPane = 'none';
-            this._handlePosition = 0;
-            this._isDragActive = false;
-            this._hover = false;
-            this._hide = false;
-            this._boundRect = new DOMRect();
-            this._handleOffset = 0;
-            this._wrapperObserved = false;
-            this._fixedPaneSize = 0;
-            this._handleResize = (entries) => {
-                const rect = entries[0].contentRect;
-                const { width, height } = rect;
-                this._boundRect = rect;
-                const max = this.split === 'vertical' ? width : height;
-                if (this.fixedPane === 'start') {
-                    this._handlePosition = this._fixedPaneSize;
-                }
-                if (this.fixedPane === 'end') {
-                    this._handlePosition = max - this._fixedPaneSize;
-                }
-            };
-            this._handleMouseUp = (ev) => {
-                this._isDragActive = false;
-                if (ev.target !== this) {
-                    this._hover = false;
-                    this._hide = true;
-                }
-                window.removeEventListener('mouseup', this._handleMouseUp);
-                window.removeEventListener('mousemove', this._handleMouseMove);
-                const { width, height } = this._boundRect;
-                const max = this.split === 'vertical' ? width : height;
-                const positionInPercentage = pxToPercent(this._handlePosition, max);
-                this.dispatchEvent(new CustomEvent('vsc-split-layout-change', {
-                    detail: {
-                        position: this._handlePosition,
-                        positionInPercentage,
-                    },
-                    composed: true,
-                }));
-            };
-            this._handleMouseMove = (event) => {
-                const { clientX, clientY } = event;
-                const { left, top, height, width } = this._boundRect;
-                const vert = this.split === 'vertical';
-                const maxPos = vert ? width : height;
-                const mousePos = vert ? clientX - left : clientY - top;
-                this._handlePosition = Math.max(0, Math.min(mousePos - this._handleOffset + this.handleSize / 2, maxPos));
-                if (this.fixedPane === 'start') {
-                    this._fixedPaneSize = this._handlePosition;
-                }
-                if (this.fixedPane === 'end') {
-                    this._fixedPaneSize = maxPos - this._handlePosition;
-                }
-            };
-            this._resizeObserver = new ResizeObserver(this._handleResize);
-        }
-        /**
-         * Sets the handle position to the value specified in the `initialHandlePosition` property.
-         */
-        resetHandlePosition() {
-            if (!this._wrapperEl) {
-                this._handlePosition = 0;
-                return;
-            }
-            const { width, height } = this._wrapperEl.getBoundingClientRect();
-            const max = this.split === 'vertical' ? width : height;
-            const { value, unit } = parseValue(this.initialHandlePosition ?? DEFAULT_INITIAL_POSITION);
-            if (unit === 'percent') {
-                this._handlePosition = percentToPx(value, max);
-            }
-            else {
-                this._handlePosition = value;
-            }
-        }
-        connectedCallback() {
-            super.connectedCallback();
-        }
-        firstUpdated(_changedProperties) {
-            if (this.fixedPane !== 'none') {
-                this._resizeObserver.observe(this._wrapperEl);
-                this._wrapperObserved = true;
-            }
-            this._boundRect = this._wrapperEl.getBoundingClientRect();
-            const { value, unit } = this.handlePosition
-                ? parseValue(this.handlePosition)
-                : parseValue(this.initialHandlePosition);
-            this._setPosition(value, unit);
-            this._initFixedPane();
-        }
-        _handlePositionPropChanged() {
-            if (this.handlePosition && this._wrapperEl) {
-                this._boundRect = this._wrapperEl.getBoundingClientRect();
-                const { value, unit } = parseValue(this.handlePosition);
-                this._setPosition(value, unit);
-            }
-        }
-        _fixedPanePropChanged() {
-            if (!this._wrapperEl) {
-                return;
-            }
-            this._initFixedPane();
-        }
-        _initFixedPane() {
-            if (this.fixedPane === 'none') {
-                if (this._wrapperObserved) {
-                    this._resizeObserver.unobserve(this._wrapperEl);
-                    this._wrapperObserved = false;
-                }
-            }
-            else {
-                const { width, height } = this._boundRect;
-                const max = this.split === 'vertical' ? width : height;
-                this._fixedPaneSize =
-                    this.fixedPane === 'start'
-                        ? this._handlePosition
-                        : max - this._handlePosition;
-                if (!this._wrapperObserved) {
-                    this._resizeObserver.observe(this._wrapperEl);
-                    this._wrapperObserved = true;
-                }
-            }
-        }
-        _setPosition(value, unit) {
-            const { width, height } = this._boundRect;
-            const max = this.split === 'vertical' ? width : height;
-            this._handlePosition = unit === 'percent' ? percentToPx(value, max) : value;
-        }
-        _handleMouseOver() {
-            this._hover = true;
-            this._hide = false;
-        }
-        _handleMouseOut(event) {
-            if (event.buttons !== 1) {
-                this._hover = false;
-                this._hide = true;
-            }
-        }
-        _handleMouseDown(event) {
-            event.stopPropagation();
-            event.preventDefault();
-            this._boundRect = this._wrapperEl.getBoundingClientRect();
-            const { left, top } = this._boundRect;
-            const { left: handleLeft, top: handleTop } = this._handleEl.getBoundingClientRect();
-            const mouseXLocal = event.clientX - left;
-            const mouseYLocal = event.clientY - top;
-            if (this.split === 'vertical') {
-                this._handleOffset = mouseXLocal - (handleLeft - left);
-            }
-            if (this.split === 'horizontal') {
-                this._handleOffset = mouseYLocal - (handleTop - top);
-            }
-            this._isDragActive = true;
-            window.addEventListener('mouseup', this._handleMouseUp);
-            window.addEventListener('mousemove', this._handleMouseMove);
-        }
-        _handleDblClick() {
-            if (!this.resetOnDblClick) {
-                return;
-            }
-            this.resetHandlePosition();
-        }
-        _handleSlotChange() {
-            const nestedLayouts = [
-                ...this._nestedLayoutsAtStart,
-                ...this._nestedLayoutsAtEnd,
-            ];
-            nestedLayouts.forEach((e) => {
-                if (e instanceof VscodeSplitLayout_1) {
-                    e.resetHandlePosition();
-                }
-            });
-        }
-        render() {
-            const { width, height } = this._boundRect;
-            const maxPos = this.split === 'vertical' ? width : height;
-            const handlePosCss = this.fixedPane !== 'none'
-                ? `${this._handlePosition}px`
-                : `${pxToPercent(this._handlePosition, maxPos)}%`;
-            let startPaneSize = '';
-            if (this.fixedPane === 'start') {
-                startPaneSize = `0 0 ${this._fixedPaneSize}px`;
-            }
-            else {
-                startPaneSize = `1 1 ${pxToPercent(this._handlePosition, maxPos)}%`;
-            }
-            let endPaneSize = '';
-            if (this.fixedPane === 'end') {
-                endPaneSize = `0 0 ${this._fixedPaneSize}px`;
-            }
-            else {
-                endPaneSize = `1 1 ${pxToPercent(maxPos - this._handlePosition, maxPos)}%`;
-            }
-            const handleStylesPropObj = {
-                left: this.split === 'vertical' ? handlePosCss : '0',
-                top: this.split === 'vertical' ? '0' : handlePosCss,
-            };
-            const handleSize = this.handleSize ?? DEFAULT_HANDLE_SIZE;
-            if (this.split === 'vertical') {
-                handleStylesPropObj.marginLeft = `${0 - handleSize / 2}px`;
-                handleStylesPropObj.width = `${handleSize}px`;
-            }
-            if (this.split === 'horizontal') {
-                handleStylesPropObj.height = `${handleSize}px`;
-                handleStylesPropObj.marginTop = `${0 - handleSize / 2}px`;
-            }
-            const handleOverlayClasses = e({
-                'handle-overlay': true,
-                active: this._isDragActive,
-                'split-vertical': this.split === 'vertical',
-                'split-horizontal': this.split === 'horizontal',
-            });
-            const handleClasses = e({
-                handle: true,
-                hover: this._hover,
-                hide: this._hide,
-                'split-vertical': this.split === 'vertical',
-                'split-horizontal': this.split === 'horizontal',
-            });
-            const wrapperClasses = {
-                wrapper: true,
-                horizontal: this.split === 'horizontal',
-            };
-            return x `
-      <div class=${e(wrapperClasses)}>
-        <div class="start" .style=${stylePropertyMap({ flex: startPaneSize })}>
+  `],is=Vi;var W=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Jt,rs="50%",Bi=4,Tt=r=>{if(!r)return{value:0,unit:"pixel"};let e,t;r.endsWith("%")?(e="percent",t=+r.substring(0,r.length-1)):r.endsWith("px")?(e="pixel",t=+r.substring(0,r.length-2)):(e="pixel",t=+r);let o=isNaN(t)?0:t;return{unit:e,value:o}},zt=(r,e)=>e===0?0:Math.min(100,r/e*100),ns=(r,e)=>e*(r/100),M=Jt=class extends u{set split(e){this._split!==e&&(this._split=e,this.resetHandlePosition())}get split(){return this._split}set handlePosition(e){this._rawHandlePosition=e,this._handlePositionPropChanged()}get handlePosition(){return this._rawHandlePosition}set fixedPane(e){this._fixedPane=e,this._fixedPanePropChanged()}get fixedPane(){return this._fixedPane}constructor(){super(),this._split="vertical",this.resetOnDblClick=!1,this.handleSize=4,this.initialHandlePosition=rs,this._fixedPane="none",this._handlePosition=0,this._isDragActive=!1,this._hover=!1,this._hide=!1,this._boundRect=new DOMRect,this._handleOffset=0,this._wrapperObserved=!1,this._fixedPaneSize=0,this._handleResize=e=>{let t=e[0].contentRect,{width:o,height:i}=t;this._boundRect=t;let s=this.split==="vertical"?o:i;this.fixedPane==="start"&&(this._handlePosition=this._fixedPaneSize),this.fixedPane==="end"&&(this._handlePosition=s-this._fixedPaneSize)},this._handleMouseUp=e=>{this._isDragActive=!1,e.target!==this&&(this._hover=!1,this._hide=!0),window.removeEventListener("mouseup",this._handleMouseUp),window.removeEventListener("mousemove",this._handleMouseMove);let{width:t,height:o}=this._boundRect,i=this.split==="vertical"?t:o,s=zt(this._handlePosition,i);this.dispatchEvent(new CustomEvent("vsc-split-layout-change",{detail:{position:this._handlePosition,positionInPercentage:s},composed:!0}))},this._handleMouseMove=e=>{let{clientX:t,clientY:o}=e,{left:i,top:s,height:n,width:l}=this._boundRect,d=this.split==="vertical",b=d?l:n,y=d?t-i:o-s;this._handlePosition=Math.max(0,Math.min(y-this._handleOffset+this.handleSize/2,b)),this.fixedPane==="start"&&(this._fixedPaneSize=this._handlePosition),this.fixedPane==="end"&&(this._fixedPaneSize=b-this._handlePosition)},this._resizeObserver=new ResizeObserver(this._handleResize)}resetHandlePosition(){if(!this._wrapperEl){this._handlePosition=0;return}let{width:e,height:t}=this._wrapperEl.getBoundingClientRect(),o=this.split==="vertical"?e:t,{value:i,unit:s}=Tt(this.initialHandlePosition??rs);s==="percent"?this._handlePosition=ns(i,o):this._handlePosition=i}connectedCallback(){super.connectedCallback()}firstUpdated(e){this.fixedPane!=="none"&&(this._resizeObserver.observe(this._wrapperEl),this._wrapperObserved=!0),this._boundRect=this._wrapperEl.getBoundingClientRect();let{value:t,unit:o}=this.handlePosition?Tt(this.handlePosition):Tt(this.initialHandlePosition);this._setPosition(t,o),this._initFixedPane()}_handlePositionPropChanged(){if(this.handlePosition&&this._wrapperEl){this._boundRect=this._wrapperEl.getBoundingClientRect();let{value:e,unit:t}=Tt(this.handlePosition);this._setPosition(e,t)}}_fixedPanePropChanged(){this._wrapperEl&&this._initFixedPane()}_initFixedPane(){if(this.fixedPane==="none")this._wrapperObserved&&(this._resizeObserver.unobserve(this._wrapperEl),this._wrapperObserved=!1);else{let{width:e,height:t}=this._boundRect,o=this.split==="vertical"?e:t;this._fixedPaneSize=this.fixedPane==="start"?this._handlePosition:o-this._handlePosition,this._wrapperObserved||(this._resizeObserver.observe(this._wrapperEl),this._wrapperObserved=!0)}}_setPosition(e,t){let{width:o,height:i}=this._boundRect,s=this.split==="vertical"?o:i;this._handlePosition=t==="percent"?ns(e,s):e}_handleMouseOver(){this._hover=!0,this._hide=!1}_handleMouseOut(e){e.buttons!==1&&(this._hover=!1,this._hide=!0)}_handleMouseDown(e){e.stopPropagation(),e.preventDefault(),this._boundRect=this._wrapperEl.getBoundingClientRect();let{left:t,top:o}=this._boundRect,{left:i,top:s}=this._handleEl.getBoundingClientRect(),n=e.clientX-t,l=e.clientY-o;this.split==="vertical"&&(this._handleOffset=n-(i-t)),this.split==="horizontal"&&(this._handleOffset=l-(s-o)),this._isDragActive=!0,window.addEventListener("mouseup",this._handleMouseUp),window.addEventListener("mousemove",this._handleMouseMove)}_handleDblClick(){this.resetOnDblClick&&this.resetHandlePosition()}_handleSlotChange(){[...this._nestedLayoutsAtStart,...this._nestedLayoutsAtEnd].forEach(t=>{t instanceof Jt&&t.resetHandlePosition()})}render(){let{width:e,height:t}=this._boundRect,o=this.split==="vertical"?e:t,i=this.fixedPane!=="none"?`${this._handlePosition}px`:`${zt(this._handlePosition,o)}%`,s="";this.fixedPane==="start"?s=`0 0 ${this._fixedPaneSize}px`:s=`1 1 ${zt(this._handlePosition,o)}%`;let n="";this.fixedPane==="end"?n=`0 0 ${this._fixedPaneSize}px`:n=`1 1 ${zt(o-this._handlePosition,o)}%`;let l={left:this.split==="vertical"?i:"0",top:this.split==="vertical"?"0":i},d=this.handleSize??Bi;this.split==="vertical"&&(l.marginLeft=`${0-d/2}px`,l.width=`${d}px`),this.split==="horizontal"&&(l.height=`${d}px`,l.marginTop=`${0-d/2}px`);let b=g({"handle-overlay":!0,active:this._isDragActive,"split-vertical":this.split==="vertical","split-horizontal":this.split==="horizontal"}),y=g({handle:!0,hover:this._hover,hide:this._hide,"split-vertical":this.split==="vertical","split-horizontal":this.split==="horizontal"}),v={wrapper:!0,horizontal:this.split==="horizontal"};return c`
+      <div class=${g(v)}>
+        <div class="start" .style=${B({flex:s})}>
           <slot name="start" @slotchange=${this._handleSlotChange}></slot>
         </div>
-        <div class="end" .style=${stylePropertyMap({ flex: endPaneSize })}>
+        <div class="end" .style=${B({flex:n})}>
           <slot name="end" @slotchange=${this._handleSlotChange}></slot>
         </div>
-        <div class=${handleOverlayClasses}></div>
+        <div class=${b}></div>
         <div
-          class=${handleClasses}
-          .style=${stylePropertyMap(handleStylesPropObj)}
+          class=${y}
+          .style=${B(l)}
           @mouseover=${this._handleMouseOver}
           @mouseout=${this._handleMouseOut}
           @mousedown=${this._handleMouseDown}
           @dblclick=${this._handleDblClick}
         ></div>
       </div>
-    `;
-        }
-    };
-    VscodeSplitLayout.styles = styles$c;
-    __decorate$c([
-        n$1({ reflect: true })
-    ], VscodeSplitLayout.prototype, "split", null);
-    __decorate$c([
-        n$1({ type: Boolean, reflect: true, attribute: 'reset-on-dbl-click' })
-    ], VscodeSplitLayout.prototype, "resetOnDblClick", void 0);
-    __decorate$c([
-        n$1({ type: Number, reflect: true, attribute: 'handle-size' })
-    ], VscodeSplitLayout.prototype, "handleSize", void 0);
-    __decorate$c([
-        n$1({ reflect: true, attribute: 'initial-handle-position' })
-    ], VscodeSplitLayout.prototype, "initialHandlePosition", void 0);
-    __decorate$c([
-        n$1({ attribute: 'handle-position' })
-    ], VscodeSplitLayout.prototype, "handlePosition", null);
-    __decorate$c([
-        n$1({ attribute: 'fixed-pane' })
-    ], VscodeSplitLayout.prototype, "fixedPane", null);
-    __decorate$c([
-        r$2()
-    ], VscodeSplitLayout.prototype, "_handlePosition", void 0);
-    __decorate$c([
-        r$2()
-    ], VscodeSplitLayout.prototype, "_isDragActive", void 0);
-    __decorate$c([
-        r$2()
-    ], VscodeSplitLayout.prototype, "_hover", void 0);
-    __decorate$c([
-        r$2()
-    ], VscodeSplitLayout.prototype, "_hide", void 0);
-    __decorate$c([
-        e$3('.wrapper')
-    ], VscodeSplitLayout.prototype, "_wrapperEl", void 0);
-    __decorate$c([
-        e$3('.handle')
-    ], VscodeSplitLayout.prototype, "_handleEl", void 0);
-    __decorate$c([
-        o$1({ slot: 'start', selector: 'vscode-split-layout' })
-    ], VscodeSplitLayout.prototype, "_nestedLayoutsAtStart", void 0);
-    __decorate$c([
-        o$1({ slot: 'end', selector: 'vscode-split-layout' })
-    ], VscodeSplitLayout.prototype, "_nestedLayoutsAtEnd", void 0);
-    VscodeSplitLayout = VscodeSplitLayout_1 = __decorate$c([
-        customElement('vscode-split-layout')
-    ], VscodeSplitLayout);
-
-    const styles$b = [
-        defaultStyles,
-        i$4 `
+    `}};M.styles=is;W([a({reflect:!0})],M.prototype,"split",null);W([a({type:Boolean,reflect:!0,attribute:"reset-on-dbl-click"})],M.prototype,"resetOnDblClick",void 0);W([a({type:Number,reflect:!0,attribute:"handle-size"})],M.prototype,"handleSize",void 0);W([a({reflect:!0,attribute:"initial-handle-position"})],M.prototype,"initialHandlePosition",void 0);W([a({attribute:"handle-position"})],M.prototype,"handlePosition",null);W([a({attribute:"fixed-pane"})],M.prototype,"fixedPane",null);W([_()],M.prototype,"_handlePosition",void 0);W([_()],M.prototype,"_isDragActive",void 0);W([_()],M.prototype,"_hover",void 0);W([_()],M.prototype,"_hide",void 0);W([S(".wrapper")],M.prototype,"_wrapperEl",void 0);W([S(".handle")],M.prototype,"_handleEl",void 0);W([H({slot:"start",selector:"vscode-split-layout"})],M.prototype,"_nestedLayoutsAtStart",void 0);W([H({slot:"end",selector:"vscode-split-layout"})],M.prototype,"_nestedLayoutsAtEnd",void 0);M=Jt=W([p("vscode-split-layout")],M);var Ti=[f,h`
     :host {
       border-bottom: 1px solid transparent;
       cursor: pointer;
@@ -7126,94 +2136,18 @@ var npmCompilation;
     slot[name='content-after']::slotted(vscode-badge) {
       margin-left: 8px;
     }
-  `,
-    ];
-
-    var __decorate$b = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-tab-header
-     *
-     * @cssprop --vscode-foreground
-     * @cssprop --vscode-panelTitle-inactiveForeground
-     * @cssprop --vscode-panelTitle-activeForeground
-     * @cssprop --vscode-panelTitle-activeBorder
-     * @cssprop --vscode-focusBorder
-     * @cssprop --vscode-settings-headerForeground
-     */
-    let VscodeTabHeader = class VscodeTabHeader extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.active = false;
-            /** @internal */
-            this.ariaControls = '';
-            /**
-             * Panel-like look
-             */
-            this.panel = false;
-            /** @internal */
-            this.role = 'tab';
-            /** @internal */
-            this.tabId = -1;
-        }
-        attributeChangedCallback(name, old, value) {
-            super.attributeChangedCallback(name, old, value);
-            if (name === 'active') {
-                const active = value !== null;
-                this.ariaSelected = active ? 'true' : 'false';
-                this.tabIndex = active ? 0 : -1;
-            }
-        }
-        render() {
-            return x `
+  `],ls=Ti;var Je=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},K=class extends u{constructor(){super(...arguments),this.active=!1,this.ariaControls="",this.panel=!1,this.role="tab",this.tabId=-1}attributeChangedCallback(e,t,o){if(super.attributeChangedCallback(e,t,o),e==="active"){let i=o!==null;this.ariaSelected=i?"true":"false",this.tabIndex=i?0:-1}}render(){return c`
       <div
-        class=${e({
-            wrapper: true,
-            active: this.active,
-            panel: this.panel,
-        })}
+        class=${g({wrapper:!0,active:this.active,panel:this.panel})}
       >
         <div class="before"><slot name="content-before"></slot></div>
         <div class="main"><slot></slot></div>
         <div class="after"><slot name="content-after"></slot></div>
         <span
-          class=${e({
-            'active-indicator': true,
-            active: this.active,
-            panel: this.panel,
-        })}
+          class=${g({"active-indicator":!0,active:this.active,panel:this.panel})}
         ></span>
       </div>
-    `;
-        }
-    };
-    VscodeTabHeader.styles = styles$b;
-    __decorate$b([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTabHeader.prototype, "active", void 0);
-    __decorate$b([
-        n$1({ reflect: true, attribute: 'aria-controls' })
-    ], VscodeTabHeader.prototype, "ariaControls", void 0);
-    __decorate$b([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTabHeader.prototype, "panel", void 0);
-    __decorate$b([
-        n$1({ reflect: true })
-    ], VscodeTabHeader.prototype, "role", void 0);
-    __decorate$b([
-        n$1({ type: Number, reflect: true, attribute: 'tab-id' })
-    ], VscodeTabHeader.prototype, "tabId", void 0);
-    VscodeTabHeader = __decorate$b([
-        customElement('vscode-tab-header')
-    ], VscodeTabHeader);
-
-    const styles$a = [
-        defaultStyles,
-        i$4 `
+    `}};K.styles=ls;Je([a({type:Boolean,reflect:!0})],K.prototype,"active",void 0);Je([a({reflect:!0,attribute:"aria-controls"})],K.prototype,"ariaControls",void 0);Je([a({type:Boolean,reflect:!0})],K.prototype,"panel",void 0);Je([a({reflect:!0})],K.prototype,"role",void 0);Je([a({type:Number,reflect:!0,attribute:"tab-id"})],K.prototype,"tabId",void 0);K=Je([p("vscode-tab-header")],K);var zi=[f,h`
     :host {
       display: block;
       overflow: hidden;
@@ -7229,63 +2163,7 @@ var npmCompilation;
     :host([panel]) {
       background-color: var(--vscode-panel-background);
     }
-  `,
-    ];
-
-    var __decorate$a = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-tab-panel
-     *
-     * @cssprop --vscode-panel--background
-     * @cssprop --vscode-focusBorder
-     */
-    let VscodeTabPanel = class VscodeTabPanel extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.hidden = false;
-            /** @internal */
-            this.ariaLabelledby = '';
-            /**
-             * Panel-like look
-             */
-            this.panel = false;
-            /** @internal */
-            this.role = 'tabpanel';
-            /** @internal */
-            this.tabIndex = 0;
-        }
-        render() {
-            return x ` <slot></slot> `;
-        }
-    };
-    VscodeTabPanel.styles = styles$a;
-    __decorate$a([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTabPanel.prototype, "hidden", void 0);
-    __decorate$a([
-        n$1({ reflect: true, attribute: 'aria-labelledby' })
-    ], VscodeTabPanel.prototype, "ariaLabelledby", void 0);
-    __decorate$a([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTabPanel.prototype, "panel", void 0);
-    __decorate$a([
-        n$1({ reflect: true })
-    ], VscodeTabPanel.prototype, "role", void 0);
-    __decorate$a([
-        n$1({ type: Number, reflect: true })
-    ], VscodeTabPanel.prototype, "tabIndex", void 0);
-    VscodeTabPanel = __decorate$a([
-        customElement('vscode-tab-panel')
-    ], VscodeTabPanel);
-
-    const styles$9 = [
-        defaultStyles,
-        i$4 `
+  `],as=zi;var Qe=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},te=class extends u{constructor(){super(...arguments),this.hidden=!1,this.ariaLabelledby="",this.panel=!1,this.role="tabpanel",this.tabIndex=0}render(){return c` <slot></slot> `}};te.styles=as;Qe([a({type:Boolean,reflect:!0})],te.prototype,"hidden",void 0);Qe([a({reflect:!0,attribute:"aria-labelledby"})],te.prototype,"ariaLabelledby",void 0);Qe([a({type:Boolean,reflect:!0})],te.prototype,"panel",void 0);Qe([a({reflect:!0})],te.prototype,"role",void 0);Qe([a({type:Number,reflect:!0})],te.prototype,"tabIndex",void 0);te=Qe([p("vscode-tab-panel")],te);var Di=[f,h`
     :host {
       display: table;
       table-layout: fixed;
@@ -7299,41 +2177,7 @@ var npmCompilation;
     ::slotted(vscode-table-row:nth-child(odd)) {
       background-color: var(--vsc-row-odd-background);
     }
-  `,
-    ];
-
-    var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-table-body
-     *
-     * @cssprop --vscode-keybindingTable-rowsBackground
-     */
-    let VscodeTableBody = class VscodeTableBody extends VscElement {
-        constructor() {
-            super(...arguments);
-            /** @internal */
-            this.role = 'rowgroup';
-        }
-        render() {
-            return x ` <slot></slot> `;
-        }
-    };
-    VscodeTableBody.styles = styles$9;
-    __decorate$9([
-        n$1({ reflect: true })
-    ], VscodeTableBody.prototype, "role", void 0);
-    VscodeTableBody = __decorate$9([
-        customElement('vscode-table-body')
-    ], VscodeTableBody);
-
-    const styles$8 = [
-        defaultStyles,
-        i$4 `
+  `],cs=Di;var ds=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},ze=class extends u{constructor(){super(...arguments),this.role="rowgroup"}render(){return c` <slot></slot> `}};ze.styles=cs;ds([a({reflect:!0})],ze.prototype,"role",void 0);ze=ds([p("vscode-table-body")],ze);var Li=[f,h`
     :host {
       border-bottom-color: var(--vscode-editorGroup-border);
       border-bottom-style: solid;
@@ -7376,109 +2220,21 @@ var npmCompilation;
     .column-label {
       font-weight: bold;
     }
-  `,
-    ];
-
-    var __decorate$8 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-table-cell
-     *
-     * @cssprop --vscode-editorGroup-border
-     * @cssprop --vscode-foreground
-     * @cssprop --vscode-font-family
-     * @cssprop --vscode-font-size
-     */
-    let VscodeTableCell = class VscodeTableCell extends VscElement {
-        constructor() {
-            super(...arguments);
-            /** @internal */
-            this.role = 'cell';
-            /**
-             * Cell label in the compact view of the responsive mode. For internal use only.
-             */
-            this.columnLabel = '';
-            /**
-             * Enable compact view in the responsive mode. For internal use only.
-             */
-            this.compact = false;
-        }
-        render() {
-            const columnLabelElement = this.columnLabel
-                ? x `<div class="column-label" role="presentation">
+  `],hs=Li;var Dt=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},ve=class extends u{constructor(){super(...arguments),this.role="cell",this.columnLabel="",this.compact=!1}render(){let e=this.columnLabel?c`<div class="column-label" role="presentation">
           ${this.columnLabel}
-        </div>`
-                : E;
-            return x `
+        </div>`:m;return c`
       <div class="wrapper">
-        ${columnLabelElement}
+        ${e}
         <slot></slot>
       </div>
-    `;
-        }
-    };
-    VscodeTableCell.styles = styles$8;
-    __decorate$8([
-        n$1({ reflect: true })
-    ], VscodeTableCell.prototype, "role", void 0);
-    __decorate$8([
-        n$1({ attribute: 'column-label' })
-    ], VscodeTableCell.prototype, "columnLabel", void 0);
-    __decorate$8([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTableCell.prototype, "compact", void 0);
-    VscodeTableCell = __decorate$8([
-        customElement('vscode-table-cell')
-    ], VscodeTableCell);
-
-    const styles$7 = [
-        defaultStyles,
-        i$4 `
+    `}};ve.styles=hs;Dt([a({reflect:!0})],ve.prototype,"role",void 0);Dt([a({attribute:"column-label"})],ve.prototype,"columnLabel",void 0);Dt([a({type:Boolean,reflect:!0})],ve.prototype,"compact",void 0);ve=Dt([p("vscode-table-cell")],ve);var Mi=[f,h`
     :host {
       background-color: var(--vscode-keybindingTable-headerBackground);
       display: table;
       table-layout: fixed;
       width: 100%;
     }
-  `,
-    ];
-
-    var __decorate$7 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-table-header
-     *
-     * @cssprop --vscode-keybindingTable-headerBackground - Table header background
-     */
-    let VscodeTableHeader = class VscodeTableHeader extends VscElement {
-        constructor() {
-            super(...arguments);
-            /** @internal */
-            this.role = 'rowgroup';
-        }
-        render() {
-            return x ` <slot></slot> `;
-        }
-    };
-    VscodeTableHeader.styles = styles$7;
-    __decorate$7([
-        n$1({ reflect: true })
-    ], VscodeTableHeader.prototype, "role", void 0);
-    VscodeTableHeader = __decorate$7([
-        customElement('vscode-table-header')
-    ], VscodeTableHeader);
-
-    const styles$6 = [
-        defaultStyles,
-        i$4 `
+  `],ps=Mi;var us=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},De=class extends u{constructor(){super(...arguments),this.role="rowgroup"}render(){return c` <slot></slot> `}};De.styles=ps;us([a({reflect:!0})],De.prototype,"role",void 0);De=us([p("vscode-table-header")],De);var Fi=[f,h`
     :host {
       box-sizing: border-box;
       color: var(--vscode-foreground);
@@ -7503,47 +2259,11 @@ var npmCompilation;
       white-space: inherit;
       width: 100%;
     }
-  `,
-    ];
-
-    var __decorate$6 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-table-header-cell
-     *
-     * @cssprop --vscode-foreground
-     * @cssprop --vscode-font-family
-     * @cssprop --vscode-font-size
-     */
-    let VscodeTableHeaderCell = class VscodeTableHeaderCell extends VscElement {
-        constructor() {
-            super(...arguments);
-            /** @internal */
-            this.role = 'columnheader';
-        }
-        render() {
-            return x `
+  `],fs=Fi;var ms=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Le=class extends u{constructor(){super(...arguments),this.role="columnheader"}render(){return c`
       <div class="wrapper">
         <slot></slot>
       </div>
-    `;
-        }
-    };
-    VscodeTableHeaderCell.styles = styles$6;
-    __decorate$6([
-        n$1({ reflect: true })
-    ], VscodeTableHeaderCell.prototype, "role", void 0);
-    VscodeTableHeaderCell = __decorate$6([
-        customElement('vscode-table-header-cell')
-    ], VscodeTableHeaderCell);
-
-    const styles$5 = [
-        defaultStyles,
-        i$4 `
+    `}};Le.styles=fs;ms([a({reflect:!0})],Le.prototype,"role",void 0);Le=ms([p("vscode-table-header-cell")],Le);var Hi=[f,h`
     :host {
       border-top-color: var(--vscode-editorGroup-border);
       border-top-style: solid;
@@ -7551,61 +2271,7 @@ var npmCompilation;
       display: var(--vsc-row-display);
       width: 100%;
     }
-  `,
-    ];
-
-    var __decorate$5 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-table-row
-     *
-     * @cssprop --vscode-editorGroup-border
-     */
-    let VscodeTableRow = class VscodeTableRow extends VscElement {
-        constructor() {
-            super(...arguments);
-            /** @internal */
-            this.role = 'row';
-        }
-        render() {
-            return x ` <slot></slot> `;
-        }
-    };
-    VscodeTableRow.styles = styles$5;
-    __decorate$5([
-        n$1({ reflect: true })
-    ], VscodeTableRow.prototype, "role", void 0);
-    VscodeTableRow = __decorate$5([
-        customElement('vscode-table-row')
-    ], VscodeTableRow);
-
-    const rawValueToPercentage = (raw, base) => {
-        if (typeof raw === 'number' && !Number.isNaN(raw)) {
-            return (raw / base) * 100;
-        }
-        else if (typeof raw === 'string' && /^[0-9.]+$/.test(raw)) {
-            const val = Number(raw);
-            return (val / base) * 100;
-        }
-        else if (typeof raw === 'string' && /^[0-9.]+%$/.test(raw)) {
-            return Number(raw.substring(0, raw.length - 1));
-        }
-        else if (typeof raw === 'string' && /^[0-9.]+px$/.test(raw)) {
-            const val = Number(raw.substring(0, raw.length - 2));
-            return (val / base) * 100;
-        }
-        else {
-            return null;
-        }
-    };
-
-    const styles$4 = [
-        defaultStyles,
-        i$4 `
+  `],vs=Hi;var bs=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Me=class extends u{constructor(){super(...arguments),this.role="row"}render(){return c` <slot></slot> `}};Me.styles=vs;bs([a({reflect:!0})],Me.prototype,"role",void 0);Me=bs([p("vscode-table-row")],Me);var Qt=(r,e)=>typeof r=="number"&&!Number.isNaN(r)?r/e*100:typeof r=="string"&&/^[0-9.]+$/.test(r)?Number(r)/e*100:typeof r=="string"&&/^[0-9.]+%$/.test(r)?Number(r.substring(0,r.length-1)):typeof r=="string"&&/^[0-9.]+px$/.test(r)?Number(r.substring(0,r.length-2))/e*100:null;var ji=[f,h`
     :host {
       display: block;
       --vsc-row-even-background: transparent;
@@ -7728,457 +2394,11 @@ var npmCompilation;
       position: absolute;
       width: 5px;
     }
-  `,
-    ];
-
-    var __decorate$4 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    const COMPONENT_WIDTH_PERCENTAGE = 100;
-    /**
-     * @tag vscode-table
-     *
-     * @cssprop [--border=var(--vscode-editorGroup-border)]
-     * @cssprop [--foreground=var(--vscode-foreground)]
-     * @cssprop [--resize-hover-border=var(--vscode-sash-hoverBorder)]
-     * @cssprop [--tinted-row-background=var(--vscode-keybindingTable-rowsBackground)]
-     * @cssprop [--header-background=var(--vscode-keybindingTable-headerBackground)]
-     * @cssprop [--font-size=var(--vscode-font-size)]
-     * @cssprop [--font-family=var(--vscode-font-family)]
-     */
-    let VscodeTable = class VscodeTable extends VscElement {
-        constructor() {
-            super(...arguments);
-            /** @internal */
-            this.role = 'table';
-            this.resizable = false;
-            this.responsive = false;
-            /**
-             * Both rows and columns are separated by borders.
-             */
-            this.bordered = false;
-            /**
-             * Columns are separated by borders.
-             */
-            this.borderedColumns = false;
-            /**
-             * Rows are separated by borders.
-             */
-            this.borderedRows = false;
-            this.breakpoint = 300;
-            /**
-             * Minimum column width. Valid values are:
-             * - number
-             * - string-type number (ex.: "100")
-             * - px value (ex.: "100px")
-             * - percentage value (ex.: "50%")
-             * - percentage value (ex.: "50%")
-             * - "auto" keyword
-             */
-            this.minColumnWidth = '50px';
-            this.delayedResizing = false;
-            /**
-             * @internal
-             */
-            this.compact = false;
-            /**
-             * Zebra stripes, even rows are tinted.
-             */
-            this.zebra = false;
-            /**
-             * Zebra stripes, odd rows are tinted.
-             */
-            this.zebraOdd = false;
-            /**
-             * Sash positions in percentage
-             */
-            this._sashPositions = [];
-            this._isDragging = false;
-            /**
-             * Sash hover state flags, used in the render.
-             */
-            this._sashHovers = [];
-            this._columns = [];
-            this._activeSashElementIndex = -1;
-            this._activeSashCursorOffset = 0;
-            this._componentX = 0;
-            this._componentH = 0;
-            this._componentW = 0;
-            /**
-             * Cached querySelectorAll result. Updated when the header slot changes.
-             * It shouldn't be used directly, check the "_getHeaderCells" function.
-             */
-            this._headerCells = [];
-            /**
-             * Cached querySelectorAll result. Updated when the body slot changes.
-             * It shouldn't be used directly, check the "_getCellsOfFirstRow" function.
-             */
-            this._cellsOfFirstRow = [];
-            this._prevHeaderHeight = 0;
-            this._prevComponentHeight = 0;
-            this._componentResizeObserverCallback = () => {
-                this._memoizeComponentDimensions();
-                this._updateResizeHandlersSize();
-                if (this.responsive) {
-                    this._toggleCompactView();
-                }
-                this._resizeTableBody();
-            };
-            this._headerResizeObserverCallback = () => {
-                this._updateResizeHandlersSize();
-            };
-            this._bodyResizeObserverCallback = () => {
-                this._resizeTableBody();
-            };
-            this._onResizingMouseMove = (event) => {
-                event.stopPropagation();
-                this._updateActiveSashPosition(event.pageX);
-                if (!this.delayedResizing) {
-                    this._resizeColumns(true);
-                }
-                else {
-                    this._resizeColumns(false);
-                }
-            };
-            this._onResizingMouseUp = (event) => {
-                this._resizeColumns(true);
-                this._updateActiveSashPosition(event.pageX);
-                this._sashHovers[this._activeSashElementIndex] = false;
-                this._isDragging = false;
-                this._activeSashElementIndex = -1;
-                document.removeEventListener('mousemove', this._onResizingMouseMove);
-                document.removeEventListener('mouseup', this._onResizingMouseUp);
-            };
-        }
-        /**
-         * Initial column sizes in a JSON-encoded array.
-         * Accepted values are:
-         * - number
-         * - string-type number (ex.: "100")
-         * - px value (ex.: "100px")
-         * - percentage value (ex.: "50%")
-         * - percentage value (ex.: "50%")
-         * - "auto" keyword
-         */
-        set columns(val) {
-            this._columns = val;
-            if (this.isConnected) {
-                this._initDefaultColumnSizes();
-            }
-        }
-        get columns() {
-            return this._columns;
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this._memoizeComponentDimensions();
-            this._initDefaultColumnSizes();
-        }
-        disconnectedCallback() {
-            super.disconnectedCallback();
-            this._componentResizeObserver?.unobserve(this);
-            this._componentResizeObserver?.disconnect();
-            this._bodyResizeObserver?.disconnect();
-        }
-        _px2Percent(px) {
-            return (px / this._componentW) * 100;
-        }
-        _percent2Px(percent) {
-            return (this._componentW * percent) / 100;
-        }
-        _memoizeComponentDimensions() {
-            const cr = this.getBoundingClientRect();
-            this._componentH = cr.height;
-            this._componentW = cr.width;
-            this._componentX = cr.x;
-        }
-        _queryHeaderCells() {
-            const headers = this._assignedHeaderElements;
-            if (!(headers && headers[0])) {
-                return [];
-            }
-            return Array.from(headers[0].querySelectorAll('vscode-table-header-cell'));
-        }
-        /**
-         * Get cached header cells
-         */
-        _getHeaderCells() {
-            if (!this._headerCells.length) {
-                this._headerCells = this._queryHeaderCells();
-            }
-            return this._headerCells;
-        }
-        _queryCellsOfFirstRow() {
-            const assignedBodyElements = this._assignedBodyElements;
-            if (!(assignedBodyElements && assignedBodyElements[0])) {
-                return [];
-            }
-            return Array.from(assignedBodyElements[0].querySelectorAll('vscode-table-row:first-child vscode-table-cell'));
-        }
-        /**
-         * Get cached cells of first row
-         */
-        _getCellsOfFirstRow() {
-            if (!this._cellsOfFirstRow.length) {
-                this._cellsOfFirstRow = this._queryCellsOfFirstRow();
-            }
-            return this._cellsOfFirstRow;
-        }
-        _resizeTableBody() {
-            let headerHeight = 0;
-            let tbodyHeight = 0;
-            const tableHeight = this.getBoundingClientRect().height;
-            if (this._assignedHeaderElements && this._assignedHeaderElements.length) {
-                headerHeight =
-                    this._assignedHeaderElements[0].getBoundingClientRect().height;
-            }
-            if (this._assignedBodyElements && this._assignedBodyElements.length) {
-                tbodyHeight =
-                    this._assignedBodyElements[0].getBoundingClientRect().height;
-            }
-            const overflownContentHeight = tbodyHeight - headerHeight - tableHeight;
-            this._scrollableElement.style.height =
-                overflownContentHeight > 0 ? `${tableHeight - headerHeight}px` : 'auto';
-        }
-        _initResizeObserver() {
-            this._componentResizeObserver = new ResizeObserver(this._componentResizeObserverCallback);
-            this._componentResizeObserver.observe(this);
-            this._headerResizeObserver = new ResizeObserver(this._headerResizeObserverCallback);
-            this._headerResizeObserver.observe(this._headerElement);
-        }
-        _calcColWidthPercentages() {
-            const numCols = this._getHeaderCells().length;
-            let cols = this.columns.slice(0, numCols);
-            const numAutoCols = cols.filter((c) => c === 'auto').length + numCols - cols.length;
-            let availablePercent = 100;
-            cols = cols.map((col) => {
-                const percentage = rawValueToPercentage(col, this._componentW);
-                if (percentage === null) {
-                    return 'auto';
-                }
-                availablePercent -= percentage;
-                return percentage;
-            });
-            if (cols.length < numCols) {
-                for (let i = cols.length; i < numCols; i++) {
-                    cols.push('auto');
-                }
-            }
-            cols = cols.map((col) => {
-                if (col === 'auto') {
-                    return availablePercent / numAutoCols;
-                }
-                return col;
-            });
-            return cols;
-        }
-        _initHeaderCellSizes(colWidths) {
-            this._getHeaderCells().forEach((cell, index) => {
-                cell.style.width = `${colWidths[index]}%`;
-            });
-        }
-        _initBodyColumnSizes(colWidths) {
-            this._getCellsOfFirstRow().forEach((cell, index) => {
-                cell.style.width = `${colWidths[index]}%`;
-            });
-        }
-        _initSashes(colWidths) {
-            const l = colWidths.length;
-            let prevHandlerPos = 0;
-            this._sashPositions = [];
-            colWidths.forEach((collW, index) => {
-                if (index < l - 1) {
-                    const pos = prevHandlerPos + collW;
-                    this._sashPositions.push(pos);
-                    prevHandlerPos = pos;
-                }
-            });
-        }
-        _initDefaultColumnSizes() {
-            const colWidths = this._calcColWidthPercentages();
-            this._initHeaderCellSizes(colWidths);
-            this._initBodyColumnSizes(colWidths);
-            this._initSashes(colWidths);
-        }
-        _updateResizeHandlersSize() {
-            const headerCr = this._headerElement.getBoundingClientRect();
-            if (headerCr.height === this._prevHeaderHeight &&
-                this._componentH === this._prevComponentHeight) {
-                return;
-            }
-            this._prevHeaderHeight = headerCr.height;
-            this._prevComponentHeight = this._componentH;
-            const bodyHeight = this._componentH - headerCr.height;
-            this._sashVisibleElements.forEach((el) => {
-                el.style.height = `${bodyHeight}px`;
-                el.style.top = `${headerCr.height}px`;
-            });
-        }
-        _applyCompactViewColumnLabels() {
-            const headerCells = this._getHeaderCells();
-            const labels = headerCells.map((c) => c.innerText);
-            const rows = this.querySelectorAll('vscode-table-row');
-            rows.forEach((r) => {
-                const cells = r.querySelectorAll('vscode-table-cell');
-                cells.forEach((c, i) => {
-                    c.columnLabel = labels[i];
-                    c.compact = true;
-                });
-            });
-        }
-        _clearCompactViewColumnLabels() {
-            this.querySelectorAll('vscode-table-cell').forEach((c) => {
-                c.columnLabel = '';
-                c.compact = false;
-            });
-        }
-        _toggleCompactView() {
-            const cr = this.getBoundingClientRect();
-            const nextCompactView = cr.width < this.breakpoint;
-            if (this.compact !== nextCompactView) {
-                this.compact = nextCompactView;
-                if (nextCompactView) {
-                    this._applyCompactViewColumnLabels();
-                }
-                else {
-                    this._clearCompactViewColumnLabels();
-                }
-            }
-        }
-        _onDefaultSlotChange() {
-            this._assignedElements.forEach((el) => {
-                if (el.tagName.toLowerCase() === 'vscode-table-header') {
-                    el.slot = 'header';
-                    return;
-                }
-                if (el.tagName.toLowerCase() === 'vscode-table-body') {
-                    el.slot = 'body';
-                    return;
-                }
-            });
-        }
-        _onHeaderSlotChange() {
-            this._headerCells = this._queryHeaderCells();
-        }
-        _onBodySlotChange() {
-            this._initDefaultColumnSizes();
-            this._initResizeObserver();
-            this._updateResizeHandlersSize();
-            if (!this._bodyResizeObserver) {
-                const tbody = this._assignedBodyElements[0] ?? null;
-                if (tbody) {
-                    this._bodyResizeObserver = new ResizeObserver(this._bodyResizeObserverCallback);
-                    this._bodyResizeObserver.observe(tbody);
-                }
-            }
-        }
-        _onSashMouseOver(event) {
-            if (this._isDragging) {
-                return;
-            }
-            const target = event.currentTarget;
-            const index = Number(target.dataset.index);
-            this._sashHovers[index] = true;
-            this.requestUpdate();
-        }
-        _onSashMouseOut(event) {
-            event.stopPropagation();
-            if (this._isDragging) {
-                return;
-            }
-            const target = event.currentTarget;
-            const index = Number(target.dataset.index);
-            this._sashHovers[index] = false;
-            this.requestUpdate();
-        }
-        _onSashMouseDown(event) {
-            event.stopPropagation();
-            const { pageX, currentTarget } = event;
-            const el = currentTarget;
-            const index = Number(el.dataset.index);
-            const cr = el.getBoundingClientRect();
-            const elX = cr.x;
-            this._isDragging = true;
-            this._activeSashElementIndex = index;
-            this._sashHovers[this._activeSashElementIndex] = true;
-            this._activeSashCursorOffset = this._px2Percent(pageX - elX);
-            const headerCells = this._getHeaderCells();
-            this._headerCellsToResize = [];
-            this._headerCellsToResize.push(headerCells[index]);
-            if (headerCells[index + 1]) {
-                this._headerCellsToResize[1] = headerCells[index + 1];
-            }
-            const tbody = this._bodySlot.assignedElements()[0];
-            const cells = tbody.querySelectorAll('vscode-table-row:first-child > vscode-table-cell');
-            this._cellsToResize = [];
-            this._cellsToResize.push(cells[index]);
-            if (cells[index + 1]) {
-                this._cellsToResize.push(cells[index + 1]);
-            }
-            document.addEventListener('mousemove', this._onResizingMouseMove);
-            document.addEventListener('mouseup', this._onResizingMouseUp);
-        }
-        _updateActiveSashPosition(mouseX) {
-            const { prevSashPos, nextSashPos } = this._getSashPositions();
-            let minColumnWidth = rawValueToPercentage(this.minColumnWidth, this._componentW);
-            if (minColumnWidth === null) {
-                minColumnWidth = 0;
-            }
-            const minX = prevSashPos ? prevSashPos + minColumnWidth : minColumnWidth;
-            const maxX = nextSashPos
-                ? nextSashPos - minColumnWidth
-                : COMPONENT_WIDTH_PERCENTAGE - minColumnWidth;
-            let newX = this._px2Percent(mouseX - this._componentX - this._percent2Px(this._activeSashCursorOffset));
-            newX = Math.max(newX, minX);
-            newX = Math.min(newX, maxX);
-            this._sashPositions[this._activeSashElementIndex] = newX;
-            this.requestUpdate();
-        }
-        _getSashPositions() {
-            const sashPos = this._sashPositions[this._activeSashElementIndex];
-            const prevSashPos = this._sashPositions[this._activeSashElementIndex - 1] || 0;
-            const nextSashPos = this._sashPositions[this._activeSashElementIndex + 1] ||
-                COMPONENT_WIDTH_PERCENTAGE;
-            return {
-                sashPos,
-                prevSashPos,
-                nextSashPos,
-            };
-        }
-        _resizeColumns(resizeBodyCells = true) {
-            const { sashPos, prevSashPos, nextSashPos } = this._getSashPositions();
-            const prevColW = sashPos - prevSashPos;
-            const nextColW = nextSashPos - sashPos;
-            const prevColCss = `${prevColW}%`;
-            const nextColCss = `${nextColW}%`;
-            this._headerCellsToResize[0].style.width = prevColCss;
-            if (this._headerCellsToResize[1]) {
-                this._headerCellsToResize[1].style.width = nextColCss;
-            }
-            if (resizeBodyCells) {
-                this._cellsToResize[0].style.width = prevColCss;
-                if (this._cellsToResize[1]) {
-                    this._cellsToResize[1].style.width = nextColCss;
-                }
-            }
-        }
-        render() {
-            const sashes = this._sashPositions.map((val, index) => {
-                const classes = e({
-                    sash: true,
-                    hover: this._sashHovers[index],
-                    resizable: this.resizable,
-                });
-                const left = `${val}%`;
-                return this.resizable
-                    ? x `
+  `],_s=ji;var R=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},gs=100,I=class extends u{constructor(){super(...arguments),this.role="table",this.resizable=!1,this.responsive=!1,this.bordered=!1,this.borderedColumns=!1,this.borderedRows=!1,this.breakpoint=300,this.minColumnWidth="50px",this.delayedResizing=!1,this.compact=!1,this.zebra=!1,this.zebraOdd=!1,this._sashPositions=[],this._isDragging=!1,this._sashHovers=[],this._columns=[],this._activeSashElementIndex=-1,this._activeSashCursorOffset=0,this._componentX=0,this._componentH=0,this._componentW=0,this._headerCells=[],this._cellsOfFirstRow=[],this._prevHeaderHeight=0,this._prevComponentHeight=0,this._componentResizeObserverCallback=()=>{this._memoizeComponentDimensions(),this._updateResizeHandlersSize(),this.responsive&&this._toggleCompactView(),this._resizeTableBody()},this._headerResizeObserverCallback=()=>{this._updateResizeHandlersSize()},this._bodyResizeObserverCallback=()=>{this._resizeTableBody()},this._onResizingMouseMove=e=>{e.stopPropagation(),this._updateActiveSashPosition(e.pageX),this.delayedResizing?this._resizeColumns(!1):this._resizeColumns(!0)},this._onResizingMouseUp=e=>{this._resizeColumns(!0),this._updateActiveSashPosition(e.pageX),this._sashHovers[this._activeSashElementIndex]=!1,this._isDragging=!1,this._activeSashElementIndex=-1,document.removeEventListener("mousemove",this._onResizingMouseMove),document.removeEventListener("mouseup",this._onResizingMouseUp)}}set columns(e){this._columns=e,this.isConnected&&this._initDefaultColumnSizes()}get columns(){return this._columns}connectedCallback(){super.connectedCallback(),this._memoizeComponentDimensions(),this._initDefaultColumnSizes()}disconnectedCallback(){super.disconnectedCallback(),this._componentResizeObserver?.unobserve(this),this._componentResizeObserver?.disconnect(),this._bodyResizeObserver?.disconnect()}_px2Percent(e){return e/this._componentW*100}_percent2Px(e){return this._componentW*e/100}_memoizeComponentDimensions(){let e=this.getBoundingClientRect();this._componentH=e.height,this._componentW=e.width,this._componentX=e.x}_queryHeaderCells(){let e=this._assignedHeaderElements;return e&&e[0]?Array.from(e[0].querySelectorAll("vscode-table-header-cell")):[]}_getHeaderCells(){return this._headerCells.length||(this._headerCells=this._queryHeaderCells()),this._headerCells}_queryCellsOfFirstRow(){let e=this._assignedBodyElements;return e&&e[0]?Array.from(e[0].querySelectorAll("vscode-table-row:first-child vscode-table-cell")):[]}_getCellsOfFirstRow(){return this._cellsOfFirstRow.length||(this._cellsOfFirstRow=this._queryCellsOfFirstRow()),this._cellsOfFirstRow}_resizeTableBody(){let e=0,t=0,o=this.getBoundingClientRect().height;this._assignedHeaderElements&&this._assignedHeaderElements.length&&(e=this._assignedHeaderElements[0].getBoundingClientRect().height),this._assignedBodyElements&&this._assignedBodyElements.length&&(t=this._assignedBodyElements[0].getBoundingClientRect().height);let i=t-e-o;this._scrollableElement.style.height=i>0?`${o-e}px`:"auto"}_initResizeObserver(){this._componentResizeObserver=new ResizeObserver(this._componentResizeObserverCallback),this._componentResizeObserver.observe(this),this._headerResizeObserver=new ResizeObserver(this._headerResizeObserverCallback),this._headerResizeObserver.observe(this._headerElement)}_calcColWidthPercentages(){let e=this._getHeaderCells().length,t=this.columns.slice(0,e),o=t.filter(s=>s==="auto").length+e-t.length,i=100;if(t=t.map(s=>{let n=Qt(s,this._componentW);return n===null?"auto":(i-=n,n)}),t.length<e)for(let s=t.length;s<e;s++)t.push("auto");return t=t.map(s=>s==="auto"?i/o:s),t}_initHeaderCellSizes(e){this._getHeaderCells().forEach((t,o)=>{t.style.width=`${e[o]}%`})}_initBodyColumnSizes(e){this._getCellsOfFirstRow().forEach((t,o)=>{t.style.width=`${e[o]}%`})}_initSashes(e){let t=e.length,o=0;this._sashPositions=[],e.forEach((i,s)=>{if(s<t-1){let n=o+i;this._sashPositions.push(n),o=n}})}_initDefaultColumnSizes(){let e=this._calcColWidthPercentages();this._initHeaderCellSizes(e),this._initBodyColumnSizes(e),this._initSashes(e)}_updateResizeHandlersSize(){let e=this._headerElement.getBoundingClientRect();if(e.height===this._prevHeaderHeight&&this._componentH===this._prevComponentHeight)return;this._prevHeaderHeight=e.height,this._prevComponentHeight=this._componentH;let t=this._componentH-e.height;this._sashVisibleElements.forEach(o=>{o.style.height=`${t}px`,o.style.top=`${e.height}px`})}_applyCompactViewColumnLabels(){let t=this._getHeaderCells().map(i=>i.innerText);this.querySelectorAll("vscode-table-row").forEach(i=>{i.querySelectorAll("vscode-table-cell").forEach((n,l)=>{n.columnLabel=t[l],n.compact=!0})})}_clearCompactViewColumnLabels(){this.querySelectorAll("vscode-table-cell").forEach(e=>{e.columnLabel="",e.compact=!1})}_toggleCompactView(){let t=this.getBoundingClientRect().width<this.breakpoint;this.compact!==t&&(this.compact=t,t?this._applyCompactViewColumnLabels():this._clearCompactViewColumnLabels())}_onDefaultSlotChange(){this._assignedElements.forEach(e=>{if(e.tagName.toLowerCase()==="vscode-table-header"){e.slot="header";return}if(e.tagName.toLowerCase()==="vscode-table-body"){e.slot="body";return}})}_onHeaderSlotChange(){this._headerCells=this._queryHeaderCells()}_onBodySlotChange(){if(this._initDefaultColumnSizes(),this._initResizeObserver(),this._updateResizeHandlersSize(),!this._bodyResizeObserver){let e=this._assignedBodyElements[0]??null;e&&(this._bodyResizeObserver=new ResizeObserver(this._bodyResizeObserverCallback),this._bodyResizeObserver.observe(e))}}_onSashMouseOver(e){if(this._isDragging)return;let t=e.currentTarget,o=Number(t.dataset.index);this._sashHovers[o]=!0,this.requestUpdate()}_onSashMouseOut(e){if(e.stopPropagation(),this._isDragging)return;let t=e.currentTarget,o=Number(t.dataset.index);this._sashHovers[o]=!1,this.requestUpdate()}_onSashMouseDown(e){e.stopPropagation();let{pageX:t,currentTarget:o}=e,i=o,s=Number(i.dataset.index),l=i.getBoundingClientRect().x;this._isDragging=!0,this._activeSashElementIndex=s,this._sashHovers[this._activeSashElementIndex]=!0,this._activeSashCursorOffset=this._px2Percent(t-l);let d=this._getHeaderCells();this._headerCellsToResize=[],this._headerCellsToResize.push(d[s]),d[s+1]&&(this._headerCellsToResize[1]=d[s+1]);let y=this._bodySlot.assignedElements()[0].querySelectorAll("vscode-table-row:first-child > vscode-table-cell");this._cellsToResize=[],this._cellsToResize.push(y[s]),y[s+1]&&this._cellsToResize.push(y[s+1]),document.addEventListener("mousemove",this._onResizingMouseMove),document.addEventListener("mouseup",this._onResizingMouseUp)}_updateActiveSashPosition(e){let{prevSashPos:t,nextSashPos:o}=this._getSashPositions(),i=Qt(this.minColumnWidth,this._componentW);i===null&&(i=0);let s=t?t+i:i,n=o?o-i:gs-i,l=this._px2Percent(e-this._componentX-this._percent2Px(this._activeSashCursorOffset));l=Math.max(l,s),l=Math.min(l,n),this._sashPositions[this._activeSashElementIndex]=l,this.requestUpdate()}_getSashPositions(){let e=this._sashPositions[this._activeSashElementIndex],t=this._sashPositions[this._activeSashElementIndex-1]||0,o=this._sashPositions[this._activeSashElementIndex+1]||gs;return{sashPos:e,prevSashPos:t,nextSashPos:o}}_resizeColumns(e=!0){let{sashPos:t,prevSashPos:o,nextSashPos:i}=this._getSashPositions(),s=t-o,n=i-t,l=`${s}%`,d=`${n}%`;this._headerCellsToResize[0].style.width=l,this._headerCellsToResize[1]&&(this._headerCellsToResize[1].style.width=d),e&&(this._cellsToResize[0].style.width=l,this._cellsToResize[1]&&(this._cellsToResize[1].style.width=d))}render(){let e=this._sashPositions.map((o,i)=>{let s=g({sash:!0,hover:this._sashHovers[i],resizable:this.resizable}),n=`${o}%`;return this.resizable?c`
             <div
-              class=${classes}
-              data-index=${index}
-              .style=${stylePropertyMap({ left })}
+              class=${s}
+              data-index=${i}
+              .style=${B({left:n})}
               @mousedown=${this._onSashMouseDown}
               @mouseover=${this._onSashMouseOver}
               @mouseout=${this._onSashMouseOut}
@@ -8186,23 +2406,14 @@ var npmCompilation;
               <div class="sash-visible"></div>
               <div class="sash-clickable"></div>
             </div>
-          `
-                    : x `<div
-            class=${classes}
-            data-index=${index}
-            .style=${stylePropertyMap({ left })}
+          `:c`<div
+            class=${s}
+            data-index=${i}
+            .style=${B({left:n})}
           >
             <div class="sash-visible"></div>
-          </div>`;
-            });
-            const wrapperClasses = e({
-                wrapper: true,
-                'select-disabled': this._isDragging,
-                'resize-cursor': this._isDragging,
-                'compact-view': this.compact,
-            });
-            return x `
-      <div class=${wrapperClasses}>
+          </div>`}),t=g({wrapper:!0,"select-disabled":this._isDragging,"resize-cursor":this._isDragging,"compact-view":this.compact});return c`
+      <div class=${t}>
         <div class="header">
           <slot name="caption"></slot>
           <div class="header-slot-wrapper">
@@ -8214,97 +2425,10 @@ var npmCompilation;
             <slot name="body" @slotchange=${this._onBodySlotChange}></slot>
           </div>
         </vscode-scrollable>
-        ${sashes}
+        ${e}
         <slot @slotchange=${this._onDefaultSlotChange}></slot>
       </div>
-    `;
-        }
-    };
-    VscodeTable.styles = styles$4;
-    __decorate$4([
-        n$1({ reflect: true })
-    ], VscodeTable.prototype, "role", void 0);
-    __decorate$4([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTable.prototype, "resizable", void 0);
-    __decorate$4([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTable.prototype, "responsive", void 0);
-    __decorate$4([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTable.prototype, "bordered", void 0);
-    __decorate$4([
-        n$1({ type: Boolean, reflect: true, attribute: 'bordered-columns' })
-    ], VscodeTable.prototype, "borderedColumns", void 0);
-    __decorate$4([
-        n$1({ type: Boolean, reflect: true, attribute: 'bordered-rows' })
-    ], VscodeTable.prototype, "borderedRows", void 0);
-    __decorate$4([
-        n$1({ type: Number })
-    ], VscodeTable.prototype, "breakpoint", void 0);
-    __decorate$4([
-        n$1({ type: Array })
-    ], VscodeTable.prototype, "columns", null);
-    __decorate$4([
-        n$1({ attribute: 'min-column-width' })
-    ], VscodeTable.prototype, "minColumnWidth", void 0);
-    __decorate$4([
-        n$1({ type: Boolean, reflect: true, attribute: 'delayed-resizing' })
-    ], VscodeTable.prototype, "delayedResizing", void 0);
-    __decorate$4([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTable.prototype, "compact", void 0);
-    __decorate$4([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTable.prototype, "zebra", void 0);
-    __decorate$4([
-        n$1({ type: Boolean, reflect: true, attribute: 'zebra-odd' })
-    ], VscodeTable.prototype, "zebraOdd", void 0);
-    __decorate$4([
-        e$3('slot[name="body"]')
-    ], VscodeTable.prototype, "_bodySlot", void 0);
-    __decorate$4([
-        e$3('.header')
-    ], VscodeTable.prototype, "_headerElement", void 0);
-    __decorate$4([
-        e$3('.scrollable')
-    ], VscodeTable.prototype, "_scrollableElement", void 0);
-    __decorate$4([
-        r$1('.sash-visible')
-    ], VscodeTable.prototype, "_sashVisibleElements", void 0);
-    __decorate$4([
-        o$1({
-            flatten: true,
-            selector: 'vscode-table-header, vscode-table-body',
-        })
-    ], VscodeTable.prototype, "_assignedElements", void 0);
-    __decorate$4([
-        o$1({
-            slot: 'header',
-            flatten: true,
-            selector: 'vscode-table-header',
-        })
-    ], VscodeTable.prototype, "_assignedHeaderElements", void 0);
-    __decorate$4([
-        o$1({
-            slot: 'body',
-            flatten: true,
-            selector: 'vscode-table-body',
-        })
-    ], VscodeTable.prototype, "_assignedBodyElements", void 0);
-    __decorate$4([
-        r$2()
-    ], VscodeTable.prototype, "_sashPositions", void 0);
-    __decorate$4([
-        r$2()
-    ], VscodeTable.prototype, "_isDragging", void 0);
-    VscodeTable = __decorate$4([
-        customElement('vscode-table')
-    ], VscodeTable);
-
-    const styles$3 = [
-        defaultStyles,
-        i$4 `
+    `}};I.styles=_s;R([a({reflect:!0})],I.prototype,"role",void 0);R([a({type:Boolean,reflect:!0})],I.prototype,"resizable",void 0);R([a({type:Boolean,reflect:!0})],I.prototype,"responsive",void 0);R([a({type:Boolean,reflect:!0})],I.prototype,"bordered",void 0);R([a({type:Boolean,reflect:!0,attribute:"bordered-columns"})],I.prototype,"borderedColumns",void 0);R([a({type:Boolean,reflect:!0,attribute:"bordered-rows"})],I.prototype,"borderedRows",void 0);R([a({type:Number})],I.prototype,"breakpoint",void 0);R([a({type:Array})],I.prototype,"columns",null);R([a({attribute:"min-column-width"})],I.prototype,"minColumnWidth",void 0);R([a({type:Boolean,reflect:!0,attribute:"delayed-resizing"})],I.prototype,"delayedResizing",void 0);R([a({type:Boolean,reflect:!0})],I.prototype,"compact",void 0);R([a({type:Boolean,reflect:!0})],I.prototype,"zebra",void 0);R([a({type:Boolean,reflect:!0,attribute:"zebra-odd"})],I.prototype,"zebraOdd",void 0);R([S('slot[name="body"]')],I.prototype,"_bodySlot",void 0);R([S(".header")],I.prototype,"_headerElement",void 0);R([S(".scrollable")],I.prototype,"_scrollableElement",void 0);R([_o(".sash-visible")],I.prototype,"_sashVisibleElements",void 0);R([H({flatten:!0,selector:"vscode-table-header, vscode-table-body"})],I.prototype,"_assignedElements",void 0);R([H({slot:"header",flatten:!0,selector:"vscode-table-header"})],I.prototype,"_assignedHeaderElements",void 0);R([H({slot:"body",flatten:!0,selector:"vscode-table-body"})],I.prototype,"_assignedBodyElements",void 0);R([_()],I.prototype,"_sashPositions",void 0);R([_()],I.prototype,"_isDragging",void 0);I=R([p("vscode-table")],I);var qi=[f,h`
     :host {
       display: block;
     }
@@ -8336,154 +2460,9 @@ var npmCompilation;
       display: block;
       margin-left: auto;
     }
-  `,
-    ];
-
-    var __decorate$3 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * @tag vscode-tabs
-     *
-     * @slot - Default slot. It is used for tab panels.
-     * @slot header - Slot for tab headers.
-     * @slot addons - Right aligned area in the header.
-     *
-     * @fires {VscTabSelectEvent} vsc-tabs-select - Dispatched when the active tab is changed
-     *
-     * @cssprop --vscode-font-family
-     * @cssprop --vscode-font-size
-     * @cssprop --vscode-font-weight
-     * @cssprop --vscode-settings-headerBorder
-     * @cssprop --vscode-panel-background
-     */
-    let VscodeTabs = class VscodeTabs extends VscElement {
-        constructor() {
-            super();
-            /**
-             * Panel-like look
-             */
-            this.panel = false;
-            /** @internal */
-            this.role = 'tablist';
-            this.selectedIndex = 0;
-            this._tabHeaders = [];
-            this._tabPanels = [];
-            this._componentId = '';
-            this._tabFocus = 0;
-            this._componentId = uniqueId();
-        }
-        attributeChangedCallback(name, old, value) {
-            super.attributeChangedCallback(name, old, value);
-            if (name === 'selected-index') {
-                this._setActiveTab();
-            }
-            if (name === 'panel') {
-                this._tabHeaders.forEach((h) => (h.panel = value !== null));
-                this._tabPanels.forEach((p) => (p.panel = value !== null));
-            }
-        }
-        _dispatchSelectEvent() {
-            /** @deprecated */
-            this.dispatchEvent(new CustomEvent('vsc-select', {
-                detail: {
-                    selectedIndex: this.selectedIndex,
-                },
-                composed: true,
-            }));
-            this.dispatchEvent(new CustomEvent('vsc-tabs-select', {
-                detail: {
-                    selectedIndex: this.selectedIndex,
-                },
-                composed: true,
-            }));
-        }
-        _setActiveTab() {
-            this._tabFocus = this.selectedIndex;
-            this._tabPanels.forEach((el, i) => {
-                el.hidden = i !== this.selectedIndex;
-            });
-            this._tabHeaders.forEach((el, i) => {
-                el.active = i === this.selectedIndex;
-            });
-        }
-        _focusPrevTab() {
-            if (this._tabFocus === 0) {
-                this._tabFocus = this._tabHeaders.length - 1;
-            }
-            else {
-                this._tabFocus -= 1;
-            }
-        }
-        _focusNextTab() {
-            if (this._tabFocus === this._tabHeaders.length - 1) {
-                this._tabFocus = 0;
-            }
-            else {
-                this._tabFocus += 1;
-            }
-        }
-        _onHeaderKeyDown(ev) {
-            if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
-                ev.preventDefault();
-                this._tabHeaders[this._tabFocus].setAttribute('tabindex', '-1');
-                if (ev.key === 'ArrowLeft') {
-                    this._focusPrevTab();
-                }
-                else if (ev.key === 'ArrowRight') {
-                    this._focusNextTab();
-                }
-                this._tabHeaders[this._tabFocus].setAttribute('tabindex', '0');
-                this._tabHeaders[this._tabFocus].focus();
-            }
-            if (ev.key === 'Enter') {
-                ev.preventDefault();
-                this.selectedIndex = this._tabFocus;
-                this._dispatchSelectEvent();
-            }
-        }
-        _moveHeadersToHeaderSlot() {
-            const headers = this._mainSlotElements.filter((el) => el instanceof VscodeTabHeader);
-            if (headers.length > 0) {
-                headers.forEach((h) => h.setAttribute('slot', 'header'));
-            }
-        }
-        _onMainSlotChange() {
-            this._moveHeadersToHeaderSlot();
-            this._tabPanels = this._mainSlotElements.filter((el) => el instanceof VscodeTabPanel);
-            this._tabPanels.forEach((el, i) => {
-                el.ariaLabelledby = `t${this._componentId}-h${i}`;
-                el.id = `t${this._componentId}-p${i}`;
-                el.panel = this.panel;
-            });
-            this._setActiveTab();
-        }
-        _onHeaderSlotChange() {
-            this._tabHeaders = this._headerSlotElements.filter((el) => el instanceof VscodeTabHeader);
-            this._tabHeaders.forEach((el, i) => {
-                el.tabId = i;
-                el.id = `t${this._componentId}-h${i}`;
-                el.ariaControls = `t${this._componentId}-p${i}`;
-                el.panel = this.panel;
-                el.active = i === this.selectedIndex;
-            });
-        }
-        _onHeaderClick(event) {
-            const path = event.composedPath();
-            const headerEl = path.find((et) => et instanceof VscodeTabHeader);
-            if (headerEl) {
-                this.selectedIndex = headerEl.tabId;
-                this._setActiveTab();
-                this._dispatchSelectEvent();
-            }
-        }
-        render() {
-            return x `
+  `],ys=qi;var et=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},ne=class extends u{constructor(){super(),this.panel=!1,this.role="tablist",this.selectedIndex=0,this._tabHeaders=[],this._tabPanels=[],this._componentId="",this._tabFocus=0,this._componentId=$t()}attributeChangedCallback(e,t,o){super.attributeChangedCallback(e,t,o),e==="selected-index"&&this._setActiveTab(),e==="panel"&&(this._tabHeaders.forEach(i=>i.panel=o!==null),this._tabPanels.forEach(i=>i.panel=o!==null))}_dispatchSelectEvent(){this.dispatchEvent(new CustomEvent("vsc-select",{detail:{selectedIndex:this.selectedIndex},composed:!0})),this.dispatchEvent(new CustomEvent("vsc-tabs-select",{detail:{selectedIndex:this.selectedIndex},composed:!0}))}_setActiveTab(){this._tabFocus=this.selectedIndex,this._tabPanels.forEach((e,t)=>{e.hidden=t!==this.selectedIndex}),this._tabHeaders.forEach((e,t)=>{e.active=t===this.selectedIndex})}_focusPrevTab(){this._tabFocus===0?this._tabFocus=this._tabHeaders.length-1:this._tabFocus-=1}_focusNextTab(){this._tabFocus===this._tabHeaders.length-1?this._tabFocus=0:this._tabFocus+=1}_onHeaderKeyDown(e){(e.key==="ArrowLeft"||e.key==="ArrowRight")&&(e.preventDefault(),this._tabHeaders[this._tabFocus].setAttribute("tabindex","-1"),e.key==="ArrowLeft"?this._focusPrevTab():e.key==="ArrowRight"&&this._focusNextTab(),this._tabHeaders[this._tabFocus].setAttribute("tabindex","0"),this._tabHeaders[this._tabFocus].focus()),e.key==="Enter"&&(e.preventDefault(),this.selectedIndex=this._tabFocus,this._dispatchSelectEvent())}_moveHeadersToHeaderSlot(){let e=this._mainSlotElements.filter(t=>t instanceof K);e.length>0&&e.forEach(t=>t.setAttribute("slot","header"))}_onMainSlotChange(){this._moveHeadersToHeaderSlot(),this._tabPanels=this._mainSlotElements.filter(e=>e instanceof te),this._tabPanels.forEach((e,t)=>{e.ariaLabelledby=`t${this._componentId}-h${t}`,e.id=`t${this._componentId}-p${t}`,e.panel=this.panel}),this._setActiveTab()}_onHeaderSlotChange(){this._tabHeaders=this._headerSlotElements.filter(e=>e instanceof K),this._tabHeaders.forEach((e,t)=>{e.tabId=t,e.id=`t${this._componentId}-h${t}`,e.ariaControls=`t${this._componentId}-p${t}`,e.panel=this.panel,e.active=t===this.selectedIndex})}_onHeaderClick(e){let o=e.composedPath().find(i=>i instanceof K);o&&(this.selectedIndex=o.tabId,this._setActiveTab(),this._dispatchSelectEvent())}render(){return c`
       <div
-        class=${e({ header: true, panel: this.panel })}
+        class=${g({header:!0,panel:this.panel})}
         @click=${this._onHeaderClick}
         @keydown=${this._onHeaderKeyDown}
       >
@@ -8491,32 +2470,7 @@ var npmCompilation;
         <slot name="addons"></slot>
       </div>
       <slot @slotchange=${this._onMainSlotChange}></slot>
-    `;
-        }
-    };
-    VscodeTabs.styles = styles$3;
-    __decorate$3([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTabs.prototype, "panel", void 0);
-    __decorate$3([
-        n$1({ reflect: true })
-    ], VscodeTabs.prototype, "role", void 0);
-    __decorate$3([
-        n$1({ type: Number, reflect: true, attribute: 'selected-index' })
-    ], VscodeTabs.prototype, "selectedIndex", void 0);
-    __decorate$3([
-        o$1({ slot: 'header' })
-    ], VscodeTabs.prototype, "_headerSlotElements", void 0);
-    __decorate$3([
-        o$1()
-    ], VscodeTabs.prototype, "_mainSlotElements", void 0);
-    VscodeTabs = __decorate$3([
-        customElement('vscode-tabs')
-    ], VscodeTabs);
-
-    const styles$2 = [
-        defaultStyles,
-        i$4 `
+    `}};ne.styles=ys;et([a({type:Boolean,reflect:!0})],ne.prototype,"panel",void 0);et([a({reflect:!0})],ne.prototype,"role",void 0);et([a({type:Number,reflect:!0,attribute:"selected-index"})],ne.prototype,"selectedIndex",void 0);et([H({slot:"header"})],ne.prototype,"_headerSlotElements",void 0);et([H()],ne.prototype,"_mainSlotElements",void 0);ne=et([p("vscode-tabs")],ne);var Ni=[f,h`
     :host {
       display: inline-flex;
     }
@@ -8585,119 +2539,28 @@ var npmCompilation;
     slot.textOnly:not(.empty) {
       padding: 0 5px;
     }
-  `,
-    ];
-
-    var __decorate$2 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Toolbar button
-     *
-     * @tag vscode-toolbar-button
-     */
-    let VscodeToolbarButton = class VscodeToolbarButton extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.icon = '';
-            this.label = undefined;
-            this.toggleable = false;
-            this.checked = false;
-            this._isSlotEmpty = true;
-        }
-        _handleSlotChange() {
-            this._isSlotEmpty = !((this._assignedNodes?.length ?? 0) > 0);
-        }
-        _handleButtonClick() {
-            if (!this.toggleable) {
-                return;
-            }
-            this.checked = !this.checked;
-            this.dispatchEvent(new Event('change'));
-        }
-        render() {
-            const checked = this.checked ? 'true' : 'false';
-            return x `
+  `],xs=Ni;var Fe=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},se=class extends u{constructor(){super(...arguments),this.icon="",this.label=void 0,this.toggleable=!1,this.checked=!1,this._isSlotEmpty=!0}_handleSlotChange(){this._isSlotEmpty=!((this._assignedNodes?.length??0)>0)}_handleButtonClick(){this.toggleable&&(this.checked=!this.checked,this.dispatchEvent(new Event("change")))}render(){let e=this.checked?"true":"false";return c`
       <button
         type="button"
-        aria-label=${o(this.label)}
-        role=${o(this.toggleable ? 'switch' : undefined)}
-        aria-checked=${o(this.toggleable ? checked : undefined)}
-        class=${e({ checked: this.toggleable && this.checked })}
+        aria-label=${k(this.label)}
+        role=${k(this.toggleable?"switch":void 0)}
+        aria-checked=${k(this.toggleable?e:void 0)}
+        class=${g({checked:this.toggleable&&this.checked})}
         @click=${this._handleButtonClick}
       >
-        ${this.icon
-            ? x `<vscode-icon name=${this.icon}></vscode-icon>`
-            : E}
+        ${this.icon?c`<vscode-icon name=${this.icon}></vscode-icon>`:m}
         <slot
           @slotchange=${this._handleSlotChange}
-          class=${e({ empty: this._isSlotEmpty, textOnly: !this.icon })}
+          class=${g({empty:this._isSlotEmpty,textOnly:!this.icon})}
         ></slot>
       </button>
-    `;
-        }
-    };
-    VscodeToolbarButton.styles = styles$2;
-    __decorate$2([
-        n$1({ reflect: true })
-    ], VscodeToolbarButton.prototype, "icon", void 0);
-    __decorate$2([
-        n$1()
-    ], VscodeToolbarButton.prototype, "label", void 0);
-    __decorate$2([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeToolbarButton.prototype, "toggleable", void 0);
-    __decorate$2([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeToolbarButton.prototype, "checked", void 0);
-    __decorate$2([
-        r$2()
-    ], VscodeToolbarButton.prototype, "_isSlotEmpty", void 0);
-    __decorate$2([
-        n()
-    ], VscodeToolbarButton.prototype, "_assignedNodes", void 0);
-    VscodeToolbarButton = __decorate$2([
-        customElement('vscode-toolbar-button')
-    ], VscodeToolbarButton);
-
-    const styles$1 = [
-        defaultStyles,
-        i$4 `
+    `}};se.styles=xs;Fe([a({reflect:!0})],se.prototype,"icon",void 0);Fe([a()],se.prototype,"label",void 0);Fe([a({type:Boolean,reflect:!0})],se.prototype,"toggleable",void 0);Fe([a({type:Boolean,reflect:!0})],se.prototype,"checked",void 0);Fe([_()],se.prototype,"_isSlotEmpty",void 0);Fe([go()],se.prototype,"_assignedNodes",void 0);se=Fe([p("vscode-toolbar-button")],se);var Ui=[f,h`
     :host {
       gap: 4px;
       display: flex;
       align-items: center;
     }
-  `,
-    ];
-
-    var __decorate$1 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Simple container to arrange the toolar buttons
-     *
-     * @tag vscode-toolbar-container
-     */
-    let VscodeToolbarContainer = class VscodeToolbarContainer extends VscElement {
-        render() {
-            return x ` <slot></slot> `;
-        }
-    };
-    VscodeToolbarContainer.styles = styles$1;
-    VscodeToolbarContainer = __decorate$1([
-        customElement('vscode-toolbar-container')
-    ], VscodeToolbarContainer);
-
-    const styles = [
-        defaultStyles,
-        i$4 `
+  `],ws=Ui;var Wi=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},tt=class extends u{render(){return c` <slot></slot> `}};tt.styles=ws;tt=Wi([p("vscode-toolbar-container")],tt);var Ki=[f,h`
     :host {
       --hover-outline-color: transparent;
       --hover-outline-style: solid;
@@ -8943,769 +2806,77 @@ var npmCompilation;
     :host([indent-guides]) ul ul.has-active-item:before {
       background-color: var(--vscode-tree-indentGuidesStroke);
     }
-  `,
-    ];
-
-    var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    const ARROW_OUTER_WIDTH = 30;
-    const ARROW_ICON_WIDTH = 16;
-    const CONTENT_PADDING = 3;
-    const addPath = (tree, prevPath = []) => {
-        const nextTree = [];
-        tree.forEach((item, index) => {
-            const path = [...prevPath, index];
-            const nextItem = {
-                ...item,
-                path,
-            };
-            if (item.subItems) {
-                nextItem.subItems = addPath(item.subItems, path);
-            }
-            nextTree.push(nextItem);
-        });
-        return nextTree;
-    };
-    const isBranch = (item) => {
-        if (item.subItems &&
-            Array.isArray(item.subItems) &&
-            item?.subItems?.length > 0) {
-            return true;
-        }
-        return false;
-    };
-    /**
-     * @tag vscode-tree
-     *
-     * @fires vsc-select Dispatched when an item is selected.
-     * @fires {VscTreeSelectEvent} vsc-tree-select Dispatched when an item is selected.
-     * @fires vsc-run-action Dispatched when an action icon is clicked.
-     * @fires {VscTreeActionEvent} vsc-tree-action Dispatched when an action icon is clicked.
-     *
-     * @cssprop --vscode-focusBorder
-     * @cssprop --vscode-font-family
-     * @cssprop --vscode-font-size
-     * @cssprop --vscode-font-weight
-     * @cssprop --vscode-list-hoverForeground
-     * @cssprop --vscode-list-hoverBackground
-     * @cssprop --vscode-list-inactiveSelectionBackground
-     * @cssprop --vscode-list-inactiveSelectionForeground
-     * @cssprop --vscode-list-activeSelectionBackground
-     * @cssprop --vscode-list-activeSelectionForeground
-     * @cssprop --vscode-list-inactiveSelectionIconForeground
-     * @cssprop --vscode-list-inactiveFocusBackground
-     * @cssprop --vscode-list-inactiveFocusOutline
-     * @cssprop --vscode-list-focusOutline
-     * @cssprop --vscode-tree-inactiveIndentGuidesStroke
-     * @cssprop --vscode-tree-indentGuidesStroke
-     *
-     * @csspart text-content
-     * @csspart description
-     * @csspart counter-badge-decoration
-     * @csspart filled-circle-decoration
-     * @csspart caption-decoration
-     * @csspart decorations Container of decorations
-     */
-    let VscodeTree = class VscodeTree extends VscElement {
-        constructor() {
-            super(...arguments);
-            this.indent = 8;
-            this.arrows = false;
-            this.multiline = false;
-            this.tabindex = 0;
-            this.indentGuides = false;
-            this._data = [];
-            this._selectedItem = null;
-            this._focusedItem = null;
-            this._selectedBranch = null;
-            this._focusedBranch = null;
-            this._handleComponentKeyDownBound = this._handleComponentKeyDown.bind(this);
-        }
-        set data(val) {
-            const oldVal = this._data;
-            this._data = addPath(val);
-            this.requestUpdate('data', oldVal);
-        }
-        get data() {
-            return this._data;
-        }
-        /**
-         * Closes all opened tree items recursively.
-         */
-        closeAll() {
-            this._closeSubTreeRecursively(this.data);
-            this.requestUpdate();
-        }
-        /**
-         * Deselects all selected items.
-         */
-        deselectAll() {
-            this._deselectItemsRecursively(this.data);
-            this.requestUpdate();
-        }
-        /**
-         * Returns a reference to a TreeItem object by path.
-         * @param path
-         * @returns
-         */
-        getItemByPath(path) {
-            return this._getItemByPath(path);
-        }
-        connectedCallback() {
-            super.connectedCallback();
-            this.addEventListener('keydown', this._handleComponentKeyDownBound);
-        }
-        disconnectedCallback() {
-            super.disconnectedCallback();
-            this.removeEventListener('keydown', this._handleComponentKeyDownBound);
-        }
-        _getItemByPath(path) {
-            let current = this._data;
-            let item = null;
-            path.forEach((el, i) => {
-                if (i === path.length - 1) {
-                    item = current[el];
-                }
-                else {
-                    current = current[el].subItems;
-                }
-            });
-            return item;
-        }
-        _handleActionClick(ev) {
-            ev.stopPropagation();
-            const el = ev.target;
-            const itemPath = el.dataset.itemPath;
-            const actionIndex = el.dataset.index;
-            let item = null;
-            let actionId = '';
-            let value = '';
-            if (itemPath) {
-                const path = itemPath.split('/').map((p) => Number(p));
-                item = this._getItemByPath(path);
-                if (item?.actions) {
-                    const index = Number(actionIndex);
-                    if (item.actions[index]) {
-                        actionId = item.actions[index].actionId;
-                    }
-                }
-                if (item?.value) {
-                    value = item.value;
-                }
-            }
-            /** @deprecated Renamed to `vsc-tree-action` */
-            this.dispatchEvent(new CustomEvent('vsc-run-action', {
-                detail: {
-                    actionId,
-                    item,
-                    value,
-                },
-            }));
-            /**
-             * Dispatched when an action icon is clicked.
-             */
-            this.dispatchEvent(new CustomEvent('vsc-tree-action', {
-                detail: {
-                    actionId,
-                    item,
-                    value,
-                },
-            }));
-        }
-        _renderIconVariant(variant) {
-            const { type, value } = variant;
-            if (type === 'themeicon') {
-                return x `<vscode-icon name=${value} class="theme-icon"></vscode-icon>`;
-            }
-            else {
-                return x `<span
+  `],Cs=Ki;var le=function(r,e,t,o){var i=arguments.length,s=i<3?e:o===null?o=Object.getOwnPropertyDescriptor(e,t):o,n;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")s=Reflect.decorate(r,e,t,o);else for(var l=r.length-1;l>=0;l--)(n=r[l])&&(s=(i<3?n(s):i>3?n(e,t,s):n(e,t))||s);return i>3&&s&&Object.defineProperty(e,t,s),s},Gi=30,Yi=16,ks=3,Es=(r,e=[])=>{let t=[];return r.forEach((o,i)=>{let s=[...e,i],n={...o,path:s};o.subItems&&(n.subItems=Es(o.subItems,s)),t.push(n)}),t},ht=r=>!!(r.subItems&&Array.isArray(r.subItems)&&r?.subItems?.length>0),q=class extends u{constructor(){super(...arguments),this.indent=8,this.arrows=!1,this.multiline=!1,this.tabindex=0,this.indentGuides=!1,this._data=[],this._selectedItem=null,this._focusedItem=null,this._selectedBranch=null,this._focusedBranch=null,this._handleComponentKeyDownBound=this._handleComponentKeyDown.bind(this)}set data(e){let t=this._data;this._data=Es(e),this.requestUpdate("data",t)}get data(){return this._data}closeAll(){this._closeSubTreeRecursively(this.data),this.requestUpdate()}deselectAll(){this._deselectItemsRecursively(this.data),this.requestUpdate()}getItemByPath(e){return this._getItemByPath(e)}connectedCallback(){super.connectedCallback(),this.addEventListener("keydown",this._handleComponentKeyDownBound)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener("keydown",this._handleComponentKeyDownBound)}_getItemByPath(e){let t=this._data,o=null;return e.forEach((i,s)=>{s===e.length-1?o=t[i]:t=t[i].subItems}),o}_handleActionClick(e){e.stopPropagation();let t=e.target,o=t.dataset.itemPath,i=t.dataset.index,s=null,n="",l="";if(o){let d=o.split("/").map(b=>Number(b));if(s=this._getItemByPath(d),s?.actions){let b=Number(i);s.actions[b]&&(n=s.actions[b].actionId)}s?.value&&(l=s.value)}this.dispatchEvent(new CustomEvent("vsc-run-action",{detail:{actionId:n,item:s,value:l}})),this.dispatchEvent(new CustomEvent("vsc-tree-action",{detail:{actionId:n,item:s,value:l}}))}_renderIconVariant(e){let{type:t,value:o}=e;return t==="themeicon"?c`<vscode-icon name=${o} class="theme-icon"></vscode-icon>`:c`<span
         class="image-icon"
-        .style=${stylePropertyMap({ backgroundImage: `url(${value})` })}
-      ></span>`;
-            }
-        }
-        _renderIcon(item) {
-            const iconVariants = {
-                branch: {
-                    value: 'folder',
-                    type: 'themeicon',
-                },
-                open: {
-                    value: 'folder-opened',
-                    type: 'themeicon',
-                },
-                leaf: {
-                    value: 'file',
-                    type: 'themeicon',
-                },
-            };
-            if (item.iconUrls) {
-                if (item.iconUrls.branch) {
-                    iconVariants.branch = {
-                        value: item.iconUrls.branch,
-                        type: 'image',
-                    };
-                }
-                if (item.iconUrls.leaf) {
-                    iconVariants.leaf = {
-                        value: item.iconUrls.leaf,
-                        type: 'image',
-                    };
-                }
-                if (item.iconUrls.open) {
-                    iconVariants.open = {
-                        value: item.iconUrls.open,
-                        type: 'image',
-                    };
-                }
-            }
-            else if (typeof item.icons === 'object') {
-                if (item.icons.branch) {
-                    iconVariants.branch = {
-                        value: item.icons.branch,
-                        type: 'themeicon',
-                    };
-                }
-                if (item.icons.leaf) {
-                    iconVariants.leaf = {
-                        value: item.icons.leaf,
-                        type: 'themeicon',
-                    };
-                }
-                if (item.icons.open) {
-                    iconVariants.open = {
-                        value: item.icons.open,
-                        type: 'themeicon',
-                    };
-                }
-            }
-            else if (!item.icons) {
-                return x `${E}`;
-            }
-            if (isBranch(item)) {
-                if (item.open) {
-                    return this._renderIconVariant(iconVariants.open);
-                }
-                else {
-                    return this._renderIconVariant(iconVariants.branch);
-                }
-            }
-            else {
-                return this._renderIconVariant(iconVariants.leaf);
-            }
-        }
-        _renderArrow(item) {
-            if (!this.arrows || !isBranch(item)) {
-                return x `${E}`;
-            }
-            const { open = false } = item;
-            const arrowIconName = open ? 'chevron-down' : 'chevron-right';
-            return x `
+        .style=${B({backgroundImage:`url(${o})`})}
+      ></span>`}_renderIcon(e){let t={branch:{value:"folder",type:"themeicon"},open:{value:"folder-opened",type:"themeicon"},leaf:{value:"file",type:"themeicon"}};if(e.iconUrls)e.iconUrls.branch&&(t.branch={value:e.iconUrls.branch,type:"image"}),e.iconUrls.leaf&&(t.leaf={value:e.iconUrls.leaf,type:"image"}),e.iconUrls.open&&(t.open={value:e.iconUrls.open,type:"image"});else if(typeof e.icons=="object")e.icons.branch&&(t.branch={value:e.icons.branch,type:"themeicon"}),e.icons.leaf&&(t.leaf={value:e.icons.leaf,type:"themeicon"}),e.icons.open&&(t.open={value:e.icons.open,type:"themeicon"});else if(!e.icons)return c`${m}`;return ht(e)?e.open?this._renderIconVariant(t.open):this._renderIconVariant(t.branch):this._renderIconVariant(t.leaf)}_renderArrow(e){if(!this.arrows||!ht(e))return c`${m}`;let{open:t=!1}=e;return c`
       <div class="arrow-container">
-        <vscode-icon name=${arrowIconName} class="icon-arrow"></vscode-icon>
+        <vscode-icon name=${t?"chevron-down":"chevron-right"} class="icon-arrow"></vscode-icon>
       </div>
-    `;
-        }
-        _renderActions(item) {
-            const actionButtons = [];
-            if (item.actions && Array.isArray(item.actions)) {
-                item.actions.forEach((action, index) => {
-                    if (action.icon) {
-                        const icon = x `<vscode-icon
-            name=${action.icon}
+    `}_renderActions(e){let t=[];return e.actions&&Array.isArray(e.actions)&&e.actions.forEach((o,i)=>{if(o.icon){let s=c`<vscode-icon
+            name=${o.icon}
             action-icon
-            title=${o(action.tooltip)}
-            data-item-path=${o(item.path?.join('/'))}
-            data-index=${index}
+            title=${k(o.tooltip)}
+            data-item-path=${k(e.path?.join("/"))}
+            data-index=${i}
             class="action-icon"
             @click=${this._handleActionClick}
-          ></vscode-icon>`;
-                        actionButtons.push(icon);
-                    }
-                });
-            }
-            if (actionButtons.length > 0) {
-                return x `<div class="actions">${actionButtons}</div>`;
-            }
-            else {
-                return x `${E}`;
-            }
-        }
-        _renderDecorations(item) {
-            const decorations = [];
-            if (item.decorations && Array.isArray(item.decorations)) {
-                item.decorations.forEach((decoration) => {
-                    const { appearance = 'text', visibleWhen = 'always', content = '', color = '', focusedColor = '', hoverColor = '', selectedColor = '', } = decoration;
-                    const visibleWhenClass = `visible-when-${visibleWhen}`;
-                    const inlineStyles = {};
-                    if (color) {
-                        inlineStyles['--color'] = color;
-                    }
-                    if (focusedColor) {
-                        inlineStyles['--focused-color'] = focusedColor;
-                    }
-                    if (hoverColor) {
-                        inlineStyles['--hover-color'] = hoverColor;
-                    }
-                    if (selectedColor) {
-                        inlineStyles['--selected-color'] = selectedColor;
-                    }
-                    switch (appearance) {
-                        case 'counter-badge':
-                            decorations.push(x `<vscode-badge
+          ></vscode-icon>`;t.push(s)}}),t.length>0?c`<div class="actions">${t}</div>`:c`${m}`}_renderDecorations(e){let t=[];return e.decorations&&Array.isArray(e.decorations)&&e.decorations.forEach(o=>{let{appearance:i="text",visibleWhen:s="always",content:n="",color:l="",focusedColor:d="",hoverColor:b="",selectedColor:y=""}=o,v=`visible-when-${s}`,x={};switch(l&&(x["--color"]=l),d&&(x["--focused-color"]=d),b&&(x["--hover-color"]=b),y&&(x["--selected-color"]=y),i){case"counter-badge":t.push(c`<vscode-badge
                 variant="counter"
-                class=${['counter-badge', visibleWhenClass].join(' ')}
+                class=${["counter-badge",v].join(" ")}
                 part="counter-badge-decoration"
-                >${content}</vscode-badge
-              >`);
-                            break;
-                        case 'filled-circle':
-                            decorations.push(x `<vscode-icon
+                >${n}</vscode-badge
+              >`);break;case"filled-circle":t.push(c`<vscode-icon
                 name="circle-filled"
                 size="14"
-                class=${['filled-circle', visibleWhenClass].join(' ')}
+                class=${["filled-circle",v].join(" ")}
                 part="filled-circle-decoration"
-                .style=${stylePropertyMap(inlineStyles)}
-              ></vscode-icon>`);
-                            break;
-                        case 'text':
-                            decorations.push(x `<div
-                class=${['decoration-text', visibleWhenClass].join(' ')}
+                .style=${B(x)}
+              ></vscode-icon>`);break;case"text":t.push(c`<div
+                class=${["decoration-text",v].join(" ")}
                 part="caption-decoration"
-                .style=${stylePropertyMap(inlineStyles)}
+                .style=${B(x)}
               >
-                ${content}
-              </div>`);
-                            break;
-                    }
-                });
-            }
-            if (decorations.length > 0) {
-                return x `<div class="decorations" part="decorations">
-        ${decorations}
-      </div>`;
-            }
-            else {
-                return x `${E}`;
-            }
-        }
-        _renderTreeItem(item, additionalOptions) {
-            const { open = false, label, description = '', tooltip, selected = false, focused = false, subItems = [], } = item;
-            const { path, itemType, hasFocusedItem = false, hasSelectedItem = false, } = additionalOptions;
-            const indentLevel = path.length - 1;
-            const contentsClasses = ['contents'];
-            const liClasses = open ? ['open'] : [];
-            const indentSize = indentLevel * this.indent;
-            const padLeft = this.arrows && itemType === 'leaf'
-                ? ARROW_OUTER_WIDTH + indentSize
-                : indentSize;
-            const arrowMarkup = this._renderArrow(item);
-            const iconMarkup = this._renderIcon(item);
-            const indentGuidePos = this.arrows
-                ? indentSize + ARROW_ICON_WIDTH
-                : indentSize + CONTENT_PADDING;
-            const subTreeMarkup = open && itemType === 'branch'
-                ? x `<ul
-            .style=${stylePropertyMap({
-                '--indent-guide-pos': `${indentGuidePos}px`,
-            })}
-            class=${e({
-                'has-active-item': hasFocusedItem || hasSelectedItem,
-            })}
+                ${n}
+              </div>`);break;default:}}),t.length>0?c`<div class="decorations" part="decorations">
+        ${t}
+      </div>`:c`${m}`}_renderTreeItem(e,t){let{open:o=!1,label:i,description:s="",tooltip:n,selected:l=!1,focused:d=!1,subItems:b=[]}=e,{path:y,itemType:v,hasFocusedItem:x=!1,hasSelectedItem:w=!1}=t,z=y.length-1,J=["contents"],He=o?["open"]:[],Ce=z*this.indent,$s=this.arrows&&v==="leaf"?Gi+Ce:Ce,Ss=this._renderArrow(e),Is=this._renderIcon(e),Os=this.arrows?Ce+Yi:Ce+ks,As=o&&v==="branch"?c`<ul
+            .style=${B({"--indent-guide-pos":`${Os}px`})}
+            class=${g({"has-active-item":x||w})}
           >
-            ${this._renderTree(subItems, path)}
-          </ul>`
-                : E;
-            const descriptionMarkup = description
-                ? x `<span class="description" part="description">${description}</span>`
-                : E;
-            const actionsMarkup = this._renderActions(item);
-            const decorationsMarkup = this._renderDecorations(item);
-            liClasses.push(itemType);
-            if (selected) {
-                contentsClasses.push('selected');
-            }
-            if (focused) {
-                contentsClasses.push('focused');
-            }
-            return x `
-      <li data-path=${path.join('/')} class=${liClasses.join(' ')}>
+            ${this._renderTree(b,y)}
+          </ul>`:m,Ps=s?c`<span class="description" part="description">${s}</span>`:m,Rs=this._renderActions(e),Vs=this._renderDecorations(e);return He.push(v),l&&J.push("selected"),d&&J.push("focused"),c`
+      <li data-path=${y.join("/")} class=${He.join(" ")}>
         <div
-          class=${contentsClasses.join(' ')}
-          .style=${stylePropertyMap({
-            paddingLeft: `${padLeft + CONTENT_PADDING}px`,
-        })}
+          class=${J.join(" ")}
+          .style=${B({paddingLeft:`${$s+ks}px`})}
         >
-          ${arrowMarkup}${iconMarkup}<span
+          ${Ss}${Is}<span
             class="text-content"
             part="text-content"
-            title=${o(tooltip)}
-            >${label}${descriptionMarkup}</span
+            title=${k(n)}
+            >${i}${Ps}</span
           >
-          ${actionsMarkup} ${decorationsMarkup}
+          ${Rs} ${Vs}
         </div>
-        ${subTreeMarkup}
+        ${As}
       </li>
-    `;
-        }
-        _renderTree(tree, oldPath = []) {
-            const ret = [];
-            if (!tree) {
-                return E;
-            }
-            tree.forEach((item, index) => {
-                const path = [...oldPath, index];
-                const itemType = isBranch(item) ? 'branch' : 'leaf';
-                const { selected = false, focused = false, hasFocusedItem = false, hasSelectedItem = false, } = item;
-                if (selected) {
-                    this._selectedItem = item;
-                }
-                if (focused) {
-                    this._focusedItem = item;
-                }
-                ret.push(this._renderTreeItem(item, {
-                    path,
-                    itemType,
-                    hasFocusedItem,
-                    hasSelectedItem,
-                }));
-            });
-            return ret;
-        }
-        _selectItem(item) {
-            if (this._selectedItem) {
-                this._selectedItem.selected = false;
-            }
-            if (this._focusedItem) {
-                this._focusedItem.focused = false;
-            }
-            this._selectedItem = item;
-            item.selected = true;
-            this._focusedItem = item;
-            item.focused = true;
-            if (this._selectedBranch) {
-                this._selectedBranch.hasSelectedItem = false;
-            }
-            let parentBranch = null;
-            if (item.path?.length && item.path.length > 1) {
-                parentBranch = this._getItemByPath(item.path.slice(0, -1));
-            }
-            if (isBranch(item)) {
-                this._selectedBranch = item;
-                item.hasSelectedItem = true;
-                item.open = !item.open;
-                if (!item.open) {
-                    if (parentBranch) {
-                        this._selectedBranch = parentBranch;
-                        parentBranch.hasSelectedItem = true;
-                    }
-                }
-                else {
-                    this._selectedBranch = item;
-                    item.hasSelectedItem = true;
-                }
-            }
-            else {
-                if (item.path?.length && item.path.length > 1) {
-                    const parentBranch = this._getItemByPath(item.path.slice(0, -1));
-                    if (parentBranch) {
-                        this._selectedBranch = parentBranch;
-                        parentBranch.hasSelectedItem = true;
-                    }
-                }
-                else {
-                    this._selectedBranch = item;
-                    item.hasSelectedItem = true;
-                }
-            }
-            this._emitSelectEvent(this._selectedItem, this._selectedItem.path.join('/'));
-            this.requestUpdate();
-        }
-        _focusItem(item) {
-            if (this._focusedItem) {
-                this._focusedItem.focused = false;
-            }
-            this._focusedItem = item;
-            item.focused = true;
-            const isBranch = !!item?.subItems?.length;
-            if (this._focusedBranch) {
-                this._focusedBranch.hasFocusedItem = false;
-            }
-            let parentBranch = null;
-            if (item.path?.length && item.path.length > 1) {
-                parentBranch = this._getItemByPath(item.path.slice(0, -1));
-            }
-            if (!isBranch) {
-                if (parentBranch) {
-                    this._focusedBranch = parentBranch;
-                    parentBranch.hasFocusedItem = true;
-                }
-            }
-            else {
-                if (item.open) {
-                    this._focusedBranch = item;
-                    item.hasFocusedItem = true;
-                }
-                else if (!item.open && parentBranch) {
-                    this._focusedBranch = parentBranch;
-                    parentBranch.hasFocusedItem = true;
-                }
-            }
-        }
-        _closeSubTreeRecursively(tree) {
-            tree.forEach((item) => {
-                item.open = false;
-                if (item.subItems && item.subItems.length > 0) {
-                    this._closeSubTreeRecursively(item.subItems);
-                }
-            });
-        }
-        _deselectItemsRecursively(tree) {
-            tree.forEach((item) => {
-                if (item.selected) {
-                    item.selected = false;
-                }
-                if (item.subItems && item.subItems.length > 0) {
-                    this._deselectItemsRecursively(item.subItems);
-                }
-            });
-        }
-        _emitSelectEvent(item, path) {
-            const { icons, label, open, value } = item;
-            const detail = {
-                icons,
-                itemType: isBranch(item) ? 'branch' : 'leaf',
-                label,
-                open: open || false,
-                value: value || label,
-                path,
-            };
-            /** @deprecated Renamed to `vsc-tree-select` */
-            this.dispatchEvent(new CustomEvent('vsc-select', {
-                bubbles: true,
-                composed: true,
-                detail,
-            }));
-            this.dispatchEvent(new CustomEvent('vsc-tree-select', {
-                detail,
-            }));
-        }
-        _focusPrevItem() {
-            if (!this._focusedItem) {
-                this._focusItem(this._data[0]);
-                return;
-            }
-            const { path } = this._focusedItem;
-            if (path && path?.length > 0) {
-                const currentItemIndex = path[path.length - 1];
-                const hasParent = path.length > 1;
-                if (currentItemIndex > 0) {
-                    const newPath = [...path];
-                    newPath[newPath.length - 1] = currentItemIndex - 1;
-                    const prevSibling = this._getItemByPath(newPath);
-                    let newFocusedItem = prevSibling;
-                    if (prevSibling?.open && prevSibling.subItems?.length) {
-                        const { subItems } = prevSibling;
-                        newFocusedItem = subItems[subItems.length - 1];
-                    }
-                    this._focusItem(newFocusedItem);
-                }
-                else {
-                    if (hasParent) {
-                        const newPath = [...path];
-                        newPath.pop();
-                        this._focusItem(this._getItemByPath(newPath));
-                    }
-                }
-            }
-            else {
-                this._focusItem(this._data[0]);
-            }
-        }
-        _focusNextItem() {
-            if (!this._focusedItem) {
-                this._focusItem(this._data[0]);
-                return;
-            }
-            const { path, open } = this._focusedItem;
-            if (open &&
-                Array.isArray(this._focusedItem.subItems) &&
-                this._focusedItem.subItems.length > 0) {
-                this._focusItem(this._focusedItem.subItems[0]);
-                return;
-            }
-            const nextPath = [...path];
-            nextPath[nextPath.length - 1] += 1;
-            let nextFocusedItem = this._getItemByPath(nextPath);
-            if (nextFocusedItem) {
-                this._focusItem(nextFocusedItem);
-            }
-            else {
-                nextPath.pop();
-                if (nextPath.length > 0) {
-                    nextPath[nextPath.length - 1] += 1;
-                    nextFocusedItem = this._getItemByPath(nextPath);
-                    if (nextFocusedItem) {
-                        this._focusItem(nextFocusedItem);
-                    }
-                }
-            }
-        }
-        _handleClick(event) {
-            const composedPath = event.composedPath();
-            const targetElement = composedPath.find((el) => el.tagName &&
-                el.tagName.toUpperCase() === 'LI');
-            if (targetElement) {
-                const pathStr = targetElement.dataset.path || '';
-                const path = pathStr.split('/').map((el) => Number(el));
-                const item = this._getItemByPath(path);
-                this._selectItem(item);
-            }
-            else {
-                if (this._focusedItem) {
-                    this._focusedItem.focused = false;
-                }
-                this._focusedItem = null;
-            }
-        }
-        _handleComponentKeyDown(ev) {
-            const keys = [
-                ' ',
-                'ArrowDown',
-                'ArrowUp',
-                'Enter',
-                'Escape',
-            ];
-            const key = ev.key;
-            if (keys.includes(ev.key)) {
-                ev.stopPropagation();
-                ev.preventDefault();
-            }
-            if (key === 'Escape') {
-                this._focusedItem = null;
-            }
-            if (key === 'ArrowUp') {
-                this._focusPrevItem();
-            }
-            if (key === 'ArrowDown') {
-                this._focusNextItem();
-            }
-            if (key === 'Enter' || key === ' ') {
-                if (this._focusedItem) {
-                    this._selectItem(this._focusedItem);
-                }
-            }
-        }
-        render() {
-            const classes = e({
-                multi: this.multiline,
-                single: !this.multiline,
-                wrapper: true,
-                'has-not-focused-item': !this._focusedItem,
-                'selection-none': !this._selectedItem,
-                'selection-single': this._selectedItem !== null,
-            });
-            return x `
-      <div @click=${this._handleClick} class=${classes}>
+    `}_renderTree(e,t=[]){let o=[];return e?(e.forEach((i,s)=>{let n=[...t,s],l=ht(i)?"branch":"leaf",{selected:d=!1,focused:b=!1,hasFocusedItem:y=!1,hasSelectedItem:v=!1}=i;d&&(this._selectedItem=i),b&&(this._focusedItem=i),o.push(this._renderTreeItem(i,{path:n,itemType:l,hasFocusedItem:y,hasSelectedItem:v}))}),o):m}_selectItem(e){this._selectedItem&&(this._selectedItem.selected=!1),this._focusedItem&&(this._focusedItem.focused=!1),this._selectedItem=e,e.selected=!0,this._focusedItem=e,e.focused=!0,this._selectedBranch&&(this._selectedBranch.hasSelectedItem=!1);let t=null;if(e.path?.length&&e.path.length>1&&(t=this._getItemByPath(e.path.slice(0,-1))),ht(e))this._selectedBranch=e,e.hasSelectedItem=!0,e.open=!e.open,e.open?(this._selectedBranch=e,e.hasSelectedItem=!0):t&&(this._selectedBranch=t,t.hasSelectedItem=!0);else if(e.path?.length&&e.path.length>1){let o=this._getItemByPath(e.path.slice(0,-1));o&&(this._selectedBranch=o,o.hasSelectedItem=!0)}else this._selectedBranch=e,e.hasSelectedItem=!0;this._emitSelectEvent(this._selectedItem,this._selectedItem.path.join("/")),this.requestUpdate()}_focusItem(e){this._focusedItem&&(this._focusedItem.focused=!1),this._focusedItem=e,e.focused=!0;let t=!!e?.subItems?.length;this._focusedBranch&&(this._focusedBranch.hasFocusedItem=!1);let o=null;e.path?.length&&e.path.length>1&&(o=this._getItemByPath(e.path.slice(0,-1))),t?e.open?(this._focusedBranch=e,e.hasFocusedItem=!0):!e.open&&o&&(this._focusedBranch=o,o.hasFocusedItem=!0):o&&(this._focusedBranch=o,o.hasFocusedItem=!0)}_closeSubTreeRecursively(e){e.forEach(t=>{t.open=!1,t.subItems&&t.subItems.length>0&&this._closeSubTreeRecursively(t.subItems)})}_deselectItemsRecursively(e){e.forEach(t=>{t.selected&&(t.selected=!1),t.subItems&&t.subItems.length>0&&this._deselectItemsRecursively(t.subItems)})}_emitSelectEvent(e,t){let{icons:o,label:i,open:s,value:n}=e,l={icons:o,itemType:ht(e)?"branch":"leaf",label:i,open:s||!1,value:n||i,path:t};this.dispatchEvent(new CustomEvent("vsc-select",{bubbles:!0,composed:!0,detail:l})),this.dispatchEvent(new CustomEvent("vsc-tree-select",{detail:l}))}_focusPrevItem(){if(!this._focusedItem){this._focusItem(this._data[0]);return}let{path:e}=this._focusedItem;if(e&&e?.length>0){let t=e[e.length-1],o=e.length>1;if(t>0){let i=[...e];i[i.length-1]=t-1;let s=this._getItemByPath(i),n=s;if(s?.open&&s.subItems?.length){let{subItems:l}=s;n=l[l.length-1]}this._focusItem(n)}else if(o){let i=[...e];i.pop(),this._focusItem(this._getItemByPath(i))}}else this._focusItem(this._data[0])}_focusNextItem(){if(!this._focusedItem){this._focusItem(this._data[0]);return}let{path:e,open:t}=this._focusedItem;if(t&&Array.isArray(this._focusedItem.subItems)&&this._focusedItem.subItems.length>0){this._focusItem(this._focusedItem.subItems[0]);return}let o=[...e];o[o.length-1]+=1;let i=this._getItemByPath(o);i?this._focusItem(i):(o.pop(),o.length>0&&(o[o.length-1]+=1,i=this._getItemByPath(o),i&&this._focusItem(i)))}_handleClick(e){let o=e.composedPath().find(i=>i.tagName&&i.tagName.toUpperCase()==="LI");if(o){let s=(o.dataset.path||"").split("/").map(l=>Number(l)),n=this._getItemByPath(s);this._selectItem(n)}else this._focusedItem&&(this._focusedItem.focused=!1),this._focusedItem=null}_handleComponentKeyDown(e){let t=[" ","ArrowDown","ArrowUp","Enter","Escape"],o=e.key;t.includes(e.key)&&(e.stopPropagation(),e.preventDefault()),o==="Escape"&&(this._focusedItem=null),o==="ArrowUp"&&this._focusPrevItem(),o==="ArrowDown"&&this._focusNextItem(),(o==="Enter"||o===" ")&&this._focusedItem&&this._selectItem(this._focusedItem)}render(){let e=g({multi:this.multiline,single:!this.multiline,wrapper:!0,"has-not-focused-item":!this._focusedItem,"selection-none":!this._selectedItem,"selection-single":this._selectedItem!==null});return c`
+      <div @click=${this._handleClick} class=${e}>
         <ul>
           ${this._renderTree(this._data)}
         </ul>
       </div>
-    `;
-        }
-    };
-    VscodeTree.styles = styles;
-    __decorate([
-        n$1({ type: Array, reflect: false })
-    ], VscodeTree.prototype, "data", null);
-    __decorate([
-        n$1({ type: Number })
-    ], VscodeTree.prototype, "indent", void 0);
-    __decorate([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTree.prototype, "arrows", void 0);
-    __decorate([
-        n$1({ type: Boolean, reflect: true })
-    ], VscodeTree.prototype, "multiline", void 0);
-    __decorate([
-        n$1({ type: Number, reflect: true })
-    ], VscodeTree.prototype, "tabindex", void 0);
-    __decorate([
-        n$1({ type: Boolean, reflect: true, attribute: 'indent-guides' })
-    ], VscodeTree.prototype, "indentGuides", void 0);
-    __decorate([
-        r$2()
-    ], VscodeTree.prototype, "_selectedItem", void 0);
-    __decorate([
-        r$2()
-    ], VscodeTree.prototype, "_focusedItem", void 0);
-    __decorate([
-        r$2()
-    ], VscodeTree.prototype, "_selectedBranch", void 0);
-    __decorate([
-        r$2()
-    ], VscodeTree.prototype, "_focusedBranch", void 0);
-    VscodeTree = __decorate([
-        customElement('vscode-tree')
-    ], VscodeTree);
-
-    var _default = /*#__PURE__*/Object.freeze({
-        __proto__: null,
-        get VscodeBadge () { return VscodeBadge; },
-        get VscodeButton () { return VscodeButton; },
-        get VscodeCheckbox () { return VscodeCheckbox; },
-        get VscodeCheckboxGroup () { return VscodeCheckboxGroup; },
-        get VscodeCollapsible () { return VscodeCollapsible; },
-        get VscodeContextMenu () { return VscodeContextMenu; },
-        get VscodeContextMenuItem () { return VscodeContextMenuItem; },
-        get VscodeDivider () { return VscodeDivider; },
-        get VscodeFormContainer () { return VscodeFormContainer; },
-        get VscodeFormGroup () { return VscodeFormGroup; },
-        get VscodeFormHelper () { return VscodeFormHelper; },
-        get VscodeIcon () { return VscodeIcon; },
-        get VscodeLabel () { return VscodeLabel; },
-        get VscodeMultiSelect () { return VscodeMultiSelect; },
-        get VscodeOption () { return VscodeOption; },
-        get VscodeProgressRing () { return VscodeProgressRing; },
-        get VscodeRadio () { return VscodeRadio; },
-        get VscodeRadioGroup () { return VscodeRadioGroup; },
-        get VscodeScrollable () { return VscodeScrollable; },
-        get VscodeSingleSelect () { return VscodeSingleSelect; },
-        get VscodeSplitLayout () { return VscodeSplitLayout; },
-        get VscodeTabHeader () { return VscodeTabHeader; },
-        get VscodeTabPanel () { return VscodeTabPanel; },
-        get VscodeTable () { return VscodeTable; },
-        get VscodeTableBody () { return VscodeTableBody; },
-        get VscodeTableCell () { return VscodeTableCell; },
-        get VscodeTableHeader () { return VscodeTableHeader; },
-        get VscodeTableHeaderCell () { return VscodeTableHeaderCell; },
-        get VscodeTableRow () { return VscodeTableRow; },
-        get VscodeTabs () { return VscodeTabs; },
-        get VscodeTextarea () { return VscodeTextarea; },
-        get VscodeTextfield () { return VscodeTextfield; },
-        get VscodeToolbarButton () { return VscodeToolbarButton; },
-        get VscodeToolbarContainer () { return VscodeToolbarContainer; },
-        get VscodeTree () { return VscodeTree; }
-    });
-
-    var _virtual_index = { _default };
-
-    return _virtual_index;
-
-})();
+    `}};q.styles=Cs;le([a({type:Array,reflect:!1})],q.prototype,"data",null);le([a({type:Number})],q.prototype,"indent",void 0);le([a({type:Boolean,reflect:!0})],q.prototype,"arrows",void 0);le([a({type:Boolean,reflect:!0})],q.prototype,"multiline",void 0);le([a({type:Number,reflect:!0})],q.prototype,"tabindex",void 0);le([a({type:Boolean,reflect:!0,attribute:"indent-guides"})],q.prototype,"indentGuides",void 0);le([_()],q.prototype,"_selectedItem",void 0);le([_()],q.prototype,"_focusedItem",void 0);le([_()],q.prototype,"_selectedBranch",void 0);le([_()],q.prototype,"_focusedBranch",void 0);q=le([p("vscode-tree")],q);var Xi={_default:eo};return Ls(Zi);})();
 
 
 	npmCompilation['1608514c9acd4a97df63533df1b9d0fd'] = {};
-npmCompilation['1608514c9acd4a97df63533df1b9d0fd']['VscodeElement'] = _['_default'];
+npmCompilation['1608514c9acd4a97df63533df1b9d0fd']['VscodeElement'] = _.default['_default'];
 
 })(npmCompilation);
 if(!Object.hasOwn(window, "AvInstance")) {
 	Object.defineProperty(window, "AvInstance", {
-		get() {return Aventus.Instance;}
+		get() {return Aventus?.Instance;}
 	});
 
 	(() => {
@@ -9742,11 +2913,6 @@ const _ = {};
 
 
 let _n;
-let sleep=function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-__as1(_, 'sleep', sleep);
-
 let uuidv4=function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
     return uid;
@@ -9776,6 +2942,12 @@ let DateConverter=class DateConverter {
 }
 DateConverter.Namespace=`Aventus`;
 __as1(_, 'DateConverter', DateConverter);
+
+let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
+__as1(_, 'DragElementXYType', DragElementXYType);
+
+let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
+__as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 
 let ActionGuard=class ActionGuard {
     /**
@@ -9832,12 +3004,6 @@ let ActionGuard=class ActionGuard {
 }
 ActionGuard.Namespace=`Aventus`;
 __as1(_, 'ActionGuard', ActionGuard);
-
-let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
-__as1(_, 'DragElementXYType', DragElementXYType);
-
-let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
-__as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 
 let ElementExtension=class ElementExtension {
     /**
@@ -9912,7 +3078,10 @@ let ElementExtension=class ElementExtension {
             tagname = [tagname.toLowerCase()];
         }
         const checkFunc = (el) => {
-            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            if (el instanceof Element) {
+                return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            }
+            return tagname.indexOf(el.nodeName.toLowerCase()) != -1;
         };
         return this.findParent(element, checkFunc, untilNode);
     }
@@ -9925,7 +3094,7 @@ let ElementExtension=class ElementExtension {
         }
         const check = (el) => {
             for (let classnameTemp of classname) {
-                if (el['classList'] && el['classList'].contains(classnameTemp)) {
+                if (el instanceof Element && el['classList'].contains(classnameTemp)) {
                     return true;
                 }
             }
@@ -9972,7 +3141,10 @@ let ElementExtension=class ElementExtension {
             tagname = [tagname.toLowerCase()];
         }
         let check = (el) => {
-            return tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1;
+            if (el instanceof Element) {
+                return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            }
+            return tagname.indexOf(el.nodeName.toLowerCase()) != -1;
         };
         return this.findParents(element, check, untilNode);
     }
@@ -9980,8 +3152,8 @@ let ElementExtension=class ElementExtension {
      * Check if element contains a child
      */
     static containsChild(element, child) {
-        var rootScope = element.getRootNode();
-        var elScope = child.getRootNode();
+        let rootScope = element.getRootNode();
+        let elScope = child.getRootNode();
         while (elScope != rootScope) {
             if (!elScope['host']) {
                 return false;
@@ -10079,7 +3251,7 @@ let ElementExtension=class ElementExtension {
      * Get deeper element inside dom at the position X and Y
      */
     static getElementAtPosition(x, y, startFrom) {
-        var _realTarget = (el, i = 0) => {
+        const _realTarget = (el, i = 0) => {
             if (i == 50) {
                 debugger;
             }
@@ -10497,7 +3669,7 @@ let Callback=class Callback {
 Callback.Namespace=`Aventus`;
 __as1(_, 'Callback', Callback);
 
-let compareObject=function compareObject(obj1, obj2) {
+let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -10506,17 +3678,27 @@ let compareObject=function compareObject(obj1, obj2) {
         if (obj1.length !== obj2.length) {
             return false;
         }
-        for (let i = 0; i < obj1.length; i++) {
-            let foundElement = false;
-            for (let j = 0; j < obj2.length; j++) {
-                if (compareObject(obj1[i], obj2[j])) {
-                    obj2.splice(j, 1);
-                    foundElement = true;
-                    break;
+        if (tableOrder) {
+            for (let i = 0; i < obj1.length; i++) {
+                if (!compareObject(obj1[i], obj2[i])) {
+                    return false;
                 }
             }
-            if (!foundElement) {
-                return false;
+            return true;
+        }
+        else {
+            for (let i = 0; i < obj1.length; i++) {
+                let foundElement = false;
+                for (let j = 0; j < obj2.length; j++) {
+                    if (compareObject(obj1[i], obj2[j])) {
+                        obj2.splice(j, 1);
+                        foundElement = true;
+                        break;
+                    }
+                }
+                if (!foundElement) {
+                    return false;
+                }
             }
         }
         return true;
@@ -10669,8 +3851,8 @@ let Effect=class Effect {
         }
         else {
             cb = (action, changePath, value, dones) => {
-                // if(changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
-                if (changePath == path) {
+                if (changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
+                    // if(changePath == path) {
                     this.onChange(action, changePath, value, dones);
                 }
             };
@@ -10779,6 +3961,13 @@ Signal.Namespace=`Aventus`;
 __as1(_, 'Signal', Signal);
 
 let Watcher=class Watcher {
+    static isNative(obj) {
+        if (obj instanceof Blob ||
+            obj instanceof Element ||
+            obj instanceof Window)
+            return true;
+        return false;
+    }
     constructor() { }
     ;
     static __reservedName = {
@@ -10803,16 +3992,6 @@ let Watcher=class Watcher {
             return obj;
         }
         const reservedName = this.__reservedName;
-        const clearReservedNames = (data) => {
-            if (data instanceof Object && !data.__isProxy) {
-                for (let key in reservedName) {
-                    delete data[key];
-                }
-                for (let key in data) {
-                    clearReservedNames(data[key]);
-                }
-            }
-        };
         const setProxyPath = (newProxy, newPath) => {
             if (newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
@@ -10883,7 +4062,7 @@ let Watcher=class Watcher {
                         }
                     }
                     if (apply) {
-                        let result = Reflect.set(target, prop, unbindElement, receiver);
+                        let result = this.isNative(target) ? Reflect.set(target, prop, unbindElement) : Reflect.set(target, prop, unbindElement, receiver);
                     }
                     element.__addAlias(proxyData.baseData, oldPath, (type, target, receiver2, value, prop2, dones) => {
                         let triggerPath;
@@ -10901,7 +4080,7 @@ let Watcher=class Watcher {
                         let newProp = splitted.pop();
                         let newReceiver = getValueFromObject(splitted.join("."), realProxy);
                         if (newReceiver.getTarget(false) == target)
-                            trigger(type, target, newReceiver, value, newProp, dones);
+                            trigger(type, target, newReceiver, value, newProp ?? '', dones);
                     });
                     internalAliases[fullInternalPath] = {
                         unbind: () => {
@@ -11070,7 +4249,7 @@ let Watcher=class Watcher {
                 else if (prop == "getTarget") {
                     return (clear = true) => {
                         if (clear)
-                            clearReservedNames(target);
+                            Watcher.clearReservedNames(target);
                         return target;
                     };
                 }
@@ -11123,7 +4302,7 @@ let Watcher=class Watcher {
             },
             get(target, prop, receiver) {
                 if (typeof prop == 'symbol') {
-                    return Reflect.get(target, prop, receiver);
+                    return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
                 }
                 if (reservedName[prop]) {
                     return target[prop];
@@ -11211,6 +4390,7 @@ let Watcher=class Watcher {
                                 };
                             }
                         }
+                        // else if(prop == 'find') {
                         else {
                             result = element.bind(target);
                         }
@@ -11304,13 +4484,15 @@ let Watcher=class Watcher {
                 if (typeof (element) == 'object') {
                     return this.getProxyObject(target, element, prop);
                 }
-                return Reflect.get(target, prop, receiver);
+                return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
                 if (typeof prop == 'symbol') {
+                    if (Watcher.isNative(target))
+                        return Reflect.set(target, prop, value);
                     return Reflect.set(target, prop, value, receiver);
                 }
-                let oldValue = Reflect.get(target, prop, receiver);
+                let oldValue = Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver, true);
                 if (value instanceof Signal) {
                     value = value.value;
@@ -11331,7 +4513,7 @@ let Watcher=class Watcher {
                         triggerChange = true;
                     }
                 }
-                let result = Reflect.set(target, prop, value, receiver);
+                let result = Watcher.isNative(target) ? Reflect.set(target, prop, value) : Reflect.set(target, prop, value, receiver);
                 if (triggerChange) {
                     let index = this.avoidUpdate.indexOf(prop);
                     if (index == -1) {
@@ -11379,7 +4561,7 @@ let Watcher=class Watcher {
                     }
                     delete target[prop];
                     if (triggerChange) {
-                        clearReservedNames(oldValue);
+                        Watcher.clearReservedNames(oldValue);
                         trigger('DELETED', target, null, oldValue, prop);
                     }
                     return true;
@@ -11491,7 +4673,12 @@ let Watcher=class Watcher {
             }
             dones.push(proxyData.baseData);
             let aliasesDone = [];
-            for (let name in proxyData.callbacks) {
+            const callbacks = { ...proxyData.callbacks };
+            for (let name in callbacks) {
+                callbacks[name] = [...callbacks[name]];
+            }
+            for (let name in callbacks) {
+                // for(let name in proxyData.callbacks) {
                 let pathToSend = rootPath;
                 if (name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
@@ -11516,7 +4703,7 @@ let Watcher=class Watcher {
                         path: pathToSend
                     });
                 }
-                let cbs = [...proxyData.callbacks[name]];
+                let cbs = callbacks[name];
                 for (let cb of cbs) {
                     try {
                         cb(WatchAction[type], pathToSend, value, dones);
@@ -11574,6 +4761,21 @@ let Watcher=class Watcher {
     }
     static is(obj) {
         return typeof obj == 'object' && obj.__isProxy;
+    }
+    static clearReservedNames(data) {
+        if (data instanceof Object && !data.__isProxy) {
+            for (let key in this.__reservedName) {
+                delete data[key];
+            }
+            for (let key in data) {
+                this.clearReservedNames(data[key]);
+            }
+        }
+        else if (Array.isArray(data)) {
+            for (let item of data) {
+                this.clearReservedNames(item);
+            }
+        }
     }
     static extract(obj, clearPath = false) {
         if (this.is(obj)) {
@@ -11916,7 +5118,8 @@ let PressManager=class PressManager {
         }
     }
     pointerEventTriggered = false;
-    downActionDelay(ev) {
+    downActionDelay(_ev) {
+        const ev = _ev;
         if (!this.pointerEventTriggered) {
             this.downAction(ev);
         }
@@ -11927,7 +5130,8 @@ let PressManager=class PressManager {
             this.pointerEventTriggered = false;
         }, 0);
     }
-    downAction(ev) {
+    downAction(_ev) {
+        const ev = _ev;
         this.pointerEventTriggered = true;
         const isFirst = Object.values(this.pointersRecord).length == 0;
         if (!this.registerEvent(ev)) {
@@ -12015,7 +5219,8 @@ let PressManager=class PressManager {
             }
         }
     }
-    upAction(ev) {
+    upAction(_ev) {
+        const ev = _ev;
         if (!this.unregisterEvent(ev)) {
             if (this.stopPropagation()) {
                 ev.stopImmediatePropagation();
@@ -12073,7 +5278,8 @@ let PressManager=class PressManager {
             }
         }
     }
-    moveAction(ev) {
+    moveAction(_ev) {
+        const ev = _ev;
         const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
@@ -12088,7 +5294,8 @@ let PressManager=class PressManager {
         //     this.emitTriggerFunctionParent("pressmove", e);
         this.emitTriggerFunction("pressmove", e);
     }
-    childPressStart(e) {
+    childPressStart(_e) {
+        const e = _e;
         if (this.lastEmitEvent == e.detail.realEvent)
             return;
         this.genericDownAction(e.detail.state, e.detail.realEvent);
@@ -12096,7 +5303,8 @@ let PressManager=class PressManager {
             this.options.onPressStart(e.detail.realEvent, this);
         }
     }
-    childPressEnd(e) {
+    childPressEnd(_e) {
+        const e = _e;
         this.unregisterEvent(e.detail.realEvent.event);
         if (Object.values(this.pointersRecord).length == 0) {
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
@@ -12112,7 +5320,8 @@ let PressManager=class PressManager {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
-    childPressMove(e) {
+    childPressMove(_e) {
+        const e = _e;
         if (this.lastEmitEvent == e.detail.realEvent)
             return;
         this.genericMoveAction(e.detail.state, e.detail.realEvent);
@@ -12949,6 +6158,10 @@ let TemplateInstance=class TemplateInstance {
         if (event.isCallback) {
             for (let el of this._components[event.id]) {
                 let cb = getValueFromObject(event.eventName, el);
+                if (!cb && el.tagName.includes('-')) {
+                    customElements.upgrade(el);
+                    cb = getValueFromObject(event.eventName, el);
+                }
                 cb?.add((...args) => {
                     try {
                         return event.fct(this.context, args);
@@ -12978,11 +6191,12 @@ let TemplateInstance=class TemplateInstance {
             let clone = {};
             for (let temp in event) {
                 if (temp != 'id') {
-                    if (event[temp] instanceof Function) {
-                        clone[temp] = (e, pressInstance) => { event[temp](e, pressInstance, this.context); };
+                    const ev = event;
+                    if (ev[temp] instanceof Function) {
+                        clone[temp] = (e, pressInstance) => { ev[temp](e, pressInstance, this.context); };
                     }
                     else {
-                        clone[temp] = event[temp];
+                        clone[temp] = ev[temp];
                     }
                 }
             }
@@ -13096,6 +6310,7 @@ let TemplateInstance=class TemplateInstance {
         });
         this.firstRenderCb.push(() => {
             for (const el of this._components[injection.id]) {
+                customElements.upgrade(el);
                 el[injection.injectionName] = computed.value;
             }
         });
@@ -13131,6 +6346,7 @@ let TemplateInstance=class TemplateInstance {
         });
         this.firstRenderCb.push(() => {
             for (const el of this._components[binding.id]) {
+                customElements.upgrade(el);
                 el[binding.injectionName] = computed.value;
             }
         });
@@ -13139,6 +6355,10 @@ let TemplateInstance=class TemplateInstance {
                 for (var el of this._components[binding.id]) {
                     for (let fct of binding.eventNames) {
                         let cb = getValueFromObject(fct, el);
+                        if (!cb && el.tagName.includes('-')) {
+                            customElements.upgrade(el);
+                            cb = getValueFromObject(binding.injectionName, el);
+                        }
                         cb?.add((value) => {
                             let valueToSet = getValueFromObject(binding.injectionName, el);
                             isLocalChange = true;
@@ -13152,6 +6372,7 @@ let TemplateInstance=class TemplateInstance {
         else {
             this.firstRenderCb.push(() => {
                 for (var el of this._components[binding.id]) {
+                    customElements.upgrade(el);
                     for (let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
                             let valueToSet = getValueFromObject(binding.injectionName, e.target);
@@ -13291,6 +6512,8 @@ let TemplateInstance=class TemplateInstance {
             let regexArray = new RegExp("^\\[(\\d+?)\\]$");
             let regexObject = new RegExp("^([^\\.]*)$");
             let sub = (action, path, value) => {
+                if (this.isDestroyed)
+                    return;
                 if (path == "") {
                     this.renderLoopSimple(loop, simple);
                     return;
@@ -13985,36 +7208,38 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
     __upgradeProperty(prop) {
         let boolProps = this.__listBoolProps();
+        const t = this;
         if (boolProps.indexOf(prop) != -1) {
             if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
                 let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
+                delete t[prop];
+                t[prop] = value;
             }
             else {
                 this.removeAttribute(prop);
-                delete this[prop];
-                this[prop] = false;
+                delete t[prop];
+                t[prop] = false;
             }
         }
         else {
             if (this.hasAttribute(prop)) {
                 let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
+                delete t[prop];
+                t[prop] = value;
             }
             else if (Object.hasOwn(this, prop)) {
-                const value = this[prop];
-                delete this[prop];
-                this[prop] = value;
+                const value = t[prop];
+                delete t[prop];
+                t[prop] = value;
             }
         }
     }
     __correctGetter(prop) {
         if (Object.hasOwn(this, prop)) {
-            const value = this[prop];
-            delete this[prop];
-            this[prop] = value;
+            const t = this;
+            const value = t[prop];
+            delete t[prop];
+            t[prop] = value;
         }
     }
     __getStateManager(managerClass) {
@@ -14286,7 +7511,7 @@ let WebComponent=class WebComponent extends HTMLElement {
                 },
                 onChange() {
                     for (let fct of this.__subscribes) {
-                        fct(WatchAction.UPDATED, name, that[name]);
+                        fct(WatchAction.UPDATED, name, that[name], []);
                     }
                 },
                 __path: name
@@ -14485,7 +7710,8 @@ let ResizeObserver=class ResizeObserver {
                 let allClasses = [];
                 for (let j = 0; j < entries.length; j++) {
                     let entry = entries[j];
-                    let index = entry.target['sourceIndex'];
+                    const target = entry.target;
+                    let index = target['sourceIndex'];
                     if (ResizeObserver.resizeObserverClassByObject[index]) {
                         for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
                             let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
@@ -14529,33 +7755,35 @@ let ResizeObserver=class ResizeObserver {
      * Observe size changing for the element
      */
     observe(target) {
-        if (!target["sourceIndex"]) {
-            target["sourceIndex"] = Math.random().toString(36);
-            this.targets.push(target);
-            ResizeObserver.getUniqueInstance().observe(target);
+        const _target = target;
+        if (!_target["sourceIndex"]) {
+            _target["sourceIndex"] = Math.random().toString(36);
+            this.targets.push(_target);
+            ResizeObserver.getUniqueInstance().observe(_target);
         }
-        if (!ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]]) {
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
+        if (!ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]]) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]] = [];
         }
-        if (ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].indexOf(this) == -1) {
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].push(this);
+        if (ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].indexOf(this) == -1) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].push(this);
         }
     }
     /**
      * Stop observing size changing for the element
      */
     unobserve(target) {
+        const _target = target;
         for (let i = 0; this.targets.length; i++) {
             let tempTarget = this.targets[i];
-            if (tempTarget == target) {
-                let position = ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].indexOf(this);
+            if (tempTarget == _target) {
+                let position = ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].indexOf(this);
                 if (position != -1) {
-                    ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].splice(position, 1);
+                    ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].splice(position, 1);
                 }
-                if (ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].length == 0) {
-                    delete ResizeObserver.resizeObserverClassByObject[target['sourceIndex']];
+                if (ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].length == 0) {
+                    delete ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
                 }
-                ResizeObserver.getUniqueInstance().unobserve(target);
+                ResizeObserver.getUniqueInstance().unobserve(_target);
                 this.targets.splice(i, 1);
                 return;
             }
@@ -14570,7 +7798,8 @@ let ResizeObserver=class ResizeObserver {
         }
     }
     entryChanged(entry) {
-        let index = entry.target.sourceIndex;
+        const _target = entry.target;
+        let index = _target.sourceIndex;
         this.entriesChangedEvent[index] = entry;
     }
     triggerCb() {
@@ -14593,7 +7822,7 @@ let ResizeObserver=class ResizeObserver {
         this.entriesChangedEvent = {};
         this.willTrigger = false;
         setTimeout(() => {
-            this.callback(changed);
+            this.callback(changed, ResizeObserver.uniqueInstance);
         }, 0);
     }
 }
@@ -14805,7 +8034,8 @@ let DragAndDrop=class DragAndDrop {
     }
     defaultMerge(options, name) {
         if (options[name] !== void 0) {
-            this.options[name] = options[name];
+            const opts = this.options;
+            opts[name] = options[name];
         }
     }
     positionShadowRelativeToElement = { x: 0, y: 0 };
@@ -15371,8 +8601,11 @@ let ConverterTransform=class ConverterTransform {
         for (let prop of props) {
             let propInfo = Object.getOwnPropertyDescriptor(target, prop);
             if (propInfo?.writable) {
-                if (options.isValidKey(prop))
-                    target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+                if (options.isValidKey(prop)) {
+                    const _target = target;
+                    const _src = src;
+                    _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
+                }
             }
         }
         let cstTemp = target.constructor;
@@ -15381,8 +8614,11 @@ let ConverterTransform=class ConverterTransform {
             for (let prop of props) {
                 let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
                 if (propInfo?.set && propInfo.get) {
-                    if (options.isValidKey(prop))
-                        target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+                    if (options.isValidKey(prop)) {
+                        const _target = target;
+                        const _src = src;
+                        _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
+                    }
                 }
             }
             cstTemp = Object.getPrototypeOf(cstTemp);
@@ -15423,7 +8659,8 @@ let Json=class Json {
                 if (options.isValidKey(key)) {
                     let descriptor = descriptorsClass[key];
                     if (descriptor?.get) {
-                        result[options.replaceKey(key)] = options.transformValue(key, obj[key]);
+                        const o = obj;
+                        result[options.replaceKey(key)] = options.transformValue(key, o[key]);
                     }
                 }
             }
@@ -15456,7 +8693,8 @@ let Json=class Json {
             if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                 let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
                 if (propInfo?.writable) {
-                    obj[prop] = options.transformValue(prop, value);
+                    const o = obj;
+                    o[prop] = options.transformValue(prop, value);
                 }
             }
         }
@@ -15469,7 +8707,8 @@ let Json=class Json {
                 if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                     let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
                     if (propInfo?.set) {
-                        obj[prop] = options.transformValue(prop, value);
+                        const o = obj;
+                        o[prop] = options.transformValue(prop, value);
                     }
                 }
             }
@@ -15551,7 +8790,7 @@ let Converter=class Converter {
 Converter.Namespace=`Aventus`;
 __as1(_, 'Converter', Converter);
 
-let Data=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let Data=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class Data {
     static converter = new Converter();
     /**
@@ -15605,7 +8844,7 @@ Data.$schema={"namespace":"string","$type":"string","className":"string"};
 Converter.register(Data.Fullname, Data);
 __as1(_, 'Data', Data);
 
-let GenericError=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let GenericError=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class GenericError {
     static converter = new Converter();
     static get Fullname() { return "Aventus.GenericError"; }
@@ -15624,11 +8863,16 @@ class GenericError {
     /**
      * Creates a new instance of GenericError.
      * @param {EnumValue<T>} code - The error code.
-     * @param {string} message - The error message.
+     * @param {string | Error | unknown} message - The error message.
      */
     constructor(code, message) {
         this.code = code;
-        this.message = message + '';
+        if (message instanceof Error) {
+            this.message = message.message;
+        }
+        else {
+            this.message = message + '';
+        }
     }
 }
 GenericError.Namespace=`Aventus`;
@@ -15816,6 +9060,9 @@ Aventus.Converter.register(Error.Fullname, Error);
 __as1(_, 'Error', Error);
 
 let Router=class Router {
+    static get isVscode() {
+        return 'acquireVsCodeApi' in window;
+    }
     static getInstance() {
         return Aventus.Instance.get(Router);
     }
@@ -15908,7 +9155,10 @@ let Router=class Router {
         return new Promise(async (resolve) => {
             let result = new Aventus.ResultWithError();
             try {
-                let _uid = options.uid ? options.uid : Aventus.uuidv4();
+                let _uid = options.uid;
+                if (!_uid) {
+                    _uid = Aventus.uuidv4();
+                }
                 options.uid = _uid;
                 let timeoutInfo;
                 this.waitingList[_uid] = (channel, data) => {
@@ -15972,14 +9222,35 @@ let Layout = {};
 _.Layout = Aventus.Layout ?? {};
 let _n;
 let Tracker=class Tracker {
+    /**
+     * Multiplier for velocity calculations based on device pixel ratio.
+     */
     velocityMultiplier = window.devicePixelRatio;
+    /**
+     * Timestamp of the last update.
+     */
     updateTime = Date.now();
+    /**
+     * Change in position since the last update.
+     */
     delta = { x: 0, y: 0 };
+    /**
+     * Current velocity of the tracker.
+     */
     velocity = { x: 0, y: 0 };
+    /**
+     * Last recorded position.
+     */
     lastPosition = { x: 0, y: 0 };
+    /**
+     * Initializes a new Tracker instance.
+     */
     constructor(touch) {
         this.lastPosition = this.getPosition(touch);
     }
+    /**
+     * Updates the tracker's position, delta, and velocity.
+     */
     update(touch) {
         const { velocity, updateTime, lastPosition, } = this;
         const now = Date.now();
@@ -15997,9 +9268,15 @@ let Tracker=class Tracker {
         this.updateTime = now;
         this.lastPosition = position;
     }
+    /**
+     * Extracts pointer data from a given event.
+     */
     getPointerData(evt) {
         return evt.touches ? evt.touches[evt.touches.length - 1] : evt;
     }
+    /**
+     * Retrieves the client coordinates from a pointer event.
+     */
     getPosition(evt) {
         const data = this.getPointerData(evt);
         return {
@@ -16012,14 +9289,29 @@ Tracker.Namespace=`Aventus`;
 __as1(_, 'Tracker', Tracker);
 
 let TouchRecord=class TouchRecord {
+    /**
+     * The identifier of the currently active touch/pointer.
+     */
     _activeTouchID;
+    /**
+     * A map of active touch/pointer IDs to their respective Trackers.
+     */
     _touchList = {};
+    /**
+     * Returns a primitive zero-value coordinate object.
+     */
     get _primitiveValue() {
         return { x: 0, y: 0 };
     }
+    /**
+     * Checks if there is an active touch/pointer event.
+     */
     isActive() {
         return this._activeTouchID !== undefined;
     }
+    /**
+     * Retrieves the delta movement of the active tracker.
+     */
     getDelta() {
         const tracker = this._getActiveTracker();
         if (!tracker) {
@@ -16027,6 +9319,9 @@ let TouchRecord=class TouchRecord {
         }
         return { ...tracker.delta };
     }
+    /**
+     * Retrieves the velocity of the active tracker.
+     */
     getVelocity() {
         const tracker = this._getActiveTracker();
         if (!tracker) {
@@ -16034,12 +9329,21 @@ let TouchRecord=class TouchRecord {
         }
         return { ...tracker.velocity };
     }
+    /**
+     * Returns the number of active touch/pointer events.
+     */
     getNbOfTouches() {
         return Object.values(this._touchList).length;
     }
+    /**
+     * Returns an array of active Tracker instances.
+     */
     getTouches() {
         return Object.values(this._touchList);
     }
+    /**
+     * Calculates the easing distance based on current velocity and damping.
+     */
     getEasingDistance(damping) {
         const deAcceleration = 1 - damping;
         let distance = {
@@ -16047,7 +9351,8 @@ let TouchRecord=class TouchRecord {
             y: 0,
         };
         const vel = this.getVelocity();
-        Object.keys(vel).forEach(dir => {
+        Object.keys(vel).forEach((_dir) => {
+            const dir = _dir;
             let v = Math.abs(vel[dir]) <= 10 ? 0 : vel[dir];
             while (v !== 0) {
                 distance[dir] += v;
@@ -16056,6 +9361,9 @@ let TouchRecord=class TouchRecord {
         });
         return distance;
     }
+    /**
+     * Starts tracking new touch/pointer events.
+     */
     track(evt) {
         if ('TouchEvent' in window && evt instanceof TouchEvent) {
             const { targetTouches, } = evt;
@@ -16068,6 +9376,9 @@ let TouchRecord=class TouchRecord {
         }
         return this._touchList;
     }
+    /**
+     * Updates existing tracked touch/pointer events.
+     */
     update(evt) {
         if ('TouchEvent' in window && evt instanceof TouchEvent) {
             const { touches, changedTouches, } = evt;
@@ -16082,6 +9393,9 @@ let TouchRecord=class TouchRecord {
         }
         return this._touchList;
     }
+    /**
+     * Releases tracking for ended touch/pointer events.
+     */
     release(evt) {
         if ('TouchEvent' in window && evt instanceof TouchEvent) {
             Array.from(evt.changedTouches).forEach(touch => {
@@ -16092,6 +9406,9 @@ let TouchRecord=class TouchRecord {
             this._delete(evt);
         }
     }
+    /**
+     * Retrieves a unique identifier for a touch or pointer event.
+     */
     _getIdentifier(touch) {
         if ('Touch' in window && touch instanceof Touch)
             return touch.identifier;
@@ -16099,6 +9416,9 @@ let TouchRecord=class TouchRecord {
             return touch.pointerId;
         return touch.button;
     }
+    /**
+     * Adds a new touch/pointer event to the tracker list.
+     */
     _add(touch) {
         if (this._has(touch)) {
             this._delete(touch);
@@ -16107,6 +9427,9 @@ let TouchRecord=class TouchRecord {
         const identifier = this._getIdentifier(touch);
         this._touchList[identifier] = tracker;
     }
+    /**
+     * Renews an existing touch/pointer event in the tracker list.
+     */
     _renew(touch) {
         if (!this._has(touch)) {
             return;
@@ -16115,6 +9438,9 @@ let TouchRecord=class TouchRecord {
         const tracker = this._touchList[identifier];
         tracker.update(touch);
     }
+    /**
+     * Deletes a touch/pointer event from the tracker list.
+     */
     _delete(touch) {
         const identifier = this._getIdentifier(touch);
         delete this._touchList[identifier];
@@ -16122,10 +9448,16 @@ let TouchRecord=class TouchRecord {
             this._activeTouchID = undefined;
         }
     }
+    /**
+     * Checks if a touch/pointer event is being tracked.
+     */
     _has(touch) {
         const identifier = this._getIdentifier(touch);
         return this._touchList.hasOwnProperty(identifier);
     }
+    /**
+     * Sets the identifier of the currently active touch/pointer event.
+     */
     _setActiveID(touches) {
         if (touches instanceof PointerEvent || touches instanceof MouseEvent) {
             this._activeTouchID = this._getIdentifier(touches);
@@ -16134,6 +9466,9 @@ let TouchRecord=class TouchRecord {
             this._activeTouchID = touches[touches.length - 1].identifier;
         }
     }
+    /**
+     * Retrieves the currently active Tracker instance.
+     */
     _getActiveTracker() {
         const { _touchList, _activeTouchID, } = this;
         if (_activeTouchID !== undefined) {
@@ -16148,21 +9483,36 @@ __as1(_, 'TouchRecord', TouchRecord);
 Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'min_zoom'() { return this.getNumberAttr('min_zoom') }
-    set 'min_zoom'(val) { this.setNumberAttr('min_zoom', val) }get 'max_zoom'() { return this.getNumberAttr('max_zoom') }
-    set 'max_zoom'(val) { this.setNumberAttr('max_zoom', val) }get 'y_scroll_visible'() { return this.getBoolAttr('y_scroll_visible') }
-    set 'y_scroll_visible'(val) { this.setBoolAttr('y_scroll_visible', val) }get 'x_scroll_visible'() { return this.getBoolAttr('x_scroll_visible') }
-    set 'x_scroll_visible'(val) { this.setBoolAttr('x_scroll_visible', val) }get 'floating_scroll'() { return this.getBoolAttr('floating_scroll') }
-    set 'floating_scroll'(val) { this.setBoolAttr('floating_scroll', val) }get 'x_scroll'() { return this.getBoolAttr('x_scroll') }
-    set 'x_scroll'(val) { this.setBoolAttr('x_scroll', val) }get 'y_scroll'() { return this.getBoolAttr('y_scroll') }
-    set 'y_scroll'(val) { this.setBoolAttr('y_scroll', val) }get 'auto_hide'() { return this.getBoolAttr('auto_hide') }
-    set 'auto_hide'(val) { this.setBoolAttr('auto_hide', val) }get 'break'() { return this.getNumberAttr('break') }
-    set 'break'(val) { this.setNumberAttr('break', val) }get 'disable'() { return this.getBoolAttr('disable') }
-    set 'disable'(val) { this.setBoolAttr('disable', val) }get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
-    set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }get 'mouse_drag'() { return this.getBoolAttr('mouse_drag') }
-    set 'mouse_drag'(val) { this.setBoolAttr('mouse_drag', val) }get 'pinch'() { return this.getBoolAttr('pinch') }
-    set 'pinch'(val) { this.setBoolAttr('pinch', val) }get 'flex'() { return this.getBoolAttr('flex') }
-    set 'flex'(val) { this.setBoolAttr('flex', val) }    get 'zoom'() { return this.getNumberProp('zoom') }
-    set 'zoom'(val) { this.setNumberAttr('zoom', val) }    observer;
+    set 'min_zoom'(val) { this.setNumberAttr('min_zoom', val) }
+get 'max_zoom'() { return this.getNumberAttr('max_zoom') }
+    set 'max_zoom'(val) { this.setNumberAttr('max_zoom', val) }
+get 'y_scroll_visible'() { return this.getBoolAttr('y_scroll_visible') }
+    set 'y_scroll_visible'(val) { this.setBoolAttr('y_scroll_visible', val) }
+get 'x_scroll_visible'() { return this.getBoolAttr('x_scroll_visible') }
+    set 'x_scroll_visible'(val) { this.setBoolAttr('x_scroll_visible', val) }
+get 'floating_scroll'() { return this.getBoolAttr('floating_scroll') }
+    set 'floating_scroll'(val) { this.setBoolAttr('floating_scroll', val) }
+get 'x_scroll'() { return this.getBoolAttr('x_scroll') }
+    set 'x_scroll'(val) { this.setBoolAttr('x_scroll', val) }
+get 'y_scroll'() { return this.getBoolAttr('y_scroll') }
+    set 'y_scroll'(val) { this.setBoolAttr('y_scroll', val) }
+get 'auto_hide'() { return this.getBoolAttr('auto_hide') }
+    set 'auto_hide'(val) { this.setBoolAttr('auto_hide', val) }
+get 'break'() { return this.getNumberAttr('break') }
+    set 'break'(val) { this.setNumberAttr('break', val) }
+get 'disable'() { return this.getBoolAttr('disable') }
+    set 'disable'(val) { this.setBoolAttr('disable', val) }
+get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
+    set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }
+get 'mouse_drag'() { return this.getBoolAttr('mouse_drag') }
+    set 'mouse_drag'(val) { this.setBoolAttr('mouse_drag', val) }
+get 'pinch'() { return this.getBoolAttr('pinch') }
+    set 'pinch'(val) { this.setBoolAttr('pinch', val) }
+get 'flex'() { return this.getBoolAttr('flex') }
+    set 'flex'(val) { this.setBoolAttr('flex', val) }
+    get 'zoom'() { return this.getNumberProp('zoom') }
+    set 'zoom'(val) { this.setNumberAttr('zoom', val) }
+    observer;
     display = { x: 0, y: 0 };
     max = {
         x: 0,
@@ -16246,7 +9596,8 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     pressManager;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
-})); }
+}));
+ }
     static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}:host([flex]){display:flex;flex-direction:column;min-height:0}:host([flex]) .scroll-main-container{display:flex;flex-direction:column}:host([flex]) .scroll-main-container .content-zoom{display:flex;flex-direction:column}`;
     constructor() {
         super();
@@ -16271,10 +9622,31 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
+        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">
+    <div class="content-zoom" _id="scrollable_1">
+        <div class="content-hidder" _id="scrollable_2">
+            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">
+                <slot></slot>
+            </div>
+        </div>
+    </div>
+    <div class="scroller-wrapper">
+        <div class="container-scroller vertical" _id="scrollable_4">
+            <div class="shadow-scroller">
+                <div class="scroller" _id="scrollable_5"></div>
+            </div>
+        </div>
+        <div class="container-scroller horizontal" _id="scrollable_6">
+            <div class="shadow-scroller">
+                <div class="scroller" _id="scrollable_7"></div>
+            </div>
+        </div>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "mainContainer",
@@ -16325,12 +9697,47 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Scrollable";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('min_zoom')){ this['min_zoom'] = 1; }if(!this.hasAttribute('max_zoom')){ this['max_zoom'] = undefined; }if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('mouse_drag')) { this.attributeChangedCallback('mouse_drag', false, false); }if(!this.hasAttribute('pinch')) { this.attributeChangedCallback('pinch', false, false); }if(!this.hasAttribute('flex')) { this.attributeChangedCallback('flex', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('x');this.__correctGetter('y');this.__correctGetter('xMax');this.__correctGetter('yMax');this.__upgradeProperty('min_zoom');this.__upgradeProperty('max_zoom');this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('mouse_drag');this.__upgradeProperty('pinch');this.__upgradeProperty('flex');this.__upgradeProperty('zoom'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('min_zoom')){ this['min_zoom'] = 1; }
+if(!this.hasAttribute('max_zoom')){ this['max_zoom'] = undefined; }
+if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }
+if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }
+if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }
+if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }
+if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }
+if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }
+if(!this.hasAttribute('break')){ this['break'] = 0.1; }
+if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }
+if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }
+if(!this.hasAttribute('mouse_drag')) { this.attributeChangedCallback('mouse_drag', false, false); }
+if(!this.hasAttribute('pinch')) { this.attributeChangedCallback('pinch', false, false); }
+if(!this.hasAttribute('flex')) { this.attributeChangedCallback('flex', false, false); }
+if(!this.hasAttribute('zoom')){ this['zoom'] = 1; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('x');
+this.__correctGetter('y');
+this.__correctGetter('xMax');
+this.__correctGetter('yMax');
+this.__upgradeProperty('min_zoom');
+this.__upgradeProperty('max_zoom');
+this.__upgradeProperty('y_scroll_visible');
+this.__upgradeProperty('x_scroll_visible');
+this.__upgradeProperty('floating_scroll');
+this.__upgradeProperty('x_scroll');
+this.__upgradeProperty('y_scroll');
+this.__upgradeProperty('auto_hide');
+this.__upgradeProperty('break');
+this.__upgradeProperty('disable');
+this.__upgradeProperty('no_user_select');
+this.__upgradeProperty('mouse_drag');
+this.__upgradeProperty('pinch');
+this.__upgradeProperty('flex');
+this.__upgradeProperty('zoom');
+ }
     __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select","mouse_drag","pinch","flex"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     createAnimation() {
         return new Aventus.Animation({
@@ -17050,10 +10457,12 @@ const TranslationColHeader = class TranslationColHeader extends Aventus.WebCompo
 					}
 					set 'locale'(val) {
 						this.__watch["locale"] = val;
-					}    __registerWatchesActions() {
+					}
+    __registerWatchesActions() {
     this.__addWatchesActions("locale", ((target) => {
     target.style.setProperty("--translation-col-width", "var(--col-width-" + target.locale + ")");
-}));    super.__registerWatchesActions();
+}));
+    super.__registerWatchesActions();
 }
     static __style = `:host{--_translation-col-width: var(--translation-col-width, 200px)}:host{align-items:center;border-right:1px solid var(--vscode-widget-border);display:flex;flex-shrink:0;gap:10px;justify-content:center;margin:0;padding:10px 20px;position:relative;width:var(--translation-col-width);min-width:200px}`;
     __getStatic() {
@@ -17070,19 +10479,23 @@ const TranslationColHeader = class TranslationColHeader extends Aventus.WebCompo
         blocks: { 'default':`<slot></slot><av-resize _id="translationcolheader_0"></av-resize>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "translationcolheader_0°locale": {
       "fct": (c) => `${c.print(c.comp.__c0f6c43ffbd917481fc06076601eea8amethod0())}`,
       "once": true
     }
   }
-}); }
+});
+ }
     getClassName() {
         return "TranslationColHeader";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locale"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('locale'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locale"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('locale');
+ }
     __c0f6c43ffbd917481fc06076601eea8amethod0() {
         return this.locale;
     }
@@ -17133,17 +10546,20 @@ __as1(_, 'StringTools', StringTools);
 const Textarea = class Textarea extends Aventus.WebComponent {
     static get observedAttributes() {return ["error"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'error'() { return this.getBoolProp('error') }
-    set 'error'(val) { this.setBoolAttr('error', val) }    get 'value'() {
+    set 'error'(val) { this.setBoolAttr('error', val) }
+    get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
-					}    preventDrag;
+					}
+    preventDrag;
     change = new Aventus.Callback();
     __registerWatchesActions() {
     this.__addWatchesActions("value", ((target) => {
     target.textarea.value = target.value;
-}));    super.__registerWatchesActions();
+}));
+    super.__registerWatchesActions();
 }
     static __style = `:host{width:100%}:host vscode-textarea{width:100%}`;
     __getStatic() {
@@ -17159,7 +10575,8 @@ const Textarea = class Textarea extends Aventus.WebComponent {
         blocks: { 'default':`<vscode-textarea resize="vertical" rows="1" _id="textarea_0"></vscode-textarea>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "textarea",
@@ -17183,13 +10600,18 @@ const Textarea = class Textarea extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.onChange(e)
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Textarea";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('error')) { this.attributeChangedCallback('error', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = "salut"; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('error');this.__correctGetter('value'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('error')) { this.attributeChangedCallback('error', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = "salut";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('error');
+this.__correctGetter('value');
+ }
     __listBoolProps() { return ["error"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     preventDragFct() {
         this.preventDrag = new Aventus.DragAndDrop({
@@ -17201,7 +10623,6 @@ const Textarea = class Textarea extends Aventus.WebComponent {
         });
     }
     onChange() {
-        debugger;
         this.value = this.textarea.value;
         this.change.trigger(this.value);
     }
@@ -17232,7 +10653,8 @@ __as1(_, 'DemoData', DemoData);
 
 const Loading = class Loading extends Aventus.WebComponent {
     get 'visible'() { return this.getBoolAttr('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }    static _instance;
+    set 'visible'(val) { this.setBoolAttr('visible', val) }
+    static _instance;
     static _minTimeDisplay;
     static _minTimeShow;
     static _showTime;
@@ -17253,8 +10675,10 @@ const Loading = class Loading extends Aventus.WebComponent {
     getClassName() {
         return "Loading";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible');
+ }
     __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     static show(minTimeShow = 100, minTimeDisplay = 1000) {
         this._minTimeDisplay = minTimeDisplay;
@@ -17293,12 +10717,18 @@ if(!window.customElements.get('av-loading')){window.customElements.define('av-lo
 
 Components.Tooltip = class Tooltip extends Aventus.WebComponent {
     get 'visible'() { return this.getBoolAttr('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }get 'position'() { return this.getStringAttr('position') }
-    set 'position'(val) { this.setStringAttr('position', val) }get 'use_absolute'() { return this.getBoolAttr('use_absolute') }
-    set 'use_absolute'(val) { this.setBoolAttr('use_absolute', val) }get 'delay'() { return this.getNumberAttr('delay') }
-    set 'delay'(val) { this.setNumberAttr('delay', val) }get 'delay_touch'() { return this.getNumberAttr('delay_touch') }
-    set 'delay_touch'(val) { this.setNumberAttr('delay_touch', val) }get 'no_caret'() { return this.getBoolAttr('no_caret') }
-    set 'no_caret'(val) { this.setBoolAttr('no_caret', val) }    parent = null;
+    set 'visible'(val) { this.setBoolAttr('visible', val) }
+get 'position'() { return this.getStringAttr('position') }
+    set 'position'(val) { this.setStringAttr('position', val) }
+get 'use_absolute'() { return this.getBoolAttr('use_absolute') }
+    set 'use_absolute'(val) { this.setBoolAttr('use_absolute', val) }
+get 'delay'() { return this.getNumberAttr('delay') }
+    set 'delay'(val) { this.setNumberAttr('delay', val) }
+get 'delay_touch'() { return this.getNumberAttr('delay_touch') }
+    set 'delay_touch'(val) { this.setNumberAttr('delay_touch', val) }
+get 'no_caret'() { return this.getBoolAttr('no_caret') }
+    set 'no_caret'(val) { this.setBoolAttr('no_caret', val) }
+    parent = null;
     parentEv = null;
     isDestroyed = false;
     timeoutEnter = false;
@@ -17330,8 +10760,20 @@ Components.Tooltip = class Tooltip extends Aventus.WebComponent {
     getClassName() {
         return "Tooltip";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); }if(!this.hasAttribute('position')){ this['position'] = 'top'; }if(!this.hasAttribute('use_absolute')) { this.attributeChangedCallback('use_absolute', false, false); }if(!this.hasAttribute('delay')){ this['delay'] = 700; }if(!this.hasAttribute('delay_touch')){ this['delay_touch'] = 700; }if(!this.hasAttribute('no_caret')) { this.attributeChangedCallback('no_caret', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible');this.__upgradeProperty('position');this.__upgradeProperty('use_absolute');this.__upgradeProperty('delay');this.__upgradeProperty('delay_touch');this.__upgradeProperty('no_caret'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); }
+if(!this.hasAttribute('position')){ this['position'] = 'top'; }
+if(!this.hasAttribute('use_absolute')) { this.attributeChangedCallback('use_absolute', false, false); }
+if(!this.hasAttribute('delay')){ this['delay'] = 700; }
+if(!this.hasAttribute('delay_touch')){ this['delay_touch'] = 700; }
+if(!this.hasAttribute('no_caret')) { this.attributeChangedCallback('no_caret', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible');
+this.__upgradeProperty('position');
+this.__upgradeProperty('use_absolute');
+this.__upgradeProperty('delay');
+this.__upgradeProperty('delay_touch');
+this.__upgradeProperty('no_caret');
+ }
     __listBoolProps() { return ["visible","use_absolute","no_caret"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculatePosition() {
         if (!this.parentEv || !this.use_absolute)
@@ -17511,7 +10953,8 @@ if(!window.customElements.get('av-tooltip')){window.customElements.define('av-to
 const GenericPopup = class GenericPopup extends Aventus.WebComponent {
     static get observedAttributes() {return ["popup_title"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'popup_title'() { return this.getStringProp('popup_title') }
-    set 'popup_title'(val) { this.setStringAttr('popup_title', val) }    cb;
+    set 'popup_title'(val) { this.setStringAttr('popup_title', val) }
+    cb;
     static __style = `:host{align-items:center;background-color:rgba(0,0,0,.3);display:flex;inset:0;justify-content:center;position:fixed;z-index:999}:host .popup{background-color:var(--vscode-panel-background);border:var(--vscode-panel-border);border-radius:4px;box-shadow:var(--elevation-8);max-width:min(800px,100% - 100px);min-width:400px;padding:15px}:host .popup .title{font-size:24px;font-weight:bold;margin-bottom:10px}:host .popup .content{font-size:16px}:host .popup .actions{align-items:center;display:flex;font-size:16px;gap:10px;justify-content:flex-end;margin-top:10px}`;
     __getStatic() {
         return GenericPopup;
@@ -17523,11 +10966,24 @@ const GenericPopup = class GenericPopup extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>`,'actions':`<slot name="actions">            <vscode-button _id="genericpopup_1">Close</vscode-button>        </slot>` }, 
-        blocks: { 'default':`<div class="popup">    <div class="title" _id="genericpopup_0"></div>    <div class="content">        <slot></slot>    </div>    <div class="actions">        <slot name="actions">            <vscode-button _id="genericpopup_1">Close</vscode-button>        </slot>    </div></div>` }
+        slots: { 'default':`<slot></slot>`,'actions':`<slot name="actions">
+            <vscode-button _id="genericpopup_1">Close</vscode-button>
+        </slot>` }, 
+        blocks: { 'default':`<div class="popup">
+    <div class="title" _id="genericpopup_0"></div>
+    <div class="content">
+        <slot></slot>
+    </div>
+    <div class="actions">
+        <slot name="actions">
+            <vscode-button _id="genericpopup_1">Close</vscode-button>
+        </slot>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "closeBtn",
@@ -17548,12 +11004,15 @@ const GenericPopup = class GenericPopup extends Aventus.WebComponent {
       "onPress": (e, pressInstance, c) => { c.comp.close(e, pressInstance); }
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "GenericPopup";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('popup_title')){ this['popup_title'] = undefined; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('popup_title'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('popup_title')){ this['popup_title'] = undefined; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('popup_title');
+ }
     close() {
         this.remove();
         if (this.cb) {
@@ -17585,7 +11044,8 @@ const Popup = class Popup extends GenericPopup {
         arrStyle.push(Popup.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         blocks: { 'default':`` }
     });
@@ -17602,7 +11062,8 @@ if(!window.customElements.get('av-popup')){window.customElements.define('av-popu
 const ApiKeyPopup = class ApiKeyPopup extends GenericPopup {
     static get observedAttributes() {return ["popup_title"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'popup_title'() { return this.getStringProp('popup_title') }
-    set 'popup_title'(val) { this.setStringAttr('popup_title', val) }    apiKeySet = false;
+    set 'popup_title'(val) { this.setStringAttr('popup_title', val) }
+    apiKeySet = false;
     static __style = `:host vscode-textfield{width:calc(100% - 32px);margin:16px}:host .cancel{--vscode-button-background: var(--vscode-editorError-foreground);--vscode-button-hoverBackground: #f45d5d}`;
     __getStatic() {
         return ApiKeyPopup;
@@ -17612,12 +11073,17 @@ const ApiKeyPopup = class ApiKeyPopup extends GenericPopup {
         arrStyle.push(ApiKeyPopup.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'actions':`	<vscode-button class="cancel" _id="apikeypopup_1">Close</vscode-button>	<vscode-button _id="apikeypopup_2">Save</vscode-button>`,'default':`<vscode-textfield placeholder="Deepl Api Key" _id="apikeypopup_0"></vscode-textfield>` }
+        blocks: { 'actions':`
+	<vscode-button class="cancel" _id="apikeypopup_1">Close</vscode-button>
+	<vscode-button _id="apikeypopup_2">Save</vscode-button>
+`,'default':`<vscode-textfield placeholder="Deepl Api Key" _id="apikeypopup_0"></vscode-textfield>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "keyInput",
@@ -17648,12 +11114,15 @@ const ApiKeyPopup = class ApiKeyPopup extends GenericPopup {
       "onPress": (e, pressInstance, c) => { c.comp.save(e, pressInstance); }
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "ApiKeyPopup";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('popup_title')){ this['popup_title'] = "Deepl api key is missing"; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('popup_title'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('popup_title')){ this['popup_title'] = "Deepl api key is missing"; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('popup_title');
+ }
     async save() {
         const value = this.keyInput.value.trim();
         this.apiKeySet = value != '';
@@ -17681,7 +11150,8 @@ const Alert = class Alert extends GenericPopup {
         arrStyle.push(Alert.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
         blocks: { 'default':`<slot></slot>` }
@@ -17738,15 +11208,18 @@ __as1(_, 'Translator', Translator);
 const TranslateAllPopup = class TranslateAllPopup extends GenericPopup {
     static get observedAttributes() {return ["is_running"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'is_running'() { return this.getBoolProp('is_running') }
-    set 'is_running'(val) { this.setBoolAttr('is_running', val) }    get 'fallback'() {
+    set 'is_running'(val) { this.setBoolAttr('is_running', val) }
+    get 'fallback'() {
 						return this.__watch["fallback"];
 					}
 					set 'fallback'(val) {
 						this.__watch["fallback"] = val;
-					}    parsed = {};
+					}
+    parsed = {};
     locales = [];
     __registerWatchesActions() {
-    this.__addWatchesActions("fallback");    super.__registerWatchesActions();
+    this.__addWatchesActions("fallback");
+    super.__registerWatchesActions();
 }
     static __style = `:host .popup{height:calc(100% - 50px);max-width:calc(100% - 100px);min-width:auto;width:100%}:host .popup .content{height:calc(100% - 45px)}:host .header{display:flex;gap:20px;justify-content:stretch}:host .header .left{width:100%}:host .header .right{position:relative;width:100px}:host .header .right av-loading{--loading-size: 40px;--loading-dot-size: 5px;background-color:rgba(0,0,0,0);position:absolute}:host .sub-title{font-size:calc(var(--vscode-font-size)*.9)}:host .list{border:1px solid var(--vscode-widget-border);border-radius:5px;display:flex;flex-direction:column;height:calc(100% - 78px);margin-top:15px;overflow:hidden}:host .list .item{align-items:stretch;display:flex;padding:0 15px}:host .list .item .source{align-items:center;border-right:1px solid var(--vscode-widget-border);display:flex;flex-shrink:0;padding:5px 10px;width:50%}:host .list .item .result{display:flex;flex-direction:column;flex-shrink:0;gap:2px;justify-content:center;padding:5px 10px;width:50%}:host .list .item .result span:nth-child(2){color:var(--vscode-settings-textInputForeground);font-size:calc(var(--vscode-font-size)*.8)}:host .list .item:nth-child(odd){background-color:var(--vscode-editorWidget-background)}:host .list .item:last-child{border-bottom:1px solid var(--vscode-widget-border)}:host .list .item.head{background-color:rgba(0,0,0,0);border-bottom:1px solid var(--vscode-widget-border);border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border)}:host .list .item.head .result,:host .list .item.head .source{flex-direction:row;font-weight:bold;justify-content:center;padding:10px 0}:host .scroll{height:calc(100% - 40px)}`;
     __getStatic() {
@@ -17757,12 +11230,29 @@ const TranslateAllPopup = class TranslateAllPopup extends GenericPopup {
         arrStyle.push(TranslateAllPopup.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="header">	<div class="left">		<div class="title">Translate all</div>		<div class="sub-title" _id="translateallpopup_0"></div>	</div>	<div class="right">		<av-loading _id="translateallpopup_1"></av-loading>	</div></div><div class="list">	<div class="item head">		<div class="source" _id="translateallpopup_2"></div>		<div class="result">Result</div>	</div>	<av-scrollable class="scroll" floating_scroll auto_hide mouse_drag _id="translateallpopup_3">	</av-scrollable></div>` }
+        blocks: { 'default':`<div class="header">
+	<div class="left">
+		<div class="title">Translate all</div>
+		<div class="sub-title" _id="translateallpopup_0"></div>
+	</div>
+	<div class="right">
+		<av-loading _id="translateallpopup_1"></av-loading>
+	</div>
+</div><div class="list">
+	<div class="item head">
+		<div class="source" _id="translateallpopup_2"></div>
+		<div class="result">Result</div>
+	</div>
+	<av-scrollable class="scroll" floating_scroll auto_hide mouse_drag _id="translateallpopup_3">
+	</av-scrollable>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "scrollEl",
@@ -17789,16 +11279,22 @@ const TranslateAllPopup = class TranslateAllPopup extends GenericPopup {
       "once": true
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "TranslateAllPopup";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_running')) { this.attributeChangedCallback('is_running', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["fallback"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_running');this.__correctGetter('fallback'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_running')) { this.attributeChangedCallback('is_running', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["fallback"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_running');
+this.__correctGetter('fallback');
+ }
     __listBoolProps() { return ["is_running"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     async run() {
-        this.closeBtn['disabled'] = true;
+        let closeBtn = this.closeBtn;
+        closeBtn['disabled'] = true;
         this.is_running = true;
         await Aventus.sleep(5000);
         for (let key in this.parsed) {
@@ -17818,7 +11314,7 @@ const TranslateAllPopup = class TranslateAllPopup extends GenericPopup {
                 }
             }
         }
-        this.closeBtn['disabled'] = false;
+        closeBtn['disabled'] = false;
         this.is_running = false;
     }
     addTranslation(key, locale, result) {
@@ -17845,9 +11341,12 @@ if(!window.customElements.get('av-translate-all-popup')){window.customElements.d
 const IconTooltip = class IconTooltip extends Aventus.WebComponent {
     static get observedAttributes() {return ["name"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'notif'() { return this.getBoolAttr('notif') }
-    set 'notif'(val) { this.setBoolAttr('notif', val) }get 'active'() { return this.getBoolAttr('active') }
-    set 'active'(val) { this.setBoolAttr('active', val) }    get 'name'() { return this.getStringProp('name') }
-    set 'name'(val) { this.setStringAttr('name', val) }    static __style = `:host{border-radius:6px;cursor:pointer;height:32px;padding:8px;position:relative;transition:background-color .2s linear;width:32px}:host vscode-icon{height:100%;width:100%}:host .notif{background-color:var(--vscode-icon-foreground);border-radius:10px;display:none;height:10px;position:absolute;right:3px;top:3px;width:10px}:host([active])::after{border:1px solid var(--vscode-button-secondaryHoverBackground);border-radius:6px;content:"";height:100%;left:50%;pointer-events:none;position:absolute;top:50%;transform:translate(-50%, -50%);width:100%}:host(:hover){background-color:var(--vscode-button-secondaryHoverBackground)}:host([notif]) .notif{display:block}`;
+    set 'notif'(val) { this.setBoolAttr('notif', val) }
+get 'active'() { return this.getBoolAttr('active') }
+    set 'active'(val) { this.setBoolAttr('active', val) }
+    get 'name'() { return this.getStringProp('name') }
+    set 'name'(val) { this.setStringAttr('name', val) }
+    static __style = `:host{border-radius:6px;cursor:pointer;height:32px;padding:8px;position:relative;transition:background-color .2s linear;width:32px}:host vscode-icon{height:100%;width:100%}:host .notif{background-color:var(--vscode-icon-foreground);border-radius:10px;display:none;height:10px;position:absolute;right:3px;top:3px;width:10px}:host([active])::after{border:1px solid var(--vscode-button-secondaryHoverBackground);border-radius:6px;content:"";height:100%;left:50%;pointer-events:none;position:absolute;top:50%;transform:translate(-50%, -50%);width:100%}:host(:hover){background-color:var(--vscode-button-secondaryHoverBackground)}:host([notif]) .notif{display:block}`;
     __getStatic() {
         return IconTooltip;
     }
@@ -17859,22 +11358,32 @@ const IconTooltip = class IconTooltip extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<vscode-icon _id="icontooltip_0"></vscode-icon><av-tooltip use_absolute no_caret>    <slot></slot></av-tooltip><div class="notif"></div>` }
+        blocks: { 'default':`<vscode-icon _id="icontooltip_0"></vscode-icon><av-tooltip use_absolute no_caret>
+    <slot></slot>
+</av-tooltip><div class="notif"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "icontooltip_0°name": {
       "fct": (c) => `${c.print(c.comp.__6b93c63e12520a69df7261ff7f843c0fmethod0())}`,
       "once": true
     }
   }
-}); }
+});
+ }
     getClassName() {
         return "IconTooltip";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('notif')) { this.attributeChangedCallback('notif', false, false); }if(!this.hasAttribute('active')) { this.attributeChangedCallback('active', false, false); }if(!this.hasAttribute('name')){ this['name'] = "symbol-array"; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('notif');this.__upgradeProperty('active');this.__upgradeProperty('name'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('notif')) { this.attributeChangedCallback('notif', false, false); }
+if(!this.hasAttribute('active')) { this.attributeChangedCallback('active', false, false); }
+if(!this.hasAttribute('name')){ this['name'] = "symbol-array"; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('notif');
+this.__upgradeProperty('active');
+this.__upgradeProperty('name');
+ }
     __listBoolProps() { return ["notif","active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     postCreation() {
         super.postCreation();
@@ -17891,25 +11400,31 @@ if(!window.customElements.get('av-icon-tooltip')){window.customElements.define('
 const TranslationCol = class TranslationCol extends Aventus.WebComponent {
     static get observedAttributes() {return ["error"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'icon_btn'() { return this.getBoolAttr('icon_btn') }
-    set 'icon_btn'(val) { this.setBoolAttr('icon_btn', val) }    get 'error'() { return this.getBoolProp('error') }
-    set 'error'(val) { this.setBoolAttr('error', val) }    get 'locale'() {
+    set 'icon_btn'(val) { this.setBoolAttr('icon_btn', val) }
+    get 'error'() { return this.getBoolProp('error') }
+    set 'error'(val) { this.setBoolAttr('error', val) }
+    get 'locale'() {
 						return this.__watch["locale"];
 					}
 					set 'locale'(val) {
 						this.__watch["locale"] = val;
-					}get 'value'() {
+					}
+get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
-					}    initialValue;
+					}
+    initialValue;
     change = new Aventus.Callback();
     __registerWatchesActions() {
     this.__addWatchesActions("locale", ((target) => {
     target.style.setProperty("--translation-col-width", "var(--col-width-" + target.locale + ")");
-}));this.__addWatchesActions("value", ((target) => {
+}));
+this.__addWatchesActions("value", ((target) => {
     target.showIcon();
-}));    super.__registerWatchesActions();
+}));
+    super.__registerWatchesActions();
 }
     static __style = `:host{--_translation-col-width: var(--translation-col-width, 200px)}:host{align-items:center;display:flex;flex-shrink:0;gap:10px;margin:0;min-width:200px;position:relative;width:var(--_translation-col-width)}:host vscode-icon{background-color:rgba(0,0,0,0);border-radius:5px;cursor:pointer;display:none;padding:4px;transition:background-color linear .2s}:host vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .resize{background-color:red;bottom:0;cursor:col-resize;position:absolute;right:-4px;top:0;width:8px}:host([icon_btn]) vscode-icon{display:inline-block}`;
     __getStatic() {
@@ -17922,10 +11437,13 @@ const TranslationCol = class TranslationCol extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<av-textarea _id="translationcol_0"></av-textarea><div class="action">    <vscode-icon name="book" _id="translationcol_1"></vscode-icon></div><av-resize _id="translationcol_2"></av-resize>` }
+        blocks: { 'default':`<av-textarea _id="translationcol_0"></av-textarea><div class="action">
+    <vscode-icon name="book" _id="translationcol_1"></vscode-icon>
+</div><av-resize _id="translationcol_2"></av-resize>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "translationcol_2°locale": {
       "fct": (c) => `${c.print(c.comp.__5c58baf68a3de763ecfa54cfd926bb36method2())}`,
@@ -17960,13 +11478,22 @@ const TranslationCol = class TranslationCol extends Aventus.WebComponent {
       "onPress": (e, pressInstance, c) => { c.comp.getTranslatation(e, pressInstance); }
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "TranslationCol";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('icon_btn')) { this.attributeChangedCallback('icon_btn', false, false); }if(!this.hasAttribute('error')) { this.attributeChangedCallback('error', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locale"] = undefined;w["value"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('icon_btn');this.__upgradeProperty('error');this.__correctGetter('locale');this.__correctGetter('value'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('icon_btn')) { this.attributeChangedCallback('icon_btn', false, false); }
+if(!this.hasAttribute('error')) { this.attributeChangedCallback('error', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locale"] = undefined;
+w["value"] = undefined;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('icon_btn');
+this.__upgradeProperty('error');
+this.__correctGetter('locale');
+this.__correctGetter('value');
+ }
     __listBoolProps() { return ["icon_btn","error"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     getValue() {
         if (this.value == TranslationPage.KeyUndefined || !this.value) {
@@ -18019,17 +11546,21 @@ const TranslationRow = class TranslationRow extends Aventus.WebComponent {
 					}
 					set 'key'(val) {
 						this.__watch["key"] = val;
-					}get 'locales'() {
+					}
+get 'locales'() {
 						return this.__watch["locales"];
 					}
 					set 'locales'(val) {
 						this.__watch["locales"] = val;
-					}    parsedItem;
+					}
+    parsedItem;
     hasChanged = false;
     cols = {};
     change = new Aventus.Callback();
     __registerWatchesActions() {
-    this.__addWatchesActions("key");this.__addWatchesActions("locales");    super.__registerWatchesActions();
+    this.__addWatchesActions("key");
+this.__addWatchesActions("locales");
+    super.__registerWatchesActions();
 }
     static __style = `:host{align-items:stretch;border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);display:flex;gap:0px}:host .col{border-right:1px solid var(--vscode-widget-border);padding:10px 20px}:host .inputs{display:flex;gap:0px}:host .key{flex-shrink:0;position:relative;width:var(--_translation-page-key-width);min-width:100px}:host(:nth-child(odd)){background-color:rgba(87,87,87,.2);background-color:var(--vscode-editorWidget-background)}:host(:nth-last-child(1)){border-bottom:1px solid var(--vscode-widget-border);border-bottom-left-radius:5px;border-bottom-right-radius:5px}`;
     __getStatic() {
@@ -18042,10 +11573,15 @@ const TranslationRow = class TranslationRow extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="col key">	<vscode-label _id="translationrow_0"></vscode-label>	<av-resize is_key></av-resize></div><div class="inputs" _id="translationrow_1"></div>` }
+        blocks: { 'default':`<div class="col key">
+	<vscode-label _id="translationrow_0"></vscode-label>
+	<av-resize is_key></av-resize>
+</div><div class="inputs" _id="translationrow_1">
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "inputsEl",
@@ -18060,12 +11596,17 @@ const TranslationRow = class TranslationRow extends Aventus.WebComponent {
       "once": true
     }
   }
-}); }
+});
+ }
     getClassName() {
         return "TranslationRow";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["key"] = undefined;w["locales"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('key');this.__correctGetter('locales'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["key"] = undefined;
+w["locales"] = undefined;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('key');
+this.__correctGetter('locales');
+ }
     loadData() {
         this.hasChanged = false;
         for (let locale of this.locales) {
@@ -18087,7 +11628,6 @@ const TranslationRow = class TranslationRow extends Aventus.WebComponent {
         col.value = this.parsedItem[locale];
         col.initialValue = this.parsedItem[locale];
         col.change.add((value) => {
-            debugger;
             this.parsedItem[locale] = value;
             const hasChanged = value != col.initialValue;
             if (this.hasChanged != hasChanged) {
@@ -18156,8 +11696,10 @@ const TranslationRowHeader = class TranslationRowHeader extends Aventus.WebCompo
 					}
 					set 'locales'(val) {
 						this.__watch["locales"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("locales");    super.__registerWatchesActions();
+					}
+    __registerWatchesActions() {
+    this.__addWatchesActions("locales");
+    super.__registerWatchesActions();
 }
     static __style = `:host{align-items:stretch;border-bottom:1px solid var(--vscode-widget-border);border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);display:flex;font-weight:bold;gap:0px;height:39px;text-align:center;user-select:none}:host .key{align-items:center;border-right:1px solid var(--vscode-widget-border);display:flex;flex-shrink:0;justify-content:center;min-width:100px;padding:10px 20px;position:relative;width:var(--_translation-page-key-width)}:host .inputs{display:flex;gap:0px}`;
     __getStatic() {
@@ -18170,10 +11712,20 @@ const TranslationRowHeader = class TranslationRowHeader extends Aventus.WebCompo
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="key">    <span>Key</span>    <av-resize is_key></av-resize></div><div class="inputs"><template _id="translationrowheader_0"></template></div>` }
+        blocks: { 'default':`<div class="key">
+    <span>Key</span>
+    <av-resize is_key></av-resize>
+</div><div class="inputs">
+<template _id="translationrowheader_0"></template>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <av-translation-col-header _id="translationrowheader_1"></av-translation-col-header>`);templ0.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+    <av-translation-col-header _id="translationrowheader_1"></av-translation-col-header>
+`);
+templ0.setActions({
   "content": {
     "translationrowheader_1°@HTML": {
       "fct": (c) => `${c.print(c.comp.__189fa087d6daa05734acb2853341f755method2(c.data.locale))}`,
@@ -18188,15 +11740,20 @@ const TranslationRowHeader = class TranslationRowHeader extends Aventus.WebCompo
       "once": true
     }
   ]
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'translationrowheader_0',
                     template: templ0,
-                simple:{data: "this.locales",item:"locale"}}); }
+                simple:{data: "this.locales",item:"locale"}
+});
+ }
     getClassName() {
         return "TranslationRowHeader";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locales"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('locales'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locales"] = [];
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('locales');
+ }
     __189fa087d6daa05734acb2853341f755method2(locale) {
         return locale;
     }
@@ -18212,48 +11769,63 @@ if(!window.customElements.get('av-translation-row-header')){window.customElement
 const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     static get observedAttributes() {return ["need_save", "has_empty"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'is_init'() { return this.getBoolAttr('is_init') }
-    set 'is_init'(val) { this.setBoolAttr('is_init', val) }    get 'need_save'() { return this.getBoolProp('need_save') }
-    set 'need_save'(val) { this.setBoolAttr('need_save', val) }get 'has_empty'() { return this.getBoolProp('has_empty') }
-    set 'has_empty'(val) { this.setBoolAttr('has_empty', val) }    get 'fallback'() {
+    set 'is_init'(val) { this.setBoolAttr('is_init', val) }
+    get 'need_save'() { return this.getBoolProp('need_save') }
+    set 'need_save'(val) { this.setBoolAttr('need_save', val) }
+get 'has_empty'() { return this.getBoolProp('has_empty') }
+    set 'has_empty'(val) { this.setBoolAttr('has_empty', val) }
+    get 'fallback'() {
 						return this.__watch["fallback"];
 					}
 					set 'fallback'(val) {
 						this.__watch["fallback"] = val;
-					}get 'searchTxt'() {
+					}
+get 'searchTxt'() {
 						return this.__watch["searchTxt"];
 					}
 					set 'searchTxt'(val) {
 						this.__watch["searchTxt"] = val;
-					}get 'onlyMissing'() {
+					}
+get 'onlyMissing'() {
 						return this.__watch["onlyMissing"];
 					}
 					set 'onlyMissing'(val) {
 						this.__watch["onlyMissing"] = val;
-					}get 'importMissingBtn'() {
+					}
+get 'importMissingBtn'() {
 						return this.__watch["importMissingBtn"];
 					}
 					set 'importMissingBtn'(val) {
 						this.__watch["importMissingBtn"] = val;
-					}get 'pageName'() {
+					}
+get 'pageName'() {
 						return this.__watch["pageName"];
 					}
 					set 'pageName'(val) {
 						this.__watch["pageName"] = val;
-					}get 'locales'() {
+					}
+get 'locales'() {
 						return this.__watch["locales"];
 					}
 					set 'locales'(val) {
 						this.__watch["locales"] = val;
-					}    static KeyUndefined = "ⵌⵌ";
+					}
+    static KeyUndefined = "ⵌⵌ";
     parsed = {};
     guard = new Aventus.ActionGuard();
     rows = {};
     __registerWatchesActions() {
-    this.__addWatchesActions("fallback");this.__addWatchesActions("searchTxt", ((target) => {
+    this.__addWatchesActions("fallback");
+this.__addWatchesActions("searchTxt", ((target) => {
     target.search();
-}));this.__addWatchesActions("onlyMissing", ((target) => {
+}));
+this.__addWatchesActions("onlyMissing", ((target) => {
     target.search();
-}));this.__addWatchesActions("importMissingBtn");this.__addWatchesActions("pageName");this.__addWatchesActions("locales");    super.__registerWatchesActions();
+}));
+this.__addWatchesActions("importMissingBtn");
+this.__addWatchesActions("pageName");
+this.__addWatchesActions("locales");
+    super.__registerWatchesActions();
 }
     static __style = `:host{--_translation-page-key-width: var(--translation-page-key-width, 300px)}:host{display:none;flex-direction:column;height:100%;margin:0;margin-block:0 !important;width:100%}:host vscode-scrollable{height:calc(100% - 190px);margin:0 20px;width:calc(100% - 40px)}:host av-scrollable{--scroller-width: 0;height:min-content;min-height:0}:host .header{flex-shrink:0;height:177px;padding:20px;padding-bottom:0}:host .header .bar{display:flex;justify-content:space-between;width:100%;gap:20px}:host .header .bar .menu-actions{display:flex;flex-wrap:nowrap;gap:50px}:host .header .bar .menu-actions div{display:flex;margin:15px 0;white-space:nowrap;height:26px}:host .header .bar .menu-actions div vscode-label{margin-right:14px;text-align:right;width:auto}:host .header .bar .menu-actions div vscode-textfield{width:auto}:host .header .menu{border:1px solid var(--vscode-widget-border);padding:8px}:host .header .menu vscode-icon{background-color:rgba(0,0,0,0);cursor:pointer;padding:8px;transition:background-color linear .2s}:host .header .menu vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .content{display:flex;flex-direction:column}:host([is_init]){display:flex}`;
     constructor() {
@@ -18270,10 +11842,35 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="header">    <div class="bar">        <h1 class="title" _id="translationpage_0"></h1>        <div class="menu-actions">            <div>                <vscode-label>Recherche:</vscode-label>                <vscode-textfield _id="translationpage_1"></vscode-textfield>            </div>        </div>    </div>    <div class="menu">        <av-icon-tooltip name="save" _id="translationpage_2">Save</av-icon-tooltip>        <av-icon-tooltip name="bug" _id="translationpage_3">Only missing</av-icon-tooltip>        <template _id="translationpage_4"></template>        <template _id="translationpage_6"></template>    </div>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_8">        <av-translation-row-header _id="translationpage_9"></av-translation-row-header>    </av-scrollable></div><vscode-scrollable>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_10">        <div class="content" _id="translationpage_11">        </div>    </av-scrollable></vscode-scrollable>` }
+        blocks: { 'default':`<div class="header">
+    <div class="bar">
+        <h1 class="title" _id="translationpage_0"></h1>
+        <div class="menu-actions">
+            <div>
+                <vscode-label>Recherche:</vscode-label>
+                <vscode-textfield _id="translationpage_1"></vscode-textfield>
+            </div>
+        </div>
+    </div>
+    <div class="menu">
+        <av-icon-tooltip name="save" _id="translationpage_2">Save</av-icon-tooltip>
+        <av-icon-tooltip name="bug" _id="translationpage_3">Only missing</av-icon-tooltip>
+        <template _id="translationpage_4"></template>
+        <template _id="translationpage_6"></template>
+    </div>
+    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_8">
+        <av-translation-row-header _id="translationpage_9"></av-translation-row-header>
+    </av-scrollable>
+</div><vscode-scrollable>
+    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_10">
+        <div class="content" _id="translationpage_11">
+        </div>
+    </av-scrollable>
+</vscode-scrollable>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "headerEl",
@@ -18342,7 +11939,12 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
       "onPress": (e, pressInstance, c) => { c.comp.toogleOnlyMissing(e, pressInstance); }
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <av-icon-tooltip name="check-all" _id="translationpage_5">Translate all</av-icon-tooltip>        `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+            <av-icon-tooltip name="check-all" _id="translationpage_5">Translate all</av-icon-tooltip>
+        `);
+templ0.setActions({
   "injection": [
     {
       "id": "translationpage_5",
@@ -18357,32 +11959,58 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
       "onPress": (e, pressInstance, c) => { c.comp.translateAll(e, pressInstance); }
     }
   ]
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'translationpage_4',
                     parts: [{once: true,
                     condition: (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method0(),
                     template: templ0
                 }]
-            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`            <av-icon-tooltip name="warning" _id="translationpage_7">Import missing</av-icon-tooltip>        `);templ1.setActions({
+            });
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+            <av-icon-tooltip name="warning" _id="translationpage_7">Import missing</av-icon-tooltip>
+        `);
+templ1.setActions({
   "pressEvents": [
     {
       "id": "translationpage_7",
       "onPress": (e, pressInstance, c) => { c.comp.importMissing(e, pressInstance); }
     }
   ]
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'translationpage_6',
                     parts: [{once: true,
                     condition: (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method1(),
                     template: templ1
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "TranslationPage";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_init')) { this.attributeChangedCallback('is_init', false, false); }if(!this.hasAttribute('need_save')) { this.attributeChangedCallback('need_save', false, false); }if(!this.hasAttribute('has_empty')) { this.attributeChangedCallback('has_empty', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["fallback"] = "en-GB";w["searchTxt"] = "";w["onlyMissing"] = false;w["importMissingBtn"] = false;w["pageName"] = "";w["locales"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_init');this.__upgradeProperty('need_save');this.__upgradeProperty('has_empty');this.__correctGetter('fallback');this.__correctGetter('searchTxt');this.__correctGetter('onlyMissing');this.__correctGetter('importMissingBtn');this.__correctGetter('pageName');this.__correctGetter('locales'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_init')) { this.attributeChangedCallback('is_init', false, false); }
+if(!this.hasAttribute('need_save')) { this.attributeChangedCallback('need_save', false, false); }
+if(!this.hasAttribute('has_empty')) { this.attributeChangedCallback('has_empty', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["fallback"] = "en-GB";
+w["searchTxt"] = "";
+w["onlyMissing"] = false;
+w["importMissingBtn"] = false;
+w["pageName"] = "";
+w["locales"] = [];
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_init');
+this.__upgradeProperty('need_save');
+this.__upgradeProperty('has_empty');
+this.__correctGetter('fallback');
+this.__correctGetter('searchTxt');
+this.__correctGetter('onlyMissing');
+this.__correctGetter('importMissingBtn');
+this.__correctGetter('pageName');
+this.__correctGetter('locales');
+ }
     __listBoolProps() { return ["is_init","need_save","has_empty"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     syncScroll() {
         this.headerEl?.onScrollChange.add((x, y) => {
@@ -18401,7 +12029,6 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
         this.style.setProperty("--content-width", this.headerEl.offsetWidth - 2 + "px");
     }
     async triggerChange() {
-        debugger;
         this.guard.run(['triggerChange'], async () => {
             // Loading.show();
             try {
@@ -18613,8 +12240,10 @@ if(!window.customElements.get('av-translation-page')){window.customElements.defi
 const Resize = class Resize extends Aventus.WebComponent {
     static get observedAttributes() {return ["locale", "is_key"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'locale'() { return this.getStringProp('locale') }
-    set 'locale'(val) { this.setStringAttr('locale', val) }get 'is_key'() { return this.getBoolProp('is_key') }
-    set 'is_key'(val) { this.setBoolAttr('is_key', val) }    static __style = `:host{bottom:0;cursor:col-resize;position:absolute;right:-4px;top:0;width:8px}`;
+    set 'locale'(val) { this.setStringAttr('locale', val) }
+get 'is_key'() { return this.getBoolProp('is_key') }
+    set 'is_key'(val) { this.setBoolAttr('is_key', val) }
+    static __style = `:host{bottom:0;cursor:col-resize;position:absolute;right:-4px;top:0;width:8px}`;
     __getStatic() {
         return Resize;
     }
@@ -18632,8 +12261,12 @@ const Resize = class Resize extends Aventus.WebComponent {
     getClassName() {
         return "Resize";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('locale')){ this['locale'] = ""; }if(!this.hasAttribute('is_key')) { this.attributeChangedCallback('is_key', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('locale');this.__upgradeProperty('is_key'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('locale')){ this['locale'] = ""; }
+if(!this.hasAttribute('is_key')) { this.attributeChangedCallback('is_key', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('locale');
+this.__upgradeProperty('is_key');
+ }
     __listBoolProps() { return ["is_key"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     postCreation() {
         let page = this.findParentByType(TranslationPage);

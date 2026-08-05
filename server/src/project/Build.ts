@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { join, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
@@ -19,7 +19,7 @@ import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
 import { RegisterBuild } from '../notification/RegisterBuild';
 import { UnregisterBuild } from '../notification/UnregisterBuild';
-import { createErrorTsPos, EOL, getFolder, replaceNotImportAliases, simplifyUri, Timer, uriToPath, writeFile } from "../tools";
+import { createErrorTsPos, EOL, getFolder, replaceNotImportAliases, simplifyUri, Timer, unlinkSync, uriToPath, writeFile } from "../tools";
 import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
 import { DependencyManager } from './DependencyManager';

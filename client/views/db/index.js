@@ -1086,16 +1086,6 @@ let Watcher=class Watcher {
             return obj;
         }
         const reservedName = this.__reservedName;
-        const clearReservedNames = (data) => {
-            if (data instanceof Object && !data.__isProxy) {
-                for (let key in reservedName) {
-                    delete data[key];
-                }
-                for (let key in data) {
-                    clearReservedNames(data[key]);
-                }
-            }
-        };
         const setProxyPath = (newProxy, newPath) => {
             if (newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
@@ -1353,7 +1343,7 @@ let Watcher=class Watcher {
                 else if (prop == "getTarget") {
                     return (clear = true) => {
                         if (clear)
-                            clearReservedNames(target);
+                            Watcher.clearReservedNames(target);
                         return target;
                     };
                 }
@@ -1665,7 +1655,7 @@ let Watcher=class Watcher {
                     }
                     delete target[prop];
                     if (triggerChange) {
-                        clearReservedNames(oldValue);
+                        Watcher.clearReservedNames(oldValue);
                         trigger('DELETED', target, null, oldValue, prop);
                     }
                     return true;
@@ -1865,6 +1855,21 @@ let Watcher=class Watcher {
     }
     static is(obj) {
         return typeof obj == 'object' && obj.__isProxy;
+    }
+    static clearReservedNames(data) {
+        if (data instanceof Object && !data.__isProxy) {
+            for (let key in this.__reservedName) {
+                delete data[key];
+            }
+            for (let key in data) {
+                this.clearReservedNames(data[key]);
+            }
+        }
+        else if (Array.isArray(data)) {
+            for (let item of data) {
+                this.clearReservedNames(item);
+            }
+        }
     }
     static extract(obj, clearPath = false) {
         if (this.is(obj)) {
@@ -6922,11 +6927,16 @@ let _n;
 const Icon = class Icon extends Aventus.WebComponent {
     static get observedAttributes() {return ["icon", "type", "fill"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'is_hidden'() { return this.getBoolAttr('is_hidden') }
-    set 'is_hidden'(val) { this.setBoolAttr('is_hidden', val) }get 'no_check'() { return this.getBoolAttr('no_check') }
-    set 'no_check'(val) { this.setBoolAttr('no_check', val) }    get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }get 'type'() { return this.getStringProp('type') }
-    set 'type'(val) { this.setStringAttr('type', val) }get 'fill'() { return this.getBoolProp('fill') }
-    set 'fill'(val) { this.setBoolAttr('fill', val) }    static config = {
+    set 'is_hidden'(val) { this.setBoolAttr('is_hidden', val) }
+get 'no_check'() { return this.getBoolAttr('no_check') }
+    set 'no_check'(val) { this.setBoolAttr('no_check', val) }
+    get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }
+get 'type'() { return this.getStringProp('type') }
+    set 'type'(val) { this.setStringAttr('type', val) }
+get 'fill'() { return this.getBoolProp('fill') }
+    set 'fill'(val) { this.setBoolAttr('fill', val) }
+    static config = {
         type: 'outlined',
         getFontUrl: (variant) => {
             const name = variant.charAt(0).toUpperCase() + variant.slice(1);
@@ -6937,13 +6947,16 @@ const Icon = class Icon extends Aventus.WebComponent {
     if (target.isReady) {
         target.init();
     }
-}));this.__addPropertyActions("type", ((target) => {
+}));
+this.__addPropertyActions("type", ((target) => {
     if (target.isReady)
         target.loadFont();
-}));this.__addPropertyActions("fill", ((target) => {
+}));
+this.__addPropertyActions("fill", ((target) => {
     if (target.isReady)
         target.loadFont();
-})); }
+}));
+ }
     static __style = `:host{--_material-icon-animation-duration: var(--material-icon-animation-duration, 1.75s)}:host{direction:ltr;display:inline-block;font-family:"Material Symbols Outlined";-moz-font-feature-settings:"liga";font-size:24px;-moz-osx-font-smoothing:grayscale;font-style:normal;font-weight:normal;letter-spacing:normal;line-height:1;text-transform:none;white-space:nowrap;word-wrap:normal}:host .icon{direction:inherit;display:inline-block;font-family:inherit;-moz-font-feature-settings:inherit;font-size:inherit;-moz-osx-font-smoothing:inherit;font-style:inherit;font-weight:inherit;letter-spacing:inherit;line-height:inherit;text-transform:inherit;white-space:inherit;word-wrap:inherit}:host([is_hidden]){opacity:0}:host([type=sharp]){font-family:"Material Symbols Sharp"}:host([type=rounded]){font-family:"Material Symbols Rounded"}:host([type=outlined]){font-family:"Material Symbols Outlined"}:host([fill]){font-variation-settings:"FILL" 1}:host([spin]){animation:spin var(--_material-icon-animation-duration) linear infinite}:host([reverse_spin]){animation:reverse-spin var(--_material-icon-animation-duration) linear infinite}@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}@keyframes reverse-spin{0%{transform:rotate(360deg)}100%{transform:rotate(0deg)}}`;
     __getStatic() {
         return Icon;
@@ -6958,7 +6971,8 @@ const Icon = class Icon extends Aventus.WebComponent {
         blocks: { 'default':`<div class="icon" _id="icon_0"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "iconEl",
@@ -6967,12 +6981,23 @@ const Icon = class Icon extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Icon";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_hidden')) {this.setAttribute('is_hidden' ,'true'); }if(!this.hasAttribute('no_check')) { this.attributeChangedCallback('no_check', false, false); }if(!this.hasAttribute('icon')){ this['icon'] = "check_box_outline_blank"; }if(!this.hasAttribute('type')){ this['type'] = Icon.config.type; }if(!this.hasAttribute('fill')) { this.attributeChangedCallback('fill', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_hidden');this.__upgradeProperty('no_check');this.__upgradeProperty('icon');this.__upgradeProperty('type');this.__upgradeProperty('fill'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_hidden')) {this.setAttribute('is_hidden' ,'true'); }
+if(!this.hasAttribute('no_check')) { this.attributeChangedCallback('no_check', false, false); }
+if(!this.hasAttribute('icon')){ this['icon'] = "check_box_outline_blank"; }
+if(!this.hasAttribute('type')){ this['type'] = Icon.config.type; }
+if(!this.hasAttribute('fill')) { this.attributeChangedCallback('fill', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_hidden');
+this.__upgradeProperty('no_check');
+this.__upgradeProperty('icon');
+this.__upgradeProperty('type');
+this.__upgradeProperty('fill');
+ }
     __listBoolProps() { return ["is_hidden","no_check","fill"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     async loadFont() {
         if (!this.type)
@@ -7000,7 +7025,7 @@ const Icon = class Icon extends Aventus.WebComponent {
         };
         document.fonts.addEventListener("loadingdone", cb);
         let url = Icon.config.getFontUrl(this.type);
-        await Aventus.ResourceLoader.loadInHead({
+        const result = await Aventus.ResourceLoader.loadInHead({
             type: "css",
             url: url
         });
@@ -7022,8 +7047,8 @@ const Icon = class Icon extends Aventus.WebComponent {
     }
     static configure(config) {
         this.config = {
+            ...this.config,
             ...config,
-            ...this.config
         };
     }
 }
@@ -7108,7 +7133,8 @@ __as1(_.Lib, 'SpecialTouch', Lib.SpecialTouch);
 Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
     static get observedAttributes() {return ["type"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'type'() { return this.getStringProp('type') }
-    set 'type'(val) { this.setStringAttr('type', val) }    static get formAssociated() { return true; }
+    set 'type'(val) { this.setStringAttr('type', val) }
+    static get formAssociated() { return true; }
     internals;
     handler = undefined;
     static __style = ``;
@@ -7136,8 +7162,10 @@ Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
     getClassName() {
         return "ButtonElement";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = 'button'; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = 'button'; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type');
+ }
     async triggerSubmit() {
         if (this.type == "submit") {
             if ("loading" in this) {
@@ -7879,18 +7907,22 @@ __as1(_.Form, 'FormHandlerController', Form.FormHandlerController);
 Form.FormElement = class FormElement extends Aventus.WebComponent {
     static get observedAttributes() {return ["disabled"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'has_errors'() { return this.getBoolAttr('has_errors') }
-    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }    get 'disabled'() { return this.getBoolProp('disabled') }
-    set 'disabled'(val) { this.setBoolAttr('disabled', val) }    get 'value'() {
+    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }
+    get 'disabled'() { return this.getBoolProp('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }
+    get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
-					}get 'errors'() {
+					}
+get 'errors'() {
 						return this.__watch["errors"];
 					}
 					set 'errors'(val) {
 						this.__watch["errors"] = val;
-					}    static get formAssociated() { return true; }
+					}
+    static get formAssociated() { return true; }
     _form;
     get form() {
         return this._form;
@@ -7907,9 +7939,11 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
     __registerWatchesActions() {
     this.__addWatchesActions("value", ((target) => {
     target.onValueChange(target.value);
-}));this.__addWatchesActions("errors", ((target) => {
+}));
+this.__addWatchesActions("errors", ((target) => {
     target.onErrorsChange();
-}));    super.__registerWatchesActions();
+}));
+    super.__registerWatchesActions();
 }
     static __style = ``;
     constructor() {
@@ -7938,9 +7972,18 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
     getClassName() {
         return "FormElement";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;w["errors"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');this.__upgradeProperty('has_errors');this.__upgradeProperty('disabled');this.__correctGetter('value');this.__correctGetter('errors'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); }
+if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;
+w["errors"] = [];
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');
+this.__upgradeProperty('has_errors');
+this.__upgradeProperty('disabled');
+this.__correctGetter('value');
+this.__correctGetter('errors');
+ }
     __listBoolProps() { return ["has_errors","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     refreshValueFromForm() {
         if (this._form) {
@@ -8050,6 +8093,39 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
 }
 Form.FormElement.Namespace=`Aventus.Form`;
 __as1(_.Form, 'FormElement', Form.FormElement);
+
+let Process=class Process {
+    /**
+     * Static handler for processing generic errors.
+     */
+    static handleErrors;
+    /**
+     * Configures the Process utility with custom error handling.
+     */
+    static configure(config) {
+        this.handleErrors = config.handleErrors;
+    }
+    static async execute(prom) {
+        const queryResult = await prom;
+        return await this.parseErrors(queryResult);
+    }
+    static async parseErrors(result) {
+        if (result.errors.length > 0) {
+            if (this.handleErrors) {
+                let msg = result.errors.map(p => p.message.replace(/\n/g, '<br/>')).join("<br/>");
+                this.handleErrors(msg, result.errors);
+            }
+            return undefined;
+        }
+        if (result instanceof Aventus.ResultWithError)
+            return result.result;
+        if (result instanceof Aventus.VoidWithError)
+            return result.success;
+        return undefined;
+    }
+}
+Process.Namespace=`Aventus`;
+__as1(_, 'Process', Process);
 
 Lib.ShortcutManager=class ShortcutManager {
     /**
@@ -8293,7 +8369,8 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
 					}
 					set 'options'(val) {
 						this.__watch["options"] = val;
-					}    static defaultCloseWithEsc = true;
+					}
+    static defaultCloseWithEsc = true;
     static defaultCloseWithClick = true;
     static defaultRejectValue = null;
     cb;
@@ -8302,7 +8379,8 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
     __registerWatchesActions() {
     this.__addWatchesActions("options", ((target, action, path, value) => {
     target.onOptionsChanged();
-}));    super.__registerWatchesActions();
+}));
+    super.__registerWatchesActions();
 }
     static __style = `:host{align-items:center;display:flex;inset:0;justify-content:center;position:fixed;z-index:60}:host .modal{background-color:#fff;padding:1.5rem;position:relative}`;
     constructor() {
@@ -8333,10 +8411,13 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="modal" _id="modalelement_0">	<slot></slot></div>` }
+        blocks: { 'default':`<div class="modal" _id="modalelement_0">
+	<slot></slot>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "modalEl",
@@ -8345,12 +8426,15 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "ModalElement";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["options"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('options'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["options"] = undefined;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('options');
+ }
     onOptionsChanged() { }
     init(cb) {
         this.cb = cb;
@@ -8421,9 +8505,12 @@ __as1(_.Modal, 'ModalElement', Modal.ModalElement);
 
 Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
     get 'position'() { return this.getStringAttr('position') }
-    set 'position'(val) { this.setStringAttr('position', val) }get 'delay'() { return this.getNumberAttr('delay') }
-    set 'delay'(val) { this.setNumberAttr('delay', val) }get 'is_active'() { return this.getBoolAttr('is_active') }
-    set 'is_active'(val) { this.setBoolAttr('is_active', val) }    showAsked = false;
+    set 'position'(val) { this.setStringAttr('position', val) }
+get 'delay'() { return this.getNumberAttr('delay') }
+    set 'delay'(val) { this.setNumberAttr('delay', val) }
+get 'is_active'() { return this.getBoolAttr('is_active') }
+    set 'is_active'(val) { this.setBoolAttr('is_active', val) }
+    showAsked = false;
     onHideCallback = () => { };
     timeout = 0;
     hasTransition = false;
@@ -8453,8 +8540,14 @@ Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
     getClassName() {
         return "ToastElement";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('position')){ this['position'] = _.Toast.ToastManager.defaultPosition; }if(!this.hasAttribute('delay')){ this['delay'] = _.Toast.ToastManager.defaultDelay; }if(!this.hasAttribute('is_active')) { this.attributeChangedCallback('is_active', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('position');this.__upgradeProperty('delay');this.__upgradeProperty('is_active'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('position')){ this['position'] = _.Toast.ToastManager.defaultPosition; }
+if(!this.hasAttribute('delay')){ this['delay'] = _.Toast.ToastManager.defaultDelay; }
+if(!this.hasAttribute('is_active')) { this.attributeChangedCallback('is_active', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('position');
+this.__upgradeProperty('delay');
+this.__upgradeProperty('is_active');
+ }
     __listBoolProps() { return ["is_active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     _setOptions(options) {
         if (options.position !== undefined)
@@ -8525,7 +8618,8 @@ __as1(_.Toast, 'ToastElement', Toast.ToastElement);
 
 Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
     get 'not_main'() { return this.getBoolAttr('not_main') }
-    set 'not_main'(val) { this.setBoolAttr('not_main', val) }    static defaultToast;
+    set 'not_main'(val) { this.setBoolAttr('not_main', val) }
+    static defaultToast;
     static defaultToastManager;
     static defaultPosition = 'top right';
     static defaultDelay = 5000;
@@ -8573,8 +8667,12 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
     getClassName() {
         return "ToastManager";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('not_main')) { this.attributeChangedCallback('not_main', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('containerHeight');this.__correctGetter('heightLimit');this.__upgradeProperty('not_main'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('not_main')) { this.attributeChangedCallback('not_main', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('containerHeight');
+this.__correctGetter('heightLimit');
+this.__upgradeProperty('not_main');
+ }
     __listBoolProps() { return ["not_main"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     async add(toast) {
         await this.mutex.waitOne();
@@ -8759,39 +8857,6 @@ Toast.ToastManager.Tag=`av-toast-manager`;
 __as1(_.Toast, 'ToastManager', Toast.ToastManager);
 if(!window.customElements.get('av-toast-manager')){window.customElements.define('av-toast-manager', Toast.ToastManager);Aventus.WebComponentInstance.registerDefinition(Toast.ToastManager);}
 
-let Process=class Process {
-    /**
-     * Static handler for processing generic errors.
-     */
-    static handleErrors;
-    /**
-     * Configures the Process utility with custom error handling.
-     */
-    static configure(config) {
-        this.handleErrors = config.handleErrors;
-    }
-    static async execute(prom) {
-        const queryResult = await prom;
-        return await this.parseErrors(queryResult);
-    }
-    static async parseErrors(result) {
-        if (result.errors.length > 0) {
-            if (this.handleErrors) {
-                let msg = result.errors.map(p => p.message.replace(/\n/g, '<br/>')).join("<br/>");
-                this.handleErrors(msg, result.errors);
-            }
-            return undefined;
-        }
-        if (result instanceof Aventus.ResultWithError)
-            return result.result;
-        if (result instanceof Aventus.VoidWithError)
-            return result.success;
-        return undefined;
-    }
-}
-Process.Namespace=`Aventus`;
-__as1(_, 'Process', Process);
-
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
@@ -8819,21 +8884,32 @@ let _n;
 Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'y_scroll_visible'() { return this.getBoolAttr('y_scroll_visible') }
-    set 'y_scroll_visible'(val) { this.setBoolAttr('y_scroll_visible', val) }get 'x_scroll_visible'() { return this.getBoolAttr('x_scroll_visible') }
-    set 'x_scroll_visible'(val) { this.setBoolAttr('x_scroll_visible', val) }get 'floating_scroll'() { return this.getBoolAttr('floating_scroll') }
-    set 'floating_scroll'(val) { this.setBoolAttr('floating_scroll', val) }get 'x_scroll'() { return this.getBoolAttr('x_scroll') }
-    set 'x_scroll'(val) { this.setBoolAttr('x_scroll', val) }get 'y_scroll'() { return this.getBoolAttr('y_scroll') }
-    set 'y_scroll'(val) { this.setBoolAttr('y_scroll', val) }get 'auto_hide'() { return this.getBoolAttr('auto_hide') }
-    set 'auto_hide'(val) { this.setBoolAttr('auto_hide', val) }get 'disable'() { return this.getBoolAttr('disable') }
-    set 'disable'(val) { this.setBoolAttr('disable', val) }get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
-    set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }get 'mouse_drag'() { return this.getBoolAttr('mouse_drag') }
-    set 'mouse_drag'(val) { this.setBoolAttr('mouse_drag', val) }    get 'zoom'() { return this.getNumberProp('zoom') }
-    set 'zoom'(val) { this.setNumberAttr('zoom', val) }    get 'allowResizeObserver'() {
+    set 'y_scroll_visible'(val) { this.setBoolAttr('y_scroll_visible', val) }
+get 'x_scroll_visible'() { return this.getBoolAttr('x_scroll_visible') }
+    set 'x_scroll_visible'(val) { this.setBoolAttr('x_scroll_visible', val) }
+get 'floating_scroll'() { return this.getBoolAttr('floating_scroll') }
+    set 'floating_scroll'(val) { this.setBoolAttr('floating_scroll', val) }
+get 'x_scroll'() { return this.getBoolAttr('x_scroll') }
+    set 'x_scroll'(val) { this.setBoolAttr('x_scroll', val) }
+get 'y_scroll'() { return this.getBoolAttr('y_scroll') }
+    set 'y_scroll'(val) { this.setBoolAttr('y_scroll', val) }
+get 'auto_hide'() { return this.getBoolAttr('auto_hide') }
+    set 'auto_hide'(val) { this.setBoolAttr('auto_hide', val) }
+get 'disable'() { return this.getBoolAttr('disable') }
+    set 'disable'(val) { this.setBoolAttr('disable', val) }
+get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
+    set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }
+get 'mouse_drag'() { return this.getBoolAttr('mouse_drag') }
+    set 'mouse_drag'(val) { this.setBoolAttr('mouse_drag', val) }
+    get 'zoom'() { return this.getNumberProp('zoom') }
+    set 'zoom'(val) { this.setNumberAttr('zoom', val) }
+    get 'allowResizeObserver'() {
 						return this.__signals["allowResizeObserver"].value;
 					}
 					set 'allowResizeObserver'(val) {
 						this.__signals["allowResizeObserver"].value = val;
-					}    observer;
+					}
+    observer;
     contentWrapperSize = { x: 0, y: 0 };
     display = { x: 0, y: 0 };
     margin = {
@@ -8874,14 +8950,17 @@ Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
     scrollTimeout = 0;
     onScrollChange = new Aventus.Callback();
     onZoomChange = new Aventus.Callback();
-    __registerSignalsActions() { this.__signals["allowResizeObserver"] = null; super.__registerSignalsActions(); this.__addSignalActions("allowResizeObserver", ((target) => {
+    __registerSignalsActions() { this.__signals["allowResizeObserver"] = null;
+ super.__registerSignalsActions(); this.__addSignalActions("allowResizeObserver", ((target) => {
     if (target.allowResizeObserver) {
         target.dimensionRefreshed();
     }
-})); }
+}));
+ }
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
-})); }
+}));
+ }
     static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:auto;-webkit-overflow-scrolling:touch;-ms-overflow-style:none;position:relative;scrollbar-width:none;width:100%}:host .scroll-main-container .content-zoom .content-hidder::-webkit-scrollbar{display:none}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}:host([flex]){display:flex;flex-direction:column;min-height:0}:host([flex]) .scroll-main-container{display:flex;flex-direction:column}:host([flex]) .scroll-main-container .content-zoom{display:flex;flex-direction:column}:host([disable]) .scroll-main-container .content-zoom .content-hidder{overflow:hidden}:host([disable]) .scroll-main-container .scroller-wrapper{display:none}:host([is_scrolling]) .content-wrapper{pointer-events:none}`;
     __getStatic() {
         return Scrollable;
@@ -8894,10 +8973,31 @@ Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
+        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">
+    <div class="content-zoom" _id="scrollable_1">
+        <div class="content-hidder" _id="scrollable_2">
+            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">
+                <slot></slot>
+            </div>
+        </div>
+    </div>
+    <div class="scroller-wrapper">
+        <div class="container-scroller vertical" _id="scrollable_4">
+            <div class="shadow-scroller">
+                <div class="scroller" _id="scrollable_5"></div>
+            </div>
+        </div>
+        <div class="container-scroller horizontal" _id="scrollable_6">
+            <div class="shadow-scroller">
+                <div class="scroller" _id="scrollable_7"></div>
+            </div>
+        </div>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "mainContainer",
@@ -8955,13 +9055,40 @@ Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.onScrollEvent(e)
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Scrollable";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('mouse_drag')) { this.attributeChangedCallback('mouse_drag', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
-    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["allowResizeObserver"] = true; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('x');this.__correctGetter('y');this.__correctGetter('xMax');this.__correctGetter('yMax');this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('mouse_drag');this.__upgradeProperty('zoom');this.__correctGetter('allowResizeObserver'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }
+if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }
+if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }
+if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }
+if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }
+if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }
+if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }
+if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }
+if(!this.hasAttribute('mouse_drag')) { this.attributeChangedCallback('mouse_drag', false, false); }
+if(!this.hasAttribute('zoom')){ this['zoom'] = 1; }
+ }
+    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["allowResizeObserver"] = true;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('x');
+this.__correctGetter('y');
+this.__correctGetter('xMax');
+this.__correctGetter('yMax');
+this.__upgradeProperty('y_scroll_visible');
+this.__upgradeProperty('x_scroll_visible');
+this.__upgradeProperty('floating_scroll');
+this.__upgradeProperty('x_scroll');
+this.__upgradeProperty('y_scroll');
+this.__upgradeProperty('auto_hide');
+this.__upgradeProperty('disable');
+this.__upgradeProperty('no_user_select');
+this.__upgradeProperty('mouse_drag');
+this.__upgradeProperty('zoom');
+this.__correctGetter('allowResizeObserver');
+ }
     __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select","mouse_drag"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculateRealSize() {
         if (!this.contentZoom || !this.mainContainer || !this.contentWrapper) {
@@ -9308,10 +9435,17 @@ Components.Interaction.Modal = class Modal extends Aventus.Modal.ModalElement {
         arrStyle.push(Modal.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'header':`<slot name="header"></slot>`,'default':`<slot></slot>`,'footer':`<slot name="footer"></slot>` }, 
-        blocks: { 'default':`<div class="modal-header">    <slot name="header"></slot></div><om-scrollable class="modal-content" flex>    <slot></slot></om-scrollable><div class="modal-footer">    <slot name="footer"></slot></div>` }
+        blocks: { 'default':`<div class="modal-header">
+    <slot name="header"></slot>
+</div><om-scrollable class="modal-content" flex>
+    <slot></slot>
+</om-scrollable><div class="modal-footer">
+    <slot name="footer"></slot>
+</div>` }
     });
 }
     getClassName() {
@@ -9373,13 +9507,20 @@ __as1(_.Libs, 'Style', Libs.Style);
 Components.Form.Button = class Button extends Aventus.Form.ButtonElement {
     static get observedAttributes() {return ["icon", "icon_right"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'color'() { return this.getStringAttr('color') }
-    set 'color'(val) { this.setStringAttr('color', val) }get 'outline'() { return this.getBoolAttr('outline') }
-    set 'outline'(val) { this.setBoolAttr('outline', val) }get 'disabled'() { return this.getBoolAttr('disabled') }
-    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'loading'() { return this.getBoolAttr('loading') }
-    set 'loading'(val) { this.setBoolAttr('loading', val) }get 'ghost'() { return this.getBoolAttr('ghost') }
-    set 'ghost'(val) { this.setBoolAttr('ghost', val) }    get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }get 'icon_right'() { return this.getBoolProp('icon_right') }
-    set 'icon_right'(val) { this.setBoolAttr('icon_right', val) }    static __style = `:host{--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content));--_button-radius: var(--button-radius, var(--border-radius-lg));--_button-icon-font-size: var(--button-icon-font-size, var(--font-size-lg))}:host([outline]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--surface-content));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--surface-content))}:host([color=primary]){--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content))}:host([outline][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--primary));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary))}:host([color=accent]){--_button-bg: var(--button-bg, var(--accent-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent-content))}:host([outline][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--accent));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent))}:host([color=neutral]){--_button-bg: var(--button-bg, var(--neutral-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral-content))}:host([outline][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--neutral));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral))}:host([color=info]){--_button-bg: var(--button-bg, var(--info-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info-content))}:host([outline][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--info));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info))}:host([color=success]){--_button-bg: var(--button-bg, var(--success-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success-content))}:host([outline][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--success));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success))}:host([color=warning]){--_button-bg: var(--button-bg, var(--warning-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning-content))}:host([outline][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--warning));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning))}:host([color=error]){--_button-bg: var(--button-bg, var(--error-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error-content))}:host([outline][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--error));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error))}:host([disabled]){--_button-bg: color-mix(in oklab, var(--surface-content) 10%, transparent);--_button-fg: color-mix(in oklab, var(--surface-content) 50%, var(--surface));pointer-events:none}:host{align-items:center;background-color:var(--_button-bg);border-radius:var(--_button-radius);color:var(--_button-fg);cursor:pointer;display:flex;font-weight:500;gap:.5rem;line-height:var(--line-height);padding:.5rem 1rem;position:relative;user-select:none;width:fit-content}:host mi-icon{font-size:var(--_button-icon-font-size);font-weight:normal}:host .loader-mask{align-items:center;align-items:stretch;display:none;inset:.6rem;justify-content:center;position:absolute}:host .loader-mask .loader{animation:rotation 1s linear infinite;aspect-ratio:1;border:2px solid var(--_button-fg);border-bottom-color:rgba(0,0,0,0);border-radius:50000px;display:block;height:100%;max-height:100%;max-width:100%}:host .border{border:1px solid var(--_button-border);border-radius:var(--_button-radius);display:none;inset:0;pointer-events:none;position:absolute}:host([outline]) .border{display:block}:host(:not([icon])) mi-icon,:host([icon=""]) mi-icon{display:none}:host([round]){border-radius:var(--border-radius-round)}:host(:empty[icon]:not([icon=""])){align-items:center;justify-content:center;padding:.5rem}:host([loading]) slot{opacity:0;visibility:hidden}:host([loading]) mi-icon{opacity:0;visibility:hidden}:host([loading]) .loader-mask{display:flex}@media(hover: hover)and (pointer: fine){:host(:not([loading]):hover){background-color:color-mix(in oklab, var(--_button-bg), #000 7%)}}@keyframes rotation{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`;
+    set 'color'(val) { this.setStringAttr('color', val) }
+get 'outline'() { return this.getBoolAttr('outline') }
+    set 'outline'(val) { this.setBoolAttr('outline', val) }
+get 'disabled'() { return this.getBoolAttr('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }
+get 'loading'() { return this.getBoolAttr('loading') }
+    set 'loading'(val) { this.setBoolAttr('loading', val) }
+get 'ghost'() { return this.getBoolAttr('ghost') }
+    set 'ghost'(val) { this.setBoolAttr('ghost', val) }
+    get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }
+get 'icon_right'() { return this.getBoolProp('icon_right') }
+    set 'icon_right'(val) { this.setBoolAttr('icon_right', val) }
+    static __style = `:host{--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content));--_button-radius: var(--button-radius, var(--border-radius-lg));--_button-icon-font-size: var(--button-icon-font-size, var(--font-size-lg))}:host([outline]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--surface-content));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--surface-content))}:host([color=primary]){--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content))}:host([outline][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--primary));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary))}:host([color=accent]){--_button-bg: var(--button-bg, var(--accent-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent-content))}:host([outline][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--accent));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent))}:host([color=neutral]){--_button-bg: var(--button-bg, var(--neutral-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral-content))}:host([outline][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--neutral));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral))}:host([color=info]){--_button-bg: var(--button-bg, var(--info-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info-content))}:host([outline][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--info));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info))}:host([color=success]){--_button-bg: var(--button-bg, var(--success-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success-content))}:host([outline][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--success));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success))}:host([color=warning]){--_button-bg: var(--button-bg, var(--warning-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning-content))}:host([outline][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--warning));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning))}:host([color=error]){--_button-bg: var(--button-bg, var(--error-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error-content))}:host([outline][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--error));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error))}:host([disabled]){--_button-bg: color-mix(in oklab, var(--surface-content) 10%, transparent);--_button-fg: color-mix(in oklab, var(--surface-content) 50%, var(--surface));pointer-events:none}:host{align-items:center;background-color:var(--_button-bg);border-radius:var(--_button-radius);color:var(--_button-fg);cursor:pointer;display:flex;font-weight:500;gap:.5rem;line-height:var(--line-height);padding:.5rem 1rem;position:relative;user-select:none;width:fit-content}:host mi-icon{font-size:var(--_button-icon-font-size);font-weight:normal}:host .loader-mask{align-items:center;align-items:stretch;display:none;inset:.6rem;justify-content:center;position:absolute}:host .loader-mask .loader{animation:rotation 1s linear infinite;aspect-ratio:1;border:2px solid var(--_button-fg);border-bottom-color:rgba(0,0,0,0);border-radius:50000px;display:block;height:100%;max-height:100%;max-width:100%}:host .border{border:1px solid var(--_button-border);border-radius:var(--_button-radius);display:none;inset:0;pointer-events:none;position:absolute}:host([outline]) .border{display:block}:host(:not([icon])) mi-icon,:host([icon=""]) mi-icon{display:none}:host([round]){border-radius:var(--border-radius-round)}:host(:empty[icon]:not([icon=""])){align-items:center;justify-content:center;padding:.5rem}:host([loading]) slot{opacity:0;visibility:hidden}:host([loading]) mi-icon{opacity:0;visibility:hidden}:host([loading]) .loader-mask{display:flex}@media(hover: hover)and (pointer: fine){:host(:not([loading]):hover){background-color:color-mix(in oklab, var(--_button-bg), #000 7%)}}@keyframes rotation{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`;
     __getStatic() {
         return Button;
     }
@@ -9388,44 +9529,74 @@ Components.Form.Button = class Button extends Aventus.Form.ButtonElement {
         arrStyle.push(Button.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<template _id="button_0"></template><slot></slot><template _id="button_2"></template><div class="loader-mask">    <div class="loader"></div></div><div class="border"></div>` }
+        blocks: { 'default':`<template _id="button_0"></template><slot></slot><template _id="button_2"></template><div class="loader-mask">
+    <div class="loader"></div>
+</div><div class="border"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <mi-icon _id="button_1"></mi-icon>`);templ0.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+    <mi-icon _id="button_1"></mi-icon>
+`);
+templ0.setActions({
   "content": {
     "button_1°icon": {
       "fct": (c) => `${c.print(c.comp.__4b84b84f9c7940ff70213fba40df60cemethod2())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'button_0',
                     parts: [{once: true,
                     condition: (c) => c.comp.__4b84b84f9c7940ff70213fba40df60cemethod0(),
                     template: templ0
                 }]
-            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`    <mi-icon _id="button_3"></mi-icon>`);templ1.setActions({
+            });
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+    <mi-icon _id="button_3"></mi-icon>
+`);
+templ1.setActions({
   "content": {
     "button_3°icon": {
       "fct": (c) => `${c.print(c.comp.__4b84b84f9c7940ff70213fba40df60cemethod2())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'button_2',
                     parts: [{once: true,
                     condition: (c) => c.comp.__4b84b84f9c7940ff70213fba40df60cemethod1(),
                     template: templ1
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "Button";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('color')){ this['color'] = undefined; }if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('icon_right')) { this.attributeChangedCallback('icon_right', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('color');this.__upgradeProperty('outline');this.__upgradeProperty('disabled');this.__upgradeProperty('loading');this.__upgradeProperty('ghost');this.__upgradeProperty('icon');this.__upgradeProperty('icon_right'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('color')){ this['color'] = undefined; }
+if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }
+if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
+if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }
+if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }
+if(!this.hasAttribute('icon')){ this['icon'] = undefined; }
+if(!this.hasAttribute('icon_right')) { this.attributeChangedCallback('icon_right', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('color');
+this.__upgradeProperty('outline');
+this.__upgradeProperty('disabled');
+this.__upgradeProperty('loading');
+this.__upgradeProperty('ghost');
+this.__upgradeProperty('icon');
+this.__upgradeProperty('icon_right');
+ }
     __listBoolProps() { return ["outline","disabled","loading","ghost","icon_right"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     registerSubmit() {
         this.handler = this.findParentByType(Aventus.Form.Form.formElements)?.registerSubmit(this);
@@ -9631,7 +9802,8 @@ Components.Form.FormElement = class FormElement extends Aventus.Form.FormElement
         arrStyle.push(FormElement.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
         blocks: { 'default':`<slot></slot>` }
@@ -9647,14 +9819,21 @@ __as1(_.Components.Form, 'FormElement', Components.Form.FormElement);
 Components.Form.Input = class Input extends Components.Form.FormElement {
     static get observedAttributes() {return ["name", "label", "icon", "placeholder", "value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'is_focus'() { return this.getBoolAttr('is_focus') }
-    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }    get 'name'() { return this.getStringProp('name') }
-    set 'name'(val) { this.setStringAttr('name', val) }get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }get 'placeholder'() { return this.getStringProp('placeholder') }
-    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }get 'value'() { return this.getStringProp('value') }
-    set 'value'(val) { this.setStringAttr('value', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
+    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }
+    get 'name'() { return this.getStringProp('name') }
+    set 'name'(val) { this.setStringAttr('name', val) }
+get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }
+get 'placeholder'() { return this.getStringProp('placeholder') }
+    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }
+get 'value'() { return this.getStringProp('value') }
+    set 'value'(val) { this.setStringAttr('value', val) }
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
     target.onValueChange(target.value);
-})); }
+}));
+ }
     static __style = `:host{--_input-bg: var(--input-bg, var(--form-element-bg));--_input-fg: var(--input-fg, var(--form-element-fg));--_input-border: var(--input-border, var(--form-element-border));--_input-border-radius: var(--input-border-radius, var(--form-element-border-radius))}:host{width:100%}:host label{display:none;font-size:var(--font-size-sm);font-weight:500;line-height:var(--line-height-sm)}:host .input{align-items:center;background-color:var(--_input-bg);border-radius:var(--_input-border-radius);display:flex;gap:.5rem;height:100%;margin-top:0;overflow:hidden;padding:.5rem 1rem;position:relative;width:100%}:host .input .icon{color:color-mix(in oklab, var(--_input-fg) 40%, transparent);display:none;font-size:var(--font-size)}:host .input input{background-color:rgba(0,0,0,0);border:none;color:var(--_input-fg);display:block;flex-grow:1;font-size:var(--font-size);height:var(--line-height);margin:0;min-width:0;outline:none;padding:0}:host .input input::placeholder{color:color-mix(in oklab, var(--_input-fg) 40%, transparent)}:host .input::after{border:var(--_input-border);border-radius:var(--_input-border-radius);content:"";display:block;inset:0px;pointer-events:none;position:absolute}:host .errors{color:var(--error);display:none;flex-direction:column;font-size:var(--font-size-sm);gap:.25rem;line-height:var(--line-height-sm);margin:.5rem;margin-bottom:0}:host([is_focus]) .input{border-color:var(--primary)}:host([is_focus]) .input::after{border-color:var(--primary);border-width:2px}:host([has_errors]) .input::after{border-color:var(--error)}:host([has_errors]) .errors{display:flex}:host([icon]:not([icon=""])) .input .icon{display:block}:host([label]:not([label=""])) label{display:flex}:host([label]:not([label=""])) .input{height:auto;margin-top:.5rem}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) label{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input{background-color:color-mix(in oklab, var(--surface-content) 10%, transparent)}:host([disabled]) .input input{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input::after{border:none}`;
     __getStatic() {
         return Input;
@@ -9664,13 +9843,27 @@ Components.Form.Input = class Input extends Components.Form.FormElement {
         arrStyle.push(Input.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        slots: { 'prepend':`<slot name="prepend">        <mi-icon class="icon" _id="input_1"></mi-icon>    </slot>`,'append':`<slot name="append">    </slot>` }, 
-        blocks: { 'default':`<label _id="input_0"></label><div class="input">    <slot name="prepend">        <mi-icon class="icon" _id="input_1"></mi-icon>    </slot>    <input autocomplete="off" _id="input_2" />    <slot name="append">    </slot></div><div class="errors">    <template _id="input_3"></template></div>` }
+        slots: { 'prepend':`<slot name="prepend">
+        <mi-icon class="icon" _id="input_1"></mi-icon>
+    </slot>`,'append':`<slot name="append">
+    </slot>` }, 
+        blocks: { 'default':`<label _id="input_0"></label><div class="input">
+    <slot name="prepend">
+        <mi-icon class="icon" _id="input_1"></mi-icon>
+    </slot>
+    <input autocomplete="off" _id="input_2" />
+    <slot name="append">
+    </slot>
+</div><div class="errors">
+    <template _id="input_3"></template>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "iconEl",
@@ -9739,22 +9932,42 @@ Components.Form.Input = class Input extends Components.Form.FormElement {
       "fct": (e, c) => c.comp.onInputChanged(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`         <div _id="input_4"></div>    `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(` 
+        <div _id="input_4"></div>
+    `);
+templ0.setActions({
   "content": {
     "input_4°@HTML": {
       "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod7(c.data.error))}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'input_3',
                     template: templ0,
-                simple:{data: "this.errors",item:"error"}}); }
+                simple:{data: "this.errors",item:"error"}
+});
+ }
     getClassName() {
         return "Input";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }if(!this.hasAttribute('name')){ this['name'] = undefined; }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_focus');this.__upgradeProperty('name');this.__upgradeProperty('label');this.__upgradeProperty('icon');this.__upgradeProperty('placeholder');this.__upgradeProperty('value'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }
+if(!this.hasAttribute('name')){ this['name'] = undefined; }
+if(!this.hasAttribute('label')){ this['label'] = undefined; }
+if(!this.hasAttribute('icon')){ this['icon'] = undefined; }
+if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }
+if(!this.hasAttribute('value')){ this['value'] = ""; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_focus');
+this.__upgradeProperty('name');
+this.__upgradeProperty('label');
+this.__upgradeProperty('icon');
+this.__upgradeProperty('placeholder');
+this.__upgradeProperty('value');
+ }
     __listBoolProps() { return ["is_focus"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onFocus() {
         this.is_focus = true;
@@ -9796,25 +10009,37 @@ if(!window.customElements.get('om-input')){window.customElements.define('om-inpu
 Components.Form.Slider = class Slider extends Components.Form.FormElement {
     static get observedAttributes() {return ["name", "label", "min", "max", "value", "step"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'popup'() { return this.getStringAttr('popup') }
-    set 'popup'(val) { this.setStringAttr('popup', val) }get 'no_transition'() { return this.getBoolAttr('no_transition') }
-    set 'no_transition'(val) { this.setBoolAttr('no_transition', val) }get 'popup_visible'() { return this.getBoolAttr('popup_visible') }
-    set 'popup_visible'(val) { this.setBoolAttr('popup_visible', val) }    get 'name'() { return this.getStringProp('name') }
-    set 'name'(val) { this.setStringAttr('name', val) }get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }get 'min'() { return this.getNumberProp('min') }
-    set 'min'(val) { this.setNumberAttr('min', val) }get 'max'() { return this.getNumberProp('max') }
-    set 'max'(val) { this.setNumberAttr('max', val) }get 'value'() { return this.getNumberProp('value') }
-    set 'value'(val) { this.setNumberAttr('value', val) }get 'step'() { return this.getNumberProp('step') }
-    set 'step'(val) { this.setNumberAttr('step', val) }    currentPercent = 0;
+    set 'popup'(val) { this.setStringAttr('popup', val) }
+get 'no_transition'() { return this.getBoolAttr('no_transition') }
+    set 'no_transition'(val) { this.setBoolAttr('no_transition', val) }
+get 'popup_visible'() { return this.getBoolAttr('popup_visible') }
+    set 'popup_visible'(val) { this.setBoolAttr('popup_visible', val) }
+    get 'name'() { return this.getStringProp('name') }
+    set 'name'(val) { this.setStringAttr('name', val) }
+get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+get 'min'() { return this.getNumberProp('min') }
+    set 'min'(val) { this.setNumberAttr('min', val) }
+get 'max'() { return this.getNumberProp('max') }
+    set 'max'(val) { this.setNumberAttr('max', val) }
+get 'value'() { return this.getNumberProp('value') }
+    set 'value'(val) { this.setNumberAttr('value', val) }
+get 'step'() { return this.getNumberProp('step') }
+    set 'step'(val) { this.setNumberAttr('step', val) }
+    currentPercent = 0;
     timerPopup = 0;
     resizerObserver;
     onValidateValue = new Aventus.Callback();
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("min", ((target) => {
     target.calculatePercent();
-}));this.__addPropertyActions("max", ((target) => {
+}));
+this.__addPropertyActions("max", ((target) => {
     target.calculatePercent();
-}));this.__addPropertyActions("value", ((target) => {
+}));
+this.__addPropertyActions("value", ((target) => {
     target.calculatePercent();
-})); }
+}));
+ }
     static __style = `:host{--_slider-background-color: var(--slider-background-color, var(--surface-200));--_slider-background-image: var(--slider-background-image, none);--_slider-background-position: var(--slider-background-position, 0 0);--_slider-background-size: var(--slider-background-size, auto);--_slider-active-background-color: var(--slider-active-background-color, var(--primary));--_slider-dot-color: var(--slider-dot-color, var(--surface));--_slider-dot-size: var(--slider-dot-size, 16px);--_slider-popup-font-size: var(--slider-popup-font-size, var(--font-size-sm));--_slider-font-size-label: var(--slider-font-size-label, var(--font-size-sm));--_slider-border-radius: var(--slider-border-radius, var(--form-element-border-radius));--_slider-bar-height: var(--slider-bar-height, 10px);--_slider-height: var(--slider-height, 35px);--local-slider-dot-percent: 0%}:host{width:100%}:host label{display:none;font-size:var(--font-size-sm);font-weight:500;line-height:var(--line-height-sm)}:host .input{align-items:center;display:flex;height:var(--_slider-height);-webkit-tap-highlight-color:rgba(0,0,0,0);user-select:none;width:100%}:host .input .bar{align-items:center;background-color:var(--_slider-background-color);background-image:var(--_slider-background-image);background-position:var(--_slider-background-position);background-size:var(--_slider-background-size);border-radius:var(--_slider-border-radius);cursor:pointer;display:flex;flex-direction:row;flex-shrink:0;height:var(--_slider-bar-height);position:relative;width:100%}:host .input .bar .bar-fill{background-color:var(--_slider-active-background-color);border-radius:var(--border-radius-round);height:100%;left:0;pointer-events:all;position:absolute;top:0;transition:width var(--bezier-curve) .3s;width:var(--local-slider-dot-percent)}:host .input .bar .dot{background-color:var(--_slider-dot-color);border-radius:var(--border-radius-round);box-shadow:var(--elevation-2);cursor:pointer;height:var(--_slider-dot-size);left:var(--local-slider-dot-percent);pointer-events:all;position:absolute;transform:translateX(-50%);transition:left var(--bezier-curve) .3s,box-shadow var(--bezier-curve) .3s,background-color var(--bezier-curve) .3s;width:var(--_slider-dot-size);z-index:10}:host .input .bar .value{background-color:var(--_slider-dot-color);background-color:var(--primary-200);border-radius:var(--_slider-border-radius);box-shadow:var(--elevation-2);font-size:var(--_slider-popup-font-size);left:var(--local-slider-dot-percent);opacity:0;padding:5px 10px;padding-bottom:2px;position:absolute;top:0;transform:translateY(calc(-100% - 12px)) translateX(-50%);transform-origin:center center;transition:left var(--bezier-curve) .3s,opacity var(--bezier-curve) .3s,visibility var(--bezier-curve) .3s;visibility:hidden}:host .input .bar .value::after{border-left:6px solid rgba(0,0,0,0);border-right:6px solid rgba(0,0,0,0);border-top:8px solid var(--primary-200);bottom:-7px;content:"";left:50%;position:absolute;transform:translateX(-50%)}:host([label]:not([label=""])) label{display:flex}:host([label]:not([label=""])) .input{margin-top:.5rem}:host([popup_visible]) .input .bar .value{opacity:1;visibility:visible}:host([no_transition]) .input .bar .bar-fill{transition:none}:host([no_transition]) .input .bar .dot{transition:none}:host([no_transition]) .input .bar .value{transition:opacity var(--bezier-curve) .3s,visibility var(--bezier-curve) .3s}`;
     __getStatic() {
         return Slider;
@@ -9824,13 +10049,25 @@ Components.Form.Slider = class Slider extends Components.Form.FormElement {
         arrStyle.push(Slider.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'dot':`<slot name="dot"></slot>`,'bar':`<slot name="bar"></slot>` }, 
-        blocks: { 'default':`<label _id="slider_0"></label><div class="input">    <div class="bar" _id="slider_1">        <div class="value" part="popup" _id="slider_2"></div>        <div class="bar-fill">        </div>        <div class="dot" _id="slider_3">            <slot name="dot"></slot>        </div>        <slot name="bar"></slot>    </div></div>` }
+        blocks: { 'default':`<label _id="slider_0"></label><div class="input">
+    <div class="bar" _id="slider_1">
+        <div class="value" part="popup" _id="slider_2"></div>
+        <div class="bar-fill">
+        </div>
+        <div class="dot" _id="slider_3">
+            <slot name="dot"></slot>
+        </div>
+        <slot name="bar"></slot>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "barEl",
@@ -9859,12 +10096,31 @@ Components.Form.Slider = class Slider extends Components.Form.FormElement {
       "once": true
     }
   }
-}); }
+});
+ }
     getClassName() {
         return "Slider";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('popup')){ this['popup'] = 'onMove'; }if(!this.hasAttribute('no_transition')) { this.attributeChangedCallback('no_transition', false, false); }if(!this.hasAttribute('popup_visible')) { this.attributeChangedCallback('popup_visible', false, false); }if(!this.hasAttribute('name')){ this['name'] = undefined; }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('min')){ this['min'] = 0; }if(!this.hasAttribute('max')){ this['max'] = 100; }if(!this.hasAttribute('value')){ this['value'] = 0; }if(!this.hasAttribute('step')){ this['step'] = 1; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('popup');this.__upgradeProperty('no_transition');this.__upgradeProperty('popup_visible');this.__upgradeProperty('name');this.__upgradeProperty('label');this.__upgradeProperty('min');this.__upgradeProperty('max');this.__upgradeProperty('value');this.__upgradeProperty('step'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('popup')){ this['popup'] = 'onMove'; }
+if(!this.hasAttribute('no_transition')) { this.attributeChangedCallback('no_transition', false, false); }
+if(!this.hasAttribute('popup_visible')) { this.attributeChangedCallback('popup_visible', false, false); }
+if(!this.hasAttribute('name')){ this['name'] = undefined; }
+if(!this.hasAttribute('label')){ this['label'] = undefined; }
+if(!this.hasAttribute('min')){ this['min'] = 0; }
+if(!this.hasAttribute('max')){ this['max'] = 100; }
+if(!this.hasAttribute('value')){ this['value'] = 0; }
+if(!this.hasAttribute('step')){ this['step'] = 1; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('popup');
+this.__upgradeProperty('no_transition');
+this.__upgradeProperty('popup_visible');
+this.__upgradeProperty('name');
+this.__upgradeProperty('label');
+this.__upgradeProperty('min');
+this.__upgradeProperty('max');
+this.__upgradeProperty('value');
+this.__upgradeProperty('step');
+ }
     __listBoolProps() { return ["no_transition","popup_visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculatePercent(value) {
         if (!this.isConnected)
@@ -10579,30 +10835,38 @@ __as1(_.Lib, 'Color', Lib.Color);
 Components.ColorPickerSelector = class ColorPickerSelector extends Aventus.WebComponent {
     static get observedAttributes() {return ["color"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'direction'() { return this.getStringAttr('direction') }
-    set 'direction'(val) { this.setStringAttr('direction', val) }get 'opacity'() { return this.getBoolAttr('opacity') }
-    set 'opacity'(val) { this.setBoolAttr('opacity', val) }get 'show_text_value'() { return this.getBoolAttr('show_text_value') }
-    set 'show_text_value'(val) { this.setBoolAttr('show_text_value', val) }    get 'color'() { return this.getStringProp('color') }
-    set 'color'(val) { this.setStringAttr('color', val) }    get 'colorTxt'() {
+    set 'direction'(val) { this.setStringAttr('direction', val) }
+get 'opacity'() { return this.getBoolAttr('opacity') }
+    set 'opacity'(val) { this.setBoolAttr('opacity', val) }
+get 'show_text_value'() { return this.getBoolAttr('show_text_value') }
+    set 'show_text_value'(val) { this.setBoolAttr('show_text_value', val) }
+    get 'color'() { return this.getStringProp('color') }
+    set 'color'(val) { this.setStringAttr('color', val) }
+    get 'colorTxt'() {
 						return this.__watch["colorTxt"];
 					}
 					set 'colorTxt'(val) {
 						this.__watch["colorTxt"] = val;
-					}get 'hue'() {
+					}
+get 'hue'() {
 						return this.__watch["hue"];
 					}
 					set 'hue'(val) {
 						this.__watch["hue"] = val;
-					}get 'alpha'() {
+					}
+get 'alpha'() {
 						return this.__watch["alpha"];
 					}
 					set 'alpha'(val) {
 						this.__watch["alpha"] = val;
-					}get 'presets'() {
+					}
+get 'presets'() {
 						return this.__watch["presets"];
 					}
 					set 'presets'(val) {
 						this.__watch["presets"] = val;
-					}    _color;
+					}
+    _color;
     canEmit = false;
     internalSet = false;
     resizeObserver;
@@ -10610,13 +10874,17 @@ Components.ColorPickerSelector = class ColorPickerSelector extends Aventus.WebCo
     __registerWatchesActions() {
     this.__addWatchesActions("colorTxt", ((target, action, path, value) => {
     target.onColorTxtChange();
-}));this.__addWatchesActions("hue", ((target, action, path, value) => {
+}));
+this.__addWatchesActions("hue", ((target, action, path, value) => {
     target.changeHue();
-}));this.__addWatchesActions("alpha", ((target, action, path, value) => {
+}));
+this.__addWatchesActions("alpha", ((target, action, path, value) => {
     target.changeAlpha();
-}));this.__addWatchesActions("presets", ((target, action, path, value) => {
+}));
+this.__addWatchesActions("presets", ((target, action, path, value) => {
     target.renderPresets();
-}));    super.__registerWatchesActions();
+}));
+    super.__registerWatchesActions();
 }
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("color", ((target) => {
     if (!target.internalSet) {
@@ -10627,7 +10895,8 @@ Components.ColorPickerSelector = class ColorPickerSelector extends Aventus.WebCo
         target.updatePositionFromColor(target._color);
         target.canEmit = true;
     }
-})); }
+}));
+ }
     static __style = `:host{--_color-picker-selector-area-width: var(--color-picker-selector-area-width, 200px);--_color-picker-selector-panel-width: var(--color-picker-selector-panel-width, 200px);--_color-picker-selector-background-color: var(--color-picker-selector-background-color, var(--form-element-background, var(--surface)));--_color-picker-selector-border-radius: var(--color-picker-selector-border-radius, var(--form-element-border-radius, var(--border-radius-md)))}:host{background-color:var(--_color-picker-selector-background-color);border:1px solid var(--border-color);border-radius:var(--_color-picker-selector-border-radius);outline:none;width:max(var(--_color-picker-selector-area-width),var(--_color-picker-selector-panel-width));z-index:800}:host .style-wrapper{display:flex;flex-direction:column;width:100%}:host .style-wrapper .color-area{aspect-ratio:1/.5;background-image:linear-gradient(rgba(0, 0, 0, 0), #000),linear-gradient(90deg, #fff, var(--_color-picker-selector-area-color));border-top-left-radius:var(--_color-picker-selector-border-radius);border-top-right-radius:var(--_color-picker-selector-border-radius);cursor:pointer;margin:0 auto;position:relative;width:var(--_color-picker-selector-area-width)}:host .style-wrapper .color-area .area-dot{background-color:var(--_color-picker-selector-color-opacity);border:2px solid #fff;border-radius:var(--border-radius-round);height:10px;left:0;position:absolute;top:0;transform:translate(-50%, -50%);width:10px}:host .style-wrapper .color-panel{margin:0 auto;padding:15px;width:var(--_color-picker-selector-panel-width)}:host .style-wrapper .color-panel .color-hue{margin-bottom:5px;width:100%}:host .style-wrapper .color-panel .color-hue om-slider{--slider-background-image: linear-gradient(to right, red 0, #ff0 16.66%, #0f0 33.33%, #0ff 50%, #00f 66.66%, #f0f 83.33%, red 100%);--slider-active-background-color: transparent;--slider-background-color: transparent;--slider-dot-color: var(--_color-picker-selector-area-color);--slider-bar-height: 8px;min-width:auto;width:100%}:host .style-wrapper .color-panel .color-alpha{display:none;margin-top:5px;position:relative}:host .style-wrapper .color-panel .color-alpha om-slider{--slider-background-color: transparent;--slider-active-background-color: transparent;--slider-bar-height: 8px;min-width:auto;position:relative;width:100%;z-index:2}:host .style-wrapper .color-panel .color-alpha .bar{background-image:repeating-linear-gradient(45deg, #aaa 25%, transparent 25%, transparent 75%, #aaa 75%, #aaa),repeating-linear-gradient(45deg, #aaa 25%, #fff 25%, #fff 75%, #aaa 75%, #aaa);background-position:0 0,2px 2px;background-size:4px 4px;border-radius:var(--_color-picker-selector-border-radius);inset:0;position:absolute;width:100%;z-index:1}:host .style-wrapper .color-panel .color-alpha .bar-color{background-image:linear-gradient(90deg, rgba(0, 0, 0, 0), var(--_color-picker-selector-color-opacity));border-radius:var(--_color-picker-selector-border-radius);inset:0;position:absolute;width:100%;z-index:2}:host .style-wrapper .color-panel .color-alpha .dot{background-image:repeating-linear-gradient(45deg, #aaa 25%, transparent 25%, transparent 75%, #aaa 75%, #aaa),repeating-linear-gradient(45deg, #aaa 25%, #fff 25%, #fff 75%, #aaa 75%, #aaa);background-position:0 0,2px 2px;background-size:4px 4px;border-radius:var(--border-radius-round);inset:0;position:absolute;z-index:1}:host .style-wrapper .color-panel .color-alpha .dot-color{background-color:var(--_color-picker-selector-color);border-radius:var(--border-radius-round);inset:0;position:absolute;z-index:2}:host .style-wrapper .color-panel .color-result{align-items:center;display:flex;flex-direction:row;gap:10px;justify-content:center;margin-top:20px}:host .style-wrapper .color-panel .color-result .color-preview{background-image:repeating-linear-gradient(45deg, #aaa 25%, transparent 25%, transparent 75%, #aaa 75%, #aaa),repeating-linear-gradient(45deg, #aaa 25%, #fff 25%, #fff 75%, #aaa 75%, #aaa);background-position:0 0,2px 2px;background-size:4px 4px;border-radius:var(--border-radius-round);flex-shrink:0;height:25px;overflow:hidden;position:relative;width:25px}:host .style-wrapper .color-panel .color-result .color-preview::after{background-color:var(--_color-picker-selector-color);content:"";inset:0;position:absolute}:host .style-wrapper .color-panel .color-result .color-text{display:none;width:calc(100% - 35px)}:host .style-wrapper .color-panel .color-result .color-text om-input{height:25px;min-width:auto;width:100%}:host .style-wrapper .color-panel .color-preset:not(:empty){align-items:center;display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:20px;width:100%}:host .style-wrapper .color-panel .color-preset:not(:empty) .preset{border-radius:var(--border-radius-round);flex-shrink:0;height:20px;width:20px}:host([direction=horizontal]){width:fit-content}:host([direction=horizontal]) .style-wrapper{display:flex;flex-direction:row}:host([direction=horizontal]) .style-wrapper .color-area{aspect-ratio:auto;border-bottom-left-radius:var(--_color-picker-selector-border-radius);border-top-right-radius:0}:host([opacity]) .style-wrapper .color-panel .color-alpha{display:block}:host([show_text_value]) .style-wrapper .color-panel .color-result .color-text{display:block}`;
     constructor() {
         super();
@@ -10646,10 +10915,35 @@ Components.ColorPickerSelector = class ColorPickerSelector extends Aventus.WebCo
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="style-wrapper" _id="colorpickerselector_0">    <div class="color-area" _id="colorpickerselector_1">        <div class="area-dot" _id="colorpickerselector_2"></div>    </div>    <div class="color-panel">        <div class="color-hue">            <om-slider min="0" max="360" popup="never" _id="colorpickerselector_3"></om-slider>        </div>        <div class="color-alpha">            <om-slider min="0" max="100" popup="never" _id="colorpickerselector_4">                <span class="bar" slot="bar"></span>                <span class="bar-color" slot="bar"></span>                <span class="dot" slot="dot"></span>                <span class="dot-color" slot="dot"></span>            </om-slider>        </div>        <div class="color-result">            <div class="color-preview"></div>            <div class="color-text">                <om-input _id="colorpickerselector_5"></om-input>            </div>        </div>        <div class="color-preset" _id="colorpickerselector_6"></div>    </div></div>` }
+        blocks: { 'default':`<div class="style-wrapper" _id="colorpickerselector_0">
+    <div class="color-area" _id="colorpickerselector_1">
+        <div class="area-dot" _id="colorpickerselector_2"></div>
+    </div>
+    <div class="color-panel">
+        <div class="color-hue">
+            <om-slider min="0" max="360" popup="never" _id="colorpickerselector_3"></om-slider>
+        </div>
+        <div class="color-alpha">
+            <om-slider min="0" max="100" popup="never" _id="colorpickerselector_4">
+                <span class="bar" slot="bar"></span>
+                <span class="bar-color" slot="bar"></span>
+                <span class="dot" slot="dot"></span>
+                <span class="dot-color" slot="dot"></span>
+            </om-slider>
+        </div>
+        <div class="color-result">
+            <div class="color-preview"></div>
+            <div class="color-text">
+                <om-input _id="colorpickerselector_5"></om-input>
+            </div>
+        </div>
+        <div class="color-preset" _id="colorpickerselector_6"></div>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "styleWrapper",
@@ -10711,13 +11005,30 @@ Components.ColorPickerSelector = class ColorPickerSelector extends Aventus.WebCo
       "isCallback": true
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "ColorPickerSelector";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('direction')){ this['direction'] = 'horizontal'; }if(!this.hasAttribute('opacity')) { this.attributeChangedCallback('opacity', false, false); }if(!this.hasAttribute('show_text_value')) {this.setAttribute('show_text_value' ,'true'); }if(!this.hasAttribute('color')){ this['color'] = "#ffffff"; } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["colorTxt"] = "";w["hue"] = 0;w["alpha"] = 100;w["presets"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('direction');this.__upgradeProperty('opacity');this.__upgradeProperty('show_text_value');this.__upgradeProperty('color');this.__correctGetter('colorTxt');this.__correctGetter('hue');this.__correctGetter('alpha');this.__correctGetter('presets'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('direction')){ this['direction'] = 'horizontal'; }
+if(!this.hasAttribute('opacity')) { this.attributeChangedCallback('opacity', false, false); }
+if(!this.hasAttribute('show_text_value')) {this.setAttribute('show_text_value' ,'true'); }
+if(!this.hasAttribute('color')){ this['color'] = "#ffffff"; }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["colorTxt"] = "";
+w["hue"] = 0;
+w["alpha"] = 100;
+w["presets"] = [];
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('direction');
+this.__upgradeProperty('opacity');
+this.__upgradeProperty('show_text_value');
+this.__upgradeProperty('color');
+this.__correctGetter('colorTxt');
+this.__correctGetter('hue');
+this.__correctGetter('alpha');
+this.__correctGetter('presets');
+ }
     __listBoolProps() { return ["opacity","show_text_value"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onColorTxtChange() {
         if (Lib.Color.isValid(this.colorTxt) && !this.internalSet) {
@@ -11166,31 +11477,45 @@ __as1(_, 'PositionTools', PositionTools);
 Components.Form.ColorPicker = class ColorPicker extends Components.Form.FormElement {
     static get observedAttributes() {return ["name", "label", "icon", "placeholder", "direction", "opacity", "show_text_value", "value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'is_focus'() { return this.getBoolAttr('is_focus') }
-    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }get 'preview_position'() { return this.getStringAttr('preview_position') }
-    set 'preview_position'(val) { this.setStringAttr('preview_position', val) }get 'icon_position'() { return this.getStringAttr('icon_position') }
-    set 'icon_position'(val) { this.setStringAttr('icon_position', val) }    get 'name'() { return this.getStringProp('name') }
-    set 'name'(val) { this.setStringAttr('name', val) }get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }get 'placeholder'() { return this.getStringProp('placeholder') }
-    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }get 'direction'() { return this.getStringProp('direction') }
-    set 'direction'(val) { this.setStringAttr('direction', val) }get 'opacity'() { return this.getBoolProp('opacity') }
-    set 'opacity'(val) { this.setBoolAttr('opacity', val) }get 'show_text_value'() { return this.getBoolProp('show_text_value') }
-    set 'show_text_value'(val) { this.setBoolAttr('show_text_value', val) }get 'value'() { return this.getStringProp('value') }
-    set 'value'(val) { this.setStringAttr('value', val) }    get 'presets'() {
+    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }
+get 'preview_position'() { return this.getStringAttr('preview_position') }
+    set 'preview_position'(val) { this.setStringAttr('preview_position', val) }
+get 'icon_position'() { return this.getStringAttr('icon_position') }
+    set 'icon_position'(val) { this.setStringAttr('icon_position', val) }
+    get 'name'() { return this.getStringProp('name') }
+    set 'name'(val) { this.setStringAttr('name', val) }
+get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }
+get 'placeholder'() { return this.getStringProp('placeholder') }
+    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }
+get 'direction'() { return this.getStringProp('direction') }
+    set 'direction'(val) { this.setStringAttr('direction', val) }
+get 'opacity'() { return this.getBoolProp('opacity') }
+    set 'opacity'(val) { this.setBoolAttr('opacity', val) }
+get 'show_text_value'() { return this.getBoolProp('show_text_value') }
+    set 'show_text_value'(val) { this.setBoolAttr('show_text_value', val) }
+get 'value'() { return this.getStringProp('value') }
+    set 'value'(val) { this.setStringAttr('value', val) }
+    get 'presets'() {
 						return this.__watch["presets"];
 					}
 					set 'presets'(val) {
 						this.__watch["presets"] = val;
-					}    errorsTxt = {};
+					}
+    errorsTxt = {};
     defaultErrorsTxt = {
         notColor: "You must provide a valid color",
     };
     __registerWatchesActions() {
-    this.__addWatchesActions("presets");    super.__registerWatchesActions();
+    this.__addWatchesActions("presets");
+    super.__registerWatchesActions();
 }
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
     target.onValueChange(target.value);
-})); }
+}));
+ }
     static __style = `:host{--_color-picker-bg: var(--color-picker-bg, var(--form-element-bg));--_color-picker-fg: var(--color-picker-fg, var(--form-element-fg));--_color-picker-border: var(--color-picker-border, var(--form-element-border));--_color-picker-border-radius: var(--color-picker-border-radius, var(--form-element-border-radius));--_color-picker-preview-border-radius: var(--color-picker-preview-border-radius, var(--border-radius-md, 0))}:host{width:100%}:host label{display:none;font-size:var(--font-size-sm);font-weight:500;line-height:var(--line-height-sm)}:host .input{align-items:center;background-color:var(--_color-picker-bg);border-radius:var(--_color-picker-border-radius);display:flex;gap:.5rem;height:100%;margin-top:0;overflow:hidden;padding:.5rem 1rem;position:relative;width:100%}:host .input .icon{color:color-mix(in oklab, var(--_color-picker-fg) 40%, transparent);display:block;font-size:var(--font-size)}:host .input .preview{aspect-ratio:1/1;background-image:repeating-linear-gradient(45deg, #aaa 25%, transparent 25%, transparent 75%, #aaa 75%, #aaa),repeating-linear-gradient(45deg, #aaa 25%, #fff 25%, #fff 75%, #aaa 75%, #aaa);background-position:0 0,2px 2px;background-size:4px 4px;border-radius:var(--_color-picker-preview-border-radius);cursor:pointer;display:block;height:calc(100% - 10px);position:relative}:host .input .preview::after{background-color:var(--_color-picker-selected-color);border-radius:var(--_color-picker-preview-border-radius);content:"";inset:0;position:absolute}:host .input input{background-color:rgba(0,0,0,0);border:none;color:var(--_color-picker-fg);display:block;flex-grow:1;font-size:var(--font-size);height:var(--line-height);margin:0;margin-top:1px;min-width:0;outline:none;padding:0}:host .input input::placeholder{color:color-mix(in oklab, var(--_color-picker-fg) 40%, transparent)}:host .input::after{border:var(--_color-picker-border);border-radius:var(--_color-picker-border-radius);content:"";display:block;inset:0px;pointer-events:none;position:absolute}:host .errors{color:var(--error);display:none;flex-direction:column;font-size:var(--font-size-sm);gap:.25rem;line-height:var(--line-height-sm);margin:.5rem;margin-bottom:0}:host .picker{display:none}:host([is_focus]) .input{border-color:var(--primary)}:host([is_focus]) .input::after{border-color:var(--primary);border-width:2px}:host([has_errors]) .input::after{border-color:var(--error)}:host([has_errors]) .errors{display:flex}:host([label]:not([label=""])) label{display:flex}:host([label]:not([label=""])) .input{height:auto;margin-top:.5rem}:host([label]:not([label=""])) .input .preview{height:var(--line-height)}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) label{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input{background-color:color-mix(in oklab, var(--surface-content) 10%, transparent)}:host([disabled]) .input input{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input::after{border:none}`;
     constructor() {
         super();
@@ -11204,13 +11529,33 @@ Components.Form.ColorPicker = class ColorPicker extends Components.Form.FormElem
         arrStyle.push(ColorPicker.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        slots: { 'prepend':`<slot name="prepend">        <template _id="colorpicker_2"></template>        <template _id="colorpicker_3"></template>    </slot>`,'append':`<slot name="append">        <template _id="colorpicker_5"></template>         <template _id="colorpicker_6"></template>    </slot>` }, 
-        blocks: { 'default':`<label _id="colorpicker_0"></label><div class="input" _id="colorpicker_1">    <slot name="prepend">        <template _id="colorpicker_2"></template>        <template _id="colorpicker_3"></template>    </slot>    <input autocomplete="off" _id="colorpicker_4" />    <slot name="append">        <template _id="colorpicker_5"></template>         <template _id="colorpicker_6"></template>    </slot></div><div class="errors">    <template _id="colorpicker_7"></template></div><om-color-picker-selector class="picker" _id="colorpicker_9"></om-color-picker-selector>` }
+        slots: { 'prepend':`<slot name="prepend">
+        <template _id="colorpicker_2"></template>
+        <template _id="colorpicker_3"></template>
+    </slot>`,'append':`<slot name="append">
+        <template _id="colorpicker_5"></template>
+         <template _id="colorpicker_6"></template>
+    </slot>` }, 
+        blocks: { 'default':`<label _id="colorpicker_0"></label><div class="input" _id="colorpicker_1">
+    <slot name="prepend">
+        <template _id="colorpicker_2"></template>
+        <template _id="colorpicker_3"></template>
+    </slot>
+    <input autocomplete="off" _id="colorpicker_4" />
+    <slot name="append">
+        <template _id="colorpicker_5"></template>
+         <template _id="colorpicker_6"></template>
+    </slot>
+</div><div class="errors">
+    <template _id="colorpicker_7"></template>
+</div><om-color-picker-selector class="picker" _id="colorpicker_9"></om-color-picker-selector>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "containerEl",
@@ -11295,47 +11640,99 @@ Components.Form.ColorPicker = class ColorPicker extends Components.Form.FormElem
       "fct": (e, c) => c.comp.onInputChanged(e)
     }
   ]
-});const templ4 = new Aventus.Template(this);templ4.setTemplate(`         <div _id="colorpicker_8"></div>    `);templ4.setActions({
+});
+const templ4 = new Aventus.Template(this);
+templ4.setTemplate(` 
+        <div _id="colorpicker_8"></div>
+    `);
+templ4.setActions({
   "content": {
     "colorpicker_8°@HTML": {
       "fct": (c) => `${c.print(c.comp.__edfc2d61f33bd1551864b63413a35f79method10(c.data.error))}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'colorpicker_7',
                     template: templ4,
-                simple:{data: "this.errors",item:"error"}});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <mi-icon class="icon" icon="colorize"></mi-icon>        `);this.__getStatic().__template.addIf({
+                simple:{data: "this.errors",item:"error"}
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+            <mi-icon class="icon" icon="colorize"></mi-icon>
+        `);
+this.__getStatic().__template.addIf({
                     anchorId: 'colorpicker_2',
                     parts: [{once: true,
                     condition: (c) => c.comp.__edfc2d61f33bd1551864b63413a35f79method0(),
                     template: templ0
                 }]
-            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`            <div class="preview"></div>        `);this.__getStatic().__template.addIf({
+            });
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+            <div class="preview"></div>
+        `);
+this.__getStatic().__template.addIf({
                     anchorId: 'colorpicker_3',
                     parts: [{once: true,
                     condition: (c) => c.comp.__edfc2d61f33bd1551864b63413a35f79method1(),
                     template: templ1
                 }]
-            });const templ2 = new Aventus.Template(this);templ2.setTemplate(`            <div class="preview"></div>        `);this.__getStatic().__template.addIf({
+            });
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+            <div class="preview"></div>
+        `);
+this.__getStatic().__template.addIf({
                     anchorId: 'colorpicker_5',
                     parts: [{once: true,
                     condition: (c) => c.comp.__edfc2d61f33bd1551864b63413a35f79method2(),
                     template: templ2
                 }]
-            });const templ3 = new Aventus.Template(this);templ3.setTemplate(`            <mi-icon class="icon" icon="colorize"></mi-icon>        `);this.__getStatic().__template.addIf({
+            });
+const templ3 = new Aventus.Template(this);
+templ3.setTemplate(`
+            <mi-icon class="icon" icon="colorize"></mi-icon>
+        `);
+this.__getStatic().__template.addIf({
                     anchorId: 'colorpicker_6',
                     parts: [{once: true,
                     condition: (c) => c.comp.__edfc2d61f33bd1551864b63413a35f79method3(),
                     template: templ3
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "ColorPicker";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }if(!this.hasAttribute('preview_position')){ this['preview_position'] = 'before'; }if(!this.hasAttribute('icon_position')){ this['icon_position'] = 'after'; }if(!this.hasAttribute('name')){ this['name'] = undefined; }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }if(!this.hasAttribute('direction')){ this['direction'] = 'horizontal'; }if(!this.hasAttribute('opacity')) { this.attributeChangedCallback('opacity', false, false); }if(!this.hasAttribute('show_text_value')) {this.setAttribute('show_text_value' ,'true'); }if(!this.hasAttribute('value')){ this['value'] = ""; } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["presets"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_focus');this.__upgradeProperty('preview_position');this.__upgradeProperty('icon_position');this.__upgradeProperty('name');this.__upgradeProperty('label');this.__upgradeProperty('icon');this.__upgradeProperty('placeholder');this.__upgradeProperty('direction');this.__upgradeProperty('opacity');this.__upgradeProperty('show_text_value');this.__upgradeProperty('value');this.__correctGetter('presets'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }
+if(!this.hasAttribute('preview_position')){ this['preview_position'] = 'before'; }
+if(!this.hasAttribute('icon_position')){ this['icon_position'] = 'after'; }
+if(!this.hasAttribute('name')){ this['name'] = undefined; }
+if(!this.hasAttribute('label')){ this['label'] = undefined; }
+if(!this.hasAttribute('icon')){ this['icon'] = undefined; }
+if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }
+if(!this.hasAttribute('direction')){ this['direction'] = 'horizontal'; }
+if(!this.hasAttribute('opacity')) { this.attributeChangedCallback('opacity', false, false); }
+if(!this.hasAttribute('show_text_value')) {this.setAttribute('show_text_value' ,'true'); }
+if(!this.hasAttribute('value')){ this['value'] = ""; }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["presets"] = [];
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_focus');
+this.__upgradeProperty('preview_position');
+this.__upgradeProperty('icon_position');
+this.__upgradeProperty('name');
+this.__upgradeProperty('label');
+this.__upgradeProperty('icon');
+this.__upgradeProperty('placeholder');
+this.__upgradeProperty('direction');
+this.__upgradeProperty('opacity');
+this.__upgradeProperty('show_text_value');
+this.__upgradeProperty('value');
+this.__correctGetter('presets');
+ }
     __listBoolProps() { return ["is_focus","opacity","show_text_value"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onValueChange(value) {
         super.onValueChange(value);
@@ -11466,12 +11863,18 @@ if(!window.customElements.get('om-color-picker')){window.customElements.define('
 Components.Display.MenuItem = class MenuItem extends Aventus.WebComponent {
     static get observedAttributes() {return ["label", "icon"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'color'() { return this.getStringAttr('color') }
-    set 'color'(val) { this.setStringAttr('color', val) }get 'icon_color'() { return this.getStringAttr('icon_color') }
-    set 'icon_color'(val) { this.setStringAttr('icon_color', val) }get 'text_color'() { return this.getStringAttr('text_color') }
-    set 'text_color'(val) { this.setStringAttr('text_color', val) }get 'no_close'() { return this.getBoolAttr('no_close') }
-    set 'no_close'(val) { this.setBoolAttr('no_close', val) }    get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }    menu;
+    set 'color'(val) { this.setStringAttr('color', val) }
+get 'icon_color'() { return this.getStringAttr('icon_color') }
+    set 'icon_color'(val) { this.setStringAttr('icon_color', val) }
+get 'text_color'() { return this.getStringAttr('text_color') }
+    set 'text_color'(val) { this.setStringAttr('text_color', val) }
+get 'no_close'() { return this.getBoolAttr('no_close') }
+    set 'no_close'(val) { this.setBoolAttr('no_close', val) }
+    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }
+    menu;
     static __style = `:host{--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--surface-content));--_menu-item-text-fg: var(--menu-item-text-fg, var(--surface-content));--_menu-item-bg: var(--menu-item-bg, var(--surface));--_menu-item-bg-hover: var(--menu-item-bg-hover, var(--surface-100))}:host([color=primary]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--primary-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--primary-600))}:host([icon_color=primary]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--primary-600))}:host([text_color=primary]){--_menu-item-text-fg: var(--menu-item-text-fg, var(--primary-600))}:host([color=primary][reverse]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--primary-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--primary-600));--_menu-item-bg: var(--menu-item-bg, var(--primary-content))}:host([color=accent]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--accent-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--accent-600))}:host([icon_color=accent]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--accent-600))}:host([text_color=accent]){--_menu-item-text-fg: var(--menu-item-text-fg, var(--accent-600))}:host([color=accent][reverse]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--accent-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--accent-600));--_menu-item-bg: var(--menu-item-bg, var(--accent-content))}:host([color=neutral]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--neutral-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--neutral-600))}:host([icon_color=neutral]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--neutral-600))}:host([text_color=neutral]){--_menu-item-text-fg: var(--menu-item-text-fg, var(--neutral-600))}:host([color=neutral][reverse]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--neutral-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--neutral-600));--_menu-item-bg: var(--menu-item-bg, var(--neutral-content))}:host([color=info]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--info-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--info-600))}:host([icon_color=info]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--info-600))}:host([text_color=info]){--_menu-item-text-fg: var(--menu-item-text-fg, var(--info-600))}:host([color=info][reverse]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--info-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--info-600));--_menu-item-bg: var(--menu-item-bg, var(--info-content))}:host([color=success]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--success-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--success-600))}:host([icon_color=success]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--success-600))}:host([text_color=success]){--_menu-item-text-fg: var(--menu-item-text-fg, var(--success-600))}:host([color=success][reverse]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--success-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--success-600));--_menu-item-bg: var(--menu-item-bg, var(--success-content))}:host([color=warning]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--warning-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--warning-600))}:host([icon_color=warning]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--warning-600))}:host([text_color=warning]){--_menu-item-text-fg: var(--menu-item-text-fg, var(--warning-600))}:host([color=warning][reverse]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--warning-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--warning-600));--_menu-item-bg: var(--menu-item-bg, var(--warning-content))}:host([color=error]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--error-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--error-600))}:host([icon_color=error]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--error-600))}:host([text_color=error]){--_menu-item-text-fg: var(--menu-item-text-fg, var(--error-600))}:host([color=error][reverse]){--_menu-item-icon-fg: var(--menu-item-icon-fg, var(--error-600));--_menu-item-text-fg: var(--menu-item-text-fg, var(--error-600));--_menu-item-bg: var(--menu-item-bg, var(--error-content))}:host{align-items:center;background-color:var(--_menu-item-bg);border-top:1px solid var(--border-color);cursor:pointer;display:flex;gap:1rem;padding:.5rem 1rem;transition:background-color .2s var(--bezier-curve)}:host mi-icon{color:var(--_menu-item-icon-fg);font-size:var(--font-size-md)}:host .body{color:var(--_menu-item-text-fg)}:host(:first-child){border-top:0}@media(hover: hover)and (pointer: fine){:host(:hover){background-color:var(--_menu-item-bg-hover)}}`;
     __getStatic() {
         return MenuItem;
@@ -11486,7 +11889,8 @@ Components.Display.MenuItem = class MenuItem extends Aventus.WebComponent {
         blocks: { 'default':`<mi-icon _id="menuitem_0"></mi-icon><div class="body" _id="menuitem_1"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "menuitem_0°icon": {
       "fct": (c) => `${c.print(c.comp.__93a0baadd972559bba6693ecc40e53bamethod0())}`,
@@ -11497,12 +11901,25 @@ Components.Display.MenuItem = class MenuItem extends Aventus.WebComponent {
       "once": true
     }
   }
-}); }
+});
+ }
     getClassName() {
         return "MenuItem";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('color')){ this['color'] = undefined; }if(!this.hasAttribute('icon_color')){ this['icon_color'] = undefined; }if(!this.hasAttribute('text_color')){ this['text_color'] = undefined; }if(!this.hasAttribute('no_close')) { this.attributeChangedCallback('no_close', false, false); }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('color');this.__upgradeProperty('icon_color');this.__upgradeProperty('text_color');this.__upgradeProperty('no_close');this.__upgradeProperty('label');this.__upgradeProperty('icon'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('color')){ this['color'] = undefined; }
+if(!this.hasAttribute('icon_color')){ this['icon_color'] = undefined; }
+if(!this.hasAttribute('text_color')){ this['text_color'] = undefined; }
+if(!this.hasAttribute('no_close')) { this.attributeChangedCallback('no_close', false, false); }
+if(!this.hasAttribute('label')){ this['label'] = undefined; }
+if(!this.hasAttribute('icon')){ this['icon'] = undefined; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('color');
+this.__upgradeProperty('icon_color');
+this.__upgradeProperty('text_color');
+this.__upgradeProperty('no_close');
+this.__upgradeProperty('label');
+this.__upgradeProperty('icon');
+ }
     __listBoolProps() { return ["no_close"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     preRender() {
         Libs.Style.lockVariable(["--menu-item-icon-color"], this);
@@ -11545,11 +11962,16 @@ if(!window.customElements.get('om-menu-item')){window.customElements.define('om-
 Components.Display.Menu = class Menu extends Aventus.WebComponent {
     static get observedAttributes() {return ["position"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'edge_gap'() { return this.getNumberAttr('edge_gap') }
-    set 'edge_gap'(val) { this.setNumberAttr('edge_gap', val) }get 'position_gap'() { return this.getNumberAttr('position_gap') }
-    set 'position_gap'(val) { this.setNumberAttr('position_gap', val) }get 'not_ready'() { return this.getBoolAttr('not_ready') }
-    set 'not_ready'(val) { this.setBoolAttr('not_ready', val) }get 'disable_focus'() { return this.getBoolAttr('disable_focus') }
-    set 'disable_focus'(val) { this.setBoolAttr('disable_focus', val) }    get 'position'() { return this.getStringProp('position') }
-    set 'position'(val) { this.setStringAttr('position', val) }    state = Components.Display.MenuState.Close;
+    set 'edge_gap'(val) { this.setNumberAttr('edge_gap', val) }
+get 'position_gap'() { return this.getNumberAttr('position_gap') }
+    set 'position_gap'(val) { this.setNumberAttr('position_gap', val) }
+get 'not_ready'() { return this.getBoolAttr('not_ready') }
+    set 'not_ready'(val) { this.setBoolAttr('not_ready', val) }
+get 'disable_focus'() { return this.getBoolAttr('disable_focus') }
+    set 'disable_focus'(val) { this.setBoolAttr('disable_focus', val) }
+    get 'position'() { return this.getStringProp('position') }
+    set 'position'(val) { this.setStringAttr('position', val) }
+    state = Components.Display.MenuState.Close;
     ref;
     parentBase;
     stateChange = new Aventus.Callback();
@@ -11565,10 +11987,15 @@ Components.Display.Menu = class Menu extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<om-scrollable floating_scroll>    <div class="container" _id="menu_0">        <slot></slot>    </div></om-scrollable>` }
+        blocks: { 'default':`<om-scrollable floating_scroll>
+    <div class="container" _id="menu_0">
+        <slot></slot>
+    </div>
+</om-scrollable>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "containerEl",
@@ -11577,12 +12004,23 @@ Components.Display.Menu = class Menu extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Menu";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('edge_gap')){ this['edge_gap'] = 20; }if(!this.hasAttribute('position_gap')){ this['position_gap'] = 0; }if(!this.hasAttribute('not_ready')) {this.setAttribute('not_ready' ,'true'); }if(!this.hasAttribute('disable_focus')) { this.attributeChangedCallback('disable_focus', false, false); }if(!this.hasAttribute('position')){ this['position'] = 'left bottom'; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('edge_gap');this.__upgradeProperty('position_gap');this.__upgradeProperty('not_ready');this.__upgradeProperty('disable_focus');this.__upgradeProperty('position'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('edge_gap')){ this['edge_gap'] = 20; }
+if(!this.hasAttribute('position_gap')){ this['position_gap'] = 0; }
+if(!this.hasAttribute('not_ready')) {this.setAttribute('not_ready' ,'true'); }
+if(!this.hasAttribute('disable_focus')) { this.attributeChangedCallback('disable_focus', false, false); }
+if(!this.hasAttribute('position')){ this['position'] = 'left bottom'; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('edge_gap');
+this.__upgradeProperty('position_gap');
+this.__upgradeProperty('not_ready');
+this.__upgradeProperty('disable_focus');
+this.__upgradeProperty('position');
+ }
     __listBoolProps() { return ["not_ready","disable_focus"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     show(from) {
         let rect;
@@ -11700,22 +12138,30 @@ if(!window.customElements.get('om-menu')){window.customElements.define('om-menu'
 
 Components.Interaction.Toast = class Toast extends Aventus.Toast.ToastElement {
     get 'type'() { return this.getStringAttr('type') }
-    set 'type'(val) { this.setStringAttr('type', val) }get 'closing'() { return this.getBoolAttr('closing') }
-    set 'closing'(val) { this.setBoolAttr('closing', val) }get 'closable'() { return this.getBoolAttr('closable') }
-    set 'closable'(val) { this.setBoolAttr('closable', val) }get 'close_icon'() { return this.getBoolAttr('close_icon') }
-    set 'close_icon'(val) { this.setBoolAttr('close_icon', val) }    get 'toastTitle'() {
+    set 'type'(val) { this.setStringAttr('type', val) }
+get 'closing'() { return this.getBoolAttr('closing') }
+    set 'closing'(val) { this.setBoolAttr('closing', val) }
+get 'closable'() { return this.getBoolAttr('closable') }
+    set 'closable'(val) { this.setBoolAttr('closable', val) }
+get 'close_icon'() { return this.getBoolAttr('close_icon') }
+    set 'close_icon'(val) { this.setBoolAttr('close_icon', val) }
+    get 'toastTitle'() {
 						return this.__watch["toastTitle"];
 					}
 					set 'toastTitle'(val) {
 						this.__watch["toastTitle"] = val;
-					}get 'toastMessage'() {
+					}
+get 'toastMessage'() {
 						return this.__watch["toastMessage"];
 					}
 					set 'toastMessage'(val) {
 						this.__watch["toastMessage"] = val;
-					}    icon;
+					}
+    icon;
     __registerWatchesActions() {
-    this.__addWatchesActions("toastTitle");this.__addWatchesActions("toastMessage");    super.__registerWatchesActions();
+    this.__addWatchesActions("toastTitle");
+this.__addWatchesActions("toastMessage");
+    super.__registerWatchesActions();
 }
     static __style = `:host{background-color:var(--surface);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-3);cursor:default;max-width:calc(100vw - 2rem);overflow:hidden;pointer-events:auto;transition:top .2s linear,opacity .2s linear,visibility .2s linear}:host .toast-content{display:grid;gap:1rem;grid-auto-flow:column;grid-template-columns:auto;justify-content:start;padding-block:.75rem;padding-inline:1rem;place-items:center start;text-align:start}:host .toast-content .toast-flex{align-items:flex-start;display:flex}:host .toast-content .toast-flex .toast-icon-wrapper{flex-shrink:0}:host .toast-content .toast-flex .toast-icon-wrapper .toast-icon{align-items:center;display:flex;font-size:var(--font-size-lg);height:var(--font-size-lg);justify-content:center;width:var(--font-size-lg)}:host .toast-content .toast-flex .toast-message-wrapper{flex:1;margin-left:1rem}:host .toast-content .toast-flex .toast-message-wrapper .toast-title{font-size:var(--font-size);font-weight:500;line-height:var(--line-height)}:host .toast-content .toast-flex .toast-message-wrapper .toast-message{font-size:var(--font-size-sm)}:host .toast-content .toast-flex .toast-close-wrapper{flex-shrink:0;margin-left:1rem}:host .toast-content .toast-flex .toast-close-wrapper .toast-close-icon{align-items:center;cursor:pointer;display:flex;font-size:var(--font-size-lg);height:var(--font-size-lg);justify-content:center;width:var(--font-size-lg)}:host mi-icon{user-select:none}:host([type=primary]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--primary)}:host([type=accent]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--accent)}:host([type=neutral]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--neutral)}:host([type=info]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--info)}:host([type=success]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--success)}:host([type=warning]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--warning)}:host([type=error]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--error)}`;
     constructor() {
@@ -11730,12 +12176,25 @@ Components.Interaction.Toast = class Toast extends Aventus.Toast.ToastElement {
         arrStyle.push(Toast.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="toast-content">    <div class="toast-flex">        <template _id="toast_0"></template>        <div class="toast-message-wrapper">            <template _id="toast_2"></template>            <template _id="toast_4"></template>        </div>        <div class="toast-close-wrapper">            <mi-icon icon="close" class="toast-close-icon" tabindex="0" _id="toast_6"></mi-icon>        </div>    </div></div>` }
+        blocks: { 'default':`<div class="toast-content">
+    <div class="toast-flex">
+        <template _id="toast_0"></template>
+        <div class="toast-message-wrapper">
+            <template _id="toast_2"></template>
+            <template _id="toast_4"></template>
+        </div>
+        <div class="toast-close-wrapper">
+            <mi-icon icon="close" class="toast-close-icon" tabindex="0" _id="toast_6"></mi-icon>
+        </div>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "events": [
     {
       "eventName": "click",
@@ -11753,52 +12212,85 @@ Components.Interaction.Toast = class Toast extends Aventus.Toast.ToastElement {
       "fct": (e, c) => c.comp.removeKeyboard(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <div class="toast-icon-wrapper">                <mi-icon class="toast-icon" aria-hidden="true" _id="toast_1"></mi-icon>            </div>        `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+            <div class="toast-icon-wrapper">
+                <mi-icon class="toast-icon" aria-hidden="true" _id="toast_1"></mi-icon>
+            </div>
+        `);
+templ0.setActions({
   "content": {
     "toast_1°icon": {
       "fct": (c) => `${c.print(c.comp.__6dcf3cd35b0051eebb666b32076a0404method3())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'toast_0',
                     parts: [{once: true,
                     condition: (c) => c.comp.__6dcf3cd35b0051eebb666b32076a0404method0(),
                     template: templ0
                 }]
-            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="toast-title" _id="toast_3"></div>            `);templ1.setActions({
+            });
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+                <div class="toast-title" _id="toast_3"></div>
+            `);
+templ1.setActions({
   "content": {
     "toast_3°@HTML": {
       "fct": (c) => `${c.print(c.comp.__6dcf3cd35b0051eebb666b32076a0404method4())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'toast_2',
                     parts: [{once: true,
                     condition: (c) => c.comp.__6dcf3cd35b0051eebb666b32076a0404method1(),
                     template: templ1
                 }]
-            });const templ2 = new Aventus.Template(this);templ2.setTemplate(`                <div class="toast-message" _id="toast_5"></div>            `);templ2.setActions({
+            });
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+                <div class="toast-message" _id="toast_5"></div>
+            `);
+templ2.setActions({
   "content": {
     "toast_5°@HTML": {
       "fct": (c) => `${c.print(c.comp.__6dcf3cd35b0051eebb666b32076a0404method5())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'toast_4',
                     parts: [{once: true,
                     condition: (c) => c.comp.__6dcf3cd35b0051eebb666b32076a0404method2(),
                     template: templ2
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "Toast";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = undefined; }if(!this.hasAttribute('closing')) { this.attributeChangedCallback('closing', false, false); }if(!this.hasAttribute('closable')) { this.attributeChangedCallback('closable', false, false); }if(!this.hasAttribute('close_icon')) { this.attributeChangedCallback('close_icon', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["toastTitle"] = "";w["toastMessage"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type');this.__upgradeProperty('closing');this.__upgradeProperty('closable');this.__upgradeProperty('close_icon');this.__correctGetter('toastTitle');this.__correctGetter('toastMessage'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = undefined; }
+if(!this.hasAttribute('closing')) { this.attributeChangedCallback('closing', false, false); }
+if(!this.hasAttribute('closable')) { this.attributeChangedCallback('closable', false, false); }
+if(!this.hasAttribute('close_icon')) { this.attributeChangedCallback('close_icon', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["toastTitle"] = "";
+w["toastMessage"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type');
+this.__upgradeProperty('closing');
+this.__upgradeProperty('closable');
+this.__upgradeProperty('close_icon');
+this.__correctGetter('toastTitle');
+this.__correctGetter('toastMessage');
+ }
     __listBoolProps() { return ["closing","closable","close_icon"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     /**
      * @inheritdoc
@@ -11897,12 +12389,19 @@ Components.Interaction.Alert = class Alert extends Components.Interaction.Modal 
         arrStyle.push(Alert.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'header':`    <template _id="alert_0"></template>    <div class="title" _id="alert_2"></div>`,'footer':`    <om-button _id="alert_4"></om-button>`,'default':`<div _id="alert_3"></div>` }
+        blocks: { 'header':`
+    <template _id="alert_0"></template>
+    <div class="title" _id="alert_2"></div>
+`,'footer':`
+    <om-button _id="alert_4"></om-button>
+`,'default':`<div _id="alert_3"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "alert_2°@HTML": {
       "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod3())}`,
@@ -11924,7 +12423,12 @@ Components.Interaction.Alert = class Alert extends Components.Interaction.Modal 
       "fct": (e, c) => c.comp.done(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <mi-icon class="icon" _id="alert_1"></mi-icon>    `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+        <mi-icon class="icon" _id="alert_1"></mi-icon>
+    `);
+templ0.setActions({
   "content": {
     "alert_1°icon": {
       "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod1())}`,
@@ -11935,13 +12439,15 @@ Components.Interaction.Alert = class Alert extends Components.Interaction.Modal 
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'alert_0',
                     parts: [{once: true,
                     condition: (c) => c.comp.__18e1eef5fce2e718728d07198f6800camethod0(),
                     template: templ0
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "Alert";
     }
@@ -12023,7 +12529,8 @@ const Toast2 = class Toast2 extends OneMoreUI.Components.Interaction.Toast {
         arrStyle.push(Toast2.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
         blocks: { 'default':`<slot></slot>` }
@@ -12040,7 +12547,8 @@ if(!window.customElements.get('av-toast-2')){window.customElements.define('av-to
 
 const Loader = class Loader extends Aventus.WebComponent {
     get 'visible'() { return this.getBoolAttr('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }    static __style = `:host{align-items:center;background-color:var(--bg-main);display:flex;inset:0;justify-content:center;position:absolute;top:64px;z-index:999;opacity:0;visibility:hidden;transition-property:visibility,opacity;transition-duration:.3s;transition-timing-function:ease-in-out}:host .loader{--b: 8px;animation:l4 1s infinite steps(10);aspect-ratio:1;background:conic-gradient(rgba(0, 0, 0, 0) 10%, var(--color-area)) content-box;border-radius:50%;-webkit-mask:repeating-conic-gradient(rgba(0, 0, 0, 0) 0deg, var(--bg-main) 1deg 20deg, rgba(0, 0, 0, 0) 21deg 36deg),radial-gradient(farthest-side, rgba(0, 0, 0, 0) calc(100% - var(--b) - 1px), var(--bg-main) calc(100% - var(--b)));-webkit-mask-composite:destination-in;mask-composite:intersect;padding:1px;width:50px}:host([visible]){opacity:1;visibility:visible}@keyframes l4{to{transform:rotate(1turn)}}`;
+    set 'visible'(val) { this.setBoolAttr('visible', val) }
+    static __style = `:host{align-items:center;background-color:var(--bg-main);display:flex;inset:0;justify-content:center;position:absolute;top:64px;z-index:999;opacity:0;visibility:hidden;transition-property:visibility,opacity;transition-duration:.3s;transition-timing-function:ease-in-out}:host .loader{--b: 8px;animation:l4 1s infinite steps(10);aspect-ratio:1;background:conic-gradient(rgba(0, 0, 0, 0) 10%, var(--color-area)) content-box;border-radius:50%;-webkit-mask:repeating-conic-gradient(rgba(0, 0, 0, 0) 0deg, var(--bg-main) 1deg 20deg, rgba(0, 0, 0, 0) 21deg 36deg),radial-gradient(farthest-side, rgba(0, 0, 0, 0) calc(100% - var(--b) - 1px), var(--bg-main) calc(100% - var(--b)));-webkit-mask-composite:destination-in;mask-composite:intersect;padding:1px;width:50px}:host([visible]){opacity:1;visibility:visible}@keyframes l4{to{transform:rotate(1turn)}}`;
     __getStatic() {
         return Loader;
     }
@@ -12057,8 +12565,10 @@ const Loader = class Loader extends Aventus.WebComponent {
     getClassName() {
         return "Loader";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible');
+ }
     __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Loader.Namespace=`dbEditor`;
@@ -12068,8 +12578,10 @@ if(!window.customElements.get('av-loader')){window.customElements.define('av-loa
 
 const Button = class Button extends Aventus.Form.ButtonElement {
     get 'disabled'() { return this.getBoolAttr('disabled') }
-    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'color'() { return this.getStringAttr('color') }
-    set 'color'(val) { this.setStringAttr('color', val) }    static __style = `:host{align-items:center;background-color:var(--bg-header);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);cursor:pointer;display:flex;font-size:13px;font-weight:500;gap:8px;padding:8px;transition:all .2s ease}:host([disabled]){opacity:.5;cursor:default}:host(:not([disabled]):hover){background-color:var(--border-color);border-color:var(--text-secondary)}:host([color=error]){background-color:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:var(--color-area)}:host([color=error]:not([disabled]):hover){background-color:rgba(239,68,68,.25);border-color:var(--color-area)}:host([color=success]){background-color:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3);color:#10b981}:host([color=success]:not([disabled]):hover){background-color:rgba(16,185,129,.3);border-color:#10b981;color:#fff}:host([color=warning]){background-color:rgba(245,158,11,.1);border-color:rgba(245,158,11,.25);color:var(--color-pk)}:host([color=warning]:not([disabled]):hover){background-color:rgba(245,158,11,.2);border-color:var(--color-pk)}`;
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }
+get 'color'() { return this.getStringAttr('color') }
+    set 'color'(val) { this.setStringAttr('color', val) }
+    static __style = `:host{align-items:center;background-color:var(--bg-header);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);cursor:pointer;display:flex;font-size:13px;font-weight:500;gap:8px;padding:8px;transition:all .2s ease}:host([disabled]){opacity:.5;cursor:default}:host(:not([disabled]):hover){background-color:var(--border-color);border-color:var(--text-secondary)}:host([color=error]){background-color:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:var(--color-area)}:host([color=error]:not([disabled]):hover){background-color:rgba(239,68,68,.25);border-color:var(--color-area)}:host([color=success]){background-color:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3);color:#10b981}:host([color=success]:not([disabled]):hover){background-color:rgba(16,185,129,.3);border-color:#10b981;color:#fff}:host([color=warning]){background-color:rgba(245,158,11,.1);border-color:rgba(245,158,11,.25);color:var(--color-pk)}:host([color=warning]:not([disabled]):hover){background-color:rgba(245,158,11,.2);border-color:var(--color-pk)}`;
     __getStatic() {
         return Button;
     }
@@ -12078,7 +12590,8 @@ const Button = class Button extends Aventus.Form.ButtonElement {
         arrStyle.push(Button.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
         blocks: { 'default':`<slot></slot>` }
@@ -12087,8 +12600,12 @@ const Button = class Button extends Aventus.Form.ButtonElement {
     getClassName() {
         return "Button";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('color')){ this['color'] = undefined; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('disabled');this.__upgradeProperty('color'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
+if(!this.hasAttribute('color')){ this['color'] = undefined; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('disabled');
+this.__upgradeProperty('color');
+ }
     __listBoolProps() { return ["disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Button.Namespace=`dbEditor`;
@@ -12099,22 +12616,28 @@ if(!window.customElements.get('av-button')){window.customElements.define('av-but
 const TableNode = class TableNode extends Aventus.WebComponent {
     static get observedAttributes() {return ["locked", "selected", "is_editing"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'pulse'() { return this.getBoolAttr('pulse') }
-    set 'pulse'(val) { this.setBoolAttr('pulse', val) }    get 'locked'() { return this.getBoolProp('locked') }
-    set 'locked'(val) { this.setBoolAttr('locked', val) }get 'selected'() { return this.getBoolProp('selected') }
-    set 'selected'(val) { this.setBoolAttr('selected', val) }get 'is_editing'() { return this.getBoolProp('is_editing') }
-    set 'is_editing'(val) { this.setBoolAttr('is_editing', val) }    get 'editTableName'() {
+    set 'pulse'(val) { this.setBoolAttr('pulse', val) }
+    get 'locked'() { return this.getBoolProp('locked') }
+    set 'locked'(val) { this.setBoolAttr('locked', val) }
+get 'selected'() { return this.getBoolProp('selected') }
+    set 'selected'(val) { this.setBoolAttr('selected', val) }
+get 'is_editing'() { return this.getBoolProp('is_editing') }
+    set 'is_editing'(val) { this.setBoolAttr('is_editing', val) }
+    get 'editTableName'() {
 						return this.__watch["editTableName"];
 					}
 					set 'editTableName'(val) {
 						this.__watch["editTableName"] = val;
-					}    table;
+					}
+    table;
     canvas;
     get editor() {
         return this.canvas.editor;
     }
     dragStart = new Aventus.Callback();
     __registerWatchesActions() {
-    this.__addWatchesActions("editTableName");    super.__registerWatchesActions();
+    this.__addWatchesActions("editTableName");
+    super.__registerWatchesActions();
 }
     static __style = `:host{--_table-node-color: var(--table-node-color, transparent)}:host{background-color:var(--bg-surface);border:1px solid var(--border-color);border-radius:8px;box-shadow:0 10px 30px -10px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden;position:absolute;transition:border-color .15s ease,box-shadow .15s ease;user-select:none;width:224px;z-index:3}:host:hover{border-color:var(--border-hover);box-shadow:0 12px 35px -8px rgba(0,0,0,.8),0 0 0 1px var(--border-color)}:host:hover .node-lock-btn{opacity:.8}:host .table-header-color-bar{background-color:var(--_table-node-color);cursor:pointer;height:5px;left:0;position:absolute;right:0;top:0}:host .table-color-picker{height:5px;left:10px;opacity:0;pointer-events:none;position:absolute;right:10px;top:5px}:host .table-header{align-items:center;background-color:var(--bg-header);border-bottom:1px solid var(--border-color);border-top-left-radius:8px;border-top-right-radius:8px;color:var(--text-primary);cursor:move;display:flex;font-size:13px;font-weight:600;gap:8px;padding:10px 14px;transition:background-color .2s}:host .table-header:active{background-color:var(--border-color)}:host .table-fields{padding:6px 0}:host .node-lock-btn{align-items:center;background:rgba(0,0,0,0);border:none;cursor:pointer;display:flex;font-size:13px;justify-content:center;opacity:.25;padding:2px;transition:opacity .2s,transform .2s}:host .node-lock-btn:hover{opacity:1 !important;transform:scale(1.15)}:host .inline-edit-input{background-color:var(--bg-main);border:1px solid var(--color-accent);border-radius:4px;color:var(--text-primary);display:none;outline:none;padding:2px 6px;user-select:all;width:100%}:host([selected]:not([locked])){border-color:var(--color-accent) !important;box-shadow:0 0 0 2px var(--color-accent),0 12px 35px -8px rgba(0,0,0,.8) !important;z-index:4}:host([locked]){cursor:default !important}:host([locked]):hover{border-color:var(--border-color)}:host([locked]) .table-header-color-bar{cursor:default}:host([locked]) .node-lock-btn{opacity:.8}:host([locked]) .table-header{cursor:default !important}:host([locked]) .table-header:active{background-color:var(--bg-header)}:host([pulse]){animation:highlight-glow 1.5s ease-out 1;z-index:10 !important}:host([is_editing]) .table-title-span{display:none}:host([is_editing]) .inline-edit-input{display:inline-block}@keyframes highlight-glow{0%{border-color:var(--color-accent);box-shadow:0 0 0 0px rgba(59,130,246,.8),0 10px 30px -10px rgba(0,0,0,.7)}50%{border-color:#fff;box-shadow:0 0 0 15px rgba(59,130,246,0),0 12px 35px -8px rgba(0,0,0,.8);transform:scale(1.03)}100%{border-color:var(--border-color);box-shadow:0 0 0 0px rgba(59,130,246,0),0 10px 30px -10px rgba(0,0,0,.7)}}`;
     constructor() {
@@ -12131,10 +12654,21 @@ const TableNode = class TableNode extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="table-header-color-bar" _id="tablenode_0"></div><om-color-picker class="table-color-picker" _id="tablenode_1"></om-color-picker><div class="table-header" _id="tablenode_2">    <button class="node-lock-btn" _id="tablenode_3"></button>    <span class="table-title-span" _id="tablenode_4"></span>    <input class="inline-edit-input" _id="tablenode_5" /></div><div class="table-fields" _id="tablenode_6">    <template _id="tablenode_7"></template></div><om-menu _id="tablenode_9">    <om-menu-item icon="colors" label="Color" _id="tablenode_10"></om-menu-item>    <template _id="tablenode_11"></template>    <om-menu-item icon="edit" label="Rename" _id="tablenode_14"></om-menu-item></om-menu>` }
+        blocks: { 'default':`<div class="table-header-color-bar" _id="tablenode_0"></div><om-color-picker class="table-color-picker" _id="tablenode_1"></om-color-picker><div class="table-header" _id="tablenode_2">
+    <button class="node-lock-btn" _id="tablenode_3"></button>
+    <span class="table-title-span" _id="tablenode_4"></span>
+    <input class="inline-edit-input" _id="tablenode_5" />
+</div><div class="table-fields" _id="tablenode_6">
+    <template _id="tablenode_7"></template>
+</div><om-menu _id="tablenode_9">
+    <om-menu-item icon="colors" label="Color" _id="tablenode_10"></om-menu-item>
+    <template _id="tablenode_11"></template>
+    <om-menu-item icon="edit" label="Rename" _id="tablenode_14"></om-menu-item>
+</om-menu>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "colorPicker",
@@ -12160,10 +12694,10 @@ const TableNode = class TableNode extends Aventus.WebComponent {
       "fct": (c) => `${c.print(c.comp.__97564805aabf10220aea0267d4e9cde9method4())}`
     },
     "tablenode_3°@HTML": {
-      "fct": (c) => `\r\n        ${c.print(c.comp.__97564805aabf10220aea0267d4e9cde9method5())}\r\n    `
+      "fct": (c) => `\n        ${c.print(c.comp.__97564805aabf10220aea0267d4e9cde9method5())}\n    `
     },
     "tablenode_4°@HTML": {
-      "fct": (c) => `\r\n        ${c.print(c.comp.__97564805aabf10220aea0267d4e9cde9method6())}\r\n    `,
+      "fct": (c) => `\n        ${c.print(c.comp.__97564805aabf10220aea0267d4e9cde9method6())}\n    `,
       "once": true
     }
   },
@@ -12238,7 +12772,12 @@ const TableNode = class TableNode extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.startEditTable(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`         <av-table-field _id="tablenode_8"></av-table-field>    `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(` 
+        <av-table-field _id="tablenode_8"></av-table-field>
+    `);
+templ0.setActions({
   "injection": [
     {
       "id": "tablenode_8",
@@ -12259,10 +12798,17 @@ const TableNode = class TableNode extends Aventus.WebComponent {
       "once": true
     }
   ]
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'tablenode_7',
                     template: templ0,
-                simple:{data: "this.table.fields",item:"field"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <om-menu-item icon="lock_open" label="Unlock" _id="tablenode_12"></om-menu-item>    `);templ1.setActions({
+                simple:{data: "this.table.fields",item:"field"}
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+        <om-menu-item icon="lock_open" label="Unlock" _id="tablenode_12"></om-menu-item>
+    `);
+templ1.setActions({
   "events": [
     {
       "eventName": "click",
@@ -12270,7 +12816,12 @@ const TableNode = class TableNode extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.toggleLock(e)
     }
   ]
-});const templ2 = new Aventus.Template(this);templ2.setTemplate(`        <om-menu-item icon="lock" label="Lock" _id="tablenode_13"></om-menu-item>    `);templ2.setActions({
+});
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+        <om-menu-item icon="lock" label="Lock" _id="tablenode_13"></om-menu-item>
+    `);
+templ2.setActions({
   "events": [
     {
       "eventName": "click",
@@ -12278,7 +12829,8 @@ const TableNode = class TableNode extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.toggleLock(e)
     }
   ]
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'tablenode_11',
                     parts: [{once: true,
                     condition: (c) => c.comp.__97564805aabf10220aea0267d4e9cde9method1(),
@@ -12287,13 +12839,25 @@ const TableNode = class TableNode extends Aventus.WebComponent {
                     condition: (c) => true,
                     template: templ2
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "TableNode";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('pulse')) { this.attributeChangedCallback('pulse', false, false); }if(!this.hasAttribute('locked')) { this.attributeChangedCallback('locked', false, false); }if(!this.hasAttribute('selected')) { this.attributeChangedCallback('selected', false, false); }if(!this.hasAttribute('is_editing')) { this.attributeChangedCallback('is_editing', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["editTableName"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('editor');this.__upgradeProperty('pulse');this.__upgradeProperty('locked');this.__upgradeProperty('selected');this.__upgradeProperty('is_editing');this.__correctGetter('editTableName'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('pulse')) { this.attributeChangedCallback('pulse', false, false); }
+if(!this.hasAttribute('locked')) { this.attributeChangedCallback('locked', false, false); }
+if(!this.hasAttribute('selected')) { this.attributeChangedCallback('selected', false, false); }
+if(!this.hasAttribute('is_editing')) { this.attributeChangedCallback('is_editing', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["editTableName"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('editor');
+this.__upgradeProperty('pulse');
+this.__upgradeProperty('locked');
+this.__upgradeProperty('selected');
+this.__upgradeProperty('is_editing');
+this.__correctGetter('editTableName');
+ }
     __listBoolProps() { return ["pulse","locked","selected","is_editing"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     prevent(e) {
         e.stopPropagation();
@@ -12504,18 +13068,24 @@ __as1(_, 'DEFAULT_SCHEMA', DEFAULT_SCHEMA);
 const TableField = class TableField extends Aventus.WebComponent {
     static get observedAttributes() {return ["is_editing", "primary"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'pulse'() { return this.getBoolAttr('pulse') }
-    set 'pulse'(val) { this.setBoolAttr('pulse', val) }get 'locked'() { return this.getBoolAttr('locked') }
-    set 'locked'(val) { this.setBoolAttr('locked', val) }    get 'is_editing'() { return this.getBoolProp('is_editing') }
-    set 'is_editing'(val) { this.setBoolAttr('is_editing', val) }get 'primary'() { return this.getBoolProp('primary') }
-    set 'primary'(val) { this.setBoolAttr('primary', val) }    get 'editFieldName'() {
+    set 'pulse'(val) { this.setBoolAttr('pulse', val) }
+get 'locked'() { return this.getBoolAttr('locked') }
+    set 'locked'(val) { this.setBoolAttr('locked', val) }
+    get 'is_editing'() { return this.getBoolProp('is_editing') }
+    set 'is_editing'(val) { this.setBoolAttr('is_editing', val) }
+get 'primary'() { return this.getBoolProp('primary') }
+    set 'primary'(val) { this.setBoolAttr('primary', val) }
+    get 'editFieldName'() {
 						return this.__watch["editFieldName"];
 					}
 					set 'editFieldName'(val) {
 						this.__watch["editFieldName"] = val;
-					}    field;
+					}
+    field;
     table;
     __registerWatchesActions() {
-    this.__addWatchesActions("editFieldName");    super.__registerWatchesActions();
+    this.__addWatchesActions("editFieldName");
+    super.__registerWatchesActions();
 }
     static __style = `:host{align-items:center;display:flex;font-size:12px;justify-content:space-between;padding:6px 14px;position:relative;user-select:none}:host:hover{background-color:hsla(0,0%,100%,.03)}:host .field-name-container{align-items:center;display:flex;gap:6px}:host .field-name-container .field-name{color:var(--text-primary);cursor:pointer;font-weight:450}:host .field-name-container .field-edit{background-color:var(--bg-main);border:1px solid var(--color-accent);border-radius:4px;color:var(--text-primary);display:none;font-size:12px;outline:none;padding:2px 6px;width:100%;user-select:all}:host .field-name-container .field-pk-badge{color:var(--color-pk);display:none;font-size:10px;font-weight:bold}:host .field-type{color:var(--text-secondary);font-size:11px}:host([locked]) .field-name-container .field-name{cursor:default}:host([primary]) .field-name-container .field-pk-badge{display:inline}:host([is_editing]) .field-name-container .field-name{display:none}:host([is_editing]) .field-name-container .field-edit{display:inline-block}:host([pulse]){animation:field-glow 2s ease-out 1}@keyframes field-glow{0%{background-color:rgba(59,130,246,.4)}100%{background-color:rgba(0,0,0,0)}}`;
     __getStatic() {
@@ -12528,10 +13098,15 @@ const TableField = class TableField extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="field-name-container">    <span class="field-name" _id="tablefield_0"></span>    <input class="inline-edit-input field-edit" _id="tablefield_1" />    <span class="field-pk-badge" title="Clé primaire">🔑</span></div><span class="field-type" _id="tablefield_2"></span>` }
+        blocks: { 'default':`<div class="field-name-container">
+    <span class="field-name" _id="tablefield_0"></span>
+    <input class="inline-edit-input field-edit" _id="tablefield_1" />
+    <span class="field-pk-badge" title="Clé primaire">🔑</span>
+</div><span class="field-type" _id="tablefield_2"></span>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "fieldInputRef",
@@ -12542,7 +13117,7 @@ const TableField = class TableField extends Aventus.WebComponent {
   ],
   "content": {
     "tablefield_0°@HTML": {
-      "fct": (c) => `\r\n        ${c.print(c.comp.__883c1c4cf53bd6b64794b7a881ff07c1method0())}\r\n    `,
+      "fct": (c) => `\n        ${c.print(c.comp.__883c1c4cf53bd6b64794b7a881ff07c1method0())}\n    `,
       "once": true
     },
     "tablefield_2°@HTML": {
@@ -12580,13 +13155,24 @@ const TableField = class TableField extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.keyDownEdit(e)
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "TableField";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('pulse')) { this.attributeChangedCallback('pulse', false, false); }if(!this.hasAttribute('locked')) { this.attributeChangedCallback('locked', false, false); }if(!this.hasAttribute('is_editing')) { this.attributeChangedCallback('is_editing', false, false); }if(!this.hasAttribute('primary')) { this.attributeChangedCallback('primary', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["editFieldName"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('pulse');this.__upgradeProperty('locked');this.__upgradeProperty('is_editing');this.__upgradeProperty('primary');this.__correctGetter('editFieldName'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('pulse')) { this.attributeChangedCallback('pulse', false, false); }
+if(!this.hasAttribute('locked')) { this.attributeChangedCallback('locked', false, false); }
+if(!this.hasAttribute('is_editing')) { this.attributeChangedCallback('is_editing', false, false); }
+if(!this.hasAttribute('primary')) { this.attributeChangedCallback('primary', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["editFieldName"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('pulse');
+this.__upgradeProperty('locked');
+this.__upgradeProperty('is_editing');
+this.__upgradeProperty('primary');
+this.__correctGetter('editFieldName');
+ }
     __listBoolProps() { return ["pulse","locked","is_editing","primary"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     startEdit() {
         if (this.table.locked)
@@ -12661,14 +13247,11 @@ let API=class API {
     }
     static async loadSchema() {
         if (VscodeView.Router.isVscode) {
-            const result = await VscodeView.Router.getInstance().sendWithResponse({
+            const result = await Aventus.Process.execute(VscodeView.Router.getInstance().sendWithResponse({
                 channel: "getData",
-            });
-            if (result.result) {
-                return result.result;
-            }
-            else if (result.errors.length > 0) {
-                alert(result.errors[0].message);
+            }));
+            if (result) {
+                return result;
             }
         }
         else {
@@ -12701,12 +13284,14 @@ const Header = class Header extends Aventus.WebComponent {
 					}
 					set 'disableSave'(val) {
 						this.__watch["disableSave"] = val;
-					}get 'hasNewContent'() {
+					}
+get 'hasNewContent'() {
 						return this.__watch["hasNewContent"];
 					}
 					set 'hasNewContent'(val) {
 						this.__watch["hasNewContent"] = val;
-					}    editor;
+					}
+    editor;
     get disableUndo() {
         return !this.editor.canUndo;
     }
@@ -12714,7 +13299,9 @@ const Header = class Header extends Aventus.WebComponent {
         return !this.editor.canRedo;
     }
     __registerWatchesActions() {
-    this.__addWatchesActions("disableSave");this.__addWatchesActions("hasNewContent");    super.__registerWatchesActions();
+    this.__addWatchesActions("disableSave");
+this.__addWatchesActions("hasNewContent");
+    super.__registerWatchesActions();
 }
     static __style = `:host{align-items:center;backdrop-filter:blur(12px);background-color:rgba(22,27,34,.85);border-bottom:1px solid var(--border-color);display:flex;height:64px;justify-content:space-between;padding:0 24px;user-select:none;z-index:10}:host .logo-section{align-items:center;display:flex;gap:10px}:host .logo-section .logo-title{color:var(--text-primary);font-family:"Outfit",sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.5px}:host .controls-section{align-items:center;display:flex;gap:16px}:host .controls-section .divider{background-color:var(--border-color);height:24px;width:1px}:host .controls-section mi-icon{font-size:var(--font-size)}:host .controls-section .btn{align-items:center;background-color:var(--bg-header);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);cursor:pointer;display:flex;font-size:13px;font-weight:500;gap:8px;padding:8px 16px;transition:all .2s ease}:host .controls-section .btn:hover{background-color:var(--border-color);border-color:var(--text-secondary)}:host .controls-section .btn.btn-save{background-color:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3);color:#10b981}:host .controls-section .btn.btn-save[disabled=true]{opacity:.5}:host .controls-section .btn.btn-save:not([disabled=true]):hover{background-color:rgba(16,185,129,.3);border-color:#10b981;color:#fff}:host .controls-section .btn.btn-lock{background-color:rgba(245,158,11,.1);border-color:rgba(245,158,11,.25);color:var(--color-pk)}:host .controls-section .btn.btn-lock:hover{background-color:rgba(245,158,11,.2);border-color:var(--color-pk)}:host .controls-section .btn.btn-lock.all-locked{background-color:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:var(--color-area)}:host .controls-section .btn.btn-lock.all-locked:hover{background-color:rgba(239,68,68,.25);border-color:var(--color-area)}:host .controls-section .btn.btn-update{background-color:rgba(245,158,11,.2);border-color:var(--color-pk);color:var(--color-pk)}:host .controls-section .zoom-controls{align-items:center;background-color:var(--bg-header);border:1px solid var(--border-color);border-radius:6px;display:flex;padding:2px}:host .controls-section .zoom-controls .btn-zoom{align-items:center;background:rgba(0,0,0,0);border:none;border-radius:4px;color:var(--text-secondary);cursor:pointer;display:flex;height:32px;justify-content:center;transition:all .2s;width:32px}:host .controls-section .zoom-controls .btn-zoom:hover{background-color:var(--border-color);color:var(--text-primary)}:host .controls-section .zoom-controls .zoom-level{color:var(--text-primary);font-size:12px;font-weight:600;min-width:48px;padding:0 8px;text-align:center}:host .controls-section .btn-zoom-standalone{align-items:center;background-color:var(--bg-header);border:1px solid var(--border-color);border-radius:6px;color:var(--text-secondary);cursor:pointer;display:flex;height:36px;justify-content:center;transition:all .2s;width:36px}:host .controls-section .btn-zoom-standalone:hover{background-color:var(--border-color);border-color:var(--text-secondary);color:var(--text-primary)}:host .controls-section .btn-zoom-standalone:disabled{cursor:not-allowed;opacity:.35}`;
     __getStatic() {
@@ -12727,10 +13314,43 @@ const Header = class Header extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="logo-section">    <h1 class="logo-title" _id="header_0"></h1></div><div class="controls-section">    <template _id="header_1"></template>    <av-button color="success" _id="header_3">        <mi-icon icon="save"></mi-icon>    </av-button>    <av-button _id="header_4">        <template _id="header_5"></template>    </av-button>    <div class="divider"></div>    <av-button _id="header_6">        <mi-icon icon="undo"></mi-icon>    </av-button>    <av-button _id="header_7">        <mi-icon icon="redo"></mi-icon>    </av-button>    <av-button _id="header_8">        <mi-icon icon="search"></mi-icon>    </av-button>    <div class="zoom-controls">        <button class="btn-zoom" title="Zoom arrière" _id="header_9">            <mi-icon icon="remove"></mi-icon>        </button>        <span class="zoom-level" _id="header_10"></span>        <button class="btn-zoom" title="Zoom avant" _id="header_11">            <mi-icon icon="add"></mi-icon>        </button>        <button class="btn-zoom" title="Réinitialiser le zoom" _id="header_12">            <mi-icon icon="sync"></mi-icon>        </button>    </div></div>` }
+        blocks: { 'default':`<div class="logo-section">
+    <h1 class="logo-title" _id="header_0"></h1>
+</div><div class="controls-section">
+    <template _id="header_1"></template>
+    <av-button color="success" _id="header_3">
+        <mi-icon icon="save"></mi-icon>
+    </av-button>
+    <av-button _id="header_4">
+        <template _id="header_5"></template>
+    </av-button>
+    <div class="divider"></div>
+    <av-button _id="header_6">
+        <mi-icon icon="undo"></mi-icon>
+    </av-button>
+    <av-button _id="header_7">
+        <mi-icon icon="redo"></mi-icon>
+    </av-button>
+    <av-button _id="header_8">
+        <mi-icon icon="search"></mi-icon>
+    </av-button>
+    <div class="zoom-controls">
+        <button class="btn-zoom" title="Zoom arrière" _id="header_9">
+            <mi-icon icon="remove"></mi-icon>
+        </button>
+        <span class="zoom-level" _id="header_10"></span>
+        <button class="btn-zoom" title="Zoom avant" _id="header_11">
+            <mi-icon icon="add"></mi-icon>
+        </button>
+        <button class="btn-zoom" title="Réinitialiser le zoom" _id="header_12">
+            <mi-icon icon="sync"></mi-icon>
+        </button>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "header_0°@HTML": {
       "fct": (c) => `${c.print(c.comp.__bf20e263a12c69cea1e9ab4822e5bb35method2())}`
@@ -12797,7 +13417,14 @@ const Header = class Header extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.zoomResetEmit(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-button color="warning" _id="header_2">            <mi-icon icon="refresh"></mi-icon>        </av-button>    `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+        <av-button color="warning" _id="header_2">
+            <mi-icon icon="refresh"></mi-icon>
+        </av-button>
+    `);
+templ0.setActions({
   "events": [
     {
       "eventName": "click",
@@ -12805,13 +13432,23 @@ const Header = class Header extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.updateSchema(e)
     }
   ]
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'header_1',
                     parts: [{once: true,
                     condition: (c) => c.comp.__bf20e263a12c69cea1e9ab4822e5bb35method0(),
                     template: templ0
                 }]
-            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`            <mi-icon icon="lock"></mi-icon>        `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`            <mi-icon icon="lock_open"></mi-icon>        `);this.__getStatic().__template.addIf({
+            });
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+            <mi-icon icon="lock"></mi-icon>
+        `);
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+            <mi-icon icon="lock_open"></mi-icon>
+        `);
+this.__getStatic().__template.addIf({
                     anchorId: 'header_5',
                     parts: [{once: true,
                     condition: (c) => c.comp.__bf20e263a12c69cea1e9ab4822e5bb35method1(),
@@ -12820,12 +13457,19 @@ const Header = class Header extends Aventus.WebComponent {
                     condition: (c) => true,
                     template: templ2
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "Header";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["disableSave"] = false;w["hasNewContent"] = false; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('disableUndo');this.__correctGetter('disableRedo');this.__correctGetter('disableSave');this.__correctGetter('hasNewContent'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["disableSave"] = false;
+w["hasNewContent"] = false;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('disableUndo');
+this.__correctGetter('disableRedo');
+this.__correctGetter('disableSave');
+this.__correctGetter('hasNewContent');
+ }
     exportSchema() {
         OneMoreUI.Components.Interaction.Toast.add({
             message: "Test 124",
@@ -12896,25 +13540,32 @@ if(!window.customElements.get('av-header')){window.customElements.define('av-hea
 const CommandePalette = class CommandePalette extends Aventus.WebComponent {
     static get observedAttributes() {return ["active"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'active'() { return this.getBoolProp('active') }
-    set 'active'(val) { this.setBoolAttr('active', val) }    get 'query'() {
+    set 'active'(val) { this.setBoolAttr('active', val) }
+    get 'query'() {
 						return this.__watch["query"];
 					}
 					set 'query'(val) {
 						this.__watch["query"] = val;
-					}get 'activeResultId'() {
+					}
+get 'activeResultId'() {
 						return this.__watch["activeResultId"];
 					}
 					set 'activeResultId'(val) {
 						this.__watch["activeResultId"] = val;
-					}get 'filteredResults'() {
+					}
+get 'filteredResults'() {
 						return this.__watch["filteredResults"];
 					}
 					set 'filteredResults'(val) {
 						this.__watch["filteredResults"] = val;
-					}    editor;
+					}
+    editor;
     resultItemsRefs = [];
     __registerWatchesActions() {
-    this.__addWatchesActions("query");this.__addWatchesActions("activeResultId");this.__addWatchesActions("filteredResults");    super.__registerWatchesActions();
+    this.__addWatchesActions("query");
+this.__addWatchesActions("activeResultId");
+this.__addWatchesActions("filteredResults");
+    super.__registerWatchesActions();
 }
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("active", ((target) => {
     if (target.active) {
@@ -12923,7 +13574,8 @@ const CommandePalette = class CommandePalette extends Aventus.WebComponent {
     else {
         target.onHide();
     }
-})); }
+}));
+ }
     static __style = `:host{align-items:flex-start;backdrop-filter:blur(4px);background-color:rgba(13,17,23,.7);display:flex;height:100vh;justify-content:center;left:0;opacity:0;padding-top:10vh;pointer-events:none;position:fixed;top:0;transition:opacity .15s ease-out;width:100vw;z-index:100}:host .command-palette-box{background-color:var(--bg-surface);border:1px solid var(--border-color);border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.8);display:flex;flex-direction:column;overflow:hidden;transform:translateY(-20px);transition:transform .15s ease-out;width:500px}:host .command-palette-box .command-palette-header{align-items:center;border-bottom:1px solid var(--border-color);display:flex;gap:12px;padding:16px 20px}:host .command-palette-box .command-palette-header .search-icon{color:var(--text-secondary);font-size:18px}:host .command-palette-box .command-palette-header input{background:rgba(0,0,0,0);border:none;color:var(--text-primary);font-family:inherit;font-size:15px;outline:none;width:100%}:host .command-palette-box .command-palette-header input::placeholder{color:var(--text-secondary)}:host .command-palette-box .command-palette-results{max-height:300px;overflow-y:auto;padding:8px}:host .command-palette-box .command-palette-results .command-result-item{align-items:center;border-radius:6px;color:var(--text-primary);cursor:pointer;display:flex;font-size:13px;justify-content:space-between;padding:10px 16px;transition:background-color .1s}:host .command-palette-box .command-palette-results .command-result-item:hover{background-color:hsla(0,0%,100%,.05)}:host .command-palette-box .command-palette-results .command-result-item[active=true]{background-color:hsla(0,0%,100%,.05);border-bottom-left-radius:0;border-left:3px solid var(--color-accent);border-top-left-radius:0}:host .command-palette-box .command-palette-results .command-result-item .left-section{align-items:center;display:flex}:host .command-palette-box .command-palette-results .command-result-item .left-section .result-title{font-weight:500}:host .command-palette-box .command-palette-results .command-result-item .left-section .result-subtext{color:var(--text-secondary);font-size:11px;margin-left:8px}:host .command-palette-box .command-palette-results .command-result-item .result-type-badge{border-radius:4px;font-size:10px;font-weight:600;padding:2px 6px;text-transform:uppercase}:host .command-palette-box .command-palette-results .command-result-item .result-type-badge.badge-table{background-color:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:var(--color-accent)}:host .command-palette-box .command-palette-results .command-result-item .result-type-badge.badge-field{background-color:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--color-pk)}:host .command-palette-box .command-palette-results .empty-state{color:var(--text-secondary);font-size:13px;padding:16px;text-align:center}:host .command-palette-box .command-palette-footer{background-color:var(--bg-header);border-top:1px solid var(--border-color);color:var(--text-secondary);display:flex;font-size:11px;gap:12px;padding:12px 20px}:host([active]){opacity:1;pointer-events:auto}:host([active]) .command-palette-box{transform:translateY(0)}`;
     constructor() {
         super();
@@ -12942,10 +13594,25 @@ const CommandePalette = class CommandePalette extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="modal-overlay">    <div class="command-palette-box" _id="commandepalette_0">        <div class="command-palette-header">            <span class="search-icon">🔍</span>            <input id="search-palette" type="text" placeholder="Rechercher une table ou une colonne..." autocomplete="off" _id="commandepalette_1" />        </div>        <div class="command-palette-results">            <template _id="commandepalette_2"></template>            <template _id="commandepalette_7"></template>        </div>        <div class="command-palette-footer">            <span>↑↓ pour naviguer</span> • <span>Entrée pour sélectionner</span> • <span>Échap pour fermer</span>        </div>    </div></div>` }
+        blocks: { 'default':`<div class="modal-overlay">
+    <div class="command-palette-box" _id="commandepalette_0">
+        <div class="command-palette-header">
+            <span class="search-icon">🔍</span>
+            <input id="search-palette" type="text" placeholder="Rechercher une table ou une colonne..." autocomplete="off" _id="commandepalette_1" />
+        </div>
+        <div class="command-palette-results">
+            <template _id="commandepalette_2"></template>
+            <template _id="commandepalette_7"></template>
+        </div>
+        <div class="command-palette-footer">
+            <span>↑↓ pour naviguer</span> • <span>Entrée pour sélectionner</span> • <span>Échap pour fermer</span>
+        </div>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "searchInput",
@@ -12979,7 +13646,18 @@ const CommandePalette = class CommandePalette extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.searchItems(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`                <div class="command-result-item" _id="commandepalette_3">                    <div class="left-section">                    <span class="result-title" _id="commandepalette_4"></span>                    <span class="result-subtext" _id="commandepalette_5"></span>                    </div>                    <span _id="commandepalette_6"></span>                </div>            `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+                <div class="command-result-item" _id="commandepalette_3">
+                    <div class="left-section">
+                    <span class="result-title" _id="commandepalette_4"></span>
+                    <span class="result-subtext" _id="commandepalette_5"></span>
+                    </div>
+                    <span _id="commandepalette_6"></span>
+                </div>
+            `);
+templ0.setActions({
   "content": {
     "commandepalette_3°active": {
       "fct": (c) => `${c.print(c.comp.__1a8dd6a3691cfaabd49601ed199ef90emethod4(c.data.res))}`,
@@ -13005,7 +13683,7 @@ const CommandePalette = class CommandePalette extends Aventus.WebComponent {
       "fct": (c) => `result-type-badge ${c.print(c.comp.__1a8dd6a3691cfaabd49601ed199ef90emethod9(c.data.res))}`
     },
     "commandepalette_6°@HTML": {
-      "fct": (c) => `\r\n                        ${c.print(c.comp.__1a8dd6a3691cfaabd49601ed199ef90emethod10(c.data.res))}\r\n                    `,
+      "fct": (c) => `\n                        ${c.print(c.comp.__1a8dd6a3691cfaabd49601ed199ef90emethod10(c.data.res))}\n                    `,
       "once": true
     }
   },
@@ -13016,22 +13694,40 @@ const CommandePalette = class CommandePalette extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.selectResult(e)
     }
   ]
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'commandepalette_2',
                     template: templ0,
-                simple:{data: "this.filteredResults",item:"res"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="empty-state">                    Aucune table ou colonne trouvée                </div>            `);this.__getStatic().__template.addIf({
+                simple:{data: "this.filteredResults",item:"res"}
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+                <div class="empty-state">
+                    Aucune table ou colonne trouvée
+                </div>
+            `);
+this.__getStatic().__template.addIf({
                     anchorId: 'commandepalette_7',
                     parts: [{once: true,
                     condition: (c) => c.comp.__1a8dd6a3691cfaabd49601ed199ef90emethod1(),
                     template: templ1
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "CommandePalette";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('active')) { this.attributeChangedCallback('active', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["query"] = "";w["activeResultId"] = "";w["filteredResults"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('active');this.__correctGetter('query');this.__correctGetter('activeResultId');this.__correctGetter('filteredResults'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('active')) { this.attributeChangedCallback('active', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["query"] = "";
+w["activeResultId"] = "";
+w["filteredResults"] = [];
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('active');
+this.__correctGetter('query');
+this.__correctGetter('activeResultId');
+this.__correctGetter('filteredResults');
+ }
     __listBoolProps() { return ["active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onShow() {
         this.searchInput.focus();
@@ -13184,77 +13880,92 @@ const Editor = class Editor extends Aventus.WebComponent {
 					}
 					set 'schema'(val) {
 						this.__watch["schema"] = val;
-					}get 'scale'() {
+					}
+get 'scale'() {
 						return this.__watch["scale"];
 					}
 					set 'scale'(val) {
 						this.__watch["scale"] = val;
-					}get 'panX'() {
+					}
+get 'panX'() {
 						return this.__watch["panX"];
 					}
 					set 'panX'(val) {
 						this.__watch["panX"] = val;
-					}get 'panY'() {
+					}
+get 'panY'() {
 						return this.__watch["panY"];
 					}
 					set 'panY'(val) {
 						this.__watch["panY"] = val;
-					}get 'historyStack'() {
+					}
+get 'historyStack'() {
 						return this.__watch["historyStack"];
 					}
 					set 'historyStack'(val) {
 						this.__watch["historyStack"] = val;
-					}get 'redoStack'() {
+					}
+get 'redoStack'() {
 						return this.__watch["redoStack"];
 					}
 					set 'redoStack'(val) {
 						this.__watch["redoStack"] = val;
-					}get 'tempHistoryState'() {
+					}
+get 'tempHistoryState'() {
 						return this.__watch["tempHistoryState"];
 					}
 					set 'tempHistoryState'(val) {
 						this.__watch["tempHistoryState"] = val;
-					}get 'selectedTables'() {
+					}
+get 'selectedTables'() {
 						return this.__watch["selectedTables"];
 					}
 					set 'selectedTables'(val) {
 						this.__watch["selectedTables"] = val;
-					}get 'selectedAreas'() {
+					}
+get 'selectedAreas'() {
 						return this.__watch["selectedAreas"];
 					}
 					set 'selectedAreas'(val) {
 						this.__watch["selectedAreas"] = val;
-					}get 'searchActive'() {
+					}
+get 'searchActive'() {
 						return this.__watch["searchActive"];
 					}
 					set 'searchActive'(val) {
 						this.__watch["searchActive"] = val;
-					}get 'highlightedTableId'() {
+					}
+get 'highlightedTableId'() {
 						return this.__watch["highlightedTableId"];
 					}
 					set 'highlightedTableId'(val) {
 						this.__watch["highlightedTableId"] = val;
-					}get 'highlightedFieldId'() {
+					}
+get 'highlightedFieldId'() {
 						return this.__watch["highlightedFieldId"];
 					}
 					set 'highlightedFieldId'(val) {
 						this.__watch["highlightedFieldId"] = val;
-					}get 'loading'() {
+					}
+get 'loading'() {
 						return this.__watch["loading"];
 					}
 					set 'loading'(val) {
 						this.__watch["loading"] = val;
-					}get 'isDirty'() {
+					}
+get 'isDirty'() {
 						return this.__watch["isDirty"];
 					}
 					set 'isDirty'(val) {
 						this.__watch["isDirty"] = val;
-					}get 'hasNewContent'() {
+					}
+get 'hasNewContent'() {
 						return this.__watch["hasNewContent"];
 					}
 					set 'hasNewContent'(val) {
 						this.__watch["hasNewContent"] = val;
-					}    get allAreLocked() {
+					}
+    get allAreLocked() {
         if (!this.schema)
             return false;
         const tables = this.schema.tables || [];
@@ -13276,7 +13987,22 @@ const Editor = class Editor extends Aventus.WebComponent {
     if (action == Aventus.WatchAction.UPDATED) {
         target.triggerChange();
     }
-}));this.__addWatchesActions("scale");this.__addWatchesActions("panX");this.__addWatchesActions("panY");this.__addWatchesActions("historyStack");this.__addWatchesActions("redoStack");this.__addWatchesActions("tempHistoryState");this.__addWatchesActions("selectedTables");this.__addWatchesActions("selectedAreas");this.__addWatchesActions("searchActive");this.__addWatchesActions("highlightedTableId");this.__addWatchesActions("highlightedFieldId");this.__addWatchesActions("loading");this.__addWatchesActions("isDirty");this.__addWatchesActions("hasNewContent");    super.__registerWatchesActions();
+}));
+this.__addWatchesActions("scale");
+this.__addWatchesActions("panX");
+this.__addWatchesActions("panY");
+this.__addWatchesActions("historyStack");
+this.__addWatchesActions("redoStack");
+this.__addWatchesActions("tempHistoryState");
+this.__addWatchesActions("selectedTables");
+this.__addWatchesActions("selectedAreas");
+this.__addWatchesActions("searchActive");
+this.__addWatchesActions("highlightedTableId");
+this.__addWatchesActions("highlightedFieldId");
+this.__addWatchesActions("loading");
+this.__addWatchesActions("isDirty");
+this.__addWatchesActions("hasNewContent");
+    super.__registerWatchesActions();
 }
     static __style = `:host{display:flex;flex-direction:column;height:100vh;overflow:hidden;position:relative;width:100vw}`;
     constructor() {
@@ -13297,7 +14023,8 @@ const Editor = class Editor extends Aventus.WebComponent {
         blocks: { 'default':`<av-header _id="editor_0"></av-header><av-canvas _id="editor_1"></av-canvas><av-commande-palette _id="editor_2"></av-commande-palette><av-loader _id="editor_3"></av-loader>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "canvasEl",
@@ -13338,12 +14065,46 @@ const Editor = class Editor extends Aventus.WebComponent {
       "once": true
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Editor";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["schema"] = undefined;w["scale"] = 1;w["panX"] = 0;w["panY"] = 0;w["historyStack"] = [];w["redoStack"] = [];w["tempHistoryState"] = null;w["selectedTables"] = [];w["selectedAreas"] = [];w["searchActive"] = false;w["highlightedTableId"] = null;w["highlightedFieldId"] = null;w["loading"] = true;w["isDirty"] = false;w["hasNewContent"] = false; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('allAreLocked');this.__correctGetter('canUndo');this.__correctGetter('canRedo');this.__correctGetter('schema');this.__correctGetter('scale');this.__correctGetter('panX');this.__correctGetter('panY');this.__correctGetter('historyStack');this.__correctGetter('redoStack');this.__correctGetter('tempHistoryState');this.__correctGetter('selectedTables');this.__correctGetter('selectedAreas');this.__correctGetter('searchActive');this.__correctGetter('highlightedTableId');this.__correctGetter('highlightedFieldId');this.__correctGetter('loading');this.__correctGetter('isDirty');this.__correctGetter('hasNewContent'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["schema"] = undefined;
+w["scale"] = 1;
+w["panX"] = 0;
+w["panY"] = 0;
+w["historyStack"] = [];
+w["redoStack"] = [];
+w["tempHistoryState"] = null;
+w["selectedTables"] = [];
+w["selectedAreas"] = [];
+w["searchActive"] = false;
+w["highlightedTableId"] = null;
+w["highlightedFieldId"] = null;
+w["loading"] = true;
+w["isDirty"] = false;
+w["hasNewContent"] = false;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('allAreLocked');
+this.__correctGetter('canUndo');
+this.__correctGetter('canRedo');
+this.__correctGetter('schema');
+this.__correctGetter('scale');
+this.__correctGetter('panX');
+this.__correctGetter('panY');
+this.__correctGetter('historyStack');
+this.__correctGetter('redoStack');
+this.__correctGetter('tempHistoryState');
+this.__correctGetter('selectedTables');
+this.__correctGetter('selectedAreas');
+this.__correctGetter('searchActive');
+this.__correctGetter('highlightedTableId');
+this.__correctGetter('highlightedFieldId');
+this.__correctGetter('loading');
+this.__correctGetter('isDirty');
+this.__correctGetter('hasNewContent');
+ }
     async loadSchema(newSchema) {
         this.loading = true;
         this.hasNewContent = false;
@@ -13382,7 +14143,7 @@ const Editor = class Editor extends Aventus.WebComponent {
         clearTimeout(this.timeout);
         this.timeout = setTimeout(() => {
             try {
-                const schema = Aventus.Watcher.extract(this.schema);
+                const schema = Aventus.Watcher.extract(this.schema, true);
                 API.triggerChange(schema);
             }
             catch { }
@@ -13704,7 +14465,8 @@ const Canvas = class Canvas extends Aventus.WebComponent {
 					}
 					set 'relationshipPaths'(val) {
 						this.__watch["relationshipPaths"] = val;
-					}    editor;
+					}
+    editor;
     isPanning = false;
     panStartX = 0;
     panStartY = 0;
@@ -13728,7 +14490,8 @@ const Canvas = class Canvas extends Aventus.WebComponent {
         return this.editor.schema?.tables ?? [];
     }
     __registerWatchesActions() {
-    this.__addWatchesActions("relationshipPaths");    super.__registerWatchesActions();
+    this.__addWatchesActions("relationshipPaths");
+    super.__registerWatchesActions();
 }
     static __style = `:host{background-color:var(--bg-main);background-image:radial-gradient(#21262d 1.5px, transparent 1.5px);background-size:24px 24px;cursor:grab;flex:1;overflow:hidden;position:relative}:host .canvas-inner{height:20000px;left:0;pointer-events:none;position:absolute;top:0;transform-origin:0 0;width:20000px}:host .canvas-inner>*{pointer-events:auto}:host .canvas-inner .svg-overlay{height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%;z-index:1}:host .canvas-inner .svg-overlay path{cursor:pointer;fill:none;pointer-events:stroke;stroke:#8892b0;stroke-width:2px;transition:stroke .2s,stroke-width .2s}:host .canvas-inner .svg-overlay path:hover{filter:drop-shadow(0 0 2px rgba(59, 130, 246, 0.6));stroke:var(--color-accent)}:host .canvas-inner .svg-overlay text{font-size:12px;fill:#8892b0;pointer-events:stroke}:host .canvas-instructions{background-color:rgba(22,27,34,.9);border:1px solid var(--border-color);border-radius:20px;bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,.5);color:var(--text-secondary);display:none;font-size:11px;left:50%;padding:8px 20px;pointer-events:none;position:absolute;transform:translateX(-50%);white-space:nowrap;z-index:5}:host .canvas-selector{background-color:rgba(59,130,246,.3);border:2px solid #3b82f6;display:none;position:absolute}`;
     constructor() {
@@ -13748,10 +14511,26 @@ const Canvas = class Canvas extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="canvas-inner" _id="canvas_0">    <svg class="svg-overlay" _id="canvas_1">        <defs>            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#8892b0"></path>            </marker>            <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6">                <circle cx="5" cy="5" r="3" fill="#8892b0"></circle>            </marker>        </defs>    </svg>    <template _id="canvas_2"></template></div><div class="canvas-instructions">    💡 Glissez-déposez le fond pour vous déplacer • Utilisez la molette pour zoomer • Glissez le haut d'une table pour    la déplacer • Étirez le coin inférieur droit des zones pour les redimensionner</div><div class="canvas-selector" _id="canvas_7"></div>` }
+        blocks: { 'default':`<div class="canvas-inner" _id="canvas_0">
+    <svg class="svg-overlay" _id="canvas_1">
+        <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#8892b0"></path>
+            </marker>
+            <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6">
+                <circle cx="5" cy="5" r="3" fill="#8892b0"></circle>
+            </marker>
+        </defs>
+    </svg>
+    <template _id="canvas_2"></template>
+</div><div class="canvas-instructions">
+    💡 Glissez-déposez le fond pour vous déplacer • Utilisez la molette pour zoomer • Glissez le haut d'une table pour
+    la déplacer • Étirez le coin inférieur droit des zones pour les redimensionner
+</div><div class="canvas-selector" _id="canvas_7"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "canvasRef",
@@ -13772,7 +14551,21 @@ const Canvas = class Canvas extends Aventus.WebComponent {
       ]
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <div id="areas-container">            <template _id="canvas_3"></template>        </div>        <div id="tables-container">            <template _id="canvas_5"></template>        </div>    `);const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <av-area-node _id="canvas_4"></av-area-node>            `);templ1.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+        <div id="areas-container">
+            <template _id="canvas_3"></template>
+        </div>
+        <div id="tables-container">
+            <template _id="canvas_5"></template>
+        </div>
+    `);
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+                <av-area-node _id="canvas_4"></av-area-node>
+            `);
+templ1.setActions({
   "injection": [
     {
       "id": "canvas_4",
@@ -13801,10 +14594,17 @@ const Canvas = class Canvas extends Aventus.WebComponent {
       "isCallback": true
     }
   ]
-});templ0.addLoop({
+});
+templ0.addLoop({
                     anchorId: 'canvas_3',
                     template: templ1,
-                simple:{data: "this.areas",item:"area"}});const templ2 = new Aventus.Template(this);templ2.setTemplate(`                <av-table-node _id="canvas_6"></av-table-node>            `);templ2.setActions({
+                simple:{data: "this.areas",item:"area"}
+});
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+                <av-table-node _id="canvas_6"></av-table-node>
+            `);
+templ2.setActions({
   "injection": [
     {
       "id": "canvas_6",
@@ -13832,21 +14632,29 @@ const Canvas = class Canvas extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.updatePaths(e)
     }
   ]
-});templ0.addLoop({
+});
+templ0.addLoop({
                     anchorId: 'canvas_5',
                     template: templ2,
-                simple:{data: "this.tables",item:"table"}});this.__getStatic().__template.addIf({
+                simple:{data: "this.tables",item:"table"}
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'canvas_2',
                     parts: [{once: true,
                     condition: (c) => c.comp.__2ebc7ece76d7c5fa6f2b63d2d7ed74e9method0(),
                     template: templ0
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "Canvas";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["relationshipPaths"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('areas');this.__correctGetter('tables');this.__correctGetter('relationshipPaths'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["relationshipPaths"] = [];
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('areas');
+this.__correctGetter('tables');
+this.__correctGetter('relationshipPaths');
+ }
     find(arr, id) {
         if (!arr)
             return null;
@@ -14110,7 +14918,7 @@ const Canvas = class Canvas extends Aventus.WebComponent {
             textPathEl.textContent = rel.description;
             textEl.appendChild(textPathEl);
             el.addEventListener("click", () => {
-                alert("edit rel");
+                //alert("edit rel");
             });
             this.svgEl.appendChild(textEl);
         }
@@ -14246,19 +15054,24 @@ if(!window.customElements.get('av-canvas')){window.customElements.define('av-can
 const AreaNode = class AreaNode extends Aventus.WebComponent {
     static get observedAttributes() {return ["locked", "selected", "is_editing"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'locked'() { return this.getBoolProp('locked') }
-    set 'locked'(val) { this.setBoolAttr('locked', val) }get 'selected'() { return this.getBoolProp('selected') }
-    set 'selected'(val) { this.setBoolAttr('selected', val) }get 'is_editing'() { return this.getBoolProp('is_editing') }
-    set 'is_editing'(val) { this.setBoolAttr('is_editing', val) }    get 'editName'() {
+    set 'locked'(val) { this.setBoolAttr('locked', val) }
+get 'selected'() { return this.getBoolProp('selected') }
+    set 'selected'(val) { this.setBoolAttr('selected', val) }
+get 'is_editing'() { return this.getBoolProp('is_editing') }
+    set 'is_editing'(val) { this.setBoolAttr('is_editing', val) }
+    get 'editName'() {
 						return this.__watch["editName"];
 					}
 					set 'editName'(val) {
 						this.__watch["editName"] = val;
-					}    area;
+					}
+    area;
     canvas;
     dragStart = new Aventus.Callback();
     resizeStart = new Aventus.Callback();
     __registerWatchesActions() {
-    this.__addWatchesActions("editName");    super.__registerWatchesActions();
+    this.__addWatchesActions("editName");
+    super.__registerWatchesActions();
 }
     static __style = `:host{--_area-node-color: var(--area-node-color, #fff);--_area-node-background-color: var(--area-node-background-color, #ef4444)}:host{background-color:var(--_area-node-background-color);border:2px dashed var(--_area-node-color);border-radius:8px;display:flex;flex-direction:column;min-height:100px;min-width:150px;overflow:visible;pointer-events:none;position:absolute;user-select:none;z-index:2}:host .area-header-container{align-items:center;cursor:move;display:flex;justify-content:space-between;padding:12px 14px 4px 14px;pointer-events:all}:host .area-title-container{align-items:center;display:flex;flex-grow:1;gap:8px}:host .area-title-container .area-title-span{color:var(--_area-node-color);cursor:pointer;font-size:14px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.8)}:host .area-title-container .inline-edit-input{background-color:var(--bg-main);border:1px solid var(--color-accent);border-radius:4px;color:var(--_area-node-color);color:var(--text-primary);display:none;font-size:14px;font-weight:600;outline:none;padding:2px 6px;user-select:all;width:100%}:host .area-header-color-bar{background-color:var(--area-node-color);border:none;border-radius:50%;cursor:pointer;height:18px;margin:0;overflow:hidden;padding:0;width:18px}:host .area-header-color-bar::-webkit-color-swatch-wrapper{padding:0}:host .area-header-color-bar::-webkit-color-swatch{border:1px solid var(--border-color);border-radius:50%}:host .area-color-picker{border:none;border-radius:50%;height:18px;margin:0;opacity:0;overflow:hidden;padding:0;pointer-events:none;position:absolute;right:14px;top:14px;width:18px}:host .node-lock-btn{align-items:center;background:rgba(0,0,0,0);border:none;cursor:pointer;display:flex;font-size:13px;justify-content:center;opacity:.25;padding:2px;transition:opacity .2s,transform .2s}:host .node-lock-btn:hover{opacity:1 !important;transform:scale(1.15)}:host .area-resizer{align-items:flex-end;background-color:hsla(0,0%,100%,.15);border-bottom-right-radius:6px;border-top-left-radius:4px;bottom:0;cursor:se-resize;display:flex;height:16px;justify-content:flex-end;padding:2px;pointer-events:all;position:absolute;right:0;width:16px}:host .area-resizer::after{border-bottom:2px solid var(--text-secondary);border-right:2px solid var(--text-secondary);content:"";height:6px;width:6px}:host .area-resizer:hover{background-color:var(--color-area)}:host .area-resizer:hover::after{border-color:#fff}:host([locked]){cursor:default !important}:host([locked]) .area-header-container{cursor:default}:host([locked]) .area-title-container .area-title-span{cursor:default}:host([locked]) .node-lock-btn{opacity:.8}:host([locked]) .area-color-picker{display:none}:host([locked]) .area-resizer{display:none}:host([selected]:not([locked])){background-color:rgba(59,130,246,.05) !important;border-color:var(--color-accent) !important;border-style:solid !important;z-index:3}:host([is_editing]) .area-title-container .area-title-span{display:none}:host([is_editing]) .area-title-container .inline-edit-input{display:inline-block}`;
     __getStatic() {
@@ -14271,10 +15084,23 @@ const AreaNode = class AreaNode extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="area-header-container" _id="areanode_0">    <div class="area-title-container">        <button class="node-lock-btn" _id="areanode_1"></button>        <span class="area-title-span" _id="areanode_2"></span>        <input class="inline-edit-input" _id="areanode_3" />    </div>    <div class="area-header-color-bar" _id="areanode_4"></div>    <om-color-picker class="area-color-picker" _id="areanode_5"></om-color-picker></div><div class="area-resizer" _id="areanode_6"></div><om-menu _id="areanode_7">    <om-menu-item icon="colors" label="Color" _id="areanode_8"></om-menu-item>    <template _id="areanode_9"></template>    <om-menu-item icon="edit" label="Rename" _id="areanode_12"></om-menu-item></om-menu>` }
+        blocks: { 'default':`<div class="area-header-container" _id="areanode_0">
+    <div class="area-title-container">
+        <button class="node-lock-btn" _id="areanode_1"></button>
+        <span class="area-title-span" _id="areanode_2"></span>
+        <input class="inline-edit-input" _id="areanode_3" />
+    </div>
+    <div class="area-header-color-bar" _id="areanode_4"></div>
+    <om-color-picker class="area-color-picker" _id="areanode_5"></om-color-picker>
+</div><div class="area-resizer" _id="areanode_6"></div><om-menu _id="areanode_7">
+    <om-menu-item icon="colors" label="Color" _id="areanode_8"></om-menu-item>
+    <template _id="areanode_9"></template>
+    <om-menu-item icon="edit" label="Rename" _id="areanode_12"></om-menu-item>
+</om-menu>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "editInput",
@@ -14300,10 +15126,10 @@ const AreaNode = class AreaNode extends Aventus.WebComponent {
       "fct": (c) => `${c.print(c.comp.__500b1a40677989bc5828540005f29ca0method1())}`
     },
     "areanode_1°@HTML": {
-      "fct": (c) => `\r\n            ${c.print(c.comp.__500b1a40677989bc5828540005f29ca0method2())}\r\n        `
+      "fct": (c) => `\n            ${c.print(c.comp.__500b1a40677989bc5828540005f29ca0method2())}\n        `
     },
     "areanode_2°@HTML": {
-      "fct": (c) => `\r\n            ${c.print(c.comp.__500b1a40677989bc5828540005f29ca0method3())}\r\n        `,
+      "fct": (c) => `\n            ${c.print(c.comp.__500b1a40677989bc5828540005f29ca0method3())}\n        `,
       "once": true
     }
   },
@@ -14378,7 +15204,12 @@ const AreaNode = class AreaNode extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.startEdit(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <om-menu-item icon="lock_open" label="Unlock" _id="areanode_10"></om-menu-item>    `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+        <om-menu-item icon="lock_open" label="Unlock" _id="areanode_10"></om-menu-item>
+    `);
+templ0.setActions({
   "events": [
     {
       "eventName": "click",
@@ -14386,7 +15217,12 @@ const AreaNode = class AreaNode extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.toggleLock(e)
     }
   ]
-});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <om-menu-item icon="lock" label="Lock" _id="areanode_11"></om-menu-item>    `);templ1.setActions({
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+        <om-menu-item icon="lock" label="Lock" _id="areanode_11"></om-menu-item>
+    `);
+templ1.setActions({
   "events": [
     {
       "eventName": "click",
@@ -14394,7 +15230,8 @@ const AreaNode = class AreaNode extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.toggleLock(e)
     }
   ]
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'areanode_9',
                     parts: [{once: true,
                     condition: (c) => c.comp.__500b1a40677989bc5828540005f29ca0method0(),
@@ -14403,13 +15240,22 @@ const AreaNode = class AreaNode extends Aventus.WebComponent {
                     condition: (c) => true,
                     template: templ1
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "AreaNode";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('locked')) { this.attributeChangedCallback('locked', false, false); }if(!this.hasAttribute('selected')) { this.attributeChangedCallback('selected', false, false); }if(!this.hasAttribute('is_editing')) { this.attributeChangedCallback('is_editing', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["editName"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('locked');this.__upgradeProperty('selected');this.__upgradeProperty('is_editing');this.__correctGetter('editName'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('locked')) { this.attributeChangedCallback('locked', false, false); }
+if(!this.hasAttribute('selected')) { this.attributeChangedCallback('selected', false, false); }
+if(!this.hasAttribute('is_editing')) { this.attributeChangedCallback('is_editing', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["editName"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('locked');
+this.__upgradeProperty('selected');
+this.__upgradeProperty('is_editing');
+this.__correctGetter('editName');
+ }
     __listBoolProps() { return ["locked","selected","is_editing"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     toggleLock(e) {
         e.stopPropagation();

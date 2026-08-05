@@ -15,9 +15,7 @@ export class SummaryUpdatedTable extends Aventus.WebComponent implements Aventus
 
     //#region variables
     @Injectable()
-    @Watch(() => {
-        debugger
-    })
+    @Watch()
     public change!: ProcessFieldsResult;
     //#endregion
 

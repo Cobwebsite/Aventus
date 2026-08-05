@@ -60,16 +60,7 @@ export class Watcher {
             return obj;
         }
         const reservedName = this.__reservedName;
-        const clearReservedNames = (data: any) => {
-            if(data instanceof Object && !data.__isProxy) {
-                for(let key in reservedName) {
-                    delete data[key];
-                }
-                for(let key in data) {
-                    clearReservedNames(data[key]);
-                }
-            }
-        };
+
         const setProxyPath = (newProxy: any, newPath: string) => {
             if(newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
@@ -378,7 +369,7 @@ export class Watcher {
                 }
                 else if(prop == "getTarget") {
                     return (clear = true) => {
-                        if(clear) clearReservedNames(target);
+                        if(clear) Watcher.clearReservedNames(target);
                         return target;
                     };
                 }
@@ -706,7 +697,7 @@ export class Watcher {
                     }
                     delete target[prop];
                     if(triggerChange) {
-                        clearReservedNames(oldValue);
+                        Watcher.clearReservedNames(oldValue);
                         trigger('DELETED', target, null, oldValue, prop);
                     }
 
@@ -827,7 +818,7 @@ export class Watcher {
                 callbacks[name] = [...callbacks[name]];
             }
             for(let name in callbacks) {
-            // for(let name in proxyData.callbacks) {
+                // for(let name in proxyData.callbacks) {
                 let pathToSend = rootPath;
                 if(name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
@@ -919,6 +910,22 @@ export class Watcher {
 
     public static is(obj: any): boolean {
         return typeof obj == 'object' && obj.__isProxy;
+    }
+
+    private static clearReservedNames(data: any) {
+        if(data instanceof Object && !data.__isProxy) {
+            for(let key in this.__reservedName) {
+                delete data[key];
+            }
+            for(let key in data) {
+                this.clearReservedNames(data[key]);
+            }
+        }
+        else if(Array.isArray(data)) {
+            for(let item of data) {
+                this.clearReservedNames(item);
+            }
+        }
     }
 
     public static extract<T>(obj: T, clearPath: boolean = false): T {

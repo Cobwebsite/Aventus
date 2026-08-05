@@ -1,9 +1,9 @@
-import { existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { pathToFileURL } from 'url';
 
 import { ExecSyncOptionsWithBufferEncoding, spawn } from 'child_process';
-import { execAsync, md5, pathToUri, uriToPath } from '../tools';
+import { execAsync, md5, pathToUri, unlinkSync, uriToPath } from '../tools';
 import { ProjectManager } from '../project/ProjectManager';
 import { FilesManager } from './FilesManager';
 import { GenericServer } from '../GenericServer';

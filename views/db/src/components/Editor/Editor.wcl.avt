@@ -178,7 +178,7 @@ export class Editor extends Aventus.WebComponent implements Aventus.DefaultCompo
         clearTimeout(this.timeout);
         this.timeout = setTimeout(() => {
             try {
-                const schema = Watcher.extract(this.schema)!;
+                const schema = Watcher.extract(this.schema, true)!;
                 API.triggerChange(schema);
             } catch { }
         }, 300);
