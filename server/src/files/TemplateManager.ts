@@ -202,7 +202,7 @@ export class TemplateManager {
 			{ label: "Local" },
 			// { label: "Store" },
 			{ label: "Git" },
-		], { placeHolder: "Select a source from where to import projects" });
+		], { title: "Select a source from where to import projects" });
 
 		if (!sourceResult) {
 			return
@@ -282,7 +282,7 @@ export class TemplateManager {
 			{ label: "Local" },
 			// { label: "Store" },
 			{ label: "Git" },
-		], { placeHolder: "Select a source from where to import templates" });
+		], { title: "Select a source from where to import templates" });
 
 		if (!sourceResult) {
 			return
@@ -366,7 +366,7 @@ export class TemplateManager {
 			{ label: "Local" },
 			// { label: "Store" },
 			{ label: "Git" },
-		], { placeHolder: "Select a source from where to import global templates" });
+		], { title: "Select a source from where to import global templates" });
 
 		if (!sourceResult) {
 			return
@@ -593,7 +593,7 @@ export class TemplateManager {
 		}
 		quickPicks.sort((a, b) => a.label.localeCompare(b.label));
 		const resultFormat = await GenericServer.Select(quickPicks, {
-			placeHolder: 'What do you want to create?',
+			title: 'What do you want to create?',
 		});
 
 		if (resultFormat) {

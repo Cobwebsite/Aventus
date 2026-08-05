@@ -9,6 +9,7 @@ export interface IConnection {
 	showWarningMessage(msg: string): void;
 	showErrorMessage(msg: string): void;
 	showInformationMessage(msg: string): void;
+	showLoadingMessage(msg: string, action: () => Promise<void>): Promise<void>;
 	ask(msg: string): Promise<boolean>;
 	sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void;
 
@@ -49,6 +50,10 @@ export interface InputOptions {
 	validations?: { regex: string, message: string }[]
 }
 
+export interface LoadingMessageOptions {
+	message: string,
+	cancellable?: string,
+}
 
 
 export interface AvInitializeParams {

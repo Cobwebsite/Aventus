@@ -29,7 +29,7 @@ export class StorePublishPackage {
 					detail: build.uri
 				})
 				result = await GenericServer.Select(items, {
-					placeHolder: 'Project to compile'
+					title: 'Project to compile'
 				})
 			}
 		}
