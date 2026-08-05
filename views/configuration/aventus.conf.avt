@@ -5,6 +5,7 @@
 		{
 			"name": "Main",
 			"hideWarnings": true,
+			"disabled": true,
 			"src": [
 				"./src/components/*",
 				"./src/libs/*"

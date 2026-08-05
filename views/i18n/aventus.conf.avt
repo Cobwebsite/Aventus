@@ -19,8 +19,9 @@
 			],
 			"dependencies": {
 				"Aventus@UI": {},
-				"VscodeView@Main": {
-					"isLocal": true
+				"VscodeView": {
+					"version": "1.0.1",
+					"include": "full"
 				}
 			}
 		}

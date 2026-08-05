@@ -1,7 +1,8 @@
-import { existsSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, writeFileSync } from "fs";
 import { AventusTsFile } from './File';
 import { AventusTsLanguageService, CompileTsResult } from "./LanguageService";
 import { BaseInfo } from './parser/BaseInfo';
+import { unlinkSync } from '../../tools';
 
 
 export function genericTsCompile(file: AventusTsFile): CompileTsResult[] {

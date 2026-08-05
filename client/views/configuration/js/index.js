@@ -1024,16 +1024,6 @@ let Watcher=class Watcher {
             return obj;
         }
         const reservedName = this.__reservedName;
-        const clearReservedNames = (data) => {
-            if (data instanceof Object && !data.__isProxy) {
-                for (let key in reservedName) {
-                    delete data[key];
-                }
-                for (let key in data) {
-                    clearReservedNames(data[key]);
-                }
-            }
-        };
         const setProxyPath = (newProxy, newPath) => {
             if (newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
@@ -1291,7 +1281,7 @@ let Watcher=class Watcher {
                 else if (prop == "getTarget") {
                     return (clear = true) => {
                         if (clear)
-                            clearReservedNames(target);
+                            Watcher.clearReservedNames(target);
                         return target;
                     };
                 }
@@ -1603,7 +1593,7 @@ let Watcher=class Watcher {
                     }
                     delete target[prop];
                     if (triggerChange) {
-                        clearReservedNames(oldValue);
+                        Watcher.clearReservedNames(oldValue);
                         trigger('DELETED', target, null, oldValue, prop);
                     }
                     return true;
@@ -1803,6 +1793,21 @@ let Watcher=class Watcher {
     }
     static is(obj) {
         return typeof obj == 'object' && obj.__isProxy;
+    }
+    static clearReservedNames(data) {
+        if (data instanceof Object && !data.__isProxy) {
+            for (let key in this.__reservedName) {
+                delete data[key];
+            }
+            for (let key in data) {
+                this.clearReservedNames(data[key]);
+            }
+        }
+        else if (Array.isArray(data)) {
+            for (let item of data) {
+                this.clearReservedNames(item);
+            }
+        }
     }
     static extract(obj, clearPath = false) {
         if (this.is(obj)) {

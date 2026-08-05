@@ -5,10 +5,11 @@ import { Build } from '../project/Build';
 import { DependencyManager } from '../project/DependencyManager';
 import { dirname, join, normalize } from 'path';
 import { AventusExtension } from '../definition';
-import { createReadStream, createWriteStream, existsSync, readdirSync, readFileSync, rmSync, unlink, unlinkSync } from 'fs';
+import { createWriteStream, existsSync, readdirSync, readFileSync } from 'fs';
 import { TemplateScript } from '../files/Template';
 import { create as createArchive } from 'archiver'
 import { GenericServer } from '../GenericServer';
+import { unlinkSync } from '../tools';
 
 type StoreSettings = HiddenSettings["store"];
 

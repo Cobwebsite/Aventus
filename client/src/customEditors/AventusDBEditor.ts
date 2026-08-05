@@ -124,9 +124,9 @@ export class AventusDBEditor implements CustomTextEditorProvider {
 
 	protected triggerChange(value: Schema, document: TextDocument) {
 		const oldTxt = document.getText();
-		let txt = JSON.stringify(value, null, 4)
+		let txt = JSON.stringify(value, null, 2)
 		if (oldTxt == txt) return;
-		txt = txt.replace(/\n/g, EOL);
+		txt = txt.replace(/\r\n?/g, "\n");
 		if (oldTxt == txt) return;
 		const edit = new WorkspaceEdit();
 		edit.replace(

@@ -1176,16 +1176,6 @@ let Watcher=class Watcher {
             return obj;
         }
         const reservedName = this.__reservedName;
-        const clearReservedNames = (data) => {
-            if (data instanceof Object && !data.__isProxy) {
-                for (let key in reservedName) {
-                    delete data[key];
-                }
-                for (let key in data) {
-                    clearReservedNames(data[key]);
-                }
-            }
-        };
         const setProxyPath = (newProxy, newPath) => {
             if (newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
@@ -1443,7 +1433,7 @@ let Watcher=class Watcher {
                 else if (prop == "getTarget") {
                     return (clear = true) => {
                         if (clear)
-                            clearReservedNames(target);
+                            Watcher.clearReservedNames(target);
                         return target;
                     };
                 }
@@ -1755,7 +1745,7 @@ let Watcher=class Watcher {
                     }
                     delete target[prop];
                     if (triggerChange) {
-                        clearReservedNames(oldValue);
+                        Watcher.clearReservedNames(oldValue);
                         trigger('DELETED', target, null, oldValue, prop);
                     }
                     return true;
@@ -1955,6 +1945,21 @@ let Watcher=class Watcher {
     }
     static is(obj) {
         return typeof obj == 'object' && obj.__isProxy;
+    }
+    static clearReservedNames(data) {
+        if (data instanceof Object && !data.__isProxy) {
+            for (let key in this.__reservedName) {
+                delete data[key];
+            }
+            for (let key in data) {
+                this.clearReservedNames(data[key]);
+            }
+        }
+        else if (Array.isArray(data)) {
+            for (let item of data) {
+                this.clearReservedNames(item);
+            }
+        }
     }
     static extract(obj, clearPath = false) {
         if (this.is(obj)) {
@@ -6924,11 +6929,16 @@ let _n;
 const Icon = class Icon extends Aventus.WebComponent {
     static get observedAttributes() {return ["icon", "type", "fill"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'is_hidden'() { return this.getBoolAttr('is_hidden') }
-    set 'is_hidden'(val) { this.setBoolAttr('is_hidden', val) }get 'no_check'() { return this.getBoolAttr('no_check') }
-    set 'no_check'(val) { this.setBoolAttr('no_check', val) }    get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }get 'type'() { return this.getStringProp('type') }
-    set 'type'(val) { this.setStringAttr('type', val) }get 'fill'() { return this.getBoolProp('fill') }
-    set 'fill'(val) { this.setBoolAttr('fill', val) }    static config = {
+    set 'is_hidden'(val) { this.setBoolAttr('is_hidden', val) }
+get 'no_check'() { return this.getBoolAttr('no_check') }
+    set 'no_check'(val) { this.setBoolAttr('no_check', val) }
+    get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }
+get 'type'() { return this.getStringProp('type') }
+    set 'type'(val) { this.setStringAttr('type', val) }
+get 'fill'() { return this.getBoolProp('fill') }
+    set 'fill'(val) { this.setBoolAttr('fill', val) }
+    static config = {
         type: 'outlined',
         getFontUrl: (variant) => {
             const name = variant.charAt(0).toUpperCase() + variant.slice(1);
@@ -6939,13 +6949,16 @@ const Icon = class Icon extends Aventus.WebComponent {
     if (target.isReady) {
         target.init();
     }
-}));this.__addPropertyActions("type", ((target) => {
+}));
+this.__addPropertyActions("type", ((target) => {
     if (target.isReady)
         target.loadFont();
-}));this.__addPropertyActions("fill", ((target) => {
+}));
+this.__addPropertyActions("fill", ((target) => {
     if (target.isReady)
         target.loadFont();
-})); }
+}));
+ }
     static __style = `:host{--_material-icon-animation-duration: var(--material-icon-animation-duration, 1.75s)}:host{direction:ltr;display:inline-block;font-family:"Material Symbols Outlined";-moz-font-feature-settings:"liga";font-size:24px;-moz-osx-font-smoothing:grayscale;font-style:normal;font-weight:normal;letter-spacing:normal;line-height:1;text-transform:none;white-space:nowrap;word-wrap:normal}:host .icon{direction:inherit;display:inline-block;font-family:inherit;-moz-font-feature-settings:inherit;font-size:inherit;-moz-osx-font-smoothing:inherit;font-style:inherit;font-weight:inherit;letter-spacing:inherit;line-height:inherit;text-transform:inherit;white-space:inherit;word-wrap:inherit}:host([is_hidden]){opacity:0}:host([type=sharp]){font-family:"Material Symbols Sharp"}:host([type=rounded]){font-family:"Material Symbols Rounded"}:host([type=outlined]){font-family:"Material Symbols Outlined"}:host([fill]){font-variation-settings:"FILL" 1}:host([spin]){animation:spin var(--_material-icon-animation-duration) linear infinite}:host([reverse_spin]){animation:reverse-spin var(--_material-icon-animation-duration) linear infinite}@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}@keyframes reverse-spin{0%{transform:rotate(360deg)}100%{transform:rotate(0deg)}}`;
     __getStatic() {
         return Icon;
@@ -6960,7 +6973,8 @@ const Icon = class Icon extends Aventus.WebComponent {
         blocks: { 'default':`<div class="icon" _id="icon_0"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "iconEl",
@@ -6969,12 +6983,23 @@ const Icon = class Icon extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Icon";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_hidden')) {this.setAttribute('is_hidden' ,'true'); }if(!this.hasAttribute('no_check')) { this.attributeChangedCallback('no_check', false, false); }if(!this.hasAttribute('icon')){ this['icon'] = "check_box_outline_blank"; }if(!this.hasAttribute('type')){ this['type'] = Icon.config.type; }if(!this.hasAttribute('fill')) { this.attributeChangedCallback('fill', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_hidden');this.__upgradeProperty('no_check');this.__upgradeProperty('icon');this.__upgradeProperty('type');this.__upgradeProperty('fill'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_hidden')) {this.setAttribute('is_hidden' ,'true'); }
+if(!this.hasAttribute('no_check')) { this.attributeChangedCallback('no_check', false, false); }
+if(!this.hasAttribute('icon')){ this['icon'] = "check_box_outline_blank"; }
+if(!this.hasAttribute('type')){ this['type'] = Icon.config.type; }
+if(!this.hasAttribute('fill')) { this.attributeChangedCallback('fill', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_hidden');
+this.__upgradeProperty('no_check');
+this.__upgradeProperty('icon');
+this.__upgradeProperty('type');
+this.__upgradeProperty('fill');
+ }
     __listBoolProps() { return ["is_hidden","no_check","fill"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     async loadFont() {
         if (!this.type)
@@ -7002,7 +7027,7 @@ const Icon = class Icon extends Aventus.WebComponent {
         };
         document.fonts.addEventListener("loadingdone", cb);
         let url = Icon.config.getFontUrl(this.type);
-        await Aventus.ResourceLoader.loadInHead({
+        const result = await Aventus.ResourceLoader.loadInHead({
             type: "css",
             url: url
         });
@@ -7024,8 +7049,8 @@ const Icon = class Icon extends Aventus.WebComponent {
     }
     static configure(config) {
         this.config = {
+            ...this.config,
             ...config,
-            ...this.config
         };
     }
 }
@@ -7090,19 +7115,24 @@ let _n;
 const Img = class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'cache'() { return this.getBoolAttr('cache') }
-    set 'cache'(val) { this.setBoolAttr('cache', val) }    get 'src'() { return this.getStringProp('src') }
-    set 'src'(val) { this.setStringAttr('src', val) }get 'mode'() { return this.getStringProp('mode') }
-    set 'mode'(val) { this.setStringAttr('mode', val) }    isCalculing;
+    set 'cache'(val) { this.setBoolAttr('cache', val) }
+    get 'src'() { return this.getStringProp('src') }
+    set 'src'(val) { this.setStringAttr('src', val) }
+get 'mode'() { return this.getStringProp('mode') }
+    set 'mode'(val) { this.setStringAttr('mode', val) }
+    isCalculing;
     maxCalculateSize = 10;
     ratio = 1;
     resizeObserver;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("src", ((target) => {
     target.onSrcChanged();
-}));this.__addPropertyActions("mode", ((target) => {
+}));
+this.__addPropertyActions("mode", ((target) => {
     if (target.src != "") {
         target.calculateSize();
     }
-})); }
+}));
+ }
     static __style = `:host{--internal-img-color: var(--img-color);--internal-img-stroke-color: var(--img-stroke-color, var(--internal-img-color));--internal-img-fill-color: var(--img-fill-color, var(--internal-img-color));--internal-img-color-transition: var(--img-color-transition, none)}:host{display:inline-block;overflow:hidden;font-size:0}:host *{box-sizing:border-box}:host img{opacity:0;transition:filter .3s linear}:host .svg{display:none;height:100%;width:100%}:host .svg svg{height:100%;width:100%}:host([src$=".svg"]) img{display:none}:host([src$=".svg"]) .svg{display:flex}:host([src$=".svg"]) .svg svg{transition:var(--internal-img-color-transition);stroke:var(--internal-img-stroke-color);fill:var(--internal-img-fill-color)}:host([display_bigger]) img{cursor:pointer}:host([display_bigger]) img:hover{filter:brightness(50%)}`;
     __getStatic() {
         return Img;
@@ -7117,7 +7147,8 @@ const Img = class Img extends Aventus.WebComponent {
         blocks: { 'default':`<img _id="img_0" /><div class="svg" _id="img_1"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "imgEl",
@@ -7132,12 +7163,19 @@ const Img = class Img extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Img";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }if(!this.hasAttribute('src')){ this['src'] = undefined; }if(!this.hasAttribute('mode')){ this['mode'] = "contains"; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');this.__upgradeProperty('src');this.__upgradeProperty('mode'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }
+if(!this.hasAttribute('src')){ this['src'] = undefined; }
+if(!this.hasAttribute('mode')){ this['mode'] = "contains"; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');
+this.__upgradeProperty('src');
+this.__upgradeProperty('mode');
+ }
     __listBoolProps() { return ["cache"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculateSize(attempt = 0) {
         if (this.isCalculing || !this.imgEl || !this.svgEl) {
@@ -7300,18 +7338,22 @@ if(!window.customElements.get('av-row')){window.customElements.define('av-row', 
 Form.FormElement = class FormElement extends Aventus.WebComponent {
     static get observedAttributes() {return ["disabled"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'has_errors'() { return this.getBoolAttr('has_errors') }
-    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }    get 'disabled'() { return this.getBoolProp('disabled') }
-    set 'disabled'(val) { this.setBoolAttr('disabled', val) }    get 'value'() {
+    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }
+    get 'disabled'() { return this.getBoolProp('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }
+    get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
-					}get 'errors'() {
+					}
+get 'errors'() {
 						return this.__watch["errors"];
 					}
 					set 'errors'(val) {
 						this.__watch["errors"] = val;
-					}    static get formAssociated() { return true; }
+					}
+    static get formAssociated() { return true; }
     _form;
     get form() {
         return this._form;
@@ -7328,9 +7370,11 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
     __registerWatchesActions() {
     this.__addWatchesActions("value", ((target) => {
     target.onValueChange(target.value);
-}));this.__addWatchesActions("errors", ((target) => {
+}));
+this.__addWatchesActions("errors", ((target) => {
     target.onErrorsChange();
-}));    super.__registerWatchesActions();
+}));
+    super.__registerWatchesActions();
 }
     static __style = ``;
     constructor() {
@@ -7359,9 +7403,18 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
     getClassName() {
         return "FormElement";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;w["errors"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');this.__upgradeProperty('has_errors');this.__upgradeProperty('disabled');this.__correctGetter('value');this.__correctGetter('errors'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); }
+if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;
+w["errors"] = [];
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');
+this.__upgradeProperty('has_errors');
+this.__upgradeProperty('disabled');
+this.__correctGetter('value');
+this.__correctGetter('errors');
+ }
     __listBoolProps() { return ["has_errors","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     refreshValueFromForm() {
         if (this._form) {
@@ -7736,7 +7789,8 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
 					}
 					set 'options'(val) {
 						this.__watch["options"] = val;
-					}    static defaultCloseWithEsc = true;
+					}
+    static defaultCloseWithEsc = true;
     static defaultCloseWithClick = true;
     static defaultRejectValue = null;
     cb;
@@ -7745,7 +7799,8 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
     __registerWatchesActions() {
     this.__addWatchesActions("options", ((target, action, path, value) => {
     target.onOptionsChanged();
-}));    super.__registerWatchesActions();
+}));
+    super.__registerWatchesActions();
 }
     static __style = `:host{align-items:center;display:flex;inset:0;justify-content:center;position:fixed;z-index:60}:host .modal{background-color:#fff;padding:1.5rem;position:relative}`;
     constructor() {
@@ -7776,10 +7831,13 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="modal" _id="modalelement_0">	<slot></slot></div>` }
+        blocks: { 'default':`<div class="modal" _id="modalelement_0">
+	<slot></slot>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "modalEl",
@@ -7788,12 +7846,15 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "ModalElement";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["options"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('options'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["options"] = undefined;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('options');
+ }
     onOptionsChanged() { }
     init(cb) {
         this.cb = cb;
@@ -8561,7 +8622,8 @@ __as1(_.Form, 'FormHandlerController', Form.FormHandlerController);
 Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
     static get observedAttributes() {return ["type"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'type'() { return this.getStringProp('type') }
-    set 'type'(val) { this.setStringAttr('type', val) }    static get formAssociated() { return true; }
+    set 'type'(val) { this.setStringAttr('type', val) }
+    static get formAssociated() { return true; }
     internals;
     handler = undefined;
     static __style = ``;
@@ -8589,8 +8651,10 @@ Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
     getClassName() {
         return "ButtonElement";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = 'button'; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = 'button'; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type');
+ }
     async triggerSubmit() {
         if (this.type == "submit") {
             if ("loading" in this) {
@@ -8635,9 +8699,12 @@ __as1(_.Form, 'ButtonElement', Form.ButtonElement);
 
 Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
     get 'position'() { return this.getStringAttr('position') }
-    set 'position'(val) { this.setStringAttr('position', val) }get 'delay'() { return this.getNumberAttr('delay') }
-    set 'delay'(val) { this.setNumberAttr('delay', val) }get 'is_active'() { return this.getBoolAttr('is_active') }
-    set 'is_active'(val) { this.setBoolAttr('is_active', val) }    showAsked = false;
+    set 'position'(val) { this.setStringAttr('position', val) }
+get 'delay'() { return this.getNumberAttr('delay') }
+    set 'delay'(val) { this.setNumberAttr('delay', val) }
+get 'is_active'() { return this.getBoolAttr('is_active') }
+    set 'is_active'(val) { this.setBoolAttr('is_active', val) }
+    showAsked = false;
     onHideCallback = () => { };
     timeout = 0;
     hasTransition = false;
@@ -8667,8 +8734,14 @@ Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
     getClassName() {
         return "ToastElement";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('position')){ this['position'] = _.Toast.ToastManager.defaultPosition; }if(!this.hasAttribute('delay')){ this['delay'] = _.Toast.ToastManager.defaultDelay; }if(!this.hasAttribute('is_active')) { this.attributeChangedCallback('is_active', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('position');this.__upgradeProperty('delay');this.__upgradeProperty('is_active'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('position')){ this['position'] = _.Toast.ToastManager.defaultPosition; }
+if(!this.hasAttribute('delay')){ this['delay'] = _.Toast.ToastManager.defaultDelay; }
+if(!this.hasAttribute('is_active')) { this.attributeChangedCallback('is_active', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('position');
+this.__upgradeProperty('delay');
+this.__upgradeProperty('is_active');
+ }
     __listBoolProps() { return ["is_active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     _setOptions(options) {
         if (options.position !== undefined)
@@ -8772,26 +8845,46 @@ __as1(_, 'Process', Process);
 
 Layout.Col = class Col extends Aventus.WebComponent {
     get 'use_container'() { return this.getBoolAttr('use_container') }
-    set 'use_container'(val) { this.setBoolAttr('use_container', val) }get 'size'() { return this.getNumberAttr('size') }
-    set 'size'(val) { this.setNumberAttr('size', val) }get 'size_xs'() { return this.getNumberAttr('size_xs') }
-    set 'size_xs'(val) { this.setNumberAttr('size_xs', val) }get 'size_sm'() { return this.getNumberAttr('size_sm') }
-    set 'size_sm'(val) { this.setNumberAttr('size_sm', val) }get 'size_md'() { return this.getNumberAttr('size_md') }
-    set 'size_md'(val) { this.setNumberAttr('size_md', val) }get 'size_lg'() { return this.getNumberAttr('size_lg') }
-    set 'size_lg'(val) { this.setNumberAttr('size_lg', val) }get 'size_xl'() { return this.getNumberAttr('size_xl') }
-    set 'size_xl'(val) { this.setNumberAttr('size_xl', val) }get 'offset'() { return this.getNumberAttr('offset') }
-    set 'offset'(val) { this.setNumberAttr('offset', val) }get 'offset_xs'() { return this.getNumberAttr('offset_xs') }
-    set 'offset_xs'(val) { this.setNumberAttr('offset_xs', val) }get 'offset_sm'() { return this.getNumberAttr('offset_sm') }
-    set 'offset_sm'(val) { this.setNumberAttr('offset_sm', val) }get 'offset_md'() { return this.getNumberAttr('offset_md') }
-    set 'offset_md'(val) { this.setNumberAttr('offset_md', val) }get 'offset_lg'() { return this.getNumberAttr('offset_lg') }
-    set 'offset_lg'(val) { this.setNumberAttr('offset_lg', val) }get 'offset_xl'() { return this.getNumberAttr('offset_xl') }
-    set 'offset_xl'(val) { this.setNumberAttr('offset_xl', val) }get 'offset_right'() { return this.getNumberAttr('offset_right') }
-    set 'offset_right'(val) { this.setNumberAttr('offset_right', val) }get 'offset_right_xs'() { return this.getNumberAttr('offset_right_xs') }
-    set 'offset_right_xs'(val) { this.setNumberAttr('offset_right_xs', val) }get 'offset_right_sm'() { return this.getNumberAttr('offset_right_sm') }
-    set 'offset_right_sm'(val) { this.setNumberAttr('offset_right_sm', val) }get 'offset_right_md'() { return this.getNumberAttr('offset_right_md') }
-    set 'offset_right_md'(val) { this.setNumberAttr('offset_right_md', val) }get 'offset_right_lg'() { return this.getNumberAttr('offset_right_lg') }
-    set 'offset_right_lg'(val) { this.setNumberAttr('offset_right_lg', val) }get 'offset_right_xl'() { return this.getNumberAttr('offset_right_xl') }
-    set 'offset_right_xl'(val) { this.setNumberAttr('offset_right_xl', val) }get 'center'() { return this.getBoolAttr('center') }
-    set 'center'(val) { this.setBoolAttr('center', val) }    static use_container = false;
+    set 'use_container'(val) { this.setBoolAttr('use_container', val) }
+get 'size'() { return this.getNumberAttr('size') }
+    set 'size'(val) { this.setNumberAttr('size', val) }
+get 'size_xs'() { return this.getNumberAttr('size_xs') }
+    set 'size_xs'(val) { this.setNumberAttr('size_xs', val) }
+get 'size_sm'() { return this.getNumberAttr('size_sm') }
+    set 'size_sm'(val) { this.setNumberAttr('size_sm', val) }
+get 'size_md'() { return this.getNumberAttr('size_md') }
+    set 'size_md'(val) { this.setNumberAttr('size_md', val) }
+get 'size_lg'() { return this.getNumberAttr('size_lg') }
+    set 'size_lg'(val) { this.setNumberAttr('size_lg', val) }
+get 'size_xl'() { return this.getNumberAttr('size_xl') }
+    set 'size_xl'(val) { this.setNumberAttr('size_xl', val) }
+get 'offset'() { return this.getNumberAttr('offset') }
+    set 'offset'(val) { this.setNumberAttr('offset', val) }
+get 'offset_xs'() { return this.getNumberAttr('offset_xs') }
+    set 'offset_xs'(val) { this.setNumberAttr('offset_xs', val) }
+get 'offset_sm'() { return this.getNumberAttr('offset_sm') }
+    set 'offset_sm'(val) { this.setNumberAttr('offset_sm', val) }
+get 'offset_md'() { return this.getNumberAttr('offset_md') }
+    set 'offset_md'(val) { this.setNumberAttr('offset_md', val) }
+get 'offset_lg'() { return this.getNumberAttr('offset_lg') }
+    set 'offset_lg'(val) { this.setNumberAttr('offset_lg', val) }
+get 'offset_xl'() { return this.getNumberAttr('offset_xl') }
+    set 'offset_xl'(val) { this.setNumberAttr('offset_xl', val) }
+get 'offset_right'() { return this.getNumberAttr('offset_right') }
+    set 'offset_right'(val) { this.setNumberAttr('offset_right', val) }
+get 'offset_right_xs'() { return this.getNumberAttr('offset_right_xs') }
+    set 'offset_right_xs'(val) { this.setNumberAttr('offset_right_xs', val) }
+get 'offset_right_sm'() { return this.getNumberAttr('offset_right_sm') }
+    set 'offset_right_sm'(val) { this.setNumberAttr('offset_right_sm', val) }
+get 'offset_right_md'() { return this.getNumberAttr('offset_right_md') }
+    set 'offset_right_md'(val) { this.setNumberAttr('offset_right_md', val) }
+get 'offset_right_lg'() { return this.getNumberAttr('offset_right_lg') }
+    set 'offset_right_lg'(val) { this.setNumberAttr('offset_right_lg', val) }
+get 'offset_right_xl'() { return this.getNumberAttr('offset_right_xl') }
+    set 'offset_right_xl'(val) { this.setNumberAttr('offset_right_xl', val) }
+get 'center'() { return this.getBoolAttr('center') }
+    set 'center'(val) { this.setBoolAttr('center', val) }
+    static use_container = false;
     static __style = `:host{--_col-padding: var(--col-padding, 8px)}:host{display:flex;padding:var(--internal-col-padding)}:host([center]){justify-content:center}:host([size="0"]){width:0}:host([offset="0"]){margin-left:0}:host([offset_right="0"]){margin-right:0}:host([size="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([offset="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([offset_right="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([size="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([offset="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([offset_right="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([size="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([offset="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([offset_right="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([size="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([offset="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([offset_right="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([size="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([offset="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([offset_right="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([size="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([offset="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([offset_right="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([size="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([offset="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([offset_right="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([size="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([offset="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([offset_right="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([size="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([offset="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([offset_right="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([size="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([offset="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([offset_right="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([size="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([offset="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([offset_right="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([size="12"]){width:100%}:host([offset="12"]){margin-left:100%}:host([offset_right="12"]){margin-right:100%}@container row (min-width: 300px){:host([use_container][size_xs="0"]){width:0}:host([use_container][offset_xs="0"]){margin-left:0}:host([use_container][offset_right_xs="0"]){margin-right:0}:host([use_container][size_xs="0"]){display:none}:host([use_container][size_xs="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_xs="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_right_xs="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][size_xs="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_xs="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_right_xs="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][size_xs="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_xs="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_right_xs="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][size_xs="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_xs="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_right_xs="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][size_xs="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_xs="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_xs="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][size_xs="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_xs="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_right_xs="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][size_xs="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_xs="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_xs="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_xs="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_xs="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_xs="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][size_xs="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_xs="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_xs="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_xs="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_xs="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_xs="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][size_xs="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_xs="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_xs="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_xs="12"]){width:100%}:host([use_container][offset_xs="12"]){margin-left:100%}:host([use_container][offset_right_xs="12"]){margin-right:100%}}@media screen and (min-width: 300px){:host(:not([use_container])[size_xs="0"]){width:0}:host(:not([use_container])[offset_xs="0"]){margin-left:0}:host(:not([use_container])[offset_right_xs="0"]){margin-right:0}:host(:not([use_container])[size_xs="0"]){display:none}:host(:not([use_container])[size_xs="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_xs="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_xs="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[size_xs="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_xs="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_xs="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[size_xs="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_xs="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_xs="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[size_xs="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_xs="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_xs="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[size_xs="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_xs="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_xs="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_xs="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_xs="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_xs="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[size_xs="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_xs="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_xs="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_xs="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_xs="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_xs="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_xs="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_xs="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_xs="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_xs="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_xs="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_xs="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_xs="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_xs="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_xs="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_xs="12"]){width:100%}:host(:not([use_container])[offset_xs="12"]){margin-left:100%}:host(:not([use_container])[offset_right_xs="12"]){margin-right:100%}}@container row (min-width: 540px){:host([use_container][size_sm="0"]){width:0}:host([use_container][offset_sm="0"]){margin-left:0}:host([use_container][offset_right_sm="0"]){margin-right:0}:host([use_container][size_sm="0"]){display:none}:host([use_container][size_sm="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_sm="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_right_sm="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][size_sm="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_sm="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_right_sm="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][size_sm="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_sm="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_right_sm="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][size_sm="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_sm="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_right_sm="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][size_sm="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_sm="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_sm="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][size_sm="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_sm="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_right_sm="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][size_sm="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_sm="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_sm="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_sm="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_sm="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_sm="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][size_sm="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_sm="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_sm="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_sm="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_sm="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_sm="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][size_sm="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_sm="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_sm="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_sm="12"]){width:100%}:host([use_container][offset_sm="12"]){margin-left:100%}:host([use_container][offset_right_sm="12"]){margin-right:100%}}@media screen and (min-width: 540px){:host(:not([use_container])[size_sm="0"]){width:0}:host(:not([use_container])[offset_sm="0"]){margin-left:0}:host(:not([use_container])[offset_right_sm="0"]){margin-right:0}:host(:not([use_container])[size_sm="0"]){display:none}:host(:not([use_container])[size_sm="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_sm="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_sm="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[size_sm="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_sm="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_sm="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[size_sm="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_sm="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_sm="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[size_sm="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_sm="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_sm="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[size_sm="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_sm="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_sm="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_sm="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_sm="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_sm="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[size_sm="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_sm="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_sm="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_sm="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_sm="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_sm="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_sm="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_sm="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_sm="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_sm="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_sm="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_sm="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_sm="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_sm="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_sm="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_sm="12"]){width:100%}:host(:not([use_container])[offset_sm="12"]){margin-left:100%}:host(:not([use_container])[offset_right_sm="12"]){margin-right:100%}}@container row (min-width: 720px){:host([use_container][size_md="0"]){width:0}:host([use_container][offset_md="0"]){margin-left:0}:host([use_container][offset_right_md="0"]){margin-right:0}:host([use_container][size_md="0"]){display:none}:host([use_container][size_md="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_md="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_right_md="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][size_md="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_md="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_right_md="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][size_md="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_md="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_right_md="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][size_md="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_md="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_right_md="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][size_md="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_md="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_md="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][size_md="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_md="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_right_md="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][size_md="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_md="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_md="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_md="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_md="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_md="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][size_md="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_md="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_md="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_md="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_md="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_md="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][size_md="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_md="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_md="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_md="12"]){width:100%}:host([use_container][offset_md="12"]){margin-left:100%}:host([use_container][offset_right_md="12"]){margin-right:100%}}@media screen and (min-width: 720px){:host(:not([use_container])[size_md="0"]){width:0}:host(:not([use_container])[offset_md="0"]){margin-left:0}:host(:not([use_container])[offset_right_md="0"]){margin-right:0}:host(:not([use_container])[size_md="0"]){display:none}:host(:not([use_container])[size_md="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_md="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_md="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[size_md="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_md="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_md="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[size_md="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_md="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_md="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[size_md="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_md="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_md="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[size_md="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_md="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_md="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_md="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_md="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_md="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[size_md="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_md="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_md="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_md="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_md="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_md="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_md="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_md="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_md="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_md="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_md="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_md="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_md="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_md="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_md="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_md="12"]){width:100%}:host(:not([use_container])[offset_md="12"]){margin-left:100%}:host(:not([use_container])[offset_right_md="12"]){margin-right:100%}}@container row (min-width: 960px){:host([use_container][size_lg="0"]){width:0}:host([use_container][offset_lg="0"]){margin-left:0}:host([use_container][offset_right_lg="0"]){margin-right:0}:host([use_container][size_lg="0"]){display:none}:host([use_container][size_lg="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_lg="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_right_lg="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][size_lg="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_lg="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_right_lg="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][size_lg="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_lg="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_right_lg="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][size_lg="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_lg="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_right_lg="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][size_lg="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_lg="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_lg="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][size_lg="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_lg="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_right_lg="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][size_lg="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_lg="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_lg="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_lg="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_lg="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_lg="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][size_lg="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_lg="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_lg="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_lg="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_lg="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_lg="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][size_lg="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_lg="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_lg="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_lg="12"]){width:100%}:host([use_container][offset_lg="12"]){margin-left:100%}:host([use_container][offset_right_lg="12"]){margin-right:100%}}@media screen and (min-width: 960px){:host(:not([use_container])[size_lg="0"]){width:0}:host(:not([use_container])[offset_lg="0"]){margin-left:0}:host(:not([use_container])[offset_right_lg="0"]){margin-right:0}:host(:not([use_container])[size_lg="0"]){display:none}:host(:not([use_container])[size_lg="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_lg="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_lg="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[size_lg="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_lg="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_lg="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[size_lg="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_lg="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_lg="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[size_lg="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_lg="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_lg="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[size_lg="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_lg="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_lg="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_lg="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_lg="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_lg="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[size_lg="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_lg="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_lg="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_lg="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_lg="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_lg="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_lg="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_lg="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_lg="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_lg="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_lg="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_lg="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_lg="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_lg="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_lg="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_lg="12"]){width:100%}:host(:not([use_container])[offset_lg="12"]){margin-left:100%}:host(:not([use_container])[offset_right_lg="12"]){margin-right:100%}}@container row (min-width: 1140px){:host([use_container][size_xl="0"]){width:0}:host([use_container][offset_xl="0"]){margin-left:0}:host([use_container][offset_right_xl="0"]){margin-right:0}:host([use_container][size_xl="0"]){display:none}:host([use_container][size_xl="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_xl="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][offset_right_xl="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host([use_container][size_xl="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_xl="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][offset_right_xl="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host([use_container][size_xl="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_xl="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][offset_right_xl="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host([use_container][size_xl="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_xl="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][offset_right_xl="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host([use_container][size_xl="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_xl="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_xl="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host([use_container][size_xl="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_xl="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][offset_right_xl="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host([use_container][size_xl="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_xl="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_xl="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_xl="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_xl="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_xl="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host([use_container][size_xl="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_xl="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_xl="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_xl="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_xl="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_xl="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host([use_container][size_xl="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_xl="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_xl="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_xl="12"]){width:100%}:host([use_container][offset_xl="12"]){margin-left:100%}:host([use_container][offset_right_xl="12"]){margin-right:100%}}@media screen and (min-width: 1140px){:host(:not([use_container])[size_xl="0"]){width:0}:host(:not([use_container])[offset_xl="0"]){margin-left:0}:host(:not([use_container])[offset_right_xl="0"]){margin-right:0}:host(:not([use_container])[size_xl="0"]){display:none}:host(:not([use_container])[size_xl="1"]){width:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_xl="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_xl="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap-x, 0px) * 11 / 12))}:host(:not([use_container])[size_xl="2"]){width:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_xl="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_xl="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap-x, 0px) * 5 / 6))}:host(:not([use_container])[size_xl="3"]){width:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_xl="3"]){margin-left:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_xl="3"]){margin-right:calc(25% - (var(--_col-gap-x, 0px) * 3 / 4))}:host(:not([use_container])[size_xl="4"]){width:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_xl="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_xl="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap-x, 0px) * 2 / 3))}:host(:not([use_container])[size_xl="5"]){width:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_xl="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_xl="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap-x, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_xl="6"]){width:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_xl="6"]){margin-left:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_xl="6"]){margin-right:calc(50% - (var(--_col-gap-x, 0px) * 1 / 2))}:host(:not([use_container])[size_xl="7"]){width:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_xl="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_xl="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap-x, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_xl="8"]){width:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_xl="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_xl="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap-x, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_xl="9"]){width:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_xl="9"]){margin-left:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_xl="9"]){margin-right:calc(75% - (var(--_col-gap-x, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_xl="10"]){width:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_xl="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_xl="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap-x, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_xl="11"]){width:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_xl="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_xl="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap-x, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_xl="12"]){width:100%}:host(:not([use_container])[offset_xl="12"]){margin-left:100%}:host(:not([use_container])[offset_right_xl="12"]){margin-right:100%}}`;
     __getStatic() {
         return Col;
@@ -8810,8 +8903,48 @@ Layout.Col = class Col extends Aventus.WebComponent {
     getClassName() {
         return "Col";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('use_container') && Layout.Col.use_container) {this.setAttribute('use_container' ,'true'); }if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('use_container');this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('center'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('use_container') && Layout.Col.use_container) {this.setAttribute('use_container' ,'true'); }
+if(!this.hasAttribute('size')){ this['size'] = undefined; }
+if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }
+if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }
+if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }
+if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }
+if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }
+if(!this.hasAttribute('offset')){ this['offset'] = undefined; }
+if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }
+if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }
+if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }
+if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }
+if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }
+if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }
+if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }
+if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }
+if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }
+if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }
+if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }
+if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('use_container');
+this.__upgradeProperty('size');
+this.__upgradeProperty('size_xs');
+this.__upgradeProperty('size_sm');
+this.__upgradeProperty('size_md');
+this.__upgradeProperty('size_lg');
+this.__upgradeProperty('size_xl');
+this.__upgradeProperty('offset');
+this.__upgradeProperty('offset_xs');
+this.__upgradeProperty('offset_sm');
+this.__upgradeProperty('offset_md');
+this.__upgradeProperty('offset_lg');
+this.__upgradeProperty('offset_xl');
+this.__upgradeProperty('offset_right');
+this.__upgradeProperty('offset_right_xs');
+this.__upgradeProperty('offset_right_sm');
+this.__upgradeProperty('offset_right_md');
+this.__upgradeProperty('offset_right_lg');
+this.__upgradeProperty('offset_right_xl');
+this.__upgradeProperty('center');
+ }
     __listBoolProps() { return ["use_container","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     static configure(options) {
         if (options.use_container !== undefined)
@@ -8825,7 +8958,8 @@ if(!window.customElements.get('av-col')){window.customElements.define('av-col', 
 
 Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
     get 'not_main'() { return this.getBoolAttr('not_main') }
-    set 'not_main'(val) { this.setBoolAttr('not_main', val) }    static defaultToast;
+    set 'not_main'(val) { this.setBoolAttr('not_main', val) }
+    static defaultToast;
     static defaultToastManager;
     static defaultPosition = 'top right';
     static defaultDelay = 5000;
@@ -8873,8 +9007,12 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
     getClassName() {
         return "ToastManager";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('not_main')) { this.attributeChangedCallback('not_main', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('containerHeight');this.__correctGetter('heightLimit');this.__upgradeProperty('not_main'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('not_main')) { this.attributeChangedCallback('not_main', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('containerHeight');
+this.__correctGetter('heightLimit');
+this.__upgradeProperty('not_main');
+ }
     __listBoolProps() { return ["not_main"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     async add(toast) {
         await this.mutex.waitOne();
@@ -9121,7 +9259,8 @@ __as1(_.Libs, 'Style', Libs.Style);
 
 Components.Form.Select.BaseOption = class BaseOption extends Aventus.WebComponent {
     get 'focused'() { return this.getBoolAttr('focused') }
-    set 'focused'(val) { this.setBoolAttr('focused', val) }    value;
+    set 'focused'(val) { this.setBoolAttr('focused', val) }
+    value;
     select;
     static __style = `:host{border-radius:var(--radius-field);color:inherit;cursor:pointer;font-size:.875rem;padding-block:.375rem;padding-inline:.75rem;transition-duration:.2s;transition-property:color,background-color;transition-timing-function:cubic-bezier(0, 0, 0.2, 1);white-space:normal}@media(hover: hover)and (pointer: fine){:host(:hover){background-color:color-mix(in oklab, var(--_options-container-background), #000 7%)}}:host([focused]){background-color:color-mix(in oklab, var(--_options-container-background), #000 7%)}`;
     __getStatic() {
@@ -9141,8 +9280,10 @@ Components.Form.Select.BaseOption = class BaseOption extends Aventus.WebComponen
     getClassName() {
         return "BaseOption";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('focused')) { this.attributeChangedCallback('focused', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('focused'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('focused')) { this.attributeChangedCallback('focused', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('focused');
+ }
     __listBoolProps() { return ["focused"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     choose() {
         this.select.setValueFromOption(this);
@@ -9173,7 +9314,8 @@ if(!window.customElements.get('om-base-option')){window.customElements.define('o
 Components.Form.Select.Option = class Option extends Components.Form.Select.BaseOption {
     static get observedAttributes() {return ["value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'value'() { return this.getStringProp('value') }
-    set 'value'(val) { this.setStringAttr('value', val) }    static __style = ``;
+    set 'value'(val) { this.setStringAttr('value', val) }
+    static __style = ``;
     __getStatic() {
         return Option;
     }
@@ -9182,7 +9324,8 @@ Components.Form.Select.Option = class Option extends Components.Form.Select.Base
         arrStyle.push(Option.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
         blocks: { 'default':`<slot></slot>` }
@@ -9191,8 +9334,10 @@ Components.Form.Select.Option = class Option extends Components.Form.Select.Base
     getClassName() {
         return "Option";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('value')){ this['value'] = undefined; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('value')){ this['value'] = undefined; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value');
+ }
 }
 Components.Form.Select.Option.Namespace=`OneMoreUI.Components.Form.Select`;
 Components.Form.Select.Option.Tag=`om-option`;
@@ -9215,7 +9360,8 @@ Components.Form.FormElement = class FormElement extends Aventus.Form.FormElement
         arrStyle.push(FormElement.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
         blocks: { 'default':`<slot></slot>` }
@@ -9231,21 +9377,27 @@ __as1(_.Components.Form, 'FormElement', Components.Form.FormElement);
 Components.Form.Checkbox = class Checkbox extends Components.Form.FormElement {
     static get observedAttributes() {return ["label", "checked"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'left_label'() { return this.getBoolAttr('left_label') }
-    set 'left_label'(val) { this.setBoolAttr('left_label', val) }    get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }get 'checked'() { return this.getBoolProp('checked') }
-    set 'checked'(val) { this.setBoolAttr('checked', val) }    get 'value'() {
+    set 'left_label'(val) { this.setBoolAttr('left_label', val) }
+    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+get 'checked'() { return this.getBoolProp('checked') }
+    set 'checked'(val) { this.setBoolAttr('checked', val) }
+    get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
-					}    __registerWatchesActions() {
+					}
+    __registerWatchesActions() {
     this.__addWatchesActions("value", ((target) => {
     target.checked = target.value;
-}));    super.__registerWatchesActions();
+}));
+    super.__registerWatchesActions();
 }
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("checked", ((target) => {
     target.value = target.checked;
-})); }
+}));
+ }
     static __style = `:host{--_checkbox-size: var(--checkbox-size, 1.5rem);--_checkbox-height: var(--checkbox-height, var(--_checkbox-size));--_checkbox-width: var(--checkbox-width, var(--_checkbox-size));--_checkbox-border-radius: var(--checkbox-border-radius, var(--border-radius));--_checkbox-border: var(--checkbox-border, 1px solid var(--border-color));--_checkbox-border-active: var(--checkbox-border-active, var(--primary-600));--_checkbox-background: var(--checkbox-background, transparent);--_checkbox-background-active: var(--checkbox-background-active, var(--primary));--_checkbox-tick-color: var(--checkbox-tick-color, var(--primary-content));--_checkbox-tick-size: var(--checkbox-tick-size, 2px);--_checkbox-tick-padding: var(--checkbox-tick-padding, 20%);--_checkbox-font-size-label: var(--checkbox-font-size-label, var(--font-size-sm));--_checkbox-margin-label: var(--checkbox-margin-label, 1rem)}:host{align-items:center;display:flex;outline:none}:host .label:not(:empty){cursor:pointer;font-size:var(--_checkbox-font-size-label);margin-left:var(--_checkbox-margin-label);user-select:none}:host .square{align-items:center;background-color:var(--_checkbox-background);border:var(--_checkbox-border);border-radius:var(--_checkbox-border-radius);cursor:pointer;display:flex;flex-shrink:0;height:var(--_checkbox-height);justify-content:center;position:relative;transition:border .2s var(--bezier-curve),background-color .2s var(--bezier-curve);width:var(--_checkbox-width)}:host .square svg{height:calc(100% - var(--_checkbox-tick-padding));margin-top:1px;opacity:0;stroke:var(--_checkbox-tick-color);stroke-width:var(--_checkbox-tick-size);visibility:hidden;width:calc(100% - var(--_checkbox-tick-padding))}:host .square:focus-visible{outline:2px solid var(--primary)}:host([checked]) .square{background-color:var(--_checkbox-background-active);border-color:var(--_checkbox-border-active)}:host([checked]) .square svg{opacity:1;visibility:visible}:host([checked]) .square svg .tick{animation:dash .2s linear forwards;animation-delay:.1s;stroke-dasharray:100;stroke-dashoffset:100}:host([left_label]) .label:not(:empty){margin-left:0;margin-right:var(--_checkbox-margin-label);order:1}:host([left_label]) .square{order:2}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) .label{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .square{background-color:color-mix(in oklab, var(--surface-content) 10%, transparent)}:host([disabled]) .square svg{stroke:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}@keyframes dash{to{stroke-dashoffset:70}}`;
     constructor() {
         super();
@@ -9259,12 +9411,18 @@ Components.Form.Checkbox = class Checkbox extends Components.Form.FormElement {
         arrStyle.push(Checkbox.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="square" _id="checkbox_0">    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">        <polyline fill="none" points="3.7 14.3 9.6 19 20.3 5" stroke-linecap="round" stroke-linejoin="round" class="tick"></polyline>    </svg></div><div class="label" _id="checkbox_1"></div>` }
+        blocks: { 'default':`<div class="square" _id="checkbox_0">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <polyline fill="none" points="3.7 14.3 9.6 19 20.3 5" stroke-linecap="round" stroke-linejoin="round" class="tick"></polyline>
+    </svg>
+</div><div class="label" _id="checkbox_1"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "checkbox_0°tabindex": {
       "fct": (c) => `${c.print(c.comp.__e89e389cce67389d127fd9c3f9aba9d5method0())}`
@@ -9286,13 +9444,22 @@ Components.Form.Checkbox = class Checkbox extends Components.Form.FormElement {
       "fct": (e, c) => c.comp.onBlur(e)
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Checkbox";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('left_label')) { this.attributeChangedCallback('left_label', false, false); }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = false; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('left_label');this.__upgradeProperty('label');this.__upgradeProperty('checked');this.__correctGetter('value'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('left_label')) { this.attributeChangedCallback('left_label', false, false); }
+if(!this.hasAttribute('label')){ this['label'] = undefined; }
+if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = false;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('left_label');
+this.__upgradeProperty('label');
+this.__upgradeProperty('checked');
+this.__correctGetter('value');
+ }
     __listBoolProps() { return ["left_label","checked"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     /**
      * Toggles the checked state of the checkbox and triggers a change event.
@@ -9336,14 +9503,21 @@ if(!window.customElements.get('om-checkbox')){window.customElements.define('om-c
 Components.Form.Input = class Input extends Components.Form.FormElement {
     static get observedAttributes() {return ["name", "label", "icon", "placeholder", "value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'is_focus'() { return this.getBoolAttr('is_focus') }
-    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }    get 'name'() { return this.getStringProp('name') }
-    set 'name'(val) { this.setStringAttr('name', val) }get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }get 'placeholder'() { return this.getStringProp('placeholder') }
-    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }get 'value'() { return this.getStringProp('value') }
-    set 'value'(val) { this.setStringAttr('value', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
+    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }
+    get 'name'() { return this.getStringProp('name') }
+    set 'name'(val) { this.setStringAttr('name', val) }
+get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }
+get 'placeholder'() { return this.getStringProp('placeholder') }
+    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }
+get 'value'() { return this.getStringProp('value') }
+    set 'value'(val) { this.setStringAttr('value', val) }
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
     target.onValueChange(target.value);
-})); }
+}));
+ }
     static __style = `:host{--_input-bg: var(--input-bg, var(--form-element-bg));--_input-fg: var(--input-fg, var(--form-element-fg));--_input-border: var(--input-border, var(--form-element-border));--_input-border-radius: var(--input-border-radius, var(--form-element-border-radius))}:host{width:100%}:host label{display:none;font-size:var(--font-size-sm);font-weight:500;line-height:var(--line-height-sm)}:host .input{align-items:center;background-color:var(--_input-bg);border-radius:var(--_input-border-radius);display:flex;gap:.5rem;height:100%;margin-top:0;overflow:hidden;padding:.5rem 1rem;position:relative;width:100%}:host .input .icon{color:color-mix(in oklab, var(--_input-fg) 40%, transparent);display:none;font-size:var(--font-size)}:host .input input{background-color:rgba(0,0,0,0);border:none;color:var(--_input-fg);display:block;flex-grow:1;font-size:var(--font-size);height:var(--line-height);margin:0;min-width:0;outline:none;padding:0}:host .input input::placeholder{color:color-mix(in oklab, var(--_input-fg) 40%, transparent)}:host .input::after{border:var(--_input-border);border-radius:var(--_input-border-radius);content:"";display:block;inset:0px;pointer-events:none;position:absolute}:host .errors{color:var(--error);display:none;flex-direction:column;font-size:var(--font-size-sm);gap:.25rem;line-height:var(--line-height-sm);margin:.5rem;margin-bottom:0}:host([is_focus]) .input{border-color:var(--primary)}:host([is_focus]) .input::after{border-color:var(--primary);border-width:2px}:host([has_errors]) .input::after{border-color:var(--error)}:host([has_errors]) .errors{display:flex}:host([icon]:not([icon=""])) .input .icon{display:block}:host([label]:not([label=""])) label{display:flex}:host([label]:not([label=""])) .input{height:auto;margin-top:.5rem}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) label{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input{background-color:color-mix(in oklab, var(--surface-content) 10%, transparent)}:host([disabled]) .input input{color:color-mix(in oklab, var(--surface-content) 50%, var(--surface))}:host([disabled]) .input::after{border:none}`;
     __getStatic() {
         return Input;
@@ -9353,13 +9527,27 @@ Components.Form.Input = class Input extends Components.Form.FormElement {
         arrStyle.push(Input.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        slots: { 'prepend':`<slot name="prepend">        <mi-icon class="icon" _id="input_1"></mi-icon>    </slot>`,'append':`<slot name="append">    </slot>` }, 
-        blocks: { 'default':`<label _id="input_0"></label><div class="input">    <slot name="prepend">        <mi-icon class="icon" _id="input_1"></mi-icon>    </slot>    <input autocomplete="off" _id="input_2" />    <slot name="append">    </slot></div><div class="errors">    <template _id="input_3"></template></div>` }
+        slots: { 'prepend':`<slot name="prepend">
+        <mi-icon class="icon" _id="input_1"></mi-icon>
+    </slot>`,'append':`<slot name="append">
+    </slot>` }, 
+        blocks: { 'default':`<label _id="input_0"></label><div class="input">
+    <slot name="prepend">
+        <mi-icon class="icon" _id="input_1"></mi-icon>
+    </slot>
+    <input autocomplete="off" _id="input_2" />
+    <slot name="append">
+    </slot>
+</div><div class="errors">
+    <template _id="input_3"></template>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "iconEl",
@@ -9428,22 +9616,42 @@ Components.Form.Input = class Input extends Components.Form.FormElement {
       "fct": (e, c) => c.comp.onInputChanged(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`         <div _id="input_4"></div>    `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(` 
+        <div _id="input_4"></div>
+    `);
+templ0.setActions({
   "content": {
     "input_4°@HTML": {
       "fct": (c) => `${c.print(c.comp.__2d86810f2ba04f242547809ce401a43bmethod7(c.data.error))}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'input_3',
                     template: templ0,
-                simple:{data: "this.errors",item:"error"}}); }
+                simple:{data: "this.errors",item:"error"}
+});
+ }
     getClassName() {
         return "Input";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }if(!this.hasAttribute('name')){ this['name'] = undefined; }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_focus');this.__upgradeProperty('name');this.__upgradeProperty('label');this.__upgradeProperty('icon');this.__upgradeProperty('placeholder');this.__upgradeProperty('value'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }
+if(!this.hasAttribute('name')){ this['name'] = undefined; }
+if(!this.hasAttribute('label')){ this['label'] = undefined; }
+if(!this.hasAttribute('icon')){ this['icon'] = undefined; }
+if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }
+if(!this.hasAttribute('value')){ this['value'] = ""; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_focus');
+this.__upgradeProperty('name');
+this.__upgradeProperty('label');
+this.__upgradeProperty('icon');
+this.__upgradeProperty('placeholder');
+this.__upgradeProperty('value');
+ }
     __listBoolProps() { return ["is_focus"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onFocus() {
         this.is_focus = true;
@@ -9488,7 +9696,9 @@ Components.Form.Password = class Password extends Components.Form.Input {
 					}
 					set 'iconEye'(val) {
 						this.__signals["iconEye"].value = val;
-					}    __registerSignalsActions() { this.__signals["iconEye"] = null; super.__registerSignalsActions();  }
+					}
+    __registerSignalsActions() { this.__signals["iconEye"] = null;
+ super.__registerSignalsActions();  }
     static __style = `:host .icon-visibility{color:color-mix(in oklab, var(--_input-fg) 60%, transparent);cursor:pointer;font-size:var(--font-size)}`;
     constructor() {
         super();
@@ -9502,12 +9712,16 @@ Components.Form.Password = class Password extends Components.Form.Input {
         arrStyle.push(Password.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'append':`    <mi-icon class="icon-visibility" tabindex="0" _id="password_0"></mi-icon>` }
+        blocks: { 'append':`
+    <mi-icon class="icon-visibility" tabindex="0" _id="password_0"></mi-icon>
+` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "password_0°icon": {
       "fct": (c) => `${c.print(c.comp.__17ed1e2c85a5f0157a52fd5e530f8741method0())}`,
@@ -9531,12 +9745,15 @@ Components.Form.Password = class Password extends Components.Form.Input {
       "fct": (e, c) => c.comp.removeToggle(e)
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Password";
     }
-    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["iconEye"] = "visibility"; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('iconEye'); }
+    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["iconEye"] = "visibility";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('iconEye');
+ }
     addToggle() {
         Aventus.Lib.ShortcutManager.subscribe(" ", this.toggleVisibility, { replaceTemp: true });
     }
@@ -9569,21 +9786,32 @@ if(!window.customElements.get('om-password')){window.customElements.define('om-p
 Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'y_scroll_visible'() { return this.getBoolAttr('y_scroll_visible') }
-    set 'y_scroll_visible'(val) { this.setBoolAttr('y_scroll_visible', val) }get 'x_scroll_visible'() { return this.getBoolAttr('x_scroll_visible') }
-    set 'x_scroll_visible'(val) { this.setBoolAttr('x_scroll_visible', val) }get 'floating_scroll'() { return this.getBoolAttr('floating_scroll') }
-    set 'floating_scroll'(val) { this.setBoolAttr('floating_scroll', val) }get 'x_scroll'() { return this.getBoolAttr('x_scroll') }
-    set 'x_scroll'(val) { this.setBoolAttr('x_scroll', val) }get 'y_scroll'() { return this.getBoolAttr('y_scroll') }
-    set 'y_scroll'(val) { this.setBoolAttr('y_scroll', val) }get 'auto_hide'() { return this.getBoolAttr('auto_hide') }
-    set 'auto_hide'(val) { this.setBoolAttr('auto_hide', val) }get 'disable'() { return this.getBoolAttr('disable') }
-    set 'disable'(val) { this.setBoolAttr('disable', val) }get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
-    set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }get 'mouse_drag'() { return this.getBoolAttr('mouse_drag') }
-    set 'mouse_drag'(val) { this.setBoolAttr('mouse_drag', val) }    get 'zoom'() { return this.getNumberProp('zoom') }
-    set 'zoom'(val) { this.setNumberAttr('zoom', val) }    get 'allowResizeObserver'() {
+    set 'y_scroll_visible'(val) { this.setBoolAttr('y_scroll_visible', val) }
+get 'x_scroll_visible'() { return this.getBoolAttr('x_scroll_visible') }
+    set 'x_scroll_visible'(val) { this.setBoolAttr('x_scroll_visible', val) }
+get 'floating_scroll'() { return this.getBoolAttr('floating_scroll') }
+    set 'floating_scroll'(val) { this.setBoolAttr('floating_scroll', val) }
+get 'x_scroll'() { return this.getBoolAttr('x_scroll') }
+    set 'x_scroll'(val) { this.setBoolAttr('x_scroll', val) }
+get 'y_scroll'() { return this.getBoolAttr('y_scroll') }
+    set 'y_scroll'(val) { this.setBoolAttr('y_scroll', val) }
+get 'auto_hide'() { return this.getBoolAttr('auto_hide') }
+    set 'auto_hide'(val) { this.setBoolAttr('auto_hide', val) }
+get 'disable'() { return this.getBoolAttr('disable') }
+    set 'disable'(val) { this.setBoolAttr('disable', val) }
+get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
+    set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }
+get 'mouse_drag'() { return this.getBoolAttr('mouse_drag') }
+    set 'mouse_drag'(val) { this.setBoolAttr('mouse_drag', val) }
+    get 'zoom'() { return this.getNumberProp('zoom') }
+    set 'zoom'(val) { this.setNumberAttr('zoom', val) }
+    get 'allowResizeObserver'() {
 						return this.__signals["allowResizeObserver"].value;
 					}
 					set 'allowResizeObserver'(val) {
 						this.__signals["allowResizeObserver"].value = val;
-					}    observer;
+					}
+    observer;
     contentWrapperSize = { x: 0, y: 0 };
     display = { x: 0, y: 0 };
     margin = {
@@ -9624,14 +9852,17 @@ Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
     scrollTimeout = 0;
     onScrollChange = new Aventus.Callback();
     onZoomChange = new Aventus.Callback();
-    __registerSignalsActions() { this.__signals["allowResizeObserver"] = null; super.__registerSignalsActions(); this.__addSignalActions("allowResizeObserver", ((target) => {
+    __registerSignalsActions() { this.__signals["allowResizeObserver"] = null;
+ super.__registerSignalsActions(); this.__addSignalActions("allowResizeObserver", ((target) => {
     if (target.allowResizeObserver) {
         target.dimensionRefreshed();
     }
-})); }
+}));
+ }
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
-})); }
+}));
+ }
     static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:auto;-webkit-overflow-scrolling:touch;-ms-overflow-style:none;position:relative;scrollbar-width:none;width:100%}:host .scroll-main-container .content-zoom .content-hidder::-webkit-scrollbar{display:none}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}:host([flex]){display:flex;flex-direction:column;min-height:0}:host([flex]) .scroll-main-container{display:flex;flex-direction:column}:host([flex]) .scroll-main-container .content-zoom{display:flex;flex-direction:column}:host([disable]) .scroll-main-container .content-zoom .content-hidder{overflow:hidden}:host([disable]) .scroll-main-container .scroller-wrapper{display:none}:host([is_scrolling]) .content-wrapper{pointer-events:none}`;
     __getStatic() {
         return Scrollable;
@@ -9644,10 +9875,31 @@ Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
+        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">
+    <div class="content-zoom" _id="scrollable_1">
+        <div class="content-hidder" _id="scrollable_2">
+            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">
+                <slot></slot>
+            </div>
+        </div>
+    </div>
+    <div class="scroller-wrapper">
+        <div class="container-scroller vertical" _id="scrollable_4">
+            <div class="shadow-scroller">
+                <div class="scroller" _id="scrollable_5"></div>
+            </div>
+        </div>
+        <div class="container-scroller horizontal" _id="scrollable_6">
+            <div class="shadow-scroller">
+                <div class="scroller" _id="scrollable_7"></div>
+            </div>
+        </div>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "mainContainer",
@@ -9705,13 +9957,40 @@ Components.Display.Scrollable = class Scrollable extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.onScrollEvent(e)
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Scrollable";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('mouse_drag')) { this.attributeChangedCallback('mouse_drag', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
-    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["allowResizeObserver"] = true; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('x');this.__correctGetter('y');this.__correctGetter('xMax');this.__correctGetter('yMax');this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('mouse_drag');this.__upgradeProperty('zoom');this.__correctGetter('allowResizeObserver'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }
+if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }
+if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }
+if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }
+if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }
+if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }
+if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }
+if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }
+if(!this.hasAttribute('mouse_drag')) { this.attributeChangedCallback('mouse_drag', false, false); }
+if(!this.hasAttribute('zoom')){ this['zoom'] = 1; }
+ }
+    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["allowResizeObserver"] = true;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('x');
+this.__correctGetter('y');
+this.__correctGetter('xMax');
+this.__correctGetter('yMax');
+this.__upgradeProperty('y_scroll_visible');
+this.__upgradeProperty('x_scroll_visible');
+this.__upgradeProperty('floating_scroll');
+this.__upgradeProperty('x_scroll');
+this.__upgradeProperty('y_scroll');
+this.__upgradeProperty('auto_hide');
+this.__upgradeProperty('disable');
+this.__upgradeProperty('no_user_select');
+this.__upgradeProperty('mouse_drag');
+this.__upgradeProperty('zoom');
+this.__correctGetter('allowResizeObserver');
+ }
     __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select","mouse_drag"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculateRealSize() {
         if (!this.contentZoom || !this.mainContainer || !this.contentWrapper) {
@@ -10058,10 +10337,17 @@ Components.Interaction.Modal = class Modal extends Aventus.Modal.ModalElement {
         arrStyle.push(Modal.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'header':`<slot name="header"></slot>`,'default':`<slot></slot>`,'footer':`<slot name="footer"></slot>` }, 
-        blocks: { 'default':`<div class="modal-header">    <slot name="header"></slot></div><om-scrollable class="modal-content" flex>    <slot></slot></om-scrollable><div class="modal-footer">    <slot name="footer"></slot></div>` }
+        blocks: { 'default':`<div class="modal-header">
+    <slot name="header"></slot>
+</div><om-scrollable class="modal-content" flex>
+    <slot></slot>
+</om-scrollable><div class="modal-footer">
+    <slot name="footer"></slot>
+</div>` }
     });
 }
     getClassName() {
@@ -10089,13 +10375,20 @@ __as1(_.Components.Interaction, 'Modal', Components.Interaction.Modal);
 Components.Form.Button = class Button extends Aventus.Form.ButtonElement {
     static get observedAttributes() {return ["icon", "icon_right"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'color'() { return this.getStringAttr('color') }
-    set 'color'(val) { this.setStringAttr('color', val) }get 'outline'() { return this.getBoolAttr('outline') }
-    set 'outline'(val) { this.setBoolAttr('outline', val) }get 'disabled'() { return this.getBoolAttr('disabled') }
-    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'loading'() { return this.getBoolAttr('loading') }
-    set 'loading'(val) { this.setBoolAttr('loading', val) }get 'ghost'() { return this.getBoolAttr('ghost') }
-    set 'ghost'(val) { this.setBoolAttr('ghost', val) }    get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }get 'icon_right'() { return this.getBoolProp('icon_right') }
-    set 'icon_right'(val) { this.setBoolAttr('icon_right', val) }    static __style = `:host{--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content));--_button-radius: var(--button-radius, var(--border-radius-lg));--_button-icon-font-size: var(--button-icon-font-size, var(--font-size-lg))}:host([outline]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--surface-content));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--surface-content))}:host([color=primary]){--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content))}:host([outline][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--primary));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary))}:host([color=accent]){--_button-bg: var(--button-bg, var(--accent-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent-content))}:host([outline][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--accent));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent))}:host([color=neutral]){--_button-bg: var(--button-bg, var(--neutral-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral-content))}:host([outline][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--neutral));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral))}:host([color=info]){--_button-bg: var(--button-bg, var(--info-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info-content))}:host([outline][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--info));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info))}:host([color=success]){--_button-bg: var(--button-bg, var(--success-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success-content))}:host([outline][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--success));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success))}:host([color=warning]){--_button-bg: var(--button-bg, var(--warning-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning-content))}:host([outline][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--warning));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning))}:host([color=error]){--_button-bg: var(--button-bg, var(--error-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error-content))}:host([outline][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--error));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error))}:host([disabled]){--_button-bg: color-mix(in oklab, var(--surface-content) 10%, transparent);--_button-fg: color-mix(in oklab, var(--surface-content) 50%, var(--surface));pointer-events:none}:host{align-items:center;background-color:var(--_button-bg);border-radius:var(--_button-radius);color:var(--_button-fg);cursor:pointer;display:flex;font-weight:500;gap:.5rem;line-height:var(--line-height);padding:.5rem 1rem;position:relative;user-select:none;width:fit-content}:host mi-icon{font-size:var(--_button-icon-font-size);font-weight:normal}:host .loader-mask{align-items:center;align-items:stretch;display:none;inset:.6rem;justify-content:center;position:absolute}:host .loader-mask .loader{animation:rotation 1s linear infinite;aspect-ratio:1;border:2px solid var(--_button-fg);border-bottom-color:rgba(0,0,0,0);border-radius:50000px;display:block;height:100%;max-height:100%;max-width:100%}:host .border{border:1px solid var(--_button-border);border-radius:var(--_button-radius);display:none;inset:0;pointer-events:none;position:absolute}:host([outline]) .border{display:block}:host(:not([icon])) mi-icon,:host([icon=""]) mi-icon{display:none}:host([round]){border-radius:var(--border-radius-round)}:host(:empty[icon]:not([icon=""])){align-items:center;justify-content:center;padding:.5rem}:host([loading]) slot{opacity:0;visibility:hidden}:host([loading]) mi-icon{opacity:0;visibility:hidden}:host([loading]) .loader-mask{display:flex}@media(hover: hover)and (pointer: fine){:host(:not([loading]):hover){background-color:color-mix(in oklab, var(--_button-bg), #000 7%)}}@keyframes rotation{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`;
+    set 'color'(val) { this.setStringAttr('color', val) }
+get 'outline'() { return this.getBoolAttr('outline') }
+    set 'outline'(val) { this.setBoolAttr('outline', val) }
+get 'disabled'() { return this.getBoolAttr('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }
+get 'loading'() { return this.getBoolAttr('loading') }
+    set 'loading'(val) { this.setBoolAttr('loading', val) }
+get 'ghost'() { return this.getBoolAttr('ghost') }
+    set 'ghost'(val) { this.setBoolAttr('ghost', val) }
+    get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }
+get 'icon_right'() { return this.getBoolProp('icon_right') }
+    set 'icon_right'(val) { this.setBoolAttr('icon_right', val) }
+    static __style = `:host{--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content));--_button-radius: var(--button-radius, var(--border-radius-lg));--_button-icon-font-size: var(--button-icon-font-size, var(--font-size-lg))}:host([outline]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--surface-content));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--surface-content))}:host([color=primary]){--_button-bg: var(--button-bg, var(--primary-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary-content))}:host([outline][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--primary));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=primary]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--primary))}:host([color=accent]){--_button-bg: var(--button-bg, var(--accent-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent-content))}:host([outline][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--accent));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=accent]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--accent))}:host([color=neutral]){--_button-bg: var(--button-bg, var(--neutral-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral-content))}:host([outline][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--neutral));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=neutral]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--neutral))}:host([color=info]){--_button-bg: var(--button-bg, var(--info-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info-content))}:host([outline][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--info));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=info]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--info))}:host([color=success]){--_button-bg: var(--button-bg, var(--success-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success-content))}:host([outline][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--success));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=success]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--success))}:host([color=warning]){--_button-bg: var(--button-bg, var(--warning-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning-content))}:host([outline][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--warning));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=warning]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--warning))}:host([color=error]){--_button-bg: var(--button-bg, var(--error-600));--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error-content))}:host([outline][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, var(--error));--_button-fg: var(--button-fg, var(--surface-content))}:host([ghost][color=error]){--_button-bg: var(--button-bg, transparent);--_button-border: var(--button-border, transparent);--_button-fg: var(--button-fg, var(--error))}:host([disabled]){--_button-bg: color-mix(in oklab, var(--surface-content) 10%, transparent);--_button-fg: color-mix(in oklab, var(--surface-content) 50%, var(--surface));pointer-events:none}:host{align-items:center;background-color:var(--_button-bg);border-radius:var(--_button-radius);color:var(--_button-fg);cursor:pointer;display:flex;font-weight:500;gap:.5rem;line-height:var(--line-height);padding:.5rem 1rem;position:relative;user-select:none;width:fit-content}:host mi-icon{font-size:var(--_button-icon-font-size);font-weight:normal}:host .loader-mask{align-items:center;align-items:stretch;display:none;inset:.6rem;justify-content:center;position:absolute}:host .loader-mask .loader{animation:rotation 1s linear infinite;aspect-ratio:1;border:2px solid var(--_button-fg);border-bottom-color:rgba(0,0,0,0);border-radius:50000px;display:block;height:100%;max-height:100%;max-width:100%}:host .border{border:1px solid var(--_button-border);border-radius:var(--_button-radius);display:none;inset:0;pointer-events:none;position:absolute}:host([outline]) .border{display:block}:host(:not([icon])) mi-icon,:host([icon=""]) mi-icon{display:none}:host([round]){border-radius:var(--border-radius-round)}:host(:empty[icon]:not([icon=""])){align-items:center;justify-content:center;padding:.5rem}:host([loading]) slot{opacity:0;visibility:hidden}:host([loading]) mi-icon{opacity:0;visibility:hidden}:host([loading]) .loader-mask{display:flex}@media(hover: hover)and (pointer: fine){:host(:not([loading]):hover){background-color:color-mix(in oklab, var(--_button-bg), #000 7%)}}@keyframes rotation{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`;
     __getStatic() {
         return Button;
     }
@@ -10104,44 +10397,74 @@ Components.Form.Button = class Button extends Aventus.Form.ButtonElement {
         arrStyle.push(Button.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<template _id="button_0"></template><slot></slot><template _id="button_2"></template><div class="loader-mask">    <div class="loader"></div></div><div class="border"></div>` }
+        blocks: { 'default':`<template _id="button_0"></template><slot></slot><template _id="button_2"></template><div class="loader-mask">
+    <div class="loader"></div>
+</div><div class="border"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <mi-icon _id="button_1"></mi-icon>`);templ0.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+    <mi-icon _id="button_1"></mi-icon>
+`);
+templ0.setActions({
   "content": {
     "button_1°icon": {
       "fct": (c) => `${c.print(c.comp.__4b84b84f9c7940ff70213fba40df60cemethod2())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'button_0',
                     parts: [{once: true,
                     condition: (c) => c.comp.__4b84b84f9c7940ff70213fba40df60cemethod0(),
                     template: templ0
                 }]
-            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`    <mi-icon _id="button_3"></mi-icon>`);templ1.setActions({
+            });
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+    <mi-icon _id="button_3"></mi-icon>
+`);
+templ1.setActions({
   "content": {
     "button_3°icon": {
       "fct": (c) => `${c.print(c.comp.__4b84b84f9c7940ff70213fba40df60cemethod2())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'button_2',
                     parts: [{once: true,
                     condition: (c) => c.comp.__4b84b84f9c7940ff70213fba40df60cemethod1(),
                     template: templ1
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "Button";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('color')){ this['color'] = undefined; }if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('icon_right')) { this.attributeChangedCallback('icon_right', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('color');this.__upgradeProperty('outline');this.__upgradeProperty('disabled');this.__upgradeProperty('loading');this.__upgradeProperty('ghost');this.__upgradeProperty('icon');this.__upgradeProperty('icon_right'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('color')){ this['color'] = undefined; }
+if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }
+if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
+if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }
+if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }
+if(!this.hasAttribute('icon')){ this['icon'] = undefined; }
+if(!this.hasAttribute('icon_right')) { this.attributeChangedCallback('icon_right', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('color');
+this.__upgradeProperty('outline');
+this.__upgradeProperty('disabled');
+this.__upgradeProperty('loading');
+this.__upgradeProperty('ghost');
+this.__upgradeProperty('icon');
+this.__upgradeProperty('icon_right');
+ }
     __listBoolProps() { return ["outline","disabled","loading","ghost","icon_right"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     registerSubmit() {
         this.handler = this.findParentByType(Aventus.Form.Form.formElements)?.registerSubmit(this);
@@ -10186,12 +10509,19 @@ Components.Interaction.Alert = class Alert extends Components.Interaction.Modal 
         arrStyle.push(Alert.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'header':`    <template _id="alert_0"></template>    <div class="title" _id="alert_2"></div>`,'footer':`    <om-button _id="alert_4"></om-button>`,'default':`<div _id="alert_3"></div>` }
+        blocks: { 'header':`
+    <template _id="alert_0"></template>
+    <div class="title" _id="alert_2"></div>
+`,'footer':`
+    <om-button _id="alert_4"></om-button>
+`,'default':`<div _id="alert_3"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "alert_2°@HTML": {
       "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod3())}`,
@@ -10213,7 +10543,12 @@ Components.Interaction.Alert = class Alert extends Components.Interaction.Modal 
       "fct": (e, c) => c.comp.done(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <mi-icon class="icon" _id="alert_1"></mi-icon>    `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+        <mi-icon class="icon" _id="alert_1"></mi-icon>
+    `);
+templ0.setActions({
   "content": {
     "alert_1°icon": {
       "fct": (c) => `${c.print(c.comp.__18e1eef5fce2e718728d07198f6800camethod1())}`,
@@ -10224,13 +10559,15 @@ Components.Interaction.Alert = class Alert extends Components.Interaction.Modal 
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'alert_0',
                     parts: [{once: true,
                     condition: (c) => c.comp.__18e1eef5fce2e718728d07198f6800camethod0(),
                     template: templ0
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "Alert";
     }
@@ -10291,18 +10628,22 @@ if(!window.customElements.get('om-alert')){window.customElements.define('om-aler
 
 Components.Form.Select.BaseSelect.OptionsContainer = class OptionsContainer extends Aventus.WebComponent {
     get 'open'() { return this.getBoolAttr('open') }
-    set 'open'(val) { this.setBoolAttr('open', val) }get 'transition'() { return this.getBoolAttr('transition') }
-    set 'transition'(val) { this.setBoolAttr('transition', val) }    get 'allowResizeObserver'() {
+    set 'open'(val) { this.setBoolAttr('open', val) }
+get 'transition'() { return this.getBoolAttr('transition') }
+    set 'transition'(val) { this.setBoolAttr('transition', val) }
+    get 'allowResizeObserver'() {
 						return this.__watch["allowResizeObserver"];
 					}
 					set 'allowResizeObserver'(val) {
 						this.__watch["allowResizeObserver"] = val;
-					}    select;
+					}
+    select;
     onOpen = new Aventus.Callback();
     isAnimating = false;
     firstOpen = true;
     __registerWatchesActions() {
-    this.__addWatchesActions("allowResizeObserver");    super.__registerWatchesActions();
+    this.__addWatchesActions("allowResizeObserver");
+    super.__registerWatchesActions();
 }
     static __style = `:host{--_options-container-background: var(--options-container-background, var(--form-element-background, var(--surface)));--_options-container-border-radius: var(--options-container-border-radius, var(--form-element-border-radius, var(--border-radius-lg)))}:host{background-color:var(--_options-container-background);border:1px solid var(--border-color);border-radius:var(--_options-container-border-radius);color:var(--surface-content);display:grid;grid-template-rows:0fr;left:0;max-height:min(24rem,70dvh);outline:none;overflow:hidden;padding:.5rem;position:absolute;top:0;z-index:800}:host .wrapper{display:flex;flex-direction:column;height:100%;overflow:hidden}:host .wrapper om-scrollable .container{display:flex;flex-direction:column}:host([open]){grid-template-rows:1fr}:host([transition]){transition:.2s grid-template-rows var(--bezier-curve)}`;
     constructor() {
@@ -10322,10 +10663,17 @@ Components.Form.Select.BaseSelect.OptionsContainer = class OptionsContainer exte
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="wrapper">    <om-scrollable floating_scroll flex _id="optionscontainer_0">        <div class="container">            <slot></slot>        </div>    </om-scrollable></div>` }
+        blocks: { 'default':`<div class="wrapper">
+    <om-scrollable floating_scroll flex _id="optionscontainer_0">
+        <div class="container">
+            <slot></slot>
+        </div>
+    </om-scrollable>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "scrollEl",
@@ -10342,13 +10690,20 @@ Components.Form.Select.BaseSelect.OptionsContainer = class OptionsContainer exte
       "once": true
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "OptionsContainer";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('open')) { this.attributeChangedCallback('open', false, false); }if(!this.hasAttribute('transition')) { this.attributeChangedCallback('transition', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["allowResizeObserver"] = true; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('open');this.__upgradeProperty('transition');this.__correctGetter('allowResizeObserver'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('open')) { this.attributeChangedCallback('open', false, false); }
+if(!this.hasAttribute('transition')) { this.attributeChangedCallback('transition', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["allowResizeObserver"] = true;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('open');
+this.__upgradeProperty('transition');
+this.__correctGetter('allowResizeObserver');
+ }
     __listBoolProps() { return ["open","transition"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     init(select) {
         this.select = select;
@@ -10473,26 +10828,36 @@ Components.Form.Select.BaseSelect.OptionsContainer.Tag=`om-options-container`;
 __as1(_.Components.Form.Select.BaseSelect, 'OptionsContainer', Components.Form.Select.BaseSelect.OptionsContainer);
 if(!window.customElements.get('om-options-container')){window.customElements.define('om-options-container', Components.Form.Select.BaseSelect.OptionsContainer);Aventus.WebComponentInstance.registerDefinition(Components.Form.Select.BaseSelect.OptionsContainer);}
 
-_n = Components.Form.Select.BaseSelect;Components.Form.Select.BaseSelect = class BaseSelect extends Components.Form.FormElement {
+_n = Components.Form.Select.BaseSelect;
+Components.Form.Select.BaseSelect = class BaseSelect extends Components.Form.FormElement {
     static get observedAttributes() {return ["label", "placeholder", "icon", "searchable", "transition"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'open'() { return this.getBoolAttr('open') }
-    set 'open'(val) { this.setBoolAttr('open', val) }get 'is_focus'() { return this.getBoolAttr('is_focus') }
-    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }    get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }get 'placeholder'() { return this.getStringProp('placeholder') }
-    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }get 'searchable'() { return this.getBoolProp('searchable') }
-    set 'searchable'(val) { this.setBoolAttr('searchable', val) }get 'transition'() { return this.getBoolProp('transition') }
-    set 'transition'(val) { this.setBoolAttr('transition', val) }    get 'displayValue'() {
+    set 'open'(val) { this.setBoolAttr('open', val) }
+get 'is_focus'() { return this.getBoolAttr('is_focus') }
+    set 'is_focus'(val) { this.setBoolAttr('is_focus', val) }
+    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+get 'placeholder'() { return this.getStringProp('placeholder') }
+    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }
+get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }
+get 'searchable'() { return this.getBoolProp('searchable') }
+    set 'searchable'(val) { this.setBoolAttr('searchable', val) }
+get 'transition'() { return this.getBoolProp('transition') }
+    set 'transition'(val) { this.setBoolAttr('transition', val) }
+    get 'displayValue'() {
 						return this.__watch["displayValue"];
 					}
 					set 'displayValue'(val) {
 						this.__watch["displayValue"] = val;
-					}get 'value'() {
+					}
+get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
-					}    selectedOption;
+					}
+    selectedOption;
     options = [];
     optionsInited = false;
     blurTimeout = 0;
@@ -10500,16 +10865,19 @@ _n = Components.Form.Select.BaseSelect;Components.Form.Select.BaseSelect = clas
     __registerWatchesActions() {
     this.__addWatchesActions("displayValue", ((target, action, path, value) => {
     target._inputEl.value = target.displayValue;
-}));this.__addWatchesActions("value", ((target) => {
+}));
+this.__addWatchesActions("value", ((target) => {
     target.onInternalValueChanged();
-}));    super.__registerWatchesActions();
+}));
+    super.__registerWatchesActions();
 }
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("searchable", ((target) => {
     if (target.searchable)
         target._inputEl.removeAttribute("readonly");
     else
         target._inputEl.setAttribute("readonly", "");
-})); }
+}));
+ }
     static __style = `:host{--_select-bg: var(--select-bg, var(--form-element-bg));--_select-fg: var(--select-fg, var(--form-element-fg));--_select-border: var(--select-border, var(--form-element-border));--_select-border-radius: var(--select-border-radius, var(--form-element-border-radius))}:host{width:100%}:host label{display:none;font-size:var(--font-size-sm);font-weight:500;line-height:var(--line-height-sm)}:host .input{align-items:center;background-color:var(--_select-bg);border-radius:var(--_select-border-radius);display:flex;gap:.5rem;margin-top:0;outline:none;overflow:hidden;padding:.5rem 1rem;position:relative;width:100%}:host .input .icon{color:color-mix(in oklab, var(--_select-fg) 40%, transparent);display:none;font-size:var(--font-size)}:host .input .caret{--img-stroke-width: 0;align-items:center;aspect-ratio:1;display:flex;fill:var(--_select-fg);flex-grow:0;flex-shrink:0;height:var(--font-size);justify-content:center;transform:rotate(-90deg)}:host .input .caret svg{height:100%}:host .input input{background-color:rgba(0,0,0,0);border:none;color:var(--_select-fg);display:block;flex-grow:1;font-size:var(--font-size);height:var(--line-height);margin:0;min-width:0;outline:none;padding-right:10px;pointer-events:none;user-select:none}:host .input input::placeholder{color:color-mix(in oklab, var(--_select-fg) 40%, transparent)}:host .input::after{border:var(--_select-border);border-radius:var(--_select-border-radius);content:"";display:block;inset:0px;pointer-events:none;position:absolute}:host .errors{color:var(--error);display:none;flex-direction:column;font-size:var(--font-size-sm);gap:.25rem;line-height:var(--line-height-sm);margin:.5rem;margin-bottom:0}:host .hidden{display:none}:host .options-container{display:none}:host([is_focus]) .input{border-color:var(--primary)}:host([is_focus]) .input::after{border-color:var(--primary);border-width:2px}:host([has_errors]) .input::after{border-color:var(--error)}:host([has_errors]) .errors{display:flex}:host([icon]:not([icon=""])) .input .icon{display:block}:host([label]:not([label=""])) label{display:flex}:host([label]:not([label=""])) .input{margin-top:.5rem}:host([readonly]){pointer-events:none}:host([disabled]){pointer-events:none}:host([disabled]) label{color:color-mix(in oklab, var(--_select-fg) 50%, var(--_select-bg))}:host([disabled]) .input{background-color:color-mix(in oklab, var(--_select-fg) 10%, transparent)}:host([disabled]) .input input{color:color-mix(in oklab, var(--_select-fg) 50%, var(--_select-bg))}:host([disabled]) .input::after{border:none}:host([open]) .input .caret{transform:rotate(-270deg)}:host([searchable]) .input input{pointer-events:all;user-select:all}:host([transition]) .input .caret{transition:transform .2s var(--bezier-curve)}`;
     constructor() {
         super();
@@ -10529,13 +10897,32 @@ _n = Components.Form.Select.BaseSelect;Components.Form.Select.BaseSelect = clas
         arrStyle.push(BaseSelect.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        slots: { 'prepend':`<slot name="prepend">        <mi-icon class="icon" _id="baseselect_2"></mi-icon>    </slot>`,'append':`<slot name="append"></slot>`,'default':`<slot></slot>` }, 
-        blocks: { 'default':`<label for="input" _id="baseselect_0"></label><div class="input" _id="baseselect_1">    <slot name="prepend">        <mi-icon class="icon" _id="baseselect_2"></mi-icon>    </slot>    <input id="input" autocomplete="off" _id="baseselect_3" />    <slot name="append"></slot>    <div class="caret">        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512">            <path d="M192 448c-8.188 0-16.38-3.125-22.62-9.375l-160-160c-12.5-12.5-12.5-32.75 0-45.25l160-160c12.5-12.5 32.75-12.5 45.25 0s12.5 32.75 0 45.25L77.25 256l137.4 137.4c12.5 12.5 12.5 32.75 0 45.25C208.4 444.9 200.2 448 192 448z"></path>        </svg>    </div></div><div class="errors">    <template _id="baseselect_4"></template></div><div class="hidden">    <slot></slot></div><om-options-container class="options-container" _id="baseselect_6"></om-options-container>` }
+        slots: { 'prepend':`<slot name="prepend">
+        <mi-icon class="icon" _id="baseselect_2"></mi-icon>
+    </slot>`,'append':`<slot name="append"></slot>`,'default':`<slot></slot>` }, 
+        blocks: { 'default':`<label for="input" _id="baseselect_0"></label><div class="input" _id="baseselect_1">
+    <slot name="prepend">
+        <mi-icon class="icon" _id="baseselect_2"></mi-icon>
+    </slot>
+    <input id="input" autocomplete="off" _id="baseselect_3" />
+    <slot name="append"></slot>
+    <div class="caret">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512">
+            <path d="M192 448c-8.188 0-16.38-3.125-22.62-9.375l-160-160c-12.5-12.5-12.5-32.75 0-45.25l160-160c12.5-12.5 32.75-12.5 45.25 0s12.5 32.75 0 45.25L77.25 256l137.4 137.4c12.5 12.5 12.5 32.75 0 45.25C208.4 444.9 200.2 448 192 448z"></path>
+        </svg>
+    </div>
+</div><div class="errors">
+    <template _id="baseselect_4"></template>
+</div><div class="hidden">
+    <slot></slot>
+</div><om-options-container class="options-container" _id="baseselect_6"></om-options-container>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "inputEl",
@@ -10620,23 +11007,49 @@ _n = Components.Form.Select.BaseSelect;Components.Form.Select.BaseSelect = clas
       "isCallback": true
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`         <div _id="baseselect_5"></div>    `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(` 
+        <div _id="baseselect_5"></div>
+    `);
+templ0.setActions({
   "content": {
     "baseselect_5°@HTML": {
       "fct": (c) => `${c.print(c.comp.__6a2f0a13ce924d939c86d28d2861a8edmethod5(c.data.error))}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'baseselect_4',
                     template: templ0,
-                simple:{data: "this.errors",item:"error"}}); }
+                simple:{data: "this.errors",item:"error"}
+});
+ }
     getClassName() {
         return "BaseSelect";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('open')) { this.attributeChangedCallback('open', false, false); }if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; }if(!this.hasAttribute('searchable')) { this.attributeChangedCallback('searchable', false, false); }if(!this.hasAttribute('transition')) { this.attributeChangedCallback('transition', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["displayValue"] = "";w["value"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('open');this.__upgradeProperty('is_focus');this.__upgradeProperty('label');this.__upgradeProperty('placeholder');this.__upgradeProperty('icon');this.__upgradeProperty('searchable');this.__upgradeProperty('transition');this.__correctGetter('displayValue');this.__correctGetter('value'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('open')) { this.attributeChangedCallback('open', false, false); }
+if(!this.hasAttribute('is_focus')) { this.attributeChangedCallback('is_focus', false, false); }
+if(!this.hasAttribute('label')){ this['label'] = undefined; }
+if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }
+if(!this.hasAttribute('icon')){ this['icon'] = undefined; }
+if(!this.hasAttribute('searchable')) { this.attributeChangedCallback('searchable', false, false); }
+if(!this.hasAttribute('transition')) { this.attributeChangedCallback('transition', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["displayValue"] = "";
+w["value"] = undefined;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('open');
+this.__upgradeProperty('is_focus');
+this.__upgradeProperty('label');
+this.__upgradeProperty('placeholder');
+this.__upgradeProperty('icon');
+this.__upgradeProperty('searchable');
+this.__upgradeProperty('transition');
+this.__correctGetter('displayValue');
+this.__correctGetter('value');
+ }
     __listBoolProps() { return ["open","is_focus","searchable","transition"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     compare(item1, item2) {
         return item1 == item2;
@@ -10829,13 +11242,16 @@ _n = Components.Form.Select.BaseSelect;Components.Form.Select.BaseSelect = clas
 }
 Components.Form.Select.BaseSelect.Namespace=`OneMoreUI.Components.Form.Select`;
 __as1(_.Components.Form.Select, 'BaseSelect', Components.Form.Select.BaseSelect);
-Object.assign(Components.Form.Select.BaseSelect, _n);
+Object.assign(Components.Form.Select.BaseSelect, _n);
+
 Components.Form.Select.Select = class Select extends Components.Form.Select.BaseSelect {
     static get observedAttributes() {return ["value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'value'() { return this.getStringProp('value') }
-    set 'value'(val) { this.setStringAttr('value', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
+    set 'value'(val) { this.setStringAttr('value', val) }
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
     target.onInternalValueChanged();
-})); }
+}));
+ }
     static __style = ``;
     __getStatic() {
         return Select;
@@ -10845,7 +11261,8 @@ Components.Form.Select.Select = class Select extends Components.Form.Select.Base
         arrStyle.push(Select.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
         blocks: { 'default':`<slot></slot>` }
@@ -10854,8 +11271,10 @@ Components.Form.Select.Select = class Select extends Components.Form.Select.Base
     getClassName() {
         return "Select";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('value')){ this['value'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('value')){ this['value'] = ""; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value');
+ }
     itemToText(option) {
         // if(option.value !== undefined) {
         //     return option.value
@@ -10884,12 +11303,20 @@ Components.Interaction.Confirm = class Confirm extends Components.Interaction.Mo
         arrStyle.push(Confirm.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'header':`    <template _id="confirm_0"></template>    <div class="title" _id="confirm_2"></div>`,'footer':`    <om-button outline color="neutral" _id="confirm_4"></om-button>    <om-button _id="confirm_5"></om-button>`,'default':`<div _id="confirm_3"></div>` }
+        blocks: { 'header':`
+    <template _id="confirm_0"></template>
+    <div class="title" _id="confirm_2"></div>
+`,'footer':`
+    <om-button outline color="neutral" _id="confirm_4"></om-button>
+    <om-button _id="confirm_5"></om-button>
+`,'default':`<div _id="confirm_3"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "confirm_2°@HTML": {
       "fct": (c) => `${c.print(c.comp.__61c5a242fda45972560e4f9803ea00f5method3())}`,
@@ -10920,7 +11347,12 @@ Components.Interaction.Confirm = class Confirm extends Components.Interaction.Mo
       "fct": (e, c) => c.comp.validate(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <mi-icon class="icon" _id="confirm_1"></mi-icon>    `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+        <mi-icon class="icon" _id="confirm_1"></mi-icon>
+    `);
+templ0.setActions({
   "content": {
     "confirm_1°icon": {
       "fct": (c) => `${c.print(c.comp.__61c5a242fda45972560e4f9803ea00f5method1())}`,
@@ -10931,13 +11363,15 @@ Components.Interaction.Confirm = class Confirm extends Components.Interaction.Mo
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'confirm_0',
                     parts: [{once: true,
                     condition: (c) => c.comp.__61c5a242fda45972560e4f9803ea00f5method0(),
                     template: templ0
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "Confirm";
     }
@@ -11001,22 +11435,30 @@ if(!window.customElements.get('om-confirm')){window.customElements.define('om-co
 
 Components.Interaction.Toast = class Toast extends Aventus.Toast.ToastElement {
     get 'type'() { return this.getStringAttr('type') }
-    set 'type'(val) { this.setStringAttr('type', val) }get 'closing'() { return this.getBoolAttr('closing') }
-    set 'closing'(val) { this.setBoolAttr('closing', val) }get 'closable'() { return this.getBoolAttr('closable') }
-    set 'closable'(val) { this.setBoolAttr('closable', val) }get 'close_icon'() { return this.getBoolAttr('close_icon') }
-    set 'close_icon'(val) { this.setBoolAttr('close_icon', val) }    get 'toastTitle'() {
+    set 'type'(val) { this.setStringAttr('type', val) }
+get 'closing'() { return this.getBoolAttr('closing') }
+    set 'closing'(val) { this.setBoolAttr('closing', val) }
+get 'closable'() { return this.getBoolAttr('closable') }
+    set 'closable'(val) { this.setBoolAttr('closable', val) }
+get 'close_icon'() { return this.getBoolAttr('close_icon') }
+    set 'close_icon'(val) { this.setBoolAttr('close_icon', val) }
+    get 'toastTitle'() {
 						return this.__watch["toastTitle"];
 					}
 					set 'toastTitle'(val) {
 						this.__watch["toastTitle"] = val;
-					}get 'toastMessage'() {
+					}
+get 'toastMessage'() {
 						return this.__watch["toastMessage"];
 					}
 					set 'toastMessage'(val) {
 						this.__watch["toastMessage"] = val;
-					}    icon;
+					}
+    icon;
     __registerWatchesActions() {
-    this.__addWatchesActions("toastTitle");this.__addWatchesActions("toastMessage");    super.__registerWatchesActions();
+    this.__addWatchesActions("toastTitle");
+this.__addWatchesActions("toastMessage");
+    super.__registerWatchesActions();
 }
     static __style = `:host{background-color:var(--surface);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-3);cursor:default;max-width:calc(100vw - 2rem);overflow:hidden;pointer-events:auto;transition:top .2s linear,opacity .2s linear,visibility .2s linear}:host .toast-content{display:grid;gap:1rem;grid-auto-flow:column;grid-template-columns:auto;justify-content:start;padding-block:.75rem;padding-inline:1rem;place-items:center start;text-align:start}:host .toast-content .toast-flex{align-items:flex-start;display:flex}:host .toast-content .toast-flex .toast-icon-wrapper{flex-shrink:0}:host .toast-content .toast-flex .toast-icon-wrapper .toast-icon{align-items:center;display:flex;font-size:var(--font-size-lg);height:var(--font-size-lg);justify-content:center;width:var(--font-size-lg)}:host .toast-content .toast-flex .toast-message-wrapper{flex:1;margin-left:1rem}:host .toast-content .toast-flex .toast-message-wrapper .toast-title{font-size:var(--font-size);font-weight:500;line-height:var(--line-height)}:host .toast-content .toast-flex .toast-message-wrapper .toast-message{font-size:var(--font-size-sm)}:host .toast-content .toast-flex .toast-close-wrapper{flex-shrink:0;margin-left:1rem}:host .toast-content .toast-flex .toast-close-wrapper .toast-close-icon{align-items:center;cursor:pointer;display:flex;font-size:var(--font-size-lg);height:var(--font-size-lg);justify-content:center;width:var(--font-size-lg)}:host mi-icon{user-select:none}:host([type=primary]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--primary)}:host([type=accent]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--accent)}:host([type=neutral]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--neutral)}:host([type=info]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--info)}:host([type=success]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--success)}:host([type=warning]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--warning)}:host([type=error]) .toast-content .toast-flex .toast-icon-wrapper .toast-icon{color:var(--error)}`;
     constructor() {
@@ -11031,12 +11473,25 @@ Components.Interaction.Toast = class Toast extends Aventus.Toast.ToastElement {
         arrStyle.push(Toast.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="toast-content">    <div class="toast-flex">        <template _id="toast_0"></template>        <div class="toast-message-wrapper">            <template _id="toast_2"></template>            <template _id="toast_4"></template>        </div>        <div class="toast-close-wrapper">            <mi-icon icon="close" class="toast-close-icon" tabindex="0" _id="toast_6"></mi-icon>        </div>    </div></div>` }
+        blocks: { 'default':`<div class="toast-content">
+    <div class="toast-flex">
+        <template _id="toast_0"></template>
+        <div class="toast-message-wrapper">
+            <template _id="toast_2"></template>
+            <template _id="toast_4"></template>
+        </div>
+        <div class="toast-close-wrapper">
+            <mi-icon icon="close" class="toast-close-icon" tabindex="0" _id="toast_6"></mi-icon>
+        </div>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "events": [
     {
       "eventName": "click",
@@ -11054,52 +11509,85 @@ Components.Interaction.Toast = class Toast extends Aventus.Toast.ToastElement {
       "fct": (e, c) => c.comp.removeKeyboard(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <div class="toast-icon-wrapper">                <mi-icon class="toast-icon" aria-hidden="true" _id="toast_1"></mi-icon>            </div>        `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+            <div class="toast-icon-wrapper">
+                <mi-icon class="toast-icon" aria-hidden="true" _id="toast_1"></mi-icon>
+            </div>
+        `);
+templ0.setActions({
   "content": {
     "toast_1°icon": {
       "fct": (c) => `${c.print(c.comp.__6dcf3cd35b0051eebb666b32076a0404method3())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'toast_0',
                     parts: [{once: true,
                     condition: (c) => c.comp.__6dcf3cd35b0051eebb666b32076a0404method0(),
                     template: templ0
                 }]
-            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="toast-title" _id="toast_3"></div>            `);templ1.setActions({
+            });
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+                <div class="toast-title" _id="toast_3"></div>
+            `);
+templ1.setActions({
   "content": {
     "toast_3°@HTML": {
       "fct": (c) => `${c.print(c.comp.__6dcf3cd35b0051eebb666b32076a0404method4())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'toast_2',
                     parts: [{once: true,
                     condition: (c) => c.comp.__6dcf3cd35b0051eebb666b32076a0404method1(),
                     template: templ1
                 }]
-            });const templ2 = new Aventus.Template(this);templ2.setTemplate(`                <div class="toast-message" _id="toast_5"></div>            `);templ2.setActions({
+            });
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+                <div class="toast-message" _id="toast_5"></div>
+            `);
+templ2.setActions({
   "content": {
     "toast_5°@HTML": {
       "fct": (c) => `${c.print(c.comp.__6dcf3cd35b0051eebb666b32076a0404method5())}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'toast_4',
                     parts: [{once: true,
                     condition: (c) => c.comp.__6dcf3cd35b0051eebb666b32076a0404method2(),
                     template: templ2
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "Toast";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = undefined; }if(!this.hasAttribute('closing')) { this.attributeChangedCallback('closing', false, false); }if(!this.hasAttribute('closable')) { this.attributeChangedCallback('closable', false, false); }if(!this.hasAttribute('close_icon')) { this.attributeChangedCallback('close_icon', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["toastTitle"] = "";w["toastMessage"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type');this.__upgradeProperty('closing');this.__upgradeProperty('closable');this.__upgradeProperty('close_icon');this.__correctGetter('toastTitle');this.__correctGetter('toastMessage'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = undefined; }
+if(!this.hasAttribute('closing')) { this.attributeChangedCallback('closing', false, false); }
+if(!this.hasAttribute('closable')) { this.attributeChangedCallback('closable', false, false); }
+if(!this.hasAttribute('close_icon')) { this.attributeChangedCallback('close_icon', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["toastTitle"] = "";
+w["toastMessage"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type');
+this.__upgradeProperty('closing');
+this.__upgradeProperty('closable');
+this.__upgradeProperty('close_icon');
+this.__correctGetter('toastTitle');
+this.__correctGetter('toastMessage');
+ }
     __listBoolProps() { return ["closing","closable","close_icon"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     /**
      * @inheritdoc
@@ -11261,13 +11749,17 @@ const AskPasswordModal = class AskPasswordModal extends OneMoreUI.Components.Int
 					}
 					set 'dbName'(val) {
 						this.__watch["dbName"] = val;
-					}get 'password'() {
+					}
+get 'password'() {
 						return this.__watch["password"];
 					}
 					set 'password'(val) {
 						this.__watch["password"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("dbName");this.__addWatchesActions("password");    super.__registerWatchesActions();
+					}
+    __registerWatchesActions() {
+    this.__addWatchesActions("dbName");
+this.__addWatchesActions("password");
+    super.__registerWatchesActions();
 }
     static __style = ``;
     __getStatic() {
@@ -11278,12 +11770,23 @@ const AskPasswordModal = class AskPasswordModal extends OneMoreUI.Components.Int
         arrStyle.push(AskPasswordModal.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'header':`    <div _id="askpasswordmodal_0"></div>`,'footer':`    <om-button outline _id="askpasswordmodal_2">Cancel</om-button>    <om-button color="primary" _id="askpasswordmodal_3">Save</om-button>`,'default':`<av-row>    <av-col size="12">        <om-password label="Password" _id="askpasswordmodal_1"></om-password>    </av-col></av-row>` }
+        blocks: { 'header':`
+    <div _id="askpasswordmodal_0"></div>
+`,'footer':`
+    <om-button outline _id="askpasswordmodal_2">Cancel</om-button>
+    <om-button color="primary" _id="askpasswordmodal_3">Save</om-button>
+`,'default':`<av-row>
+    <av-col size="12">
+        <om-password label="Password" _id="askpasswordmodal_1"></om-password>
+    </av-col>
+</av-row>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "askpasswordmodal_0°@HTML": {
       "fct": (c) => `Password for : ${c.print(c.comp.__b81c90e6f66c2ba4c6741d56d0a77587method0())}`,
@@ -11315,12 +11818,17 @@ const AskPasswordModal = class AskPasswordModal extends OneMoreUI.Components.Int
       "fct": (e, c) => c.comp.save(e)
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "AskPasswordModal";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["dbName"] = "";w["password"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('dbName');this.__correctGetter('password'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["dbName"] = "";
+w["password"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('dbName');
+this.__correctGetter('password');
+ }
     configure() {
         return {
             closeWithEsc: true,
@@ -11378,17 +11886,20 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
 					}
 					set 'mappingFieldTable'(val) {
 						this.__watch["mappingFieldTable"] = val;
-					}get 'oldField'() {
+					}
+get 'oldField'() {
 						return this.__watch["oldField"];
 					}
 					set 'oldField'(val) {
 						this.__watch["oldField"] = val;
-					}get 'newField'() {
+					}
+get 'newField'() {
 						return this.__watch["newField"];
 					}
 					set 'newField'(val) {
 						this.__watch["newField"] = val;
-					}    get tableComparisons() {
+					}
+    get tableComparisons() {
         return MainState.instance.comparison.tableComparisons;
     }
     get mappingFieldTableInfo() {
@@ -11418,7 +11929,10 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
     this.__addWatchesActions("mappingFieldTable", ((target) => {
     target.oldField = "";
     target.newField = "";
-}));this.__addWatchesActions("oldField");this.__addWatchesActions("newField");    super.__registerWatchesActions();
+}));
+this.__addWatchesActions("oldField");
+this.__addWatchesActions("newField");
+    super.__registerWatchesActions();
 }
     static __style = `:host{width:100%}:host h4{font-size:1rem;font-weight:500;margin:0;margin-bottom:.25rem}:host .card-desc{color:var(--neutral);font-size:.8rem;margin-bottom:1rem}:host .mapping-adder{align-items:center;display:flex;gap:.5rem}:host .mapping-adder om-select{min-width:0}:host .mapping-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}:host .mapping-list .no-table{font-size:var(--font-size-sm);font-style:italic}:host .mapping-list .mapping-item{align-items:center;background:hsla(0,0%,100%,.02);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;font-size:.85rem;justify-content:space-between;padding:.5rem .75rem}:host .mapping-list .mapping-item .mapping-names{align-items:center;display:flex;font-family:var(--font-mono);gap:.5rem}:host .mapping-list .mapping-item .mapping-arrow{color:var(--info)}:host .mapping-list .mapping-item .mapping-delete{background:rgba(0,0,0,0);border:none;border-radius:4px;color:var(--error);cursor:pointer;font-size:1rem;padding:.1rem .3rem;transition:background-color .2s linear}:host .mapping-list .mapping-item .mapping-delete:hover{background:var(--error-100)}:host .table-selector-wrapper{align-items:center;display:flex;gap:.75rem;margin-bottom:1rem}:host .table-selector-wrapper label{flex-shrink:0}`;
     __getStatic() {
@@ -11431,10 +11945,19 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h4>Renamed fields</h4><p class="card-desc">Select a table to associate old fields with new one.</p><div class="table-selector-wrapper">    <label>Table :</label>    <om-select _id="renamedfield_0">        <om-option value="">-- Select a table --</om-option>        <template _id="renamedfield_1"></template>    </om-select></div><div class="mapping-list">    <template _id="renamedfield_3"></template></div><template _id="renamedfield_8"></template>` }
+        blocks: { 'default':`<h4>Renamed fields</h4><p class="card-desc">Select a table to associate old fields with new one.</p><div class="table-selector-wrapper">
+    <label>Table :</label>
+    <om-select _id="renamedfield_0">
+        <om-option value="">-- Select a table --</om-option>
+        <template _id="renamedfield_1"></template>
+    </om-select>
+</div><div class="mapping-list">
+    <template _id="renamedfield_3"></template>
+</div><template _id="renamedfield_8"></template>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "bindings": [
     {
       "id": "renamedfield_0",
@@ -11448,7 +11971,12 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
       "isCallback": true
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <om-option _id="renamedfield_2"></om-option>        `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+            <om-option _id="renamedfield_2"></om-option>
+        `);
+templ0.setActions({
   "content": {
     "renamedfield_2°value": {
       "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method9(c.data.table))}`,
@@ -11458,10 +11986,36 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
       "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method10(c.data.table))}`
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'renamedfield_1',
                     template: templ0,
-                simple:{data: "this.tableComparisons",item:"table"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <div class="no-table">Select a table above.</div>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`        <div class="no-table">No association for this table.</div>    `);const templ3 = new Aventus.Template(this);templ3.setTemplate(`        <template _id="renamedfield_4"></template>    `);const templ5 = new Aventus.Template(this);templ5.setTemplate(`            <div class="mapping-item">                <span class="mapping-names">                    <span _id="renamedfield_5"></span>                    <span class="mapping-arrow">➔</span>                    <span _id="renamedfield_6"></span>                </span>                <button class="mapping-delete" _id="renamedfield_7">✕</button>            </div>        `);templ5.setActions({
+                simple:{data: "this.tableComparisons",item:"table"}
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+        <div class="no-table">Select a table above.</div>
+    `);
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+        <div class="no-table">No association for this table.</div>
+    `);
+const templ3 = new Aventus.Template(this);
+templ3.setTemplate(`
+        <template _id="renamedfield_4"></template>
+    `);
+const templ5 = new Aventus.Template(this);
+templ5.setTemplate(`
+            <div class="mapping-item">
+                <span class="mapping-names">
+                    <span _id="renamedfield_5"></span>
+                    <span class="mapping-arrow">➔</span>
+                    <span _id="renamedfield_6"></span>
+                </span>
+                <button class="mapping-delete" _id="renamedfield_7">✕</button>
+            </div>
+        `);
+templ5.setActions({
   "content": {
     "renamedfield_5°@HTML": {
       "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method11(c.data.oldF))}`,
@@ -11482,10 +12036,13 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.removeFieldMapping(e)
     }
   ]
-});templ3.addLoop({
+});
+templ3.addLoop({
                     anchorId: 'renamedfield_4',
                     template: templ5,
-                simple:{data: "this.fieldsMapping",index:"oldF"}});this.__getStatic().__template.addIf({
+                simple:{data: "this.fieldsMapping",index:"oldF"}
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'renamedfield_3',
                     parts: [{once: true,
                     condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method1(),
@@ -11497,7 +12054,23 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
                     condition: (c) => true,
                     template: templ3
                 }]
-            });const templ6 = new Aventus.Template(this);templ6.setTemplate(`    <div class="mapping-adder">        <om-select _id="renamedfield_9">            <om-option value="">-- Deleted field --</om-option>            <template _id="renamedfield_10"></template>        </om-select>        <span class="arrow-indicator">➔</span>        <om-select _id="renamedfield_12">            <om-option value="">-- Added field --</om-option>            <template _id="renamedfield_13"></template>        </om-select>        <om-button _id="renamedfield_15">Link</om-button>    </div>`);templ6.setActions({
+            });
+const templ6 = new Aventus.Template(this);
+templ6.setTemplate(`
+    <div class="mapping-adder">
+        <om-select _id="renamedfield_9">
+            <om-option value="">-- Deleted field --</om-option>
+            <template _id="renamedfield_10"></template>
+        </om-select>
+        <span class="arrow-indicator">➔</span>
+        <om-select _id="renamedfield_12">
+            <om-option value="">-- Added field --</om-option>
+            <template _id="renamedfield_13"></template>
+        </om-select>
+        <om-button _id="renamedfield_15">Link</om-button>
+    </div>
+`);
+templ6.setActions({
   "bindings": [
     {
       "id": "renamedfield_9",
@@ -11529,7 +12102,12 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.addFieldMapping(e)
     }
   ]
-});const templ7 = new Aventus.Template(this);templ7.setTemplate(`                <om-option _id="renamedfield_11"></om-option>            `);templ7.setActions({
+});
+const templ7 = new Aventus.Template(this);
+templ7.setTemplate(`
+                <om-option _id="renamedfield_11"></om-option>
+            `);
+templ7.setActions({
   "content": {
     "renamedfield_11°value": {
       "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
@@ -11540,10 +12118,17 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
       "once": true
     }
   }
-});templ6.addLoop({
+});
+templ6.addLoop({
                     anchorId: 'renamedfield_10',
                     template: templ7,
-                simple:{data: "this.mappingFieldTableInfo.deletedFields",item:"field"}});const templ8 = new Aventus.Template(this);templ8.setTemplate(`                <om-option _id="renamedfield_14"></om-option>            `);templ8.setActions({
+                simple:{data: "this.mappingFieldTableInfo.deletedFields",item:"field"}
+});
+const templ8 = new Aventus.Template(this);
+templ8.setTemplate(`
+                <om-option _id="renamedfield_14"></om-option>
+            `);
+templ8.setActions({
   "content": {
     "renamedfield_14°value": {
       "fct": (c) => `${c.print(c.comp.__6a9803ce37a6658d333e838def2ebba3method15(c.data.field))}`,
@@ -11554,21 +12139,34 @@ const RenamedField = class RenamedField extends Aventus.WebComponent {
       "once": true
     }
   }
-});templ6.addLoop({
+});
+templ6.addLoop({
                     anchorId: 'renamedfield_13',
                     template: templ8,
-                simple:{data: "this.mappingFieldTableInfo.addedFields",item:"field"}});this.__getStatic().__template.addIf({
+                simple:{data: "this.mappingFieldTableInfo.addedFields",item:"field"}
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'renamedfield_8',
                     parts: [{once: true,
                     condition: (c) => c.comp.__6a9803ce37a6658d333e838def2ebba3method4(),
                     template: templ6
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "RenamedField";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["mappingFieldTable"] = undefined;w["oldField"] = "";w["newField"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tableComparisons');this.__correctGetter('mappingFieldTableInfo');this.__correctGetter('fieldsMapping');this.__correctGetter('mappingFieldTable');this.__correctGetter('oldField');this.__correctGetter('newField'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["mappingFieldTable"] = undefined;
+w["oldField"] = "";
+w["newField"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tableComparisons');
+this.__correctGetter('mappingFieldTableInfo');
+this.__correctGetter('fieldsMapping');
+this.__correctGetter('mappingFieldTable');
+this.__correctGetter('oldField');
+this.__correctGetter('newField');
+ }
     addFieldMapping() {
         if (!this.newField || !this.oldField || !this.mappingFieldTable) {
             OneMoreUI.Components.Interaction.Alert.open({
@@ -13939,15 +14537,16 @@ __as1(_, 'defaultSchema', defaultSchema);
 const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebComponent {
     static get observedAttributes() {return ["is_rename"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'is_rename'() { return this.getBoolProp('is_rename') }
-    set 'is_rename'(val) { this.setBoolAttr('is_rename', val) }    get 'change'() {
+    set 'is_rename'(val) { this.setBoolAttr('is_rename', val) }
+    get 'change'() {
 						return this.__watch["change"];
 					}
 					set 'change'(val) {
 						this.__watch["change"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("change", (() => {
-    debugger;
-}));    super.__registerWatchesActions();
+					}
+    __registerWatchesActions() {
+    this.__addWatchesActions("change");
+    super.__registerWatchesActions();
 }
     static __style = `:host{width:100%}:host .diff-table-group{background:rgba(15,23,42,.15);border:1px solid var(--warning);border-radius:var(--border-radius-lg);margin-bottom:1rem;overflow:hidden}:host .diff-table-group .diff-table-header{align-items:center;background:var(--warning-100);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:.75rem 1rem}:host .diff-table-group .diff-table-header .diff-table-title{font-family:var(--font-mono);font-size:.95rem;font-weight:600}:host .diff-table-group .diff-table-header .badge{background-color:var(--warning-200);border:1px solid var(--warning);border-radius:50px;font-size:.75rem;font-weight:600;padding:.25rem .65rem}:host .diff-table-group .diff-table-body{display:flex;flex-direction:column;gap:.5rem;padding:.75rem 1rem}:host .diff-table-group .diff-table-body .diff-item{align-items:center;display:flex;font-family:var(--font-mono);font-size:.85rem;gap:.75rem;padding:.25rem 0}:host .diff-table-group .diff-table-body .diff-item .diff-tag{border-radius:4px;font-family:var(--font-sans);font-size:.7rem;font-weight:600;padding:.1rem .4rem;text-transform:uppercase}:host .diff-table-group .diff-table-body .diff-item .diff-tag-add{background:rgba(16,185,129,.15);color:var(--color-success)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-del{background:rgba(239,68,68,.15);color:var(--color-danger)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-mod{background:rgba(245,158,11,.15);color:var(--color-warning)}:host .diff-table-group .diff-table-body .diff-item .diff-tag-ren{background:rgba(99,102,241,.15);color:var(--accent-indigo)}:host .diff-table-group .diff-table-body .diff-item .diff-item-detail{color:var(--neutral)}:host .diff-table-group .diff-table-body .diff-item .diff-change-old{color:rgba(239,68,68,.7);text-decoration:line-through}:host .diff-table-group .diff-table-body .diff-item .diff-change-new{color:var(--success-400)}:host([is_rename]) .diff-table-group{border:1px solid var(--accent)}:host([is_rename]) .diff-table-group .diff-table-header{background-color:var(--accent-100)}:host([is_rename]) .diff-table-group .diff-table-header .badge{background-color:var(--accent-200);border:1px solid var(--accent)}`;
     __getStatic() {
@@ -13960,19 +14559,43 @@ const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebCompone
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="diff-table-group">    <div class="diff-table-header">        <span class="diff-table-title" _id="summaryupdatedtable_0"></span>        <span class="badge" _id="summaryupdatedtable_1"></span>    </div>    <div class="diff-table-body">        <template _id="summaryupdatedtable_2"></template>        <template _id="summaryupdatedtable_5"></template>        <template _id="summaryupdatedtable_7"></template>        <template _id="summaryupdatedtable_10"></template>    </div></div>` }
+        blocks: { 'default':`<div class="diff-table-group">
+    <div class="diff-table-header">
+        <span class="diff-table-title" _id="summaryupdatedtable_0"></span>
+        <span class="badge" _id="summaryupdatedtable_1"></span>
+    </div>
+    <div class="diff-table-body">
+        <template _id="summaryupdatedtable_2"></template>
+        <template _id="summaryupdatedtable_5"></template>
+        <template _id="summaryupdatedtable_7"></template>
+        <template _id="summaryupdatedtable_10"></template>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "summaryupdatedtable_0°@HTML": {
-      "fct": (c) => `\r\n            ${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method7())}\r\n        `
+      "fct": (c) => `\n            ${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method7())}\n        `
     },
     "summaryupdatedtable_1°@HTML": {
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method8())}`
     }
   }
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-ren">Renamed</span>                <span>                    <span class="diff-change-old" _id="summaryupdatedtable_3"></span>                    <span>➔</span>                    <span class="diff-change-new" _id="summaryupdatedtable_4"></span>                </span>            </div>        `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+            <div class="diff-item">
+                <span class="diff-tag diff-tag-ren">Renamed</span>
+                <span>
+                    <span class="diff-change-old" _id="summaryupdatedtable_3"></span>
+                    <span>➔</span>
+                    <span class="diff-change-new" _id="summaryupdatedtable_4"></span>
+                </span>
+            </div>
+        `);
+templ0.setActions({
   "content": {
     "summaryupdatedtable_3°@HTML": {
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method9(c.data.renameField))}`,
@@ -13983,20 +14606,41 @@ const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebCompone
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'summaryupdatedtable_2',
                     template: templ0,
-                simple:{data: "this.change.renamedFields",item:"renameField"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-del">Removed</span>                <span class="diff-change-old" _id="summaryupdatedtable_6"></span>            </div>        `);templ1.setActions({
+                simple:{data: "this.change.renamedFields",item:"renameField"}
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+            <div class="diff-item">
+                <span class="diff-tag diff-tag-del">Removed</span>
+                <span class="diff-change-old" _id="summaryupdatedtable_6"></span>
+            </div>
+        `);
+templ1.setActions({
   "content": {
     "summaryupdatedtable_6°@HTML": {
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method11(c.data.deletedField))}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'summaryupdatedtable_5',
                     template: templ1,
-                simple:{data: "this.change.deletedFields",item:"deletedField"}});const templ2 = new Aventus.Template(this);templ2.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-add">Added</span>                <span class="diff-change-new" _id="summaryupdatedtable_8"></span>                <span class="diff-item-detail" _id="summaryupdatedtable_9"></span>            </div>        `);templ2.setActions({
+                simple:{data: "this.change.deletedFields",item:"deletedField"}
+});
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+            <div class="diff-item">
+                <span class="diff-tag diff-tag-add">Added</span>
+                <span class="diff-change-new" _id="summaryupdatedtable_8"></span>
+                <span class="diff-item-detail" _id="summaryupdatedtable_9"></span>
+            </div>
+        `);
+templ2.setActions({
   "content": {
     "summaryupdatedtable_8°@HTML": {
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method12(c.data.addedField))}`,
@@ -14006,19 +14650,46 @@ const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebCompone
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method13(c.data.addedField))}`
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'summaryupdatedtable_7',
                     template: templ2,
-                simple:{data: "this.change.addedFields",item:"addedField"}});const templ3 = new Aventus.Template(this);templ3.setTemplate(`            <div class="diff-item">                <span class="diff-tag diff-tag-mod">Edited</span>                <span _id="summaryupdatedtable_11"></span>                <span class="diff-item-detail">                    <template _id="summaryupdatedtable_12"></template>                    <template _id="summaryupdatedtable_15"></template>                    <template _id="summaryupdatedtable_18"></template>                </span>            </div>        `);templ3.setActions({
+                simple:{data: "this.change.addedFields",item:"addedField"}
+});
+const templ3 = new Aventus.Template(this);
+templ3.setTemplate(`
+            <div class="diff-item">
+                <span class="diff-tag diff-tag-mod">Edited</span>
+                <span _id="summaryupdatedtable_11"></span>
+                <span class="diff-item-detail">
+                    <template _id="summaryupdatedtable_12"></template>
+                    <template _id="summaryupdatedtable_15"></template>
+                    <template _id="summaryupdatedtable_18"></template>
+                </span>
+            </div>
+        `);
+templ3.setActions({
   "content": {
     "summaryupdatedtable_11°@HTML": {
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method14(c.data.modifiedField))}`
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'summaryupdatedtable_10',
                     template: templ3,
-                simple:{data: "this.change.modifiedFields",item:"modifiedField"}});const templ4 = new Aventus.Template(this);templ4.setTemplate(`                        <span>                            <span>type: </span>                            <span class="diff-change-old" _id="summaryupdatedtable_13"></span>                            <span>➔</span>                            <span class="diff-change-new" _id="summaryupdatedtable_14"></span>                        </span>                    `);templ4.setActions({
+                simple:{data: "this.change.modifiedFields",item:"modifiedField"}
+});
+const templ4 = new Aventus.Template(this);
+templ4.setTemplate(`
+                        <span>
+                            <span>type: </span>
+                            <span class="diff-change-old" _id="summaryupdatedtable_13"></span>
+                            <span>➔</span>
+                            <span class="diff-change-new" _id="summaryupdatedtable_14"></span>
+                        </span>
+                    `);
+templ4.setActions({
   "content": {
     "summaryupdatedtable_13°@HTML": {
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method15(c.data.modifiedField))}`
@@ -14027,13 +14698,24 @@ const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebCompone
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method16(c.data.modifiedField))}`
     }
   }
-});templ3.addIf({
+});
+templ3.addIf({
                     anchorId: 'summaryupdatedtable_12',
                     parts: [{
                     condition: (c) => c.comp.__49686968742173745148a8d3c31a7eb3method4(c.data.modifiedField),
                     template: templ4
                 }]
-            });const templ5 = new Aventus.Template(this);templ5.setTemplate(`                        <span>                            <span>nullable: </span>                            <span class="diff-change-old" _id="summaryupdatedtable_16"></span>                            <span>➔</span>                            <span class="diff-change-new" _id="summaryupdatedtable_17"></span>                        </span>                    `);templ5.setActions({
+            });
+const templ5 = new Aventus.Template(this);
+templ5.setTemplate(`
+                        <span>
+                            <span>nullable: </span>
+                            <span class="diff-change-old" _id="summaryupdatedtable_16"></span>
+                            <span>➔</span>
+                            <span class="diff-change-new" _id="summaryupdatedtable_17"></span>
+                        </span>
+                    `);
+templ5.setActions({
   "content": {
     "summaryupdatedtable_16°@HTML": {
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method17(c.data.modifiedField))}`
@@ -14042,13 +14724,24 @@ const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebCompone
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method18(c.data.modifiedField))}`
     }
   }
-});templ3.addIf({
+});
+templ3.addIf({
                     anchorId: 'summaryupdatedtable_15',
                     parts: [{
                     condition: (c) => c.comp.__49686968742173745148a8d3c31a7eb3method5(c.data.modifiedField),
                     template: templ5
                 }]
-            });const templ6 = new Aventus.Template(this);templ6.setTemplate(`                        <span>                            <span>unique: </span>                            <span class="diff-change-old" _id="summaryupdatedtable_19"></span>                            <span>➔</span>                            <span class="diff-change-new" _id="summaryupdatedtable_20"></span>                        </span>                    `);templ6.setActions({
+            });
+const templ6 = new Aventus.Template(this);
+templ6.setTemplate(`
+                        <span>
+                            <span>unique: </span>
+                            <span class="diff-change-old" _id="summaryupdatedtable_19"></span>
+                            <span>➔</span>
+                            <span class="diff-change-new" _id="summaryupdatedtable_20"></span>
+                        </span>
+                    `);
+templ6.setActions({
   "content": {
     "summaryupdatedtable_19°@HTML": {
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method19(c.data.modifiedField))}`
@@ -14057,19 +14750,25 @@ const SummaryUpdatedTable = class SummaryUpdatedTable extends Aventus.WebCompone
       "fct": (c) => `${c.print(c.comp.__49686968742173745148a8d3c31a7eb3method20(c.data.modifiedField))}`
     }
   }
-});templ3.addIf({
+});
+templ3.addIf({
                     anchorId: 'summaryupdatedtable_18',
                     parts: [{
                     condition: (c) => c.comp.__49686968742173745148a8d3c31a7eb3method6(c.data.modifiedField),
                     template: templ6
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "SummaryUpdatedTable";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_rename')) { this.attributeChangedCallback('is_rename', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["change"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_rename');this.__correctGetter('change'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_rename')) { this.attributeChangedCallback('is_rename', false, false); }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["change"] = undefined;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_rename');
+this.__correctGetter('change');
+ }
     __listBoolProps() { return ["is_rename"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     postCreation() {
         this.is_rename = true; //this.change.isRename;
@@ -14259,19 +14958,23 @@ const RenamedTable = class RenamedTable extends Aventus.WebComponent {
 					}
 					set 'newTable'(val) {
 						this.__watch["newTable"] = val;
-					}get 'oldTable'() {
+					}
+get 'oldTable'() {
 						return this.__watch["oldTable"];
 					}
 					set 'oldTable'(val) {
 						this.__watch["oldTable"] = val;
-					}    get comparison() {
+					}
+    get comparison() {
         return MainState.instance.comparison;
     }
     get tables() {
         return MainState.instance.mappings.tables;
     }
     __registerWatchesActions() {
-    this.__addWatchesActions("newTable");this.__addWatchesActions("oldTable");    super.__registerWatchesActions();
+    this.__addWatchesActions("newTable");
+this.__addWatchesActions("oldTable");
+    super.__registerWatchesActions();
 }
     static __style = `:host{width:100%}:host h4{font-size:1rem;font-weight:500;margin:0;margin-bottom:.25rem}:host .card-desc{color:var(--neutral);font-size:.8rem;margin-bottom:1rem}:host .mapping-adder{align-items:center;display:flex;gap:.5rem}:host .mapping-adder om-select{min-width:0}:host .mapping-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}:host .mapping-list .no-table{font-size:var(--font-size-sm);font-style:italic}:host .mapping-list .mapping-item{align-items:center;background:hsla(0,0%,100%,.02);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);display:flex;font-size:.85rem;justify-content:space-between;padding:.5rem .75rem}:host .mapping-list .mapping-item .mapping-names{align-items:center;display:flex;font-family:var(--font-mono);gap:.5rem}:host .mapping-list .mapping-item .mapping-arrow{color:var(--info)}:host .mapping-list .mapping-item .mapping-delete{background:rgba(0,0,0,0);border:none;border-radius:4px;color:var(--error);cursor:pointer;font-size:1rem;padding:.1rem .3rem}:host .mapping-list .mapping-item .mapping-delete:hover{background:var(--error-600)}:host .table-selector-wrapper{align-items:center;display:flex;gap:.75rem;margin-bottom:1rem}:host .table-selector-wrapper label{flex-shrink:0}`;
     __getStatic() {
@@ -14284,10 +14987,24 @@ const RenamedTable = class RenamedTable extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h4>Renamed tables</h4><p class="card-desc">If a table is renamed, associate it with the old name with the new one.</p><div class="mapping-list">    <template _id="renamedtable_0"></template></div><div class="mapping-adder">    <om-select _id="renamedtable_5">        <om-option value="">-- Deleted table --</om-option>        <template _id="renamedtable_6"></template>    </om-select>    <span class="arrow-indicator">➔</span>    <om-select _id="renamedtable_8">        <om-option value="">-- Added table --</om-option>        <template _id="renamedtable_9"></template>    </om-select>    <om-button _id="renamedtable_11">Lier</om-button></div>` }
+        blocks: { 'default':`<h4>Renamed tables</h4><p class="card-desc">If a table is renamed, associate it with the old name with the new one.</p><div class="mapping-list">
+    <template _id="renamedtable_0"></template>
+</div><div class="mapping-adder">
+    <om-select _id="renamedtable_5">
+        <om-option value="">-- Deleted table --</om-option>
+        <template _id="renamedtable_6"></template>
+    </om-select>
+    <span class="arrow-indicator">➔</span>
+    <om-select _id="renamedtable_8">
+        <om-option value="">-- Added table --</om-option>
+        <template _id="renamedtable_9"></template>
+    </om-select>
+    <om-button _id="renamedtable_11">Lier</om-button>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "bindings": [
     {
       "id": "renamedtable_5",
@@ -14319,7 +15036,12 @@ const RenamedTable = class RenamedTable extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.addTableMapping(e)
     }
   ]
-});const templ3 = new Aventus.Template(this);templ3.setTemplate(`            <om-option _id="renamedtable_7"></om-option>        `);templ3.setActions({
+});
+const templ3 = new Aventus.Template(this);
+templ3.setTemplate(`
+            <om-option _id="renamedtable_7"></om-option>
+        `);
+templ3.setActions({
   "content": {
     "renamedtable_7°value": {
       "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod8(c.data.deletedTable))}`,
@@ -14330,10 +15052,17 @@ const RenamedTable = class RenamedTable extends Aventus.WebComponent {
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'renamedtable_6',
                     template: templ3,
-                simple:{data: "this.comparison.deletedTables",item:"deletedTable"}});const templ4 = new Aventus.Template(this);templ4.setTemplate(`            <om-option _id="renamedtable_10"></om-option>        `);templ4.setActions({
+                simple:{data: "this.comparison.deletedTables",item:"deletedTable"}
+});
+const templ4 = new Aventus.Template(this);
+templ4.setTemplate(`
+            <om-option _id="renamedtable_10"></om-option>
+        `);
+templ4.setActions({
   "content": {
     "renamedtable_10°value": {
       "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod11(c.data.addedTable))}`,
@@ -14344,10 +15073,32 @@ const RenamedTable = class RenamedTable extends Aventus.WebComponent {
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'renamedtable_9',
                     template: templ4,
-                simple:{data: "this.comparison.addedTables",item:"addedTable"}});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <div class="no-table">No association table.</div>    `);const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <template _id="renamedtable_1"></template>    `);const templ2 = new Aventus.Template(this);templ2.setTemplate(`            <div class="mapping-item">                <span class="mapping-names">                    <span _id="renamedtable_2"></span>                    <span class="mapping-arrow">➔</span>                    <span _id="renamedtable_3"></span>                </span>                <button class="mapping-delete" _id="renamedtable_4">✕</button>            </div>        `);templ2.setActions({
+                simple:{data: "this.comparison.addedTables",item:"addedTable"}
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+        <div class="no-table">No association table.</div>
+    `);
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+        <template _id="renamedtable_1"></template>
+    `);
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+            <div class="mapping-item">
+                <span class="mapping-names">
+                    <span _id="renamedtable_2"></span>
+                    <span class="mapping-arrow">➔</span>
+                    <span _id="renamedtable_3"></span>
+                </span>
+                <button class="mapping-delete" _id="renamedtable_4">✕</button>
+            </div>
+        `);
+templ2.setActions({
   "content": {
     "renamedtable_2°@HTML": {
       "fct": (c) => `${c.print(c.comp.__890caef2e9cc439ef37effad59e247femethod4(c.data.oldName))}`,
@@ -14368,10 +15119,13 @@ const RenamedTable = class RenamedTable extends Aventus.WebComponent {
       "fct": (e, c) => c.comp.removeTableMapping(e)
     }
   ]
-});templ1.addLoop({
+});
+templ1.addLoop({
                     anchorId: 'renamedtable_1',
                     template: templ2,
-                simple:{data: "this.tables",index:"oldName"}});this.__getStatic().__template.addIf({
+                simple:{data: "this.tables",index:"oldName"}
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'renamedtable_0',
                     parts: [{once: true,
                     condition: (c) => c.comp.__890caef2e9cc439ef37effad59e247femethod0(),
@@ -14380,12 +15134,19 @@ const RenamedTable = class RenamedTable extends Aventus.WebComponent {
                     condition: (c) => true,
                     template: templ1
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "RenamedTable";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["newTable"] = "";w["oldTable"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison');this.__correctGetter('tables');this.__correctGetter('newTable');this.__correctGetter('oldTable'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["newTable"] = "";
+w["oldTable"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison');
+this.__correctGetter('tables');
+this.__correctGetter('newTable');
+this.__correctGetter('oldTable');
+ }
     removeTableMapping(e) {
         if (e.currentTarget instanceof HTMLElement) {
             const field = e.currentTarget.dataset.table;
@@ -14627,31 +15388,58 @@ const SummaryDeleted = class SummaryDeleted extends Aventus.WebComponent {
         blocks: { 'default':`<template _id="summarydeleted_0"></template>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="diff-table-group">        <div class="diff-table-header">            <span class="diff-table-title" style="color: var(--color-danger)" _id="summarydeleted_1"></span>            <span class="badge">Deleted</span>        </div>        <div class="diff-table-body">            <template _id="summarydeleted_2"></template>        </div>    </div>`);templ0.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+    <div class="diff-table-group">
+        <div class="diff-table-header">
+            <span class="diff-table-title" style="color: var(--color-danger)" _id="summarydeleted_1"></span>
+            <span class="badge">Deleted</span>
+        </div>
+        <div class="diff-table-body">
+            <template _id="summarydeleted_2"></template>
+        </div>
+    </div>
+`);
+templ0.setActions({
   "content": {
     "summarydeleted_1°@HTML": {
       "fct": (c) => `Deleted table : ${c.print(c.comp.__83f0ae5284cb63e76d7ef2a50310a4bfmethod2(c.data.deletedTable))}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'summarydeleted_0',
                     template: templ0,
-                simple:{data: "this.comparison.deletedTables",item:"deletedTable"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="diff-item">                    <span class="diff-tag">-</span>                    <span class="diff-change-old" _id="summarydeleted_3"></span>                </div>            `);templ1.setActions({
+                simple:{data: "this.comparison.deletedTables",item:"deletedTable"}
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+                <div class="diff-item">
+                    <span class="diff-tag">-</span>
+                    <span class="diff-change-old" _id="summarydeleted_3"></span>
+                </div>
+            `);
+templ1.setActions({
   "content": {
     "summarydeleted_3°@HTML": {
       "fct": (c) => `${c.print(c.comp.__83f0ae5284cb63e76d7ef2a50310a4bfmethod3(c.data.deletedTableField))}`,
       "once": true
     }
   }
-});templ0.addLoop({
+});
+templ0.addLoop({
                     anchorId: 'summarydeleted_2',
                     template: templ1,
-                simple:{data: "deletedTable.fields",item:"deletedTableField"}}); }
+                simple:{data: "deletedTable.fields",item:"deletedTableField"}
+});
+ }
     getClassName() {
         return "SummaryDeleted";
     }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison');
+ }
     __83f0ae5284cb63e76d7ef2a50310a4bfmethod2(deletedTable) {
         return deletedTable.name;
     }
@@ -14682,17 +15470,41 @@ const SummaryNew = class SummaryNew extends Aventus.WebComponent {
         blocks: { 'default':`<template _id="summarynew_0"></template>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="diff-table-group">        <div class="diff-table-header">            <span class="diff-table-title" _id="summarynew_1"></span>            <span class="badge badge-new">New</span>        </div>        <div class="diff-table-body">            <template _id="summarynew_2"></template>        </div>    </div>`);templ0.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+    <div class="diff-table-group">
+        <div class="diff-table-header">
+            <span class="diff-table-title" _id="summarynew_1"></span>
+            <span class="badge badge-new">New</span>
+        </div>
+        <div class="diff-table-body">
+            <template _id="summarynew_2"></template>
+        </div>
+    </div>
+`);
+templ0.setActions({
   "content": {
     "summarynew_1°@HTML": {
       "fct": (c) => `Added table : ${c.print(c.comp.__a902aa746d994c2401ca9ac9dfe3b2aemethod2(c.data.addedTable))}`,
       "once": true
     }
   }
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'summarynew_0',
                     template: templ0,
-                simple:{data: "this.comparison.addedTables",item:"addedTable"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="diff-item">                    <span class="diff-tag diff-tag-add">+</span>                    <span _id="summarynew_3"></span>                    <span class="diff-item-detail" _id="summarynew_4"></span>                </div>            `);templ1.setActions({
+                simple:{data: "this.comparison.addedTables",item:"addedTable"}
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+                <div class="diff-item">
+                    <span class="diff-tag diff-tag-add">+</span>
+                    <span _id="summarynew_3"></span>
+                    <span class="diff-item-detail" _id="summarynew_4"></span>
+                </div>
+            `);
+templ1.setActions({
   "content": {
     "summarynew_3°@HTML": {
       "fct": (c) => `${c.print(c.comp.__a902aa746d994c2401ca9ac9dfe3b2aemethod3(c.data.addedTableField))}`,
@@ -14702,14 +15514,18 @@ const SummaryNew = class SummaryNew extends Aventus.WebComponent {
       "fct": (c) => `${c.print(c.comp.__a902aa746d994c2401ca9ac9dfe3b2aemethod4(c.data.addedTableField))}`
     }
   }
-});templ0.addLoop({
+});
+templ0.addLoop({
                     anchorId: 'summarynew_2',
                     template: templ1,
-                simple:{data: "addedTable.fields",item:"addedTableField"}}); }
+                simple:{data: "addedTable.fields",item:"addedTableField"}
+});
+ }
     getClassName() {
         return "SummaryNew";
     }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison');
+ }
     __a902aa746d994c2401ca9ac9dfe3b2aemethod2(addedTable) {
         return addedTable.name;
     }
@@ -14737,10 +15553,15 @@ const Header = class Header extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<nav class="app-nav">    <button class="nav-btn" _id="header_0">1. Schemas</button>    <button class="nav-btn" _id="header_1">2. Resolution</button>    <button class="nav-btn" _id="header_2">3. Migration</button></nav>` }
+        blocks: { 'default':`<nav class="app-nav">
+    <button class="nav-btn" _id="header_0">1. Schemas</button>
+    <button class="nav-btn" _id="header_1">2. Resolution</button>
+    <button class="nav-btn" _id="header_2">3. Migration</button>
+</nav>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "content": {
     "header_0°active": {
       "fct": (c) => `${c.print(c.comp.__afe2bf44205761c9fef83440ff881e72method0())}`,
@@ -14755,7 +15576,8 @@ const Header = class Header extends Aventus.WebComponent {
       "once": true
     }
   }
-}); }
+});
+ }
     getClassName() {
         return "Header";
     }
@@ -14929,13 +15751,15 @@ __as1(_, 'Api', Api);
 const Code = class Code extends Aventus.WebComponent {
     static get observedAttributes() {return ["language"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'language'() { return this.getStringProp('language') }
-    set 'language'(val) { this.setStringAttr('language', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("language", ((target) => {
+    set 'language'(val) { this.setStringAttr('language', val) }
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("language", ((target) => {
     if (window.Prism) {
         if (!window.Prism.languages.hasOwnProperty(target.language)) {
             target.language = 'plain';
         }
     }
-})); }
+}));
+ }
     static __style = `:host{display:flex;overflow:hidden;position:relative;width:100%}:host pre{background-color:rgba(0,0,0,0);font-size:.85rem;line-height:1.6;margin:0;width:100%}:host .hided{display:none}`;
     __getStatic() {
         return Code;
@@ -14948,10 +15772,16 @@ const Code = class Code extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<pre>    <code _id="code_0">    </code></pre><template class="hided">    <slot></slot></template>` }
+        blocks: { 'default':`<pre>
+    <code _id="code_0">
+    </code>
+</pre><template class="hided">
+    <slot></slot>
+</template>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "codeEl",
@@ -14966,17 +15796,19 @@ const Code = class Code extends Aventus.WebComponent {
       "once": true
     }
   }
-}); }
+});
+ }
     getClassName() {
         return "Code";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('language')){ this['language'] = "plain"; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('language'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('language')){ this['language'] = "plain"; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('language');
+ }
     styleBefore(addStyle) {
         addStyle("Prism");
     }
     async setCode(code) {
-        debugger;
         if (!window.Prism) {
             await this.loadFiles();
         }
@@ -15010,8 +15842,10 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
 					}
 					set 'formNewDb'(val) {
 						this.__watch["formNewDb"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("formNewDb");    super.__registerWatchesActions();
+					}
+    __registerWatchesActions() {
+    this.__addWatchesActions("formNewDb");
+    super.__registerWatchesActions();
 }
     static __style = `:host .modal{width:600px}:host .modal av-row{--col-gap-x: 1rem;--col-gap-y: 1rem}`;
     __getStatic() {
@@ -15022,12 +15856,29 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
         arrStyle.push(CreateDatabaseModal.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'header':`    Create database coonnection`,'footer':`    <om-button outline _id="createdatabasemodal_8">Cancel</om-button>    <om-button color="primary" _id="createdatabasemodal_9">Save</om-button>`,'default':`<av-row>    <av-col size="12">        <om-select label="Database kind" _id="createdatabasemodal_0">            <om-option value="mysql">Mysql</om-option>            <om-option value="mssql">Mssql</om-option>            <om-option value="postgresql">Postgresql</om-option>            <om-option value="sqlite">Sqlite</om-option>        </om-select>    </av-col>    <template _id="createdatabasemodal_1"></template></av-row>` }
+        blocks: { 'header':`
+    Create database coonnection
+`,'footer':`
+    <om-button outline _id="createdatabasemodal_8">Cancel</om-button>
+    <om-button color="primary" _id="createdatabasemodal_9">Save</om-button>
+`,'default':`<av-row>
+    <av-col size="12">
+        <om-select label="Database kind" _id="createdatabasemodal_0">
+            <om-option value="mysql">Mysql</om-option>
+            <om-option value="mssql">Mssql</om-option>
+            <om-option value="postgresql">Postgresql</om-option>
+            <om-option value="sqlite">Sqlite</om-option>
+        </om-select>
+    </av-col>
+    <template _id="createdatabasemodal_1"></template>
+</av-row>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "bindings": [
     {
       "id": "createdatabasemodal_0",
@@ -15053,7 +15904,26 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
       "fct": (e, c) => c.comp.save(e)
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-col size="12">            <om-input label="Hostname" _id="createdatabasemodal_2"></om-input>        </av-col>        <av-col size="12">            <om-input label="Database" _id="createdatabasemodal_3"></om-input>        </av-col>        <av-col size="12">            <om-input label="Username" _id="createdatabasemodal_4"></om-input>        </av-col>        <av-col size="12">            <om-password label="Password" _id="createdatabasemodal_5"></om-password>        </av-col>        <av-col size="12">            <om-checkbox label="Save Password" _id="createdatabasemodal_6"></om-checkbox>        </av-col>    `);templ0.setActions({
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+        <av-col size="12">
+            <om-input label="Hostname" _id="createdatabasemodal_2"></om-input>
+        </av-col>
+        <av-col size="12">
+            <om-input label="Database" _id="createdatabasemodal_3"></om-input>
+        </av-col>
+        <av-col size="12">
+            <om-input label="Username" _id="createdatabasemodal_4"></om-input>
+        </av-col>
+        <av-col size="12">
+            <om-password label="Password" _id="createdatabasemodal_5"></om-password>
+        </av-col>
+        <av-col size="12">
+            <om-checkbox label="Save Password" _id="createdatabasemodal_6"></om-checkbox>
+        </av-col>
+    `);
+templ0.setActions({
   "bindings": [
     {
       "id": "createdatabasemodal_2",
@@ -15111,7 +15981,14 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
       "isCallback": true
     }
   ]
-});const templ1 = new Aventus.Template(this);templ1.setTemplate(`        <av-col size="12">            <om-input label="File path" _id="createdatabasemodal_7"></om-input>        </av-col>    `);templ1.setActions({
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+        <av-col size="12">
+            <om-input label="File path" _id="createdatabasemodal_7"></om-input>
+        </av-col>
+    `);
+templ1.setActions({
   "bindings": [
     {
       "id": "createdatabasemodal_7",
@@ -15125,7 +16002,8 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
       "isCallback": true
     }
   ]
-});this.__getStatic().__template.addIf({
+});
+this.__getStatic().__template.addIf({
                     anchorId: 'createdatabasemodal_1',
                     parts: [{once: true,
                     condition: (c) => c.comp.__dce7836a7f0affea31f87e4387ff3630method0(),
@@ -15134,12 +16012,24 @@ const CreateDatabaseModal = class CreateDatabaseModal extends OneMoreUI.Componen
                     condition: (c) => true,
                     template: templ1
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "CreateDatabaseModal";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["formNewDb"] = {        UUID: Aventus.uuidv4(),        Database: "Spalio2",        Host: "localhost",        Password: "",        Path: "",        Type: "mysql",        Username: "root",        SavePassword: false    }; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('formNewDb'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["formNewDb"] = {
+        UUID: Aventus.uuidv4(),
+        Database: "Spalio2",
+        Host: "localhost",
+        Password: "",
+        Path: "",
+        Type: "mysql",
+        Username: "root",
+        SavePassword: false
+    };
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('formNewDb');
+ }
     configure() {
         return {
             closeWithClick: false,
@@ -15228,23 +16118,31 @@ const ImportSchema = class ImportSchema extends BaseContent {
 					}
 					set 'databasesSource'(val) {
 						this.__watch["databasesSource"] = val;
-					}get 'databasesTarget'() {
+					}
+get 'databasesTarget'() {
 						return this.__watch["databasesTarget"];
 					}
 					set 'databasesTarget'(val) {
 						this.__watch["databasesTarget"] = val;
-					}get 'dbSource'() {
+					}
+get 'dbSource'() {
 						return this.__watch["dbSource"];
 					}
 					set 'dbSource'(val) {
 						this.__watch["dbSource"] = val;
-					}get 'dbTarget'() {
+					}
+get 'dbTarget'() {
 						return this.__watch["dbTarget"];
 					}
 					set 'dbTarget'(val) {
 						this.__watch["dbTarget"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("databasesSource");this.__addWatchesActions("databasesTarget");this.__addWatchesActions("dbSource");this.__addWatchesActions("dbTarget");    super.__registerWatchesActions();
+					}
+    __registerWatchesActions() {
+    this.__addWatchesActions("databasesSource");
+this.__addWatchesActions("databasesTarget");
+this.__addWatchesActions("dbSource");
+this.__addWatchesActions("dbTarget");
+    super.__registerWatchesActions();
 }
     static __style = `:host .schemas-grid{display:grid;gap:2rem;grid-template-columns:repeat(auto-fit, minmax(450px, 1fr));margin-bottom:2rem}:host .schemas-grid .schema-card{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);display:flex;flex-direction:column;gap:1.25rem;padding:1.5rem}:host .schemas-grid .schema-card .card-header{align-items:flex-start;display:flex;flex-direction:column}:host .schemas-grid .schema-card .card-header p{color:var(--neutral);font-size:var(--font-size-sm);margin:0}:host .schemas-grid .schema-card .list{border:1px solid var(--border-color);border-radius:var(--border-radius-md);display:flex;flex-direction:column}:host .schemas-grid .schema-card .list .database{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;gap:1rem;overflow:hidden;padding:.5rem 1rem;transition:background-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database av-img{flex-shrink:0;height:30px;width:30px}:host .schemas-grid .schema-card .list .database div{flex-grow:1}:host .schemas-grid .schema-card .list .database mi-icon{color:var(--error);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .database mi-icon:hover{color:var(--error-600)}:host .schemas-grid .schema-card .list .database:first-child{border-top:none}:host .schemas-grid .schema-card .list .database[active]{background-color:hsla(0,0%,100%,.1)}:host .schemas-grid .schema-card .list .database:not([active]):hover{background-color:hsla(0,0%,100%,.05)}:host .schemas-grid .schema-card .list .add{align-items:center;border-top:1px solid var(--border-color);cursor:pointer;display:flex;justify-content:center;padding:.5rem 1rem}:host .schemas-grid .schema-card .list .add mi-icon{color:var(--success);transition:color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .list .add mi-icon:hover{color:var(--success-600)}:host .schemas-grid .schema-card .list .add:nth-child(2){border-top:none}:host .schemas-grid .schema-card .or{display:flex;font-size:var(--font-size-lg);font-weight:bold;justify-content:center;letter-spacing:2px}:host .schemas-grid .schema-card .import-file{align-items:center;border:2px dashed var(--border-color);border-radius:var(--border-radius-md);cursor:pointer;display:flex;flex-direction:column;gap:1rem;padding:2rem 1rem;transition:border-color .2s var(--bezier-curve)}:host .schemas-grid .schema-card .import-file mi-icon{font-size:var(--font-size-xl)}:host .schemas-grid .schema-card .import-file:hover{border-color:var(--surface-content)}:host .schemas-grid .schema-card .code-textarea{background:rgba(15,23,42,.5);border:1px solid var(--border-color);border-radius:var(--border-radius-md);color:var(--primary-content);font-size:.85rem;height:350px;outline:none;padding:1rem;resize:vertical;transition:border-color .2s ease;width:100%}:host .schemas-grid .schema-card .code-textarea:focus{border-color:var(--info)}`;
     __getStatic() {
@@ -15255,12 +16153,44 @@ const ImportSchema = class ImportSchema extends BaseContent {
         arrStyle.push(ImportSchema.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="section-header">    <h2>Data Sources</h2>    <p>Provide data source or schema to generate the migration</p></div><div class="schemas-grid">    <div class="schema-card">        <div class="card-header">            <h3>Database Source</h3>            <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>        </div>        <div class="list">            <template _id="importschema_0"></template>            <div class="add" _id="importschema_5">                <mi-icon icon="add"></mi-icon>            </div>        </div>    </div>    <div class="schema-card">        <div class="card-header">            <h3>Database Final</h3>            <p>Provide the final data source model.</p>        </div>        <div class="list">            <template _id="importschema_6"></template>            <div class="add" _id="importschema_11">                <mi-icon icon="add"></mi-icon>            </div>        </div>    </div></div><div class="action-footer">    <om-button _id="importschema_12">Compare schemas</om-button></div>` }
+        blocks: { 'default':`<div class="section-header">
+    <h2>Data Sources</h2>
+    <p>Provide data source or schema to generate the migration</p>
+</div><div class="schemas-grid">
+    <div class="schema-card">
+        <div class="card-header">
+            <h3>Database Source</h3>
+            <p>Provide the initial data source model. You can skip this step if it's the initial migration.</p>
+        </div>
+        <div class="list">
+            <template _id="importschema_0"></template>
+            <div class="add" _id="importschema_5">
+                <mi-icon icon="add"></mi-icon>
+            </div>
+        </div>
+    </div>
+    <div class="schema-card">
+        <div class="card-header">
+            <h3>Database Final</h3>
+            <p>Provide the final data source model.</p>
+        </div>
+        <div class="list">
+            <template _id="importschema_6"></template>
+            <div class="add" _id="importschema_11">
+                <mi-icon icon="add"></mi-icon>
+            </div>
+        </div>
+    </div>
+</div><div class="action-footer">
+    <om-button _id="importschema_12">Compare schemas</om-button>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "nextEl",
@@ -15286,7 +16216,16 @@ const ImportSchema = class ImportSchema extends BaseContent {
       "fct": (e, c) => c.comp.analyzeAndCompare(e)
     }
   ]
-});const templ1 = new Aventus.Template(this);templ1.setTemplate(`                <div class="database" _id="importschema_1">                    <av-img _id="importschema_2"></av-img>                    <div _id="importschema_3"></div>                    <mi-icon icon="delete" _id="importschema_4"></mi-icon>                </div>            `);templ1.setActions({
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+                <div class="database" _id="importschema_1">
+                    <av-img _id="importschema_2"></av-img>
+                    <div _id="importschema_3"></div>
+                    <mi-icon icon="delete" _id="importschema_4"></mi-icon>
+                </div>
+            `);
+templ1.setActions({
   "content": {
     "importschema_1°active": {
       "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method4(c.data.database))}`,
@@ -15326,10 +16265,21 @@ const ImportSchema = class ImportSchema extends BaseContent {
       "fct": (c) => c.comp.__c9cba54071d54a55cdb77c778f22dba2method1(c.data.i)
     }
   ]
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'importschema_0',
                     template: templ1,
-                simple:{data: "this.databasesSource",index:"i"}});const templ3 = new Aventus.Template(this);templ3.setTemplate(`                <div class="database" _id="importschema_7">                    <av-img _id="importschema_8"></av-img>                    <div _id="importschema_9"></div>                    <mi-icon icon="delete" _id="importschema_10"></mi-icon>                </div>            `);templ3.setActions({
+                simple:{data: "this.databasesSource",index:"i"}
+});
+const templ3 = new Aventus.Template(this);
+templ3.setTemplate(`
+                <div class="database" _id="importschema_7">
+                    <av-img _id="importschema_8"></av-img>
+                    <div _id="importschema_9"></div>
+                    <mi-icon icon="delete" _id="importschema_10"></mi-icon>
+                </div>
+            `);
+templ3.setActions({
   "content": {
     "importschema_7°active": {
       "fct": (c) => `${c.print(c.comp.__c9cba54071d54a55cdb77c778f22dba2method9(c.data.database))}`,
@@ -15369,15 +16319,26 @@ const ImportSchema = class ImportSchema extends BaseContent {
       "fct": (c) => c.comp.__c9cba54071d54a55cdb77c778f22dba2method3(c.data.i)
     }
   ]
-});this.__getStatic().__template.addLoop({
+});
+this.__getStatic().__template.addLoop({
                     anchorId: 'importschema_6',
                     template: templ3,
-                simple:{data: "this.databasesTarget",index:"i"}}); }
+                simple:{data: "this.databasesTarget",index:"i"}
+});
+ }
     getClassName() {
         return "ImportSchema";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["databasesSource"] = [];w["databasesTarget"] = [];w["dbSource"] = undefined;w["dbTarget"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('databasesSource');this.__correctGetter('databasesTarget');this.__correctGetter('dbSource');this.__correctGetter('dbTarget'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["databasesSource"] = [];
+w["databasesTarget"] = [];
+w["dbSource"] = undefined;
+w["dbTarget"] = undefined;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('databasesSource');
+this.__correctGetter('databasesTarget');
+this.__correctGetter('dbSource');
+this.__correctGetter('dbTarget');
+ }
     selectDatabaseSource(e) {
         const el = e.currentTarget;
         if (el instanceof HTMLElement) {
@@ -15564,13 +16525,28 @@ const SummaryUpdated = class SummaryUpdated extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="for"><template _id="summaryupdated_0"></template></div>` }
+        blocks: { 'default':`<div class="for">
+<template _id="summaryupdated_0"></template>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <div class="table">        <template _id="summaryupdated_1"></template>    </div>`);this.__getStatic().__template.addLoop({
+    __registerTemplateAction() { super.__registerTemplateAction();
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+    <div class="table">
+        <template _id="summaryupdated_1"></template>
+    </div>
+`);
+this.__getStatic().__template.addLoop({
                     anchorId: 'summaryupdated_0',
                     template: templ0,
-                simple:{data: "this.tableComparisons",item:"table"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`            <av-summary-updated-table _id="summaryupdated_2"></av-summary-updated-table>        `);templ1.setActions({
+                simple:{data: "this.tableComparisons",item:"table"}
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+            <av-summary-updated-table _id="summaryupdated_2"></av-summary-updated-table>
+        `);
+templ1.setActions({
   "injection": [
     {
       "id": "summaryupdated_2",
@@ -15579,17 +16555,20 @@ const SummaryUpdated = class SummaryUpdated extends Aventus.WebComponent {
       "once": true
     }
   ]
-});templ0.addIf({
+});
+templ0.addIf({
                     anchorId: 'summaryupdated_1',
                     parts: [{once: true,
                     condition: (c) => c.comp.__8959b69ae2b5092f3c1be2eb741d7f13method1(c.data.table),
                     template: templ1
                 }]
-            }); }
+            });
+ }
     getClassName() {
         return "SummaryUpdated";
     }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tableComparisons'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tableComparisons');
+ }
     __8959b69ae2b5092f3c1be2eb741d7f13method1(table) {
         return table.hasChanges;
     }
@@ -15604,7 +16583,8 @@ if(!window.customElements.get('av-summary-updated')){window.customElements.defin
 
 const DiffSummary = class DiffSummary extends Aventus.WebComponent {
     get 'has_diff'() { return this.getBoolAttr('has_diff') }
-    set 'has_diff'(val) { this.setBoolAttr('has_diff', val) }    static __style = `:host .empty-state{align-items:center;color:var(--neutral);display:none;flex-direction:column;gap:.75rem;justify-content:center;padding:4rem 2rem;text-align:center}:host .empty-state .empty-icon{font-size:2.5rem}:host(:not([has_diff])) .empty-state{display:flex}`;
+    set 'has_diff'(val) { this.setBoolAttr('has_diff', val) }
+    static __style = `:host .empty-state{align-items:center;color:var(--neutral);display:none;flex-direction:column;gap:.75rem;justify-content:center;padding:4rem 2rem;text-align:center}:host .empty-state .empty-icon{font-size:2.5rem}:host(:not([has_diff])) .empty-state{display:flex}`;
     __getStatic() {
         return DiffSummary;
     }
@@ -15615,14 +16595,19 @@ const DiffSummary = class DiffSummary extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="empty-state">    <span class="empty-icon">✨</span>    <p>No difference find across both schemas.</p></div><av-summary-new></av-summary-new><av-summary-deleted></av-summary-deleted><av-summary-updated></av-summary-updated>` }
+        blocks: { 'default':`<div class="empty-state">
+    <span class="empty-icon">✨</span>
+    <p>No difference find across both schemas.</p>
+</div><av-summary-new></av-summary-new><av-summary-deleted></av-summary-deleted><av-summary-updated></av-summary-updated>` }
     });
 }
     getClassName() {
         return "DiffSummary";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_diff')) { this.attributeChangedCallback('has_diff', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('has_diff'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_diff')) { this.attributeChangedCallback('has_diff', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('has_diff');
+ }
     __listBoolProps() { return ["has_diff"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     postCreation() {
         Aventus.Watcher.effect(() => {
@@ -15655,12 +16640,46 @@ const Resolution = class Resolution extends BaseContent {
         arrStyle.push(Resolution.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="section-header">    <h2>Resolution</h2>    <p>Associate tables et renamed field to generate the migration.</p></div><div class="diff-container">    <div class="panel resolution-panel">        <div class="panel-header">            <h3>Associations and renamed</h3>        </div>        <om-scrollable class="panel-scroll">            <div class="panel-body">                <div class="mapping-card">                    <av-renamed-table></av-renamed-table>                </div>                <div class="mapping-card">                    <av-renamed-field></av-renamed-field>                </div>            </div>        </om-scrollable>    </div>    <div class="panel diff-preview-panel">        <div class="panel-header">            <h3>Dectected changes</h3>        </div>        <om-scrollable class="panel-scroll" id="diff-results">            <div class="panel-body">                <av-diff-summary></av-diff-summary>            </div>        </om-scrollable>    </div></div><div class="action-footer">    <om-button _id="resolution_0">Back</om-button>    <om-button _id="resolution_1">Generate migration</om-button></div>` }
+        blocks: { 'default':`<div class="section-header">
+    <h2>Resolution</h2>
+    <p>Associate tables et renamed field to generate the migration.</p>
+</div><div class="diff-container">
+    <div class="panel resolution-panel">
+        <div class="panel-header">
+            <h3>Associations and renamed</h3>
+        </div>
+        <om-scrollable class="panel-scroll">
+            <div class="panel-body">
+                <div class="mapping-card">
+                    <av-renamed-table></av-renamed-table>
+                </div>
+                <div class="mapping-card">
+                    <av-renamed-field></av-renamed-field>
+                </div>
+            </div>
+        </om-scrollable>
+    </div>
+    <div class="panel diff-preview-panel">
+        <div class="panel-header">
+            <h3>Dectected changes</h3>
+        </div>
+        <om-scrollable class="panel-scroll" id="diff-results">
+            <div class="panel-body">
+                <av-diff-summary></av-diff-summary>
+            </div>
+        </om-scrollable>
+    </div>
+</div><div class="action-footer">
+    <om-button _id="resolution_0">Back</om-button>
+    <om-button _id="resolution_1">Generate migration</om-button>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "events": [
     {
       "eventName": "click",
@@ -15673,11 +16692,15 @@ const Resolution = class Resolution extends BaseContent {
       "fct": (e, c) => c.comp.prepareMigrationGeneration(e)
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Resolution";
     }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison');this.__correctGetter('tableComparisons');this.__correctGetter('tables'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparison');
+this.__correctGetter('tableComparisons');
+this.__correctGetter('tables');
+ }
     back() {
         MainState.instance.step = 0;
     }
@@ -16010,17 +17033,20 @@ const MigrationWritter = class MigrationWritter extends BaseContent {
 					}
 					set 'migrationName'(val) {
 						this.__watch["migrationName"] = val;
-					}get 'migrationClassName'() {
+					}
+get 'migrationClassName'() {
 						return this.__watch["migrationClassName"];
 					}
 					set 'migrationClassName'(val) {
 						this.__watch["migrationClassName"] = val;
-					}get 'saveDir'() {
+					}
+get 'saveDir'() {
 						return this.__watch["saveDir"];
 					}
 					set 'saveDir'(val) {
 						this.__watch["saveDir"] = val;
-					}    get comparaison() {
+					}
+    get comparaison() {
         return MainState.instance.comparison;
     }
     get statsModified() {
@@ -16034,7 +17060,10 @@ const MigrationWritter = class MigrationWritter extends BaseContent {
     }
     code = "";
     __registerWatchesActions() {
-    this.__addWatchesActions("migrationName");this.__addWatchesActions("migrationClassName");this.__addWatchesActions("saveDir");    super.__registerWatchesActions();
+    this.__addWatchesActions("migrationName");
+this.__addWatchesActions("migrationClassName");
+this.__addWatchesActions("saveDir");
+    super.__registerWatchesActions();
 }
     static __style = `:host{width:100%}:host .output-grid{align-items:start;display:grid;gap:2rem;grid-template-columns:1fr 2fr}:host .output-grid .config-panel{background:var(--surface-100);border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2)}:host .output-grid .config-panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:1.25rem 1.5rem}:host .output-grid .config-panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .output-grid .config-panel .panel-body{display:flex;flex-direction:column;gap:1.5rem;padding:1.5rem}:host .output-grid .config-panel .panel-body .quick-stats{border-top:1px solid var(--border-color);margin-top:1rem;padding-top:1.25rem}:host .output-grid .config-panel .panel-body .quick-stats h4{color:var(--text-secondary);font-size:.9rem;font-weight:600;margin:0;margin-bottom:.75rem}:host .output-grid .config-panel .panel-body .quick-stats ul{display:flex;flex-direction:column;gap:.4rem;list-style:none;margin:0;padding:0}:host .output-grid .config-panel .panel-body .quick-stats ul li{color:var(--neutral);display:flex;font-size:.85rem;justify-content:space-between}:host .output-grid .config-panel .panel-body .quick-stats ul li span{color:var(--primary-content);font-weight:600}:host .output-grid .code-panel{background:#0b0f19;border:1px solid var(--border-color);border-radius:var(--border-radius-lg);box-shadow:var(--elevation-2);overflow:hidden}:host .output-grid .code-panel .panel-header{align-items:center;background:hsla(0,0%,100%,.02);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;padding:12px 1.5rem}:host .output-grid .code-panel .panel-header h3{font-size:1.1rem;font-weight:600;margin:0}:host .output-grid .code-panel .panel-header .code-actions{display:flex;gap:.5rem}:host .output-grid .code-panel .code-viewport{max-height:600px;overflow-x:auto;padding:1.5rem}:host .output-grid .code-panel .code-viewport pre{color:#e2e8f0;font-family:var(--font-mono);font-size:.85rem;line-height:1.6}`;
     __getStatic() {
@@ -16045,12 +17074,60 @@ const MigrationWritter = class MigrationWritter extends BaseContent {
         arrStyle.push(MigrationWritter.__style);
         return arrStyle;
     }
-    __getHtml() {super.__getHtml();
+    __getHtml() {
+super.__getHtml();
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="section-header">    <h2>Generated code</h2></div><div class="output-grid">    <div class="config-panel">        <div class="panel-header">            <h3>Configuration</h3>        </div>        <div class="panel-body">            <div class="form-group">                <om-input label="Nom de la migration :" _id="migrationwritter_0"></om-input>                <small>Unique identifier for the migration (ex: 0001_update).</small>            </div>            <div class="form-group">                <om-input label="C# classname" _id="migrationwritter_1"></om-input>                <small>Valid name for the C# class inherit from <code>Migration</code>.</small>            </div>            <div class="form-group">                <om-input label="Save directory" _id="migrationwritter_2">                    <mi-icon icon="folder" slot="append" _id="migrationwritter_3"></mi-icon>                </om-input>            </div>            <div class="quick-stats">                <h4>Statistics :</h4>                <ul>                    <li>Created tables : <span _id="migrationwritter_4"></span></li>                    <li>Renamed tables : <span _id="migrationwritter_5"></span></li>                    <li>Deleted tables : <span _id="migrationwritter_6"></span></li>                    <li>Changes applied : <span _id="migrationwritter_7"></span></li>                </ul>            </div>        </div>    </div>    <div class="code-panel">        <div class="panel-header">            <h3>Source code C#</h3>            <div class="code-actions">                <om-button outline _id="migrationwritter_8">Copy</om-button>                <om-button _id="migrationwritter_9">Save</om-button>            </div>        </div>        <div class="code-viewport">            <av-code language="csharp" _id="migrationwritter_10"></av-code>        </div>    </div></div><div class="action-footer">    <om-button _id="migrationwritter_11">Retour</om-button></div>` }
+        blocks: { 'default':`<div class="section-header">
+    <h2>Generated code</h2>
+</div><div class="output-grid">
+    <div class="config-panel">
+        <div class="panel-header">
+            <h3>Configuration</h3>
+        </div>
+        <div class="panel-body">
+            <div class="form-group">
+                <om-input label="Nom de la migration :" _id="migrationwritter_0"></om-input>
+                <small>Unique identifier for the migration (ex: 0001_update).</small>
+            </div>
+            <div class="form-group">
+                <om-input label="C# classname" _id="migrationwritter_1"></om-input>
+                <small>Valid name for the C# class inherit from <code>Migration</code>.</small>
+            </div>
+            <div class="form-group">
+                <om-input label="Save directory" _id="migrationwritter_2">
+                    <mi-icon icon="folder" slot="append" _id="migrationwritter_3"></mi-icon>
+                </om-input>
+            </div>
+            <div class="quick-stats">
+                <h4>Statistics :</h4>
+                <ul>
+                    <li>Created tables : <span _id="migrationwritter_4"></span></li>
+                    <li>Renamed tables : <span _id="migrationwritter_5"></span></li>
+                    <li>Deleted tables : <span _id="migrationwritter_6"></span></li>
+                    <li>Changes applied : <span _id="migrationwritter_7"></span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="code-panel">
+        <div class="panel-header">
+            <h3>Source code C#</h3>
+            <div class="code-actions">
+                <om-button outline _id="migrationwritter_8">Copy</om-button>
+                <om-button _id="migrationwritter_9">Save</om-button>
+            </div>
+        </div>
+        <div class="code-viewport">
+            <av-code language="csharp" _id="migrationwritter_10"></av-code>
+        </div>
+    </div>
+</div><div class="action-footer">
+    <om-button _id="migrationwritter_11">Retour</om-button>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "codeEl",
@@ -16133,12 +17210,21 @@ const MigrationWritter = class MigrationWritter extends BaseContent {
       "fct": (e, c) => c.comp.back(e)
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "MigrationWritter";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["migrationName"] = "0001_update";w["migrationClassName"] = "Migration_0001_update";w["saveDir"] = ""; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparaison');this.__correctGetter('statsModified');this.__correctGetter('migrationName');this.__correctGetter('migrationClassName');this.__correctGetter('saveDir'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["migrationName"] = "0001_update";
+w["migrationClassName"] = "Migration_0001_update";
+w["saveDir"] = "";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('comparaison');
+this.__correctGetter('statsModified');
+this.__correctGetter('migrationName');
+this.__correctGetter('migrationClassName');
+this.__correctGetter('saveDir');
+ }
     async selectDir() {
         const dir = await Api.chooseFolder();
         if (dir) {
@@ -16226,10 +17312,15 @@ const Body = class Body extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="content">    <av-import-schema class="step" _id="body_0"></av-import-schema>    <av-resolution class="step" _id="body_1"></av-resolution>    <av-migration-writter class="step" _id="body_2"></av-migration-writter></div>` }
+        blocks: { 'default':`<div class="content">
+    <av-import-schema class="step" _id="body_0"></av-import-schema>
+    <av-resolution class="step" _id="body_1"></av-resolution>
+    <av-migration-writter class="step" _id="body_2"></av-migration-writter>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "importEl",
@@ -16252,7 +17343,8 @@ const Body = class Body extends Aventus.WebComponent {
       "once": true
     }
   }
-}); }
+});
+ }
     getClassName() {
         return "Body";
     }
@@ -16285,10 +17377,13 @@ const App = class App extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<av-header _id="app_0"></av-header><om-scrollable floating_scroll>    <av-body _id="app_1"></av-body></om-scrollable>` }
+        blocks: { 'default':`<av-header _id="app_0"></av-header><om-scrollable floating_scroll>
+    <av-body _id="app_1"></av-body>
+</om-scrollable>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "headerEl",
@@ -16303,7 +17398,8 @@ const App = class App extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "App";
     }

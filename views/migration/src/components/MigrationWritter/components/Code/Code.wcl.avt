@@ -38,7 +38,6 @@ export class Code extends Aventus.WebComponent implements Aventus.DefaultCompone
     }
 
     public async setCode(code: string) {
-        debugger;
         if(!window.Prism) {
             await this.loadFiles();
         }
