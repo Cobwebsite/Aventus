@@ -38,7 +38,7 @@ export class CreateAttribute {
 		if (!name) { return; }
 
 		let typeResult = await GenericServer.Select(CreateAttribute.attrType, {
-			placeHolder: 'Choose a type?',
+			title: 'Choose a type?',
 		})
 		if (!typeResult) { return }
 		reorderList(CreateAttribute.attrType, typeResult);

@@ -42,7 +42,7 @@ export class CreateProperty {
 		}
 
 		let typeResult = await GenericServer.Select(CreateProperty.attrType, {
-			placeHolder: 'Choose a type?',
+			title: 'Choose a type?',
 		})
 		if (!typeResult) { return }
 		reorderList(CreateProperty.attrType, typeResult);
@@ -51,7 +51,7 @@ export class CreateProperty {
 		const needCbResult = await GenericServer.Select([
 			{ label: "Yes" }, { label: "No" }
 		], {
-			placeHolder: 'Do you need a callback function?',
+			title: 'Do you need a callback function?',
 		});
 
 		if (!needCbResult) {

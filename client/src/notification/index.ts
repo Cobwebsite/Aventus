@@ -19,6 +19,7 @@ import { RegisterData } from "./RegisterData";
 import { RegisterStatic } from "./RegisterStatic";
 import { SetSettings } from './SetSettings';
 import { Compiling } from './sharp/Compiling';
+import { HideLoadingMessage, ShowLoadingMessage } from './ShowLoadingMessage';
 import { UnregisterBuild } from "./UnregisterBuild";
 import { UnregisterData } from "./UnregisterData";
 import { UnregisterStatic } from "./UnregisterStatic";
@@ -50,5 +51,7 @@ export const Notifications = {
         [ProgressStart.cmd]: ProgressStart,
         [ProgressStop.cmd]: ProgressStop,
         [SetSettings.cmd]: SetSettings,
+        [ShowLoadingMessage.cmd]: ShowLoadingMessage,
+        [HideLoadingMessage.cmd]: HideLoadingMessage
     },
 }

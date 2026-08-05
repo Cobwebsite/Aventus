@@ -26,8 +26,10 @@ export class SharpExport {
 		}
 		if (!exist("csharp-converter")) {
 			try {
-				if(await GenericServer.ask("csharp-converter is missing. Can I install it?")) {
-					await execAsync("dotnet tool install --global AventusSharp.Converter");
+				if (await GenericServer.ask("csharp-converter is missing. Can I install it?")) {
+					await GenericServer.showLoadingMessage("Installing csharp-converter", async () => {
+						await execAsync("dotnet tool install --global AventusSharp.Converter");
+					});
 				}
 
 				if (!exist("csharp-converter")) {
@@ -53,7 +55,7 @@ export class SharpExport {
 					})
 				}
 				let result = await GenericServer.Select(items, {
-					placeHolder: 'Project to compile'
+					title: 'Project to compile'
 				})
 				if (result) {
 					uri = result.label;

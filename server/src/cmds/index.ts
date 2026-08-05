@@ -45,6 +45,7 @@ import { Format } from './Format';
 import { Dependency } from './ai/Dependency';
 import { Rules } from './ai/Rules';
 import { Emmet } from './Emmet';
+import { SharpUpdateTools } from './sharp/UpdateTools';
 
 export const Commands = {
     allCommandes: {
@@ -76,6 +77,7 @@ export const Commands = {
         [ImportTemplate.cmd]: ImportTemplate,
         [ImportProject.cmd]: ImportProject,
         [SharpExport.cmd]: SharpExport,
+        [SharpUpdateTools.cmd]: SharpUpdateTools,
         [PhpExport.cmd]: PhpExport,
         [ReloadSettings.cmd]: ReloadSettings,
         [StorybookBuild.cmd]: StorybookBuild,

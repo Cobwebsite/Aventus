@@ -481,6 +481,10 @@
 				"title": "Aventus : Export sharp"
 			},
 			{
+				"command": "aventus.sharp.update_tools",
+				"title": "Aventus : Update sharp tools"
+			},
+			{
 				"command": "aventus.openfile.debug",
 				"title": "Aventus : Open debug file"
 			},

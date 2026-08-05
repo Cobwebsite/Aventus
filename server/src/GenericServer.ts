@@ -56,6 +56,10 @@ export class GenericServer {
 		GenericServer.debug(`showInformationMessage ` + msg);
 		this.instance.connection.showInformationMessage(msg);
 	}
+	public static async showLoadingMessage(msg: string, action: () => Promise<void>) {
+		GenericServer.debug(`showLoadingMessage ` + msg);
+		await this.instance.connection.showLoadingMessage(msg, action);
+	}
 	public static async ask(msg: string): Promise<boolean> {
 		GenericServer.debug(`ask ` + msg);
 		return await this.instance.connection.ask(msg);

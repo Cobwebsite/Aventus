@@ -18,7 +18,7 @@ export class StaticExport {
 		}
 
 		let result = await GenericServer.Select(items, {
-			placeHolder: 'Static to export'
+			title: 'Static to export'
 		})
 
 		if(result) {

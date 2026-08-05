@@ -34,7 +34,7 @@ export class CreateWatch {
 		const needCbResult = await GenericServer.Select([
 			{ label: "Yes" }, { label: "No" }
 		], {
-			placeHolder: 'Do you need a callback function?',
+			title: 'Do you need a callback function?',
 		});
 
 		if (!needCbResult) {

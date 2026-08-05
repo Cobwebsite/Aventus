@@ -1,10 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join, normalize } from 'path';
-import { ExtensionContext, OpenDialogOptions, Uri, ViewColumn, Webview, WebviewPanel, window, workspace } from 'vscode';
+import { ExtensionContext, OpenDialogOptions, Progress, ProgressLocation, Uri, ViewColumn, Webview, WebviewPanel, window, workspace } from 'vscode';
 import { getNonce, pathToUri, uriToPath } from '../tool';
 import { Communication } from '../customEditors/_Communication';
-import { spawn } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { sqlSchema } from './migration_sql';
+import { sync as exist } from 'command-exists';
+import { promisify } from 'util';
+
+export const execAsync = promisify(exec);
 
 export type DBType = "mysql" | "mssql" | "postgresql" | "sqlite"
 type DatabaseModel = {
@@ -206,10 +210,51 @@ export class AventusMigration {
 		await context.secrets.delete(`db_pass_${connectionId}`);
 	}
 
+	private async ask(msg: string): Promise<boolean> {
+		const res = await window.showInformationMessage(msg, { title: "Yes" }, { title: "No" });
+		return res?.title == "Yes"
+	}
+	private showLoadingMessage(msg: string, action: (progress: Progress<{ message?: string; increment?: number; }>) => Thenable<void>): void {
+		window.withProgress(
+			{
+				location: ProgressLocation.Notification,
+				title: msg,
+				cancellable: false
+			},
+			action
+		);
+	}
 	private async executeDbQuery<T>(payload: QueryPayload) {
-		return new Promise<T[]>((resolve, reject) => {
-			// Remplace par le chemin vers ton binaire .NET compilé
-			const child = spawn('dotnet', ['D:/Aventus/AvenutsSharp/DatabaseQuery/bin/Debug/net10.0/DatabaseQuery.dll']);
+		return new Promise<T[]>(async (resolve, reject) => {
+
+			if (!exist("dotnet")) {
+				window.showErrorMessage("Dotnet isn't installed on your system");
+				reject(new Error(`Dotnet isn't installed on your system`));
+				return
+			}
+			if (!exist("db-query")) {
+				try {
+					if (await this.ask("db-query is missing. Can I install it?")) {
+						this.showLoadingMessage("Installing AventusSharp.DatabaseQuery", async () => {
+							await execAsync("dotnet tool install --global AventusSharp.DatabaseQuery");
+						})
+					}
+
+					if (!exist("db-query")) {
+						window.showErrorMessage("Can't find the db-query. Run the command : dotnet tool install --global AventusSharp.DatabaseQuery");
+						reject(new Error(`Can't find the db-query. Run the command : dotnet tool install --global AventusSharp.DatabaseQuery`));
+						return
+					}
+				}
+				catch (e) {
+					window.showErrorMessage(e + "");
+					reject(new Error(e as any));
+					return
+				}
+			}
+
+
+			const child = spawn('db-query');
 
 			let responseData = '';
 			let errorData = '';
@@ -267,6 +312,6 @@ export class AventusMigration {
 		webview.html = txt
 
 
-		
+
 	}
 }
