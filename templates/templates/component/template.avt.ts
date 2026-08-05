@@ -19,7 +19,7 @@ export class Template extends AventusTemplate {
         const resultFormat = await this.select([
             { label: "Single", detail: "Single file" },
             { label: "Multiple", detail: "Splitted file" }
-        ], { placeHolder: 'How should I setup your component?' });
+        ], { title: 'How should I setup your component?' });
         if(!resultFormat) return;
 
         const isSingle = resultFormat.label == "Single";

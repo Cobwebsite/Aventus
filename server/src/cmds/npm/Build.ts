@@ -18,7 +18,7 @@ export class NpmBuild {
 		}
 
 		let result = items.length == 1 ? items[0] : await GenericServer.Select(items, {
-			placeHolder: 'Package to build'
+			title: 'Package to build'
 		})
 
 		if (result) {

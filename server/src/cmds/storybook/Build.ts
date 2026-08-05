@@ -18,7 +18,7 @@ export class StorybookBuild {
 		}
 
 		let result = await GenericServer.Select(items, {
-			placeHolder: 'Story to build'
+			title: 'Story to build'
 		})
 
 		if(result) {

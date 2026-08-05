@@ -23,7 +23,7 @@ export class AddConfigSection {
 				}
 				if (items.length > 1) {
 					let result = await GenericServer.Select(items, {
-						placeHolder: 'Select a project to add section'
+						title: 'Select a project to add section'
 					})
 					if (!result) {
 						return;

@@ -12,6 +12,7 @@ import { FilesManager } from '../files/FilesManager';
 import { AventusLanguageId } from '../definition';
 import { Settings, SettingsHtml } from '../settings/Settings';
 import { SetSettings } from '../notification/SetSettings';
+import { ShowLoadingMessage } from '../notification/ShowLoadingMessage';
 
 export class VsCodeConnection implements IConnection {
 
@@ -78,6 +79,15 @@ export class VsCodeConnection implements IConnection {
 	}
 	public showInformationMessage(msg: string): void {
 		this._connection.window.showInformationMessage(msg);
+	}
+	public async showLoadingMessage(msg: string, action: () => Promise<void>): Promise<void> {
+		const uuid = ShowLoadingMessage.send({ message: msg })
+		try {
+			await action();
+		} catch (e) {
+			console.error(e);
+		}
+		ShowLoadingMessage.done(uuid)
 	}
 	public async ask(msg: string): Promise<boolean> {
 		const res = await this._connection.window.showInformationMessage(msg, { title: "Yes" }, { title: "No" });

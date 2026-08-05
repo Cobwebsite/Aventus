@@ -7,6 +7,7 @@ import { ServerConfig } from './Server';
 import { pathToUri } from '../tools';
 import type { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '@server/IConnection';
 import type { Settings, SettingsHtml } from '@server/settings/Settings';
+import readline from 'readline';
 
 export type CliErrors = { [build: string]: CliErrorsBuild };
 export type CliErrorsBuild = { [uri: string]: Diagnostic[] };
@@ -45,6 +46,31 @@ export class CliConnection implements IConnection {
 	}
 	showInformationMessage(msg: string): void {
 		console.log("[info] : " + msg);
+	}
+	async showLoadingMessage(msg: string, action: () => Promise<void>): Promise<void> {
+		process.stdout.write(msg);
+		const columns = process.stdout.columns || 80; // Largeur par défaut si non détectée
+		const lines = msg.split('\n');
+		let totalVisualLines = 0;
+		for (const line of lines) {
+			totalVisualLines += Math.max(1, Math.ceil(line.length / columns));
+		}
+
+		try {
+			await action();
+			for (let i = 0; i < totalVisualLines; i++) {
+				// Efface la ligne courante
+				readline.clearLine(process.stdout, 0);
+				// Replace le curseur au début de la ligne
+				readline.cursorTo(process.stdout, 0);
+				// Remonte d'une ligne (sauf si on est déjà au sommet du message)
+				if (i < totalVisualLines - 1) {
+					readline.moveCursor(process.stdout, 0, -1);
+				}
+			}
+		} catch (e) {
+			console.error(e);
+		}
 	}
 	public async ask(msg: string): Promise<boolean> {
 		const res = await this.Select([{ label: "Yes" }, { label: "No" }], { title: msg });
