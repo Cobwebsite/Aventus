@@ -766,7 +766,26 @@ export class TemplateInstance {
         let basePath = this.context.normalizePath(simple.data);
         this.resetLoopSimple(loop.anchorId, basePath);
         let getElements = () => this.context.getValueFromItem(basePath);
-        let elements = getElements();
+        // A simple loop must observe the expression which provides its collection,
+        // not only the collection itself. This is required when the expression is
+        // a Signal value or a getter depending on one or several reactive values.
+        // The collection path itself is stable for a simple loop. Register its
+        // dependencies once: rebuilding that dependency graph synchronously from
+        // inside a Signal notification can recursively subscribe to that Signal.
+        let elementsComputed = new ComputedNoRecomputed<any>(() => getElements());
+        let elements = elementsComputed.value;
+        let registry = this.loopRegisteries[loop.anchorId];
+        registry.computeds.push(elementsComputed);
+        let requestRender = () => {
+            queueMicrotask(() => {
+                if(this.isDestroyed) return;
+                // Several dependencies can notify the same loop in one update.
+                // Only the first queued reconstruction must be applied.
+                if(this.loopRegisteries[loop.anchorId] != registry) return;
+                this.renderLoopSimple(loop, simple);
+            });
+        };
+        elementsComputed.subscribe(requestRender);
         if(!elements) {
             let currentPath = basePath;
 
@@ -793,7 +812,7 @@ export class TemplateInstance {
             const subTemp = (action: WatchAction, path: string, value: any) => {
                 if(basePath.startsWith(path) || path == "*") {
                     elements.unsubscribe(subTemp);
-                    this.renderLoopSimple(loop, simple);
+                    requestRender();
                     return;
                 }
             };
@@ -807,8 +826,9 @@ export class TemplateInstance {
             let regexObject = new RegExp("^([^\\.]*)$");
             let sub: WatcherFunction = (action, path, value) => {
                 if(this.isDestroyed) return;
+                if(this.loopRegisteries[loop.anchorId] != registry) return;
                 if(path == "") {
-                    this.renderLoopSimple(loop, simple);
+                    requestRender();
                     return;
                 }
                 // updated is deal by other function

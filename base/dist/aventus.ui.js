@@ -892,6 +892,7 @@ let Effect=class Effect {
     __subscribes = [];
     __allowChanged = [];
     version = 0;
+    isRunning = false;
     fct;
     constructor(fct) {
         this.fct = fct;
@@ -907,10 +908,19 @@ let Effect=class Effect {
         this.run();
     }
     run() {
+        if (this.isRunning)
+            return;
+        this.isRunning = true;
         this.version++;
         Watcher._registering.push(this);
-        let result = this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        let result;
+        try {
+            result = this.fct();
+        }
+        finally {
+            Watcher._registering.splice(Watcher._registering.length - 1, 1);
+            this.isRunning = false;
+        }
         for (let i = 0; i < this.callbacks.length; i++) {
             if (this.callbacks[i].version != this.version) {
                 this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
@@ -954,7 +964,7 @@ let Effect=class Effect {
         this.__allowChanged.push(fct);
     }
     checkCanChange(action, changePath, value, dones) {
-        if (this.isDestroy) {
+        if (this.isDestroy || this.isRunning) {
             return false;
         }
         for (let fct of this.__allowChanged) {
@@ -969,8 +979,10 @@ let Effect=class Effect {
             return;
         }
         this.run();
-        for (let fct of this.__subscribes) {
-            fct(action, changePath, value, dones);
+        for (let fct of [...this.__subscribes]) {
+            Watcher.isolate(() => {
+                fct(action, changePath, value, dones);
+            });
         }
     }
     destroy() {
@@ -1012,11 +1024,16 @@ let Signal=class Signal {
         const oldValue = this._value;
         this._value = item;
         if (oldValue != item) {
+            const subscribes = [...this.__subscribes];
             if (this._onChange) {
-                this._onChange();
+                Watcher.isolate(() => {
+                    this._onChange?.();
+                });
             }
-            for (let fct of this.__subscribes) {
-                fct(WatchAction.UPDATED, "*", item, []);
+            for (let fct of subscribes) {
+                Watcher.isolate(() => {
+                    fct(WatchAction.UPDATED, "*", item, []);
+                });
             }
         }
     }
@@ -1058,8 +1075,37 @@ let Watcher=class Watcher {
     };
     static __triggerForced = false;
     static _registering = [];
+    static __untrackDepth = 0;
     static get _register() {
+        if (this.__untrackDepth > 0)
+            return undefined;
         return this._registering[this._registering.length - 1];
+    }
+    /**
+     * Read reactive values without registering them on the current effect.
+     */
+    static untrack(fct) {
+        this.__untrackDepth++;
+        try {
+            return fct();
+        }
+        finally {
+            this.__untrackDepth--;
+        }
+    }
+    /**
+     * Run a callback outside the current reactive context while allowing effects
+     * created by that callback to register their own dependencies.
+     */
+    static isolate(fct) {
+        const registering = this._registering;
+        this._registering = [];
+        try {
+            return fct();
+        }
+        finally {
+            this._registering = registering;
+        }
     }
     /**
      * Transform object into a watcher
@@ -1789,7 +1835,9 @@ let Watcher=class Watcher {
                 let cbs = callbacks[name];
                 for (let cb of cbs) {
                     try {
-                        cb(WatchAction[type], pathToSend, value, dones);
+                        Watcher.isolate(() => {
+                            cb(WatchAction[type], pathToSend, value, dones);
+                        });
                     }
                     catch (e) {
                         if (e != 'impossible')
@@ -1942,8 +1990,10 @@ let Computed=class Computed extends Effect {
         if (oldValue === this._value) {
             return;
         }
-        for (let fct of this.__subscribes) {
-            fct(action, changePath, value, dones);
+        for (let fct of [...this.__subscribes]) {
+            Watcher.isolate(() => {
+                fct(action, changePath, value, dones);
+            });
         }
     }
 }
@@ -1954,14 +2004,22 @@ let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
         Watcher._registering.push(this);
-        this._value = this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        try {
+            this._value = this.fct();
+        }
+        finally {
+            Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        }
     }
     computedValue() {
-        if (this.isInit)
-            this._value = this.fct();
-        else
+        if (this.isInit) {
+            Watcher.untrack(() => {
+                this._value = this.fct();
+            });
+        }
+        else {
             this.init();
+        }
     }
     run() { }
 }
@@ -3557,7 +3615,20 @@ let TemplateInstance=class TemplateInstance {
         let basePath = this.context.normalizePath(simple.data);
         this.resetLoopSimple(loop.anchorId, basePath);
         let getElements = () => this.context.getValueFromItem(basePath);
-        let elements = getElements();
+        let elementsComputed = new ComputedNoRecomputed(() => getElements());
+        let elements = elementsComputed.value;
+        let registry = this.loopRegisteries[loop.anchorId];
+        registry.computeds.push(elementsComputed);
+        let requestRender = () => {
+            queueMicrotask(() => {
+                if (this.isDestroyed)
+                    return;
+                if (this.loopRegisteries[loop.anchorId] != registry)
+                    return;
+                this.renderLoopSimple(loop, simple);
+            });
+        };
+        elementsComputed.subscribe(requestRender);
         if (!elements) {
             let currentPath = basePath;
             while (currentPath != '' && !elements) {
@@ -3582,7 +3653,7 @@ let TemplateInstance=class TemplateInstance {
             const subTemp = (action, path, value) => {
                 if (basePath.startsWith(path) || path == "*") {
                     elements.unsubscribe(subTemp);
-                    this.renderLoopSimple(loop, simple);
+                    requestRender();
                     return;
                 }
             };
@@ -3597,8 +3668,10 @@ let TemplateInstance=class TemplateInstance {
             let sub = (action, path, value) => {
                 if (this.isDestroyed)
                     return;
+                if (this.loopRegisteries[loop.anchorId] != registry)
+                    return;
                 if (path == "") {
-                    this.renderLoopSimple(loop, simple);
+                    requestRender();
                     return;
                 }
                 if (action == WatchAction.UPDATED) {

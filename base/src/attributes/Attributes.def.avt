@@ -33,10 +33,10 @@ declare global {
         context: ClassAccessorDecoratorContext<This, Value>
     ) => ClassAccessorDecoratorResult<This, Value> | void;
 
-    type AvMethodDecorator = <This, Args extends any[], Return>(
-        target: (this: This, ...args: Args) => Return,
-        context: ClassMethodDecoratorContext<This, (this: This, ...args: Args) => Return>
-    ) => ((this: This, ...args: Args) => Return) | void;
+    type AvMethodDecorator = <This, Value extends (this: This, ...args: any[]) => any>(
+        target: Value,
+        context: ClassMethodDecoratorContext<This, Value>
+    ) => Value | void;
 
     interface DebuggerConfig {
         /** Write the compiled file inside ./compiled.js */
