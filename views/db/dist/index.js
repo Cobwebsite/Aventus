@@ -14210,15 +14210,15 @@ this.__correctGetter('hasNewContent');
         for (let savedTable of snapshot.tables) {
             const table = this.find(this.schema.tables, savedTable.id);
             if (table) {
-                table.x = savedTable.x;
-                table.y = savedTable.y;
+                table.x = Math.round(savedTable.x);
+                table.y = Math.round(savedTable.y);
             }
         }
         for (let savedArea of snapshot.areas) {
             const area = this.find(this.schema.areas, savedArea.id);
             if (area) {
-                area.x = savedArea.x;
-                area.y = savedArea.y;
+                area.x = Math.round(savedArea.x);
+                area.y = Math.round(savedArea.y);
                 area.width = savedArea.width;
                 area.height = savedArea.height;
             }
@@ -14987,14 +14987,14 @@ this.__correctGetter('relationshipPaths');
                 if (item.table.locked)
                     return;
                 // todo replace when watch will be correct
-                this.find(this.editor.schema?.tables, item.table.id).x = item.startX + dx;
-                this.find(this.editor.schema?.tables, item.table.id).y = item.startY + dy;
+                this.find(this.editor.schema?.tables, item.table.id).x = Math.round(item.startX + dx);
+                this.find(this.editor.schema?.tables, item.table.id).y = Math.round(item.startY + dy);
             }
             for (let item of this.selectedAreaInitialPositions) {
                 if (item.area.locked)
                     return;
-                this.find(this.editor.schema?.areas, item.area.id).x = item.startX + dx;
-                this.find(this.editor.schema?.areas, item.area.id).y = item.startY + dy;
+                this.find(this.editor.schema?.areas, item.area.id).x = Math.round(item.startX + dx);
+                this.find(this.editor.schema?.areas, item.area.id).y = Math.round(item.startY + dy);
             }
             this.updatePaths();
         }

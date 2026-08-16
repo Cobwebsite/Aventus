@@ -485,15 +485,15 @@ export class Canvas extends Aventus.WebComponent implements Aventus.DefaultCompo
             for(let item of this.selectedTableInitialPositions) {
                 if(item.table.locked) return;
                 // todo replace when watch will be correct
-                this.find(this.editor.schema?.tables, item.table.id)!.x = item.startX + dx;
-                this.find(this.editor.schema?.tables, item.table.id)!.y = item.startY + dy;
+                this.find(this.editor.schema?.tables, item.table.id)!.x = Math.round(item.startX + dx);
+                this.find(this.editor.schema?.tables, item.table.id)!.y = Math.round(item.startY + dy);
             }
 
 
             for(let item of this.selectedAreaInitialPositions) {
                 if(item.area.locked) return;
-                this.find(this.editor.schema?.areas, item.area.id)!.x = item.startX + dx;
-                this.find(this.editor.schema?.areas, item.area.id)!.y = item.startY + dy;
+                this.find(this.editor.schema?.areas, item.area.id)!.x = Math.round(item.startX + dx);
+                this.find(this.editor.schema?.areas, item.area.id)!.y = Math.round(item.startY + dy);
             }
 
             this.updatePaths();
