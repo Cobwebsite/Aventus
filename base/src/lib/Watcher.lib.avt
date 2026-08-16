@@ -42,9 +42,38 @@ export class Watcher {
     private static __triggerForced: boolean = false;
     @Internal()
     public static _registering: Effect[] = [];
+    private static __untrackDepth: number = 0;
     @Internal()
     public static get _register(): Effect | undefined {
+        if(this.__untrackDepth > 0) return undefined;
         return this._registering[this._registering.length - 1];
+    }
+    /**
+     * Read reactive values without registering them on the current effect.
+     */
+    public static untrack<T>(fct: () => T): T {
+        this.__untrackDepth++;
+        try {
+            return fct();
+        }
+        finally {
+            this.__untrackDepth--;
+        }
+    }
+    /**
+     * Run a callback outside the current reactive context while allowing effects
+     * created by that callback to register their own dependencies.
+     */
+    @Internal()
+    public static isolate<T>(fct: () => T): T {
+        const registering = this._registering;
+        this._registering = [];
+        try {
+            return fct();
+        }
+        finally {
+            this._registering = registering;
+        }
     }
     /**
      * Transform object into a watcher
@@ -850,7 +879,9 @@ export class Watcher {
                 // let cbs = [...proxyData.callbacks[name]];
                 for(let cb of cbs) {
                     try {
-                        cb(WatchAction[type] as any, pathToSend, value, dones);
+                        Watcher.isolate(() => {
+                            cb(WatchAction[type] as any, pathToSend, value, dones);
+                        });
                     } catch(e) {
                         if(e != 'impossible')
                             console.error(e);
@@ -1021,6 +1052,8 @@ export class Effect {
     protected __allowChanged: WatcherAllowed[] = [];
     @InternalProtected()
     public version: number = 0;
+    @InternalProtected()
+    public isRunning: boolean = false;
 
     protected fct: () => void;
 
@@ -1041,10 +1074,18 @@ export class Effect {
     }
 
     protected run() {
+        if(this.isRunning) return;
+        this.isRunning = true;
         this.version++;
         Watcher._registering.push(this);
-        let result = this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        let result: void;
+        try {
+            result = this.fct();
+        }
+        finally {
+            Watcher._registering.splice(Watcher._registering.length - 1, 1);
+            this.isRunning = false;
+        }
         for(let i = 0; i < this.callbacks.length; i++) {
             if(this.callbacks[i].version != this.version) {
                 this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
@@ -1095,7 +1136,7 @@ export class Effect {
     }
 
     protected checkCanChange(action: WatchAction, changePath: string, value: any, dones: any[]): boolean {
-        if(this.isDestroy) {
+        if(this.isDestroy || this.isRunning) {
             return false;
         }
         for(let fct of this.__allowChanged) {
@@ -1111,8 +1152,10 @@ export class Effect {
             return;
         }
         this.run();
-        for(let fct of this.__subscribes) {
-            fct(action, changePath, value, dones);
+        for(let fct of [...this.__subscribes]) {
+            Watcher.isolate(() => {
+                fct(action, changePath, value, dones);
+            });
         }
     }
 
@@ -1156,8 +1199,12 @@ export class EffectNoRecomputed extends Effect {
     protected override init() {
         this.isInit = true;
         Watcher._registering.push(this);
-        this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        try {
+            this.fct();
+        }
+        finally {
+            Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        }
     }
 
     protected override run() {
@@ -1214,8 +1261,10 @@ export class Computed<T = any> extends Effect implements EffectReceiver {
         if(oldValue === this._value) {
             return;
         }
-        for(let fct of this.__subscribes) {
-            fct(action, changePath, value, dones);
+        for(let fct of [...this.__subscribes]) {
+            Watcher.isolate(() => {
+                fct(action, changePath, value, dones);
+            });
         }
     }
 }
@@ -1232,15 +1281,23 @@ export class ComputedNoRecomputed<T = any> extends Computed<T> {
     protected override init() {
         this.isInit = true;
         Watcher._registering.push(this);
-        this._value = this.fct() as T;
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        try {
+            this._value = this.fct() as T;
+        }
+        finally {
+            Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        }
     }
 
     protected override computedValue() {
-        if(this.isInit)
-            this._value = this.fct() as T;
-        else
+        if(this.isInit) {
+            Watcher.untrack(() => {
+                this._value = this.fct() as T;
+            });
+        }
+        else {
             this.init();
+        }
     }
 
     protected override run() { }
@@ -1262,11 +1319,19 @@ export class Signal<T> implements EffectReceiver {
         const oldValue = this._value;
         this._value = item;
         if(oldValue != item) {
+            const subscribes = [...this.__subscribes];
             if(this._onChange) {
-                this._onChange();
+                Watcher.isolate(() => {
+                    this._onChange?.();
+                });
             }
-            for(let fct of this.__subscribes) {
-                fct(WatchAction.UPDATED, "*", item, []);
+            // A subscriber may destroy and recreate reactive dependencies while
+            // handling this notification. Iterate over a snapshot so newly added
+            // subscribers are only notified by the next value change.
+            for(let fct of subscribes) {
+                Watcher.isolate(() => {
+                    fct(WatchAction.UPDATED, "*", item, []);
+                });
             }
         }
     }
