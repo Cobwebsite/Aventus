@@ -211,7 +211,7 @@ export class NpmBuilder {
 					resolveDir: baseDir,
 					sourcefile: 'index.js',
 				},
-				bundle: false,
+				bundle: true,
 				format: 'iife',
 				globalName: '_',
 				nodePaths: allNodeModules,
