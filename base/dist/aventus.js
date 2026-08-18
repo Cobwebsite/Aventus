@@ -2782,7 +2782,7 @@ __as1(_, 'EffectNoRecomputed', EffectNoRecomputed);
 let HttpRouter=class HttpRouter {
     static options;
     static configure(options) {
-        this.options = options;
+        HttpRouter.options = options;
     }
     options;
     constructor() {
@@ -2830,7 +2830,7 @@ __as1(_, 'HttpRoute', HttpRoute);
 let HttpRequest=class HttpRequest {
     static options;
     static configure(options) {
-        this.options = options;
+        HttpRequest.options = options;
     }
     request;
     url;
@@ -3232,7 +3232,7 @@ let PressManager=class PressManager {
         offsetDrag: 20
     };
     static configure(options) {
-        this.globalConfig = options;
+        PressManager.globalConfig = options;
     }
     static create(options) {
         if (Array.isArray(options.element)) {
@@ -6922,6 +6922,8 @@ let WebComponent=class WebComponent extends HTMLElement {
     __defaultActiveState = new Map();
     __defaultInactiveState = new Map();
     __statesList = {};
+    __onPostDestruction = [];
+    __onPostDisconnect = [];
     constructor() {
         super();
         if (this.constructor == WebComponent) {
@@ -6959,6 +6961,10 @@ let WebComponent=class WebComponent extends HTMLElement {
         for (let name in this.__signals) {
             this.__signals[name].destroy();
         }
+        for (let cb of [...this.__onPostDestruction]) {
+            cb();
+        }
+        this.__onPostDestruction = [];
         // TODO add missing info for destructor();
         this.postDestruction();
         this.destructChildren();
@@ -7150,6 +7156,10 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
     disconnectedCallback() {
         setTimeout(() => {
+            for (let cb of [...this.__onPostDisconnect]) {
+                cb();
+            }
+            this.__onPostDisconnect = [];
             this.postDisconnect();
         });
     }
@@ -7527,6 +7537,12 @@ let WebComponent=class WebComponent extends HTMLElement {
     /**
      * Function triggered when the component is destroyed
      */
+    onPostDestruction(cb) {
+        this.__onPostDestruction.push(cb);
+    }
+    /**
+     * Function triggered when the component is destroyed
+     */
     postDestruction() { }
     /**
      * Function triggered the first time the component is rendering inside DOM
@@ -7536,6 +7552,12 @@ let WebComponent=class WebComponent extends HTMLElement {
     * Function triggered each time the component is rendering inside DOM
     */
     postConnect() { }
+    /**
+    * Function triggered each time the component is removed from the DOM
+    */
+    onPostDisconnect(cb) {
+        this.__onPostDisconnect.push(cb);
+    }
     /**
     * Function triggered each time the component is removed from the DOM
     */

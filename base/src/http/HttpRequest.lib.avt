@@ -21,7 +21,7 @@ export class HttpRequest {
 
 
     public static configure(options: HttpRequestOptions) {
-        this.options = options;
+        HttpRequest.options = options;
     }
 
     private request: RequestInit;

@@ -13,7 +13,7 @@ export class HttpRouter {
 
 
     public static configure(options: HttpRouterOptions) {
-        this.options = options;
+        HttpRouter.options = options;
     }
 
 

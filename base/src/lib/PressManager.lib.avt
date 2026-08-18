@@ -139,7 +139,7 @@ export class PressManager {
         offsetDrag: 20
     };
     public static configure(options: Partial<PressManagerOptions>) {
-        this.globalConfig = options;
+        PressManager.globalConfig = options;
     }
     public static create(options: PressManagerOptions & { element: Element; }): PressManager;
     public static create(options: PressManagerOptions & { element: Element[]; }): PressManager[];

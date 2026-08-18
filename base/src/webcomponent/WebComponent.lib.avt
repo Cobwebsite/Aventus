@@ -190,6 +190,8 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }>;
     } = {};
 
+    private __onPostDestruction: (() => void)[] = [];
+    private __onPostDisconnect: (() => void)[] = [];
 
     public constructor() {
         super();
@@ -209,6 +211,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         this.__createStates();
         this.__subscribeState();
     }
+
     /**
      * Remove all listeners
      * State + press
@@ -225,8 +228,13 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         for(let name in this.__signals) {
             this.__signals[name].destroy();
         }
-        // TODO add missing info for destructor();
 
+        for(let cb of [...this.__onPostDestruction]) {
+            cb();
+        }
+        this.__onPostDestruction = [];
+
+        // TODO add missing info for destructor();
         this.postDestruction();
 
         this.destructChildren();
@@ -432,6 +440,12 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
     private disconnectedCallback() {
         setTimeout(() => {
+
+            for(let cb of [...this.__onPostDisconnect]) {
+                cb();
+            }
+            this.__onPostDisconnect = [];
+
             this.postDisconnect();
         });
     }
@@ -829,6 +843,12 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     /**
      * Function triggered when the component is destroyed
      */
+    protected onPostDestruction(cb: () => void) {
+        this.__onPostDestruction.push(cb);
+    }
+    /**
+     * Function triggered when the component is destroyed
+     */
     protected postDestruction(): void { }
 
     /**
@@ -841,6 +861,12 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     */
     protected postConnect(): void { }
 
+    /**
+    * Function triggered each time the component is removed from the DOM
+    */
+    protected onPostDisconnect(cb: () => void) {
+        this.__onPostDisconnect.push(cb);
+    }
     /**
     * Function triggered each time the component is removed from the DOM
     */
