@@ -35,6 +35,7 @@ export interface Settings {
 	errorByBuild?: boolean,
 	defaultHideWarnings: boolean,
 	deeplApiKey: string,
+	ideBuild: boolean
 }
 export interface SettingsHtml {
 	customData: string[]
@@ -63,6 +64,7 @@ const defaultSettings: Settings = {
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,
 	deeplApiKey: "",
+	ideBuild: true
 }
 function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));
@@ -154,7 +156,6 @@ export class SettingsManager {
 		try {
 			for (let key in newSettings) {
 				const result = await config.update(key, newSettings[key], global ? ConfigurationTarget.Global : ConfigurationTarget.Workspace);
-				console.log("in");
 			}
 		} catch (e) {
 			console.log(e)

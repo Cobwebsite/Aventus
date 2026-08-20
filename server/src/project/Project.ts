@@ -256,6 +256,7 @@ export class Project {
     public getBuilds(): Build[] {
         return this.builds;
     }
+
     public getMatchingBuildsByUri(uri: string): Build[] {
         let result: Build[] = [];
         for (let build of this.builds) {
@@ -324,6 +325,17 @@ export class Project {
             }
         }
         return result;
+    }
+
+    public async buildAll() {
+        const proms: Promise<void>[] = []
+        for (let build of this.builds) {
+            proms.push(build.build());
+        }
+        for (let _static of this.statics) {
+            proms.push(_static.export());
+        }
+        await Promise.all(proms);
     }
 
     public destroy() {

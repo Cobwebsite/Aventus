@@ -37,6 +37,7 @@ import { Manifest } from '../manifest/Manifest';
 import { OverrideViewDecorator } from '../language-services/ts/parser/decorators/OverrideViewDecorator';
 import { AventusI18nFile } from '../language-services/i18n/File';
 import { Store } from '../store/Store';
+import { SettingsManager } from '../settings/Settings';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -106,7 +107,17 @@ export class Build {
     }
     public scssLanguageService: AventusSCSSLanguageService;
     public htmlLanguageService: AventusHTMLLanguageService;
-    private allowBuild: boolean = true;
+    private _allowBuild: boolean = true;
+    private get allowBuild(): boolean {
+        if (GenericServer.isIDE) {
+            const settings = SettingsManager.getInstance().settings;
+            return this._allowBuild && settings.ideBuild;
+        }
+        return this._allowBuild
+    }
+    private set allowBuild(value: boolean) {
+        this._allowBuild = value;
+    }
     public initDone: boolean = false;
     private _filesLoaded: boolean = false;
 

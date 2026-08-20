@@ -1254,6 +1254,6 @@ function anaylseVariables(txt: string, variables: string[]): string[] {
 
 
 function isComputedOnce(txt: string) {
-	let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(txt);
+	let mustBeRecomputed = /if|switch|\?|\[.+?\]|\|\||&&/g.test(txt);
 	return !mustBeRecomputed;
 }

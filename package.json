@@ -293,6 +293,11 @@
 						"None"
 					],
 					"default": 3
+				},
+				"aventus.ideBuild": {
+					"type": "boolean",
+					"title": "Define if the ide must build the code",
+					"default": true
 				}
 			}
 		},
@@ -555,6 +560,10 @@
 			{
 				"command": "aventus.emmet",
 				"title": "Aventus : Create emmet snippets"
+			},
+			{
+				"command": "aventus.enableBuild",
+				"title": "Aventus : enable build"
 			}
 		],
 		"customEditors": [
@@ -785,6 +794,10 @@
 				},
 				{
 					"command": "aventus.store.download_template",
+					"when": "false"
+				},
+				{
+					"command": "aventus.enableBuild",
 					"when": "false"
 				}
 			]

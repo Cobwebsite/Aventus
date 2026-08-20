@@ -13,9 +13,9 @@ export class Compiling {
         this.errors = errors;
 
         if (part == 'compiling') {
-            Singleton.client.components.lastCompiledInfo.text = '$(loading~spin) Compiling ' + csproj;
-            Singleton.client.components.lastCompiledInfo.backgroundColor = undefined;
-            Singleton.client.components.lastCompiledInfo.command = undefined;
+            Singleton.client.components.setLastCompiledInfo({
+                text: '$(loading~spin) Compiling ' + csproj
+            });
         }
         else if (part == 'success') {
             let n = new Date();
@@ -34,14 +34,16 @@ export class Compiling {
             let time = h + ":" + m + ":" + s;
             let txt = csproj + " compiled at " + time;
 
-            Singleton.client.components.lastCompiledInfo.text = "$(issue-closed) " + txt;
-            Singleton.client.components.lastCompiledInfo.backgroundColor = undefined;
-            Singleton.client.components.lastCompiledInfo.command = undefined;
+            Singleton.client.components.setLastCompiledInfo({
+                text: "$(issue-closed) " + txt
+            });
         }
         else {
-            Singleton.client.components.lastCompiledInfo.text = "$(error) " + csproj + " compilation errors";
-            Singleton.client.components.lastCompiledInfo.backgroundColor = new ThemeColor('statusBarItem.errorBackground');
-            Singleton.client.components.lastCompiledInfo.command = "aventus.openfile.debugsharp";
+            Singleton.client.components.setLastCompiledInfo({
+                text: "$(error) " + csproj + " compilation errors",
+                backgroundColor: new ThemeColor('statusBarItem.errorBackground'),
+                command: "aventus.openfile.debugsharp"
+            });
         }
     }
 
