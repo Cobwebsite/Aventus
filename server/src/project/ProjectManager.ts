@@ -31,6 +31,7 @@ export class ProjectManager {
                 if (ProjectManager.autoLoad) {
                     await this.projects[file.documentUser.uri].init()
                 }
+
                 file.onDelete(this.onDeleteFile.bind(this));
             }
             else {
@@ -65,6 +66,14 @@ export class ProjectManager {
         for (let projectUri in this.projects) {
             this.projects[projectUri].destroy()
         }
+    }
+
+    public async buildAll() {
+        const proms: Promise<void>[] = []
+        for (let projectUri in this.projects) {
+            proms.push(this.projects[projectUri].buildAll());
+        }
+        await Promise.all(proms);
     }
 
     public async onRename(changes: { oldUri: string, newUri: string }[]): Promise<{ [uri: string]: TextEdit[] }> {

@@ -1,3 +1,4 @@
+import { EnableBuild } from './EnableBuild';
 import { OpenFile as OpenFileI18n } from './i18n/OpenFile';
 import { Migration } from './Migration';
 import { OpenDebugFile } from './OpenDebugFile';
@@ -9,5 +10,6 @@ export const CommandsInternal = {
         [OpenFileI18n.cmd]: OpenFileI18n,
         [OpenDebugFileSharp.cmd]: OpenDebugFileSharp,
         [Migration.cmd]: Migration,
+        [EnableBuild.cmd]: EnableBuild
     },
 }

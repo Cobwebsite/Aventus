@@ -2,6 +2,7 @@ import { join } from 'path'
 import { GenericServer } from '../GenericServer'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { LogLevel } from './LogLevel'
+import { ProjectManager } from '../project/ProjectManager'
 
 
 
@@ -44,6 +45,7 @@ export interface Settings {
 	defaultHideWarnings: boolean,
 	deeplApiKey: string,
 	quickCreations: string[],
+	ideBuild: boolean
 }
 export interface SettingsHtml {
 	customData: string[]
@@ -85,7 +87,8 @@ const defaultSettings: Settings = {
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,
 	deeplApiKey: "",
-	quickCreations: []
+	quickCreations: [],
+	ideBuild: true
 }
 function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));
@@ -114,8 +117,7 @@ export class SettingsManager {
 	private _settings: Settings = getDefaultSettings();
 	private _settingsHtml: SettingsHtml = getDefaultSettingsHtml();
 	private _hiddenSettings: HiddenSettings = getDefaultHiddenSettings();
-
-	// GenericServer.savePath
+	private firstInit: boolean = true;
 
 	public get settings() {
 		return this._settings;
@@ -147,10 +149,24 @@ export class SettingsManager {
 	}
 
 	public initSettings(newSettings: Partial<Settings>) {
+		let rebuildAll = false;
+		if (!this.firstInit) {
+			if ('ideBuild' in newSettings) {
+				if (this._settings.ideBuild != newSettings.ideBuild && newSettings.ideBuild) {
+					rebuildAll = true;
+				}
+			}
+		}
 		this._settings = this.mergeDeep(getDefaultSettings(), newSettings);
 		let cbs = [...this.cbOnSettingsChange];
 		for (let cb of cbs) {
 			cb();
+		}
+		if (this.firstInit) {
+			this.firstInit = false;
+		}
+		if (rebuildAll) {
+			ProjectManager.getInstance().buildAll();
 		}
 	}
 	public setSettings(newSettings: Partial<Settings>, global: boolean) {

@@ -21,7 +21,10 @@ export class Compiled {
     public static removeBuild(buildName: string) {
         delete Compiled.timeByBuild[buildName];
         if (Singleton.client.components) {
-            Singleton.client.components.lastCompiledInfo.tooltip = "Aventus last compilation :\n" + Object.values(Compiled.timeByBuild).join("\n");
+            Singleton.client.components.setLastCompiledInfo({
+                text: "$(issue-closed) " + this.lastTime,
+                tooltip: "Aventus last compilation :\n" + Object.values(Compiled.timeByBuild).join("\n")
+            });
         }
     }
     public static action(buildName: string, errors?: { file: string, title: string }[]) {
@@ -75,20 +78,24 @@ export class Compiled {
                 }
 
                 if (!hasError) {
-                    Singleton.client.components.lastCompiledInfo.text = "$(issue-closed) " + this.lastTime;
-                    Singleton.client.components.lastCompiledInfo.backgroundColor = undefined;
-                    Singleton.client.components.lastCompiledInfo.command = undefined;
+                    Singleton.client.components.setLastCompiledInfo({
+                        text: "$(issue-closed) " + this.lastTime,
+                        tooltip: "Aventus last compilation :\n" + tooltips.join("\n")
+                    });
                 }
                 else {
-                    Singleton.client.components.lastCompiledInfo.text = "$(error) You have compilation errors";
-                    Singleton.client.components.lastCompiledInfo.backgroundColor = new ThemeColor('statusBarItem.errorBackground');
-                    Singleton.client.components.lastCompiledInfo.command = "aventus.openfile.debug";
+                    Singleton.client.components.setLastCompiledInfo({
+                        text: "$(error) You have compilation errors",
+                        backgroundColor: new ThemeColor('statusBarItem.errorBackground'),
+                        command: "aventus.openfile.debug",
+                        tooltip: "Aventus last compilation :\n" + tooltips.join("\n")
+                    });
                 }
-                Singleton.client.components.lastCompiledInfo.tooltip = "Aventus last compilation :\n" + tooltips.join("\n");
             }
             else {
-                Singleton.client.components.lastCompiledInfo.text = "";
-                Singleton.client.components.lastCompiledInfo.tooltip = "";
+                Singleton.client.components.setLastCompiledInfo({
+                    text: ""
+                });
                 Singleton.client.components.runningServer.hide();
             }
         }

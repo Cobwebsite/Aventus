@@ -8,8 +8,9 @@ export class InitStep {
     public static isDone = false;
     public static action(txt: string) {
         if (Singleton.client.components) {
-            let components = Singleton.client.components;
-            Singleton.client.components.lastCompiledInfo.text = txt;
+            Singleton.client.components.setLastCompiledInfo({
+                text: txt
+            });
             if (txt == InitStep.doneTxt) {
                 this.isDone = true;
                 Singleton.client.initDone();
