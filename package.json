@@ -564,6 +564,10 @@
 			{
 				"command": "aventus.enableBuild",
 				"title": "Aventus : enable build"
+			},
+			{
+				"command": "aventus.format",
+				"title": "Aventus : Format all files"
 			}
 		],
 		"customEditors": [
