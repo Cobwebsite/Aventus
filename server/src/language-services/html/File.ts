@@ -182,11 +182,14 @@ export class AventusHTMLFile extends AventusBaseFile {
                             array = []
                             mapFct.set(fct, array);
                         }
-                        array.push({
+                        let transformation = {
                             start: format.edit.range.start - format.start,
                             end: format.edit.range.end - format.start,
                             txt: format.edit.newText
-                        })
+                        };
+                        if (!array.some(p => p.start == transformation.start && p.end == transformation.end && p.txt == transformation.txt)) {
+                            array.push(transformation)
+                        }
                         break;
                     }
                 }
@@ -297,14 +300,33 @@ export class AventusHTMLFile extends AventusBaseFile {
             return [];
         }
         let content = this.fileParsed?.compiledTxt
+        for (let src in replacements) {
+            if (src.startsWith("{{")) {
+                let regex = new RegExp(src.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'g');
+                content = content.replace(regex, replacements[src]);
+            }
+        }
+        let interpolations: string[] = [];
+        content = content.replace(/\{\{[\s\S]*?\}\}/g, interpolation => {
+            let index = interpolations.push(interpolation) - 1;
+            return `___AVENTUS_INTERPOLATION_${index}___`;
+        });
         let document = TextDocument.create(file.documentUser.uri, file.documentUser.languageId, file.documentUser.version, content);
-        let result = await this.build.htmlLanguageService.format(document, range, options);
+        let compiledRange = {
+            start: document.positionAt(0),
+            end: document.positionAt(content.length)
+        };
+        let result = await this.build.htmlLanguageService.format(document, compiledRange, options);
         let txt = result[0].newText;
         for (let src in replacements) {
+            if (src.startsWith("{{")) {
+                continue;
+            }
             let regex = new RegExp(src.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'g');
             txt = txt.replace(regex, replacements[src]);
         }
-        txt = txt.replace(/\{\{ *([^\n][\s|\S]*?) *\n?\}\}/g, "{{ $1 }}")
+        txt = txt.replace(/___AVENTUS_INTERPOLATION_(\d+)___/g, (_, index) => interpolations[Number(index)]);
+        txt = txt.replace(/\{\{\s*([\s\S]*?\S)\s*\}\}/g, "{{ $1 }}")
         return [{
             newText: txt,
             range: {
