@@ -73,7 +73,12 @@ export class TagInfo {
 		if (this.isIf || this.isContextEditing) {
 			return;
 		}
-		ParserHtml.addInterestPoint({ name: tagName, start, end, type: "tag" });
+		ParserHtml.addInterestPoint({
+			name: tagName,
+			start: ParserHtml.fromCompiledToRaw(start),
+			end: ParserHtml.fromCompiledToRaw(end),
+			type: "tag"
+		});
 		if (selfClosingTags.includes(tagName)) {
 			this.selfClosing = true;
 		}
@@ -169,8 +174,8 @@ export class TagInfo {
 		if (!this.selfClosing) {
 			ParserHtml.addInterestPoint({
 				name: this.tagName,
-				start,
-				end,
+				start: ParserHtml.fromCompiledToRaw(start),
+				end: ParserHtml.fromCompiledToRaw(end),
 				type: 'tag'
 			})
 		}
@@ -186,8 +191,8 @@ export class TagInfo {
 		for (let [validate, position] of rules) {
 			if (validate(this)) {
 				let classPos = {
-					start: this.openTagStart,
-					end: this.openTagEnd
+					start: ParserHtml.fromCompiledToRaw(this.openTagStart),
+					end: ParserHtml.fromCompiledToRaw(this.openTagEnd)
 				}
 				addStyleLink([classPos, position]);
 			}
