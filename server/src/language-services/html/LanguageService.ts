@@ -1,4 +1,4 @@
-import { getLanguageService, IAttributeData, IHTMLDataProvider, InsertTextFormat, InsertTextMode, ITagData, IValueData, LanguageService, newHTMLDataProvider, TokenType } from "vscode-html-languageservice";
+import { getLanguageService, HTMLFormatConfiguration, IAttributeData, IHTMLDataProvider, InsertTextFormat, InsertTextMode, ITagData, IValueData, LanguageService, newHTMLDataProvider, TokenType } from "vscode-html-languageservice";
 import { CompletionItem, CompletionItemKind, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { AventusLanguageId } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
@@ -335,6 +335,8 @@ export class AventusHTMLLanguageService {
         return null;
     }
     public async format(document: TextDocument, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
+        const options = formatParams as HTMLFormatConfiguration;
+        options.wrapAttributes = 'preserve';
         return this.languageService.format(document, range, formatParams);
     }
     public async onDefinition(file: AventusHTMLFile, position: Position): Promise<Location[] | null> {

@@ -1724,12 +1724,12 @@ export class AventusWebcomponentCompiler {
                     template: templ${loopInfo.templateId},
                 `;
                 if (loopInfo.simple) {
-                    finalTxt += `simple:{data: "${loopInfo.simple.data.replace(/[\!|\?]/g, "")}"`;
+                    finalTxt += `simple:{data: \`${loopInfo.simple.data.replace(/[\!|\?]/g, "")}\``;
                     if (loopInfo.simple.index) {
-                        finalTxt += `,index:"${loopInfo.simple.index.replace(/[\!|\?]/g, "")}"`;
+                        finalTxt += `,index:\`${loopInfo.simple.index.replace(/[\!|\?]/g, "")}\``;
                     }
                     if (loopInfo.simple.item) {
-                        finalTxt += `,item:"${loopInfo.simple.item.replace(/[\!|\?]/g, "")}"`;
+                        finalTxt += `,item:\`${loopInfo.simple.item.replace(/[\!|\?]/g, "")}\``;
                     }
                     finalTxt += `}` + EOL;
                 }

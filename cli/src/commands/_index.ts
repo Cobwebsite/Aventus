@@ -22,6 +22,7 @@ import { Store } from './Store';
 import { Watch } from './Watch';
 import { Ai } from './Ai';
 import { Prepare } from './ai/Prepare';
+import { Update } from './Update';
 
 const actions: ((new () => Action<any>) | (new () => ActionGroup))[] = [
 	Create,
@@ -31,6 +32,7 @@ const actions: ((new () => Action<any>) | (new () => ActionGroup))[] = [
 	Build,
 	Check,
 	Format,
+	Update,
 
 	Dependencies,
 	HelpLLM,
