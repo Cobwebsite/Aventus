@@ -959,7 +959,9 @@ let DateConverter=class DateConverter {
         if (date.getFullYear() < 100) {
             return "0001-01-01T00:00:00.000Z";
         }
-        return date.toISOString();
+        const clonedDate = new Date(date);
+        clonedDate.setMinutes(clonedDate.getMinutes() - clonedDate.getTimezoneOffset());
+        return clonedDate.toISOString();
     }
 }
 DateConverter.Namespace=`Aventus`;

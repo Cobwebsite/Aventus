@@ -210,9 +210,12 @@ namespace Form {
                         if(temp instanceof Validator) {
                             fcts.push(temp.validate);
                         }
-                        else {
+                        else if(isConstructor(temp)) {
                             let resultTemp = new temp();
                             fcts.push(resultTemp.validate);
+                        }
+                        else {
+                            fcts.push(temp);
                         }
                     }
                     validate = async (value, name, globalFct) => {
@@ -239,7 +242,7 @@ namespace Form {
                 }
                 else if(isConstructor(part.validate)) {
                     let cst = part.validate;
-                    let resultTemp = new cst() as Validator<any>;
+                    let resultTemp = new cst();
                     validate = resultTemp.validate;
                 }
                 else {

@@ -197,6 +197,12 @@ namespace Modal {
                 this.close();
             }
         }
+
+        protected override postCreation(): void {
+            super.postCreation();
+            this.modalEl.setAttribute("role", "dialog");
+            this.modalEl.setAttribute("aria-modal", "true");
+        }
         //#endregion
 
     }
