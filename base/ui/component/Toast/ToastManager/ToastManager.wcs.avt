@@ -3,6 +3,7 @@
 	--_toast-space-top: var(--toast-space-top, 20px);
 	--_toast-space-right: var(--toast-space-right, 10px);
 	--_toast-space-left: var(--toast-space-left, 10px);
+	--_toast-z-index: var(--toast-z-index, 70);
 }
 
 :host {
@@ -13,7 +14,7 @@
 	position: fixed;
 	right: var(--_toast-space-right);
 	top: var(--_toast-space-top);
-	z-index: 50;
+	z-index: var(--_toast-z-index);
 
 	::slotted(*) {
 		pointer-events: auto;

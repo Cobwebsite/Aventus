@@ -34,6 +34,9 @@ namespace Form {
          * Reference to the parent form handler, if available.
          */
         protected handler?: IForm = undefined;
+
+        @Injectable()
+        protected form?: IForm = undefined;
         //#endregion
 
 
@@ -58,13 +61,15 @@ namespace Form {
                     if(this.loading) return;
                     this.loading = true;
                 }
-                if(this.internals.form) {
+                if(this.form) {
+                    await this.form.requestSubmit();
+                } else if(this.internals.form) {
                     this.internals.form.requestSubmit();
                 } else if(this.handler) {
                     await this.handler.requestSubmit();
-                    if("loading" in this) {
-                        this.loading = false;
-                    }
+                }
+                if("loading" in this) {
+                    this.loading = false;
                 }
             }
         }
