@@ -4875,98 +4875,6 @@ let WebComponentInstance=class WebComponentInstance {
 WebComponentInstance.Namespace=`Aventus`;
 __as1(_, 'WebComponentInstance', WebComponentInstance);
 
-let Json=class Json {
-    /**
-     * Converts a JavaScript class instance to a JSON object.
-     * @template T - The type of the object to convert.
-     * @param {T} obj - The object to convert to JSON.
-     * @param {JsonToOptions} [options] - Options for JSON conversion.
-     * @returns {{ [key: string | number]: any; }} Returns the JSON representation of the object.
-     */
-    static classToJson(obj, options) {
-        const realOptions = {
-            isValidKey: options?.isValidKey ?? (() => true),
-            replaceKey: options?.replaceKey ?? ((key) => key),
-            transformValue: options?.transformValue ?? ((key, value) => value),
-            beforeEnd: options?.beforeEnd ?? ((res) => res)
-        };
-        return this.__classToJson(obj, realOptions);
-    }
-    static __classToJson(obj, options) {
-        let result = {};
-        let descriptors = Object.getOwnPropertyDescriptors(obj);
-        for (let key in descriptors) {
-            if (options.isValidKey(key))
-                result[options.replaceKey(key)] = options.transformValue(key, descriptors[key].value);
-        }
-        let cst = obj.constructor;
-        while (cst.prototype && cst != Object.prototype) {
-            let descriptorsClass = Object.getOwnPropertyDescriptors(cst.prototype);
-            for (let key in descriptorsClass) {
-                if (options.isValidKey(key)) {
-                    let descriptor = descriptorsClass[key];
-                    if (descriptor?.get) {
-                        const o = obj;
-                        result[options.replaceKey(key)] = options.transformValue(key, o[key]);
-                    }
-                }
-            }
-            cst = Object.getPrototypeOf(cst);
-        }
-        result = options.beforeEnd(result);
-        return result;
-    }
-    /**
-    * Converts a JSON object to a JavaScript class instance.
-    * @template T - The type of the object to convert.
-    * @param {T} obj - The object to populate with JSON data.
-    * @param {*} data - The JSON data to populate the object with.
-    * @param {JsonFromOptions} [options] - Options for JSON deserialization.
-    * @returns {T} Returns the populated object.
-    */
-    static classFromJson(obj, data, options) {
-        let realOptions = {
-            transformValue: options?.transformValue ?? ((key, value) => value),
-            replaceUndefined: options?.replaceUndefined ?? false,
-            replaceUndefinedWithKey: options?.replaceUndefinedWithKey ?? false,
-        };
-        return this.__classFromJson(obj, data, realOptions);
-    }
-    static __classFromJson(obj, data, options) {
-        let props = Object.getOwnPropertyNames(obj);
-        for (let prop of props) {
-            let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-            let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
-            if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
-                let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
-                if (propInfo?.writable) {
-                    const o = obj;
-                    o[prop] = options.transformValue(prop, value);
-                }
-            }
-        }
-        let cstTemp = obj.constructor;
-        while (cstTemp.prototype && cstTemp != Object.prototype) {
-            props = Object.getOwnPropertyNames(cstTemp.prototype);
-            for (let prop of props) {
-                let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-                let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
-                if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
-                    let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
-                    if (propInfo?.set) {
-                        const o = obj;
-                        o[prop] = options.transformValue(prop, value);
-                    }
-                }
-            }
-            cstTemp = Object.getPrototypeOf(cstTemp);
-        }
-        return obj;
-    }
-}
-Json.Namespace=`Aventus`;
-__as1(_, 'Json', Json);
-
 let ConverterTransform=class ConverterTransform {
     transform(data) {
         return this.transformLoop(data);
@@ -5105,6 +5013,98 @@ let ConverterTransform=class ConverterTransform {
 }
 ConverterTransform.Namespace=`Aventus`;
 __as1(_, 'ConverterTransform', ConverterTransform);
+
+let Json=class Json {
+    /**
+     * Converts a JavaScript class instance to a JSON object.
+     * @template T - The type of the object to convert.
+     * @param {T} obj - The object to convert to JSON.
+     * @param {JsonToOptions} [options] - Options for JSON conversion.
+     * @returns {{ [key: string | number]: any; }} Returns the JSON representation of the object.
+     */
+    static classToJson(obj, options) {
+        const realOptions = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+            beforeEnd: options?.beforeEnd ?? ((res) => res)
+        };
+        return this.__classToJson(obj, realOptions);
+    }
+    static __classToJson(obj, options) {
+        let result = {};
+        let descriptors = Object.getOwnPropertyDescriptors(obj);
+        for (let key in descriptors) {
+            if (options.isValidKey(key))
+                result[options.replaceKey(key)] = options.transformValue(key, descriptors[key].value);
+        }
+        let cst = obj.constructor;
+        while (cst.prototype && cst != Object.prototype) {
+            let descriptorsClass = Object.getOwnPropertyDescriptors(cst.prototype);
+            for (let key in descriptorsClass) {
+                if (options.isValidKey(key)) {
+                    let descriptor = descriptorsClass[key];
+                    if (descriptor?.get) {
+                        const o = obj;
+                        result[options.replaceKey(key)] = options.transformValue(key, o[key]);
+                    }
+                }
+            }
+            cst = Object.getPrototypeOf(cst);
+        }
+        result = options.beforeEnd(result);
+        return result;
+    }
+    /**
+    * Converts a JSON object to a JavaScript class instance.
+    * @template T - The type of the object to convert.
+    * @param {T} obj - The object to populate with JSON data.
+    * @param {*} data - The JSON data to populate the object with.
+    * @param {JsonFromOptions} [options] - Options for JSON deserialization.
+    * @returns {T} Returns the populated object.
+    */
+    static classFromJson(obj, data, options) {
+        let realOptions = {
+            transformValue: options?.transformValue ?? ((key, value) => value),
+            replaceUndefined: options?.replaceUndefined ?? false,
+            replaceUndefinedWithKey: options?.replaceUndefinedWithKey ?? false,
+        };
+        return this.__classFromJson(obj, data, realOptions);
+    }
+    static __classFromJson(obj, data, options) {
+        let props = Object.getOwnPropertyNames(obj);
+        for (let prop of props) {
+            let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+            let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+            if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
+                let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
+                if (propInfo?.writable) {
+                    const o = obj;
+                    o[prop] = options.transformValue(prop, value);
+                }
+            }
+        }
+        let cstTemp = obj.constructor;
+        while (cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for (let prop of props) {
+                let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+                let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+                if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
+                    let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                    if (propInfo?.set) {
+                        const o = obj;
+                        o[prop] = options.transformValue(prop, value);
+                    }
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+        return obj;
+    }
+}
+Json.Namespace=`Aventus`;
+__as1(_, 'Json', Json);
 
 let Converter=class Converter {
     /**
