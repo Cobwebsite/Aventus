@@ -3619,6 +3619,7 @@ let TemplateInstance=class TemplateInstance {
         let getElements = () => this.context.getValueFromItem(basePath);
         let elementsComputed = new ComputedNoRecomputed(() => getElements());
         let elements = elementsComputed.value;
+        let elementsTarget = Watcher.extract(elements, false);
         let registry = this.loopRegisteries[loop.anchorId];
         registry.computeds.push(elementsComputed);
         let requestRender = () => {
@@ -3630,7 +3631,12 @@ let TemplateInstance=class TemplateInstance {
                 this.renderLoopSimple(loop, simple);
             });
         };
-        elementsComputed.subscribe(requestRender);
+        elementsComputed.subscribe(() => {
+            let newElementsTarget = Watcher.extract(getElements(), false);
+            if (newElementsTarget === elementsTarget)
+                return;
+            requestRender();
+        });
         if (!elements) {
             let currentPath = basePath;
             while (currentPath != '' && !elements) {
