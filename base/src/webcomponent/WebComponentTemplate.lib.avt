@@ -774,6 +774,7 @@ export class TemplateInstance {
         // inside a Signal notification can recursively subscribe to that Signal.
         let elementsComputed = new ComputedNoRecomputed<any>(() => getElements());
         let elements = elementsComputed.value;
+        let elementsTarget = Watcher.extract(elements, false);
         let registry = this.loopRegisteries[loop.anchorId];
         registry.computeds.push(elementsComputed);
         let requestRender = () => {
@@ -785,7 +786,15 @@ export class TemplateInstance {
                 this.renderLoopSimple(loop, simple);
             });
         };
-        elementsComputed.subscribe(requestRender);
+        elementsComputed.subscribe(() => {
+            // Reading a watched collection can return a new Proxy wrapper even
+            // when the underlying array/object did not change. Mutations such as
+            // push/splice are handled incrementally by the collection subscriber
+            // below and must not recreate every existing template instance.
+            let newElementsTarget = Watcher.extract(getElements(), false);
+            if(newElementsTarget === elementsTarget) return;
+            requestRender();
+        });
         if(!elements) {
             let currentPath = basePath;
 
