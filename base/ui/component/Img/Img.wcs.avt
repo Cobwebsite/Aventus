@@ -1,9 +1,9 @@
 :host {
-    --internal-img-color: var(--img-color);
-    --internal-img-stroke-color: var(--img-stroke-color, var(--internal-img-color));
-    --internal-img-fill-color: var(--img-fill-color, var(--internal-img-color));
+    --_img-color: var(--img-color);
+    --_img-stroke-color: var(--img-stroke-color, var(--_img-color));
+    --_img-fill-color: var(--img-fill-color, var(--_img-color));
 
-    --internal-img-color-transition: var(--img-color-transition, none);
+    --_img-color-transition: var(--img-color-transition, none);
 }
 
 
@@ -37,9 +37,9 @@
     .svg {
         display: flex;
         svg {
-            transition: var(--internal-img-color-transition);
-            stroke: var(--internal-img-stroke-color);
-            fill: var(--internal-img-fill-color);
+            transition: var(--_img-color-transition);
+            stroke: var(--_img-stroke-color);
+            fill: var(--_img-fill-color);
         }
     }
 }

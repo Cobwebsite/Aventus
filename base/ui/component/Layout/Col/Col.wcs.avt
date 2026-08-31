@@ -7,7 +7,7 @@
 
 :host {
 	display: flex;
-	padding: var(--internal-col-padding);
+	padding: var(--_col-padding);
 }
 
 :host([center]) {
