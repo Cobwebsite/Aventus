@@ -136,7 +136,9 @@ export class ClassInfo extends BaseInfo {
 				}
 				let prop = x as PropertyDeclaration;
 				if (!prop.type) {
-					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
+					if(!propInfo.noType) {
+						ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
+					}
 				}
 				result = propInfo;
 			}
@@ -150,7 +152,9 @@ export class ClassInfo extends BaseInfo {
 					this.properties[propInfo.name] = propInfo;
 				}
 				if (!prop.type) {
-					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
+					if(!propInfo.noType) {
+						ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
+					}
 				}
 				result = propInfo;
 			}
@@ -210,7 +214,9 @@ export class ClassInfo extends BaseInfo {
 				}
 				let prop = x as PropertyDeclaration;
 				if (!prop.type) {
-					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
+					if(!propInfo.noType) {
+						ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
+					}
 				}
 				result = propInfo;
 			}

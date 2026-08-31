@@ -119,6 +119,8 @@ declare global {
      */
     function InternalProtected(): AvPropertyDecorator & AvMethodDecorator;
 
+    function NoType(): AvPropertyDecorator;
+
     function StateActive(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): AvMethodDecorator;
     function DefaultStateActive(manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): AvMethodDecorator;
     function StateInactive(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): AvMethodDecorator;

@@ -1,14 +1,14 @@
 :host {
-	--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);
-	--internal-scrollbar-color: var(--scrollbar-color, #757575);
-	--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);
+	--_scrollbar-container-color: var(--scrollbar-container-color, transparent);
+	--_scrollbar-color: var(--scrollbar-color, #757575);
+	--_scrollbar-active-color: var(--scrollbar-active-color, #858585);
 
 
-	--internal-scroller-width: var(--scroller-width, 6px);
-	--internal-scroller-top: var(--scroller-top, 3px);
-	--internal-scroller-bottom: var(--scroller-bottom, 3px);
-	--internal-scroller-right: var(--scroller-right, 3px);
-	--internal-scroller-left: var(--scroller-left, 3px);
+	--_scroller-width: var(--scroller-width, 6px);
+	--_scroller-top: var(--scroller-top, 3px);
+	--_scroller-bottom: var(--scroller-bottom, 3px);
+	--_scroller-right: var(--scroller-right, 3px);
+	--_scroller-left: var(--scroller-left, 3px);
 
 	--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);
 	--_scrollbar-container-display: var(--scrollbar-container-display, inline-block);
@@ -80,11 +80,11 @@
 				z-index: 5;
 
 				.shadow-scroller {
-					background-color: var(--internal-scrollbar-container-color);
+					background-color: var(--_scrollbar-container-color);
 					border-radius: 5px;
 
 					.scroller {
-						background-color: var(--internal-scrollbar-color);
+						background-color: var(--_scrollbar-color);
 						border-radius: 5px;
 						cursor: pointer;
 						position: absolute;
@@ -95,48 +95,48 @@
 				}
 
 				.scroller.active {
-					background-color: var(--internal-scrollbar-active-color);
+					background-color: var(--_scrollbar-active-color);
 				}
 			}
 
 			.container-scroller.vertical {
-				height: calc(100% - var(--internal-scroller-bottom) * 2 - var(--internal-scroller-width));
-				padding-left: var(--internal-scroller-left);
-				right: var(--internal-scroller-right);
-				top: var(--internal-scroller-bottom);
+				height: calc(100% - var(--_scroller-bottom) * 2 - var(--_scroller-width));
+				padding-left: var(--_scroller-left);
+				right: var(--_scroller-right);
+				top: var(--_scroller-bottom);
 				transform: 0;
-				width: calc(var(--internal-scroller-width) + var(--internal-scroller-left));
+				width: calc(var(--_scroller-width) + var(--_scroller-left));
 
 				&.hide {
-					transform: translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)));
+					transform: translateX(calc(var(--_scroller-width) + var(--_scroller-left)));
 				}
 
 				.shadow-scroller {
 					height: 100%;
 
 					.scroller {
-						width: calc(100% - var(--internal-scroller-left));
+						width: calc(100% - var(--_scroller-left));
 					}
 				}
 			}
 
 			.container-scroller.horizontal {
-				bottom: var(--internal-scroller-bottom);
-				height: calc(var(--internal-scroller-width) + var(--internal-scroller-top));
-				left: var(--internal-scroller-right);
-				padding-top: var(--internal-scroller-top);
+				bottom: var(--_scroller-bottom);
+				height: calc(var(--_scroller-width) + var(--_scroller-top));
+				left: var(--_scroller-right);
+				padding-top: var(--_scroller-top);
 				transform: 0;
-				width: calc(100% - var(--internal-scroller-right) * 2 - var(--internal-scroller-width));
+				width: calc(100% - var(--_scroller-right) * 2 - var(--_scroller-width));
 
 				&.hide {
-					transform: translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)));
+					transform: translateY(calc(var(--_scroller-width) + var(--_scroller-top)));
 				}
 
 				.shadow-scroller {
 					height: 100%;
 
 					.scroller {
-						height: calc(100% - var(--internal-scroller-top));
+						height: calc(100% - var(--_scroller-top));
 					}
 				}
 			}
