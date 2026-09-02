@@ -53,11 +53,22 @@ export class Update extends Action<UpdateOptions> {
 
 	private runNpm(args: string[], inheritOutput = false): Promise<string> {
 		return new Promise((resolvePromise, reject) => {
-			const child = spawn('npm', args, {
+
+			const npmCommand = process.platform === 'win32'
+				? {
+					command: process.env.ComSpec || 'cmd.exe',
+					args: ['/d', '/s', '/c', 'npm.cmd', ...args],
+				}
+				: {
+					command: 'npm',
+					args,
+				};
+
+			const child = spawn(npmCommand.command, npmCommand.args, {
 				cwd: process.cwd(),
-				shell: process.platform === 'win32',
 				stdio: inheritOutput ? 'inherit' : ['ignore', 'pipe', 'pipe'],
 			});
+
 			let stdout = '';
 			let stderr = '';
 

@@ -20,6 +20,7 @@ const eraseableDecorator = [
     "Internal",
     "InternalProtected",
     "NoCompile",
+    "NoType",
     "OverrideView",
     "Property",
     "Required",

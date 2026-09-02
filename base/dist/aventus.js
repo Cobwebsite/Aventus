@@ -6090,18 +6090,29 @@ let TemplateInstance=class TemplateInstance {
             }
         });
         this.computeds.push(computed);
-        computed.subscribe((action, path, value, dones) => {
+        const apply = (value, dones) => {
             for (const el of this._components[injection.id]) {
-                if (el instanceof WebComponent && el.__watch && Object.hasOwn(el.__watch, injection.injectionName)) {
+                if (dones && el instanceof WebComponent && el.__watch && Object.hasOwn(el.__watch, injection.injectionName)) {
                     el.__watch.__injectedDones(dones);
                 }
-                el[injection.injectionName] = computed.value;
+                el[injection.injectionName] = value;
             }
+        };
+        computed.subscribe((action, path, value, dones) => {
+            apply(computed.value, dones);
         });
         this.firstRenderCb.push(() => {
-            for (const el of this._components[injection.id]) {
+            for (const el of this._components[injection.id])
                 customElements.upgrade(el);
-                el[injection.injectionName] = computed.value;
+            let value = computed.value;
+            apply(value);
+            if (value == null) {
+                queueMicrotask(() => {
+                    if (computed.isDestroy)
+                        return;
+                    computed.isInit = false;
+                    apply(computed.value);
+                });
             }
         });
     }

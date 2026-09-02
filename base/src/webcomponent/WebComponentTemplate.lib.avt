@@ -586,18 +586,30 @@ export class TemplateInstance {
             }
         });
         this.computeds.push(computed);
-        computed.subscribe((action, path, value, dones) => {
+        const apply = (value: any, dones?: any[]) => {
             for(const el of this._components[injection.id]) {
-                if(el instanceof WebComponent && el.__watch && Object.hasOwn(el.__watch, injection.injectionName)) {
+                if(dones && el instanceof WebComponent && el.__watch && Object.hasOwn(el.__watch, injection.injectionName)) {
                     el.__watch.__injectedDones(dones);
                 }
-                (el as any)[injection.injectionName] = computed.value;
+                (el as any)[injection.injectionName] = value;
             }
+        };
+        computed.subscribe((action, path, value, dones) => {
+            apply(computed.value, dones);
         });
         this.firstRenderCb.push(() => {
-            for(const el of this._components[injection.id]) {
-                customElements.upgrade(el);
-                (el as any)[injection.injectionName] = computed.value;
+            for(const el of this._components[injection.id]) customElements.upgrade(el);
+            let value = computed.value;
+            apply(value);
+            if(value == null) {
+                // A @ViewElement declared inside an if/loop is resolved through
+                // shadowRoot. During this first pass the fragment is not attached
+                // yet, so retry once after its insertion into the component.
+                queueMicrotask(() => {
+                    if(computed.isDestroy) return;
+                    computed.isInit = false;
+                    apply(computed.value);
+                });
             }
         });
     }
