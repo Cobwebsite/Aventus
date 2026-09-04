@@ -71,10 +71,11 @@ export const configTS = {
 	"noImplicitOverride": false,
 	"target": "ES6"
 }
-export type CustomTypeAttribute = "Date" | 'DateTime' | 'string' | 'number' | 'boolean';
+export type CustomTypeAttribute = "Date" | 'DateTime' | 'Time' | 'string' | 'number' | 'boolean';
 export const TYPES = {
 	date: 'Date',
 	datetime: 'DateTime',
+	time: 'Time',
 	string: 'string',
 	number: 'number',
 	boolean: 'boolean',

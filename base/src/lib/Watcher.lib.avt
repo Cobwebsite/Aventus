@@ -1,3 +1,6 @@
+import { Time } from "./Time.lib.avt";
+import { Date } from "./Date.lib.avt";
+import { DateTime } from "./DateTime.lib.avt";
 import { compareObject, getValueFromObject } from "../tools/CompareObject.lib.avt";
 
 @Storybook({
@@ -286,6 +289,7 @@ export class Watcher {
             getProxyObject(target, element, prop) {
                 let newProxy;
                 element = replaceByAlias(target, element, prop, null, true);
+                if(element instanceof Date || element instanceof DateTime || element instanceof Time) return element;
                 if(element instanceof Object && element.__isProxy) {
                     newProxy = element;
                 }
@@ -321,7 +325,7 @@ export class Watcher {
                         setProxyPath(newProxy, newPath);
                     }
                 }
-                else if(element instanceof Date) {
+                else if(element instanceof Date || element instanceof DateTime || element instanceof Time) {
                     return element;
                 }
                 else {

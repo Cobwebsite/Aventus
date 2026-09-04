@@ -1,0 +1,77 @@
+import { DateSettings, type DateConfiguration, type DateNameFormat, type DateWeekday } from './DateConfiguration.lib.avt';
+
+/** Immutable ISO calendar date. Months are numbered from 1 to 12. Requires Temporal. */
+export class Date {
+    public static configure(options: Partial<DateConfiguration>): void { DateSettings.configure(options); }
+    public static get configuration(): DateConfiguration { return DateSettings.current; }
+    private readonly value: Temporal.PlainDate;
+
+    public constructor(year: number = 1, month: number = 1, day: number = 1) {
+        if(!Number.isInteger(year) || year < 1 || year > 9999) throw new RangeError('Year must be between 1 and 9999');
+        this.value = new Temporal.PlainDate(year, month, day);
+    }
+
+    public static parse(text: string): Date {
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new RangeError('Expected YYYY-MM-DD');
+        const value = Temporal.PlainDate.from(text);
+        return new Date(value.year, value.month, value.day);
+    }
+    public static tryParse(text: string): Date | null {
+        try { return Date.parse(text); } catch { return null; }
+    }
+    public static get today(): Date {
+        const value = Temporal.Now.plainDateISO(DateSettings.current.timeZone);
+        return new Date(value.year, value.month, value.day);
+    }
+    public get year(): number { return this.value.year; }
+    public get month(): number { return this.value.month; }
+    public get day(): number { return this.value.day; }
+    /** Sunday = 0, Monday = 1, ..., Saturday = 6. */
+    public get dayOfWeek(): number { return this.value.dayOfWeek % 7; }
+    public get dayOfYear(): number { return this.value.dayOfYear; }
+    public get daysInMonth(): number { return this.value.daysInMonth; }
+    public get isLeapYear(): boolean { return this.value.inLeapYear; }
+    public addDays(days: number): Date { return Date.parse(this.value.add({ days }).toString()); }
+    public addMonths(months: number): Date { return Date.parse(this.value.add({ months }).toString()); }
+    public addYears(years: number): Date { return Date.parse(this.value.add({ years }).toString()); }
+    public compareTo(other: Date): number { return Temporal.PlainDate.compare(this.value, other.value); }
+    public equals(other: unknown): boolean { return other instanceof Date && this.compareTo(other) === 0; }
+    public startOfMonth(): Date { return new Date(this.year, this.month, 1); }
+    public endOfMonth(): Date { return new Date(this.year, this.month, this.daysInMonth); }
+    public startOfWeek(firstDay: DateWeekday = DateSettings.current.firstDayOfWeek): Date {
+        if(!Number.isInteger(firstDay) || firstDay < 0 || firstDay > 6)
+            throw new RangeError('Invalid first day of week');
+        return this.addDays(-((this.dayOfWeek - firstDay + 7) % 7));
+    }
+    public endOfWeek(firstDay: DateWeekday = DateSettings.current.firstDayOfWeek): Date { 
+        return this.startOfWeek(firstDay).addDays(6); 
+    }
+    /** Absolute whole-day distance. */
+    public diffDays(other: Date): number { 
+        return Math.abs(this.value.until(other.value, { largestUnit: 'days' }).days); 
+    }
+
+    /** Localized display. A civil date never shifts with the display timezone. Explicit options replace defaults. */
+    public toLocaleString(options?: Intl.DateTimeFormatOptions, locale?: string | string[]): string {
+        const config = DateSettings.current;
+        return new Intl.DateTimeFormat(locale ?? config.locale, { ...(options ?? config.dateFormat), timeZone: 'UTC' })
+            .format(this.value.toZonedDateTime('UTC').epochMilliseconds);
+    }
+    public getMonthName(format: DateNameFormat = DateSettings.current.monthNameFormat, locale?: string | string[]): string {
+        return this.toLocaleString({ month: format }, locale);
+    }
+    public getDayName(format: DateNameFormat = DateSettings.current.dayNameFormat, locale?: string | string[]): string {
+        return this.toLocaleString({ weekday: format }, locale);
+    }
+    /** January through December, regardless of the configured first weekday. */
+    public static getMonthNames(format: DateNameFormat = DateSettings.current.monthNameFormat, locale?: string | string[]): string[] {
+        return Array.from({ length: 12 }, (_, i) => new Date(2024, i + 1, 15).getMonthName(format, locale));
+    }
+    /** Weekday names starting at firstDay (the configured first weekday by default). */
+    public static getDayNames(format: DateNameFormat = DateSettings.current.dayNameFormat, locale?: string | string[], firstDay: DateWeekday = DateSettings.current.firstDayOfWeek): string[] {
+        const start = new Date(2024, 1, 7).startOfWeek(firstDay);
+        return Array.from({ length: 7 }, (_, i) => start.addDays(i).getDayName(format, locale));
+    }
+    public toString(): string { return this.value.toString(); }
+    public toJSON(): string { return this.toString(); }
+}

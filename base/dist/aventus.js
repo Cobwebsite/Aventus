@@ -780,101 +780,6 @@ let Request=class Request {
 Request.Namespace=`Aventus`;
 __as1(_, 'Request', Request);
 
-let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
-    if (Array.isArray(obj1)) {
-        if (!Array.isArray(obj2)) {
-            return false;
-        }
-        obj2 = obj2.slice();
-        if (obj1.length !== obj2.length) {
-            return false;
-        }
-        if (tableOrder) {
-            for (let i = 0; i < obj1.length; i++) {
-                if (!compareObject(obj1[i], obj2[i])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        else {
-            for (let i = 0; i < obj1.length; i++) {
-                let foundElement = false;
-                for (let j = 0; j < obj2.length; j++) {
-                    if (compareObject(obj1[i], obj2[j])) {
-                        obj2.splice(j, 1);
-                        foundElement = true;
-                        break;
-                    }
-                }
-                if (!foundElement) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
-        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
-            return false;
-        }
-        if (obj1 == obj2) {
-            return true;
-        }
-        if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
-            return false;
-        }
-        if (obj1 instanceof Date || obj2 instanceof Date) {
-            return obj1.toString() === obj2.toString();
-        }
-        let oneProxy = false;
-        if (Watcher.is(obj1)) {
-            oneProxy = true;
-            obj1 = Watcher.extract(obj1, false);
-        }
-        if (Watcher.is(obj2)) {
-            oneProxy = true;
-            obj2 = Watcher.extract(obj2, false);
-        }
-        if (obj1 instanceof Map && obj2 instanceof Map) {
-            if (obj1.size != obj2.size) {
-                return false;
-            }
-            const keys = obj1.keys();
-            for (let key in keys) {
-                if (!obj2.has(key)) {
-                    return false;
-                }
-                if (!compareObject(obj1.get(key), obj2.get(key))) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        else {
-            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
-                return false;
-            }
-            for (let key in obj1) {
-                if (oneProxy && Watcher['__reservedName'][key]) {
-                    continue;
-                }
-                if (!(key in obj2)) {
-                    return false;
-                }
-                if (!compareObject(obj1[key], obj2[key])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-    else {
-        return obj1 === obj2;
-    }
-}
-__as1(_, 'compareObject', compareObject);
-
 let getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
         path = '';
@@ -941,6 +846,382 @@ var HttpErrorCode;
 })(HttpErrorCode || (HttpErrorCode = {}));
 __as1(_, 'HttpErrorCode', HttpErrorCode);
 
+let DateSettings=class DateSettings {
+    static options = {
+        firstDayOfWeek: 1,
+        dateFormat: { year: 'numeric', month: 'long', day: '2-digit' },
+        dateTimeFormat: { year: 'numeric', month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' },
+        timeFormat: { hour: '2-digit', minute: '2-digit' },
+        monthNameFormat: 'long',
+        dayNameFormat: 'long',
+    };
+    static get current() {
+        return {
+            ...this.options,
+            locale: Array.isArray(this.options.locale) ? [...this.options.locale] : this.options.locale,
+            dateFormat: { ...this.options.dateFormat },
+            dateTimeFormat: { ...this.options.dateTimeFormat },
+            timeFormat: { ...this.options.timeFormat },
+        };
+    }
+    static configure(options) {
+        const next = { ...this.current, ...options };
+        if (!Number.isInteger(next.firstDayOfWeek) || next.firstDayOfWeek < 0 || next.firstDayOfWeek > 6) {
+            throw new RangeError('firstDayOfWeek must be between 0 (Sunday) and 6 (Saturday)');
+        }
+        if (!next.dateFormat || !next.dateTimeFormat || !next.timeFormat)
+            throw new TypeError('Date/time formats must be objects');
+        new Intl.DateTimeFormat(next.locale, { ...next.dateFormat, timeZone: next.dateFormat.timeZone ?? next.timeZone });
+        new Intl.DateTimeFormat(next.locale, { ...next.dateTimeFormat, timeZone: next.dateTimeFormat.timeZone ?? next.timeZone });
+        new Intl.DateTimeFormat(next.locale, { timeZone: next.timeZone });
+        new Intl.DateTimeFormat(next.locale, { ...next.timeFormat, timeZone: 'UTC' });
+        if (!['long', 'short', 'narrow'].includes(next.monthNameFormat) || !['long', 'short', 'narrow'].includes(next.dayNameFormat)) {
+            throw new RangeError('Name formats must be long, short or narrow');
+        }
+        this.options = {
+            ...next,
+            locale: Array.isArray(next.locale) ? [...next.locale] : next.locale,
+            dateFormat: { ...next.dateFormat },
+            dateTimeFormat: { ...next.dateTimeFormat },
+            timeFormat: { ...next.timeFormat },
+        };
+    }
+}
+DateSettings.Namespace=`Aventus`;
+__as1(_, 'DateSettings', DateSettings);
+
+let Time=class Time {
+    value;
+    constructor(hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0) {
+        if (![hour, minute, second, millisecond, microsecond, nanosecond].every(Number.isInteger))
+            throw new RangeError('Time fields must be integers');
+        this.value = new Temporal.PlainTime(hour, minute, second, millisecond, microsecond, nanosecond);
+    }
+    static configure(options) { DateSettings.configure(options); }
+    static get configuration() { return DateSettings.current; }
+    static fromValue(value) {
+        return new Time(value.hour, value.minute, value.second, value.millisecond, value.microsecond, value.nanosecond);
+    }
+    static parse(text) {
+        if (!/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,9})?)?$/.test(text))
+            throw new RangeError('Expected HH:mm[:ss[.fraction]]');
+        return Time.fromValue(Temporal.PlainTime.from(text));
+    }
+    static tryParse(text) { try {
+        return Time.parse(text);
+    }
+    catch {
+        return null;
+    } }
+    static get now() { return Time.fromValue(Temporal.Now.plainTimeISO(DateSettings.current.timeZone)); }
+    get hour() { return this.value.hour; }
+    get minute() { return this.value.minute; }
+    get second() { return this.value.second; }
+    get millisecond() { return this.value.millisecond; }
+    get microsecond() { return this.value.microsecond; }
+    get nanosecond() { return this.value.nanosecond; }
+    addHours(hours) { return Time.fromValue(this.value.add({ hours })); }
+    addMinutes(minutes) { return Time.fromValue(this.value.add({ minutes })); }
+    addSeconds(seconds) { return Time.fromValue(this.value.add({ seconds })); }
+    addMilliseconds(milliseconds) { return Time.fromValue(this.value.add({ milliseconds })); }
+    compareTo(other) { return Temporal.PlainTime.compare(this.value, other.value); }
+    equals(other) { return other instanceof Time && this.compareTo(other) === 0; }
+    equalsToMinute(other) { return other instanceof Time && this.hour === other.hour && this.minute === other.minute; }
+    diffMinutes(other) { return Math.floor(Math.abs(this.value.until(other.value).total({ unit: 'minutes' }))); }
+    diffHours(other) { return Math.floor(Math.abs(this.value.until(other.value).total({ unit: 'hours' }))); }
+    toLocaleString(options, locale) {
+        const config = DateSettings.current;
+        const date = new Temporal.PlainDate(1970, 1, 1).toPlainDateTime(this.value);
+        return new Intl.DateTimeFormat(locale ?? config.locale, { ...(options ?? config.timeFormat), timeZone: 'UTC' })
+            .format(date.toZonedDateTime('UTC').epochMilliseconds);
+    }
+    toInputString(precision = 'auto') {
+        return precision === 'auto' ? this.toString() : this.value.toString({ smallestUnit: precision });
+    }
+    toString() { return this.value.toString(); }
+    toJSON() { return this.toString(); }
+}
+Time.Namespace=`Aventus`;
+__as1(_, 'Time', Time);
+
+let Date=class Date {
+    static configure(options) { DateSettings.configure(options); }
+    static get configuration() { return DateSettings.current; }
+    value;
+    constructor(year = 1, month = 1, day = 1) {
+        if (!Number.isInteger(year) || year < 1 || year > 9999)
+            throw new RangeError('Year must be between 1 and 9999');
+        this.value = new Temporal.PlainDate(year, month, day);
+    }
+    static parse(text) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(text))
+            throw new RangeError('Expected YYYY-MM-DD');
+        const value = Temporal.PlainDate.from(text);
+        return new Date(value.year, value.month, value.day);
+    }
+    static tryParse(text) {
+        try {
+            return Date.parse(text);
+        }
+        catch {
+            return null;
+        }
+    }
+    static get today() {
+        const value = Temporal.Now.plainDateISO(DateSettings.current.timeZone);
+        return new Date(value.year, value.month, value.day);
+    }
+    get year() { return this.value.year; }
+    get month() { return this.value.month; }
+    get day() { return this.value.day; }
+    get dayOfWeek() { return this.value.dayOfWeek % 7; }
+    get dayOfYear() { return this.value.dayOfYear; }
+    get daysInMonth() { return this.value.daysInMonth; }
+    get isLeapYear() { return this.value.inLeapYear; }
+    addDays(days) { return Date.parse(this.value.add({ days }).toString()); }
+    addMonths(months) { return Date.parse(this.value.add({ months }).toString()); }
+    addYears(years) { return Date.parse(this.value.add({ years }).toString()); }
+    compareTo(other) { return Temporal.PlainDate.compare(this.value, other.value); }
+    equals(other) { return other instanceof Date && this.compareTo(other) === 0; }
+    startOfMonth() { return new Date(this.year, this.month, 1); }
+    endOfMonth() { return new Date(this.year, this.month, this.daysInMonth); }
+    startOfWeek(firstDay = DateSettings.current.firstDayOfWeek) {
+        if (!Number.isInteger(firstDay) || firstDay < 0 || firstDay > 6)
+            throw new RangeError('Invalid first day of week');
+        return this.addDays(-((this.dayOfWeek - firstDay + 7) % 7));
+    }
+    endOfWeek(firstDay = DateSettings.current.firstDayOfWeek) {
+        return this.startOfWeek(firstDay).addDays(6);
+    }
+    diffDays(other) {
+        return Math.abs(this.value.until(other.value, { largestUnit: 'days' }).days);
+    }
+    toLocaleString(options, locale) {
+        const config = DateSettings.current;
+        return new Intl.DateTimeFormat(locale ?? config.locale, { ...(options ?? config.dateFormat), timeZone: 'UTC' })
+            .format(this.value.toZonedDateTime('UTC').epochMilliseconds);
+    }
+    getMonthName(format = DateSettings.current.monthNameFormat, locale) {
+        return this.toLocaleString({ month: format }, locale);
+    }
+    getDayName(format = DateSettings.current.dayNameFormat, locale) {
+        return this.toLocaleString({ weekday: format }, locale);
+    }
+    static getMonthNames(format = DateSettings.current.monthNameFormat, locale) {
+        return Array.from({ length: 12 }, (_, i) => new Date(2024, i + 1, 15).getMonthName(format, locale));
+    }
+    static getDayNames(format = DateSettings.current.dayNameFormat, locale, firstDay = DateSettings.current.firstDayOfWeek) {
+        const start = new Date(2024, 1, 7).startOfWeek(firstDay);
+        return Array.from({ length: 7 }, (_, i) => start.addDays(i).getDayName(format, locale));
+    }
+    toString() { return this.value.toString(); }
+    toJSON() { return this.toString(); }
+}
+Date.Namespace=`Aventus`;
+__as1(_, 'Date', Date);
+
+let DateTime=class DateTime {
+    static configure(options) { DateSettings.configure(options); }
+    static get configuration() { return DateSettings.current; }
+    value;
+    kind;
+    constructor(year = 1, month = 1, day = 1, hour = 0, minute = 0, second = 0, millisecond = 0, kind = 'unspecified', microsecond = 0, nanosecond = 0) {
+        if (!Number.isInteger(year) || year < 1 || year > 9999)
+            throw new RangeError('Year must be between 1 and 9999');
+        this.value = new Temporal.PlainDateTime(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond);
+        this.kind = kind;
+    }
+    static fromValue(value, kind) {
+        return new DateTime(value.year, value.month, value.day, value.hour, value.minute, value.second, value.millisecond, kind, value.microsecond, value.nanosecond);
+    }
+    static parse(text) {
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?$/.test(text))
+            throw new RangeError('Expected ISO date and time');
+        const utc = /(?:Z|[+-]\d{2}:\d{2})$/.test(text);
+        const value = utc ? Temporal.Instant.from(text).toZonedDateTimeISO('UTC').toPlainDateTime() : Temporal.PlainDateTime.from(text);
+        return DateTime.fromValue(value, utc ? 'utc' : 'unspecified');
+    }
+    static tryParse(text) {
+        try {
+            return DateTime.parse(text);
+        }
+        catch {
+            return null;
+        }
+    }
+    static get now() { return DateTime.fromValue(Temporal.Now.plainDateTimeISO(DateSettings.current.timeZone), 'unspecified'); }
+    static get utcNow() { return DateTime.fromValue(Temporal.Now.plainDateTimeISO('UTC'), 'utc'); }
+    get year() { return this.value.year; }
+    get month() { return this.value.month; }
+    get day() { return this.value.day; }
+    get hour() { return this.value.hour; }
+    get minute() { return this.value.minute; }
+    get second() { return this.value.second; }
+    get millisecond() { return this.value.millisecond; }
+    get microsecond() { return this.value.microsecond; }
+    get nanosecond() { return this.value.nanosecond; }
+    get date() { return new Date(this.year, this.month, this.day); }
+    get time() { return new Time(this.hour, this.minute, this.second, this.millisecond, this.microsecond, this.nanosecond); }
+    get dayOfWeek() { return this.value.dayOfWeek % 7; }
+    get dayOfYear() { return this.value.dayOfYear; }
+    get daysInMonth() { return this.value.daysInMonth; }
+    get isLeapYear() { return this.value.inLeapYear; }
+    addYears(years) { return DateTime.fromValue(this.value.add({ years }), this.kind); }
+    addMonths(months) { return DateTime.fromValue(this.value.add({ months }), this.kind); }
+    addDays(days) { return DateTime.fromValue(this.value.add({ days }), this.kind); }
+    addHours(hours) { return DateTime.fromValue(this.value.add({ hours }), this.kind); }
+    addMinutes(minutes) { return DateTime.fromValue(this.value.add({ minutes }), this.kind); }
+    addSeconds(seconds) { return DateTime.fromValue(this.value.add({ seconds }), this.kind); }
+    addMilliseconds(milliseconds) { return DateTime.fromValue(this.value.add({ milliseconds }), this.kind); }
+    toUtc(timeZone) {
+        if (this.kind === 'utc')
+            return this;
+        return DateTime.parse(this.value.toZonedDateTime(timeZone, { disambiguation: 'reject' }).toInstant().toString());
+    }
+    compareTo(other) {
+        if (this.kind !== other.kind)
+            throw new RangeError('Convert both DateTime values to the same kind before comparing');
+        return Temporal.PlainDateTime.compare(this.value, other.value);
+    }
+    equals(other) { return other instanceof DateTime && this.kind === other.kind && this.compareTo(other) === 0; }
+    equalsToMinute(other) {
+        return other instanceof DateTime && this.kind === other.kind && this.date.equals(other.date)
+            && this.hour === other.hour && this.minute === other.minute;
+    }
+    boundary(date, end = false) {
+        return new DateTime(date.year, date.month, date.day, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0, this.kind, end ? 999 : 0, end ? 999 : 0);
+    }
+    startOfDay() { return this.boundary(this.date); }
+    endOfDay() { return this.boundary(this.date, true); }
+    startOfMonth() { return this.boundary(this.date.startOfMonth()); }
+    endOfMonth() { return this.boundary(this.date.endOfMonth(), true); }
+    startOfWeek(firstDay = DateSettings.current.firstDayOfWeek) { return this.boundary(this.date.startOfWeek(firstDay)); }
+    endOfWeek(firstDay = DateSettings.current.firstDayOfWeek) { return this.boundary(this.date.endOfWeek(firstDay), true); }
+    diff(other, unit) {
+        if (this.kind !== other.kind)
+            throw new RangeError('Convert both DateTime values to the same kind before comparing');
+        return Math.floor(Math.abs(this.value.until(other.value, { largestUnit: 'days' }).total({ unit })));
+    }
+    diffDays(other) { return this.diff(other, 'days'); }
+    diffHours(other) { return this.diff(other, 'hours'); }
+    diffMinutes(other) { return this.diff(other, 'minutes'); }
+    toLocaleString(options, locale) {
+        const config = DateSettings.current;
+        const format = options ?? config.dateTimeFormat;
+        if (this.kind === 'utc') {
+            return new Intl.DateTimeFormat(locale ?? config.locale, { ...format, timeZone: format.timeZone ?? config.timeZone })
+                .format(Temporal.Instant.from(this.toString()).epochMilliseconds);
+        }
+        return new Intl.DateTimeFormat(locale ?? config.locale, { ...format, timeZone: 'UTC' })
+            .format(this.value.toZonedDateTime('UTC').epochMilliseconds);
+    }
+    getMonthName(format = DateSettings.current.monthNameFormat, locale) { return this.date.getMonthName(format, locale); }
+    getDayName(format = DateSettings.current.dayNameFormat, locale) { return this.date.getDayName(format, locale); }
+    toInputString() { return this.value.toString(); }
+    toString() { return this.value.toString() + (this.kind === 'utc' ? 'Z' : ''); }
+    toJSON() { return this.toString(); }
+}
+DateTime.Namespace=`Aventus`;
+__as1(_, 'DateTime', DateTime);
+
+let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
+    if (Array.isArray(obj1)) {
+        if (!Array.isArray(obj2)) {
+            return false;
+        }
+        obj2 = obj2.slice();
+        if (obj1.length !== obj2.length) {
+            return false;
+        }
+        if (tableOrder) {
+            for (let i = 0; i < obj1.length; i++) {
+                if (!compareObject(obj1[i], obj2[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else {
+            for (let i = 0; i < obj1.length; i++) {
+                let foundElement = false;
+                for (let j = 0; j < obj2.length; j++) {
+                    if (compareObject(obj1[i], obj2[j])) {
+                        obj2.splice(j, 1);
+                        foundElement = true;
+                        break;
+                    }
+                }
+                if (!foundElement) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
+        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
+            return false;
+        }
+        if (obj1 == obj2) {
+            return true;
+        }
+        if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
+            return false;
+        }
+        if (obj1 instanceof Date || obj1 instanceof DateTime || obj1 instanceof Time) {
+            return obj1.equals(obj2);
+        }
+        if (obj2 instanceof Date || obj2 instanceof DateTime || obj2 instanceof Time) {
+            return false;
+        }
+        let oneProxy = false;
+        if (Watcher.is(obj1)) {
+            oneProxy = true;
+            obj1 = Watcher.extract(obj1, false);
+        }
+        if (Watcher.is(obj2)) {
+            oneProxy = true;
+            obj2 = Watcher.extract(obj2, false);
+        }
+        if (obj1 instanceof Map && obj2 instanceof Map) {
+            if (obj1.size != obj2.size) {
+                return false;
+            }
+            const keys = obj1.keys();
+            for (let key in keys) {
+                if (!obj2.has(key)) {
+                    return false;
+                }
+                if (!compareObject(obj1.get(key), obj2.get(key))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else {
+            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+                return false;
+            }
+            for (let key in obj1) {
+                if (oneProxy && Watcher['__reservedName'][key]) {
+                    continue;
+                }
+                if (!(key in obj2)) {
+                    return false;
+                }
+                if (!compareObject(obj1[key], obj2[key])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+    else {
+        return obj1 === obj2;
+    }
+}
+__as1(_, 'compareObject', compareObject);
+
 let DateConverter=class DateConverter {
     static __converter = new DateConverter();
     static get converter() {
@@ -950,18 +1231,13 @@ let DateConverter=class DateConverter {
         this.__converter = value;
     }
     isStringDate(txt) {
-        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3,6})Z$/.exec(txt) !== null;
+        return /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?)?$/.test(txt);
     }
     fromString(txt) {
-        return new Date(txt);
+        return txt.includes('T') ? DateTime.tryParse(txt) : Date.tryParse(txt);
     }
     toString(date) {
-        if (date.getFullYear() < 100) {
-            return "0001-01-01T00:00:00.000Z";
-        }
-        const clonedDate = new Date(date);
-        clonedDate.setMinutes(clonedDate.getMinutes() - clonedDate.getTimezoneOffset());
-        return clonedDate.toISOString();
+        return date.toJSON();
     }
 }
 DateConverter.Namespace=`Aventus`;
@@ -1087,7 +1363,7 @@ let ConverterTransform=class ConverterTransform {
             }
             return result;
         }
-        if (data instanceof Date) {
+        if (data instanceof Date || data instanceof DateTime || data instanceof Time) {
             return data;
         }
         if (typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
@@ -1110,10 +1386,13 @@ let ConverterTransform=class ConverterTransform {
                     obj = Json.classFromJson(obj, data, {
                         transformValue: (key, value) => {
                             if (obj[key] instanceof Date) {
-                                return value ? new Date(value) : null;
+                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
                             }
-                            else if (typeof value == 'string' && DateConverter.converter.isStringDate(value)) {
-                                return value ? DateConverter.converter.fromString(value) : null;
+                            else if (obj[key] instanceof DateTime) {
+                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
+                            }
+                            else if (obj[key] instanceof Time) {
+                                return value == null ? null : value instanceof Time ? value : Time.parse(value);
                             }
                             else if (obj[key] instanceof Map) {
                                 let map = new Map();
@@ -1127,7 +1406,10 @@ let ConverterTransform=class ConverterTransform {
                             }
                             else if (obj instanceof Data) {
                                 let cst = obj.constructor;
-                                if (cst.$schema[key] == 'boolean') {
+                                if (['Time', 'Aventus.Time', 'time'].includes(cst.$schema[key])) {
+                                    return value == null ? null : value instanceof Time ? value : Time.parse(value);
+                                }
+                                else if (cst.$schema[key] == 'boolean') {
                                     return value ? true : false;
                                 }
                                 else if (cst.$schema[key] == 'number') {
@@ -1136,8 +1418,11 @@ let ConverterTransform=class ConverterTransform {
                                 else if (cst.$schema[key] == 'number') {
                                     return isNaN(Number(value)) ? 0 : Number(value);
                                 }
-                                else if (cst.$schema[key] == 'Date') {
-                                    return value ? new Date(value) : null;
+                                else if (cst.$schema[key] == 'Date' || cst.$schema[key] == 'Aventus.Date' || cst.$schema[key] == 'date') {
+                                    return value == null ? null : value instanceof Date ? value : Date.parse(value);
+                                }
+                                else if (cst.$schema[key] == "DateTime" || cst.$schema[key] == "Aventus.DateTime" || cst.$schema[key] == "datetime") {
+                                    return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
                                 }
                             }
                             return this.transformLoop(value);
@@ -1153,8 +1438,11 @@ let ConverterTransform=class ConverterTransform {
             }
             return result;
         }
-        if (typeof data == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(data)) {
-            return new Date(data);
+        if (typeof data === 'string' && /^\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/.test(data)) {
+            return Time.tryParse(data) ?? data;
+        }
+        if (typeof data == 'string' && DateConverter.converter.isStringDate(data)) {
+            return DateConverter.converter.fromString(data) ?? data;
         }
         return data;
     }
@@ -2041,6 +2329,8 @@ let Watcher=class Watcher {
             getProxyObject(target, element, prop) {
                 let newProxy;
                 element = replaceByAlias(target, element, prop, null, true);
+                if (element instanceof Date || element instanceof DateTime || element instanceof Time)
+                    return element;
                 if (element instanceof Object && element.__isProxy) {
                     newProxy = element;
                 }
@@ -2077,7 +2367,7 @@ let Watcher=class Watcher {
                         setProxyPath(newProxy, newPath);
                     }
                 }
-                else if (element instanceof Date) {
+                else if (element instanceof Date || element instanceof DateTime || element instanceof Time) {
                     return element;
                 }
                 else {
@@ -2881,7 +3171,7 @@ let HttpRequest=class HttpRequest {
             const key = keys[i];
             let value = obj[key];
             const newKey = parentKey ? `${parentKey}[${key}]` : key;
-            if (value instanceof Date) {
+            if (value instanceof Date || value instanceof DateTime || value instanceof Time) {
                 formData.append(newKey, DateConverter.converter.toString(value));
             }
             else if (typeof value === 'object' &&
@@ -2911,7 +3201,7 @@ let HttpRequest=class HttpRequest {
     }
     jsonReplacer(key, value) {
         const t = this;
-        if (t[key] instanceof Date) {
+        if (t[key] instanceof Date || t[key] instanceof DateTime || t[key] instanceof Time) {
             return DateConverter.converter.toString(t[key]);
         }
         return value;
@@ -2935,7 +3225,7 @@ let HttpRequest=class HttpRequest {
                         useFormData = true;
                         break;
                     }
-                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date) && !(obj[key] instanceof DateTime) && !(obj[key] instanceof Time)) {
                         analyseFormData(obj[key]);
                         if (useFormData) {
                             break;
@@ -7371,39 +7661,23 @@ let WebComponent=class WebComponent extends HTMLElement {
         this.__stateCleared = true;
     }
     dateToString(d) {
-        if (typeof d == 'string') {
-            d = this.stringToDate(d);
-        }
-        if (d instanceof Date) {
-            return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
-        }
-        return null;
+        if (typeof d === 'string')
+            d = Date.tryParse(d);
+        return d instanceof Date ? d.toString() : null;
     }
     dateTimeToString(dt) {
-        if (typeof dt == 'string') {
-            dt = this.stringToDate(dt);
-        }
-        if (dt instanceof Date) {
-            return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
-        }
-        return null;
+        if (typeof dt === 'string')
+            dt = DateTime.tryParse(dt);
+        return dt instanceof DateTime ? dt.toInputString() : null;
     }
-    stringToDate(s) {
-        let td = new Date(s);
-        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
-        if (isNaN(d)) {
-            return null;
-        }
-        return d;
+    stringToDate(s) { return Date.tryParse(s); }
+    stringToTime(s) { return Time.tryParse(s); }
+    timeToString(value) {
+        if (typeof value === 'string')
+            value = Time.tryParse(value);
+        return value instanceof Time ? value.toString() : null;
     }
-    stringToDateTime(s) {
-        let td = new Date(s);
-        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
-        if (isNaN(d)) {
-            return null;
-        }
-        return d;
-    }
+    stringToDateTime(s) { return DateTime.tryParse(s); }
     getBoolean(val) {
         if (val === true || val === 1 || val === 'true' || val === '') {
             return true;
@@ -7501,6 +7775,24 @@ let WebComponent=class WebComponent extends HTMLElement {
     getDateTimeProp(name) {
         this.__registerPropToWatcher(name);
         return this.getDateTimeAttr(name);
+    }
+    getTimeAttr(name) {
+        if (!this.hasAttribute(name))
+            return undefined;
+        return this.stringToTime(this.getAttribute(name));
+    }
+    setTimeAttr(name, val) {
+        let valTxt = this.timeToString(val);
+        if (valTxt === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, valTxt);
+        }
+    }
+    getTimeProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getTimeAttr(name);
     }
     __propertyReceivers = {};
     getReceiver(name) {
@@ -7653,11 +7945,11 @@ let WebComponentInstance=class WebComponentInstance {
      */
     static lastDefinition = 0;
     static registerDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.lastDefinition = performance.now();
         WebComponentInstance.__allDefinitions.push(def);
     }
     static removeDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.lastDefinition = performance.now();
         let index = WebComponentInstance.__allDefinitions.indexOf(def);
         if (index > -1) {
             WebComponentInstance.__allDefinitions.splice(index, 1);

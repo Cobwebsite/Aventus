@@ -1,3 +1,6 @@
+import { Time } from "../lib/Time.lib.avt";
+import { Date } from "../lib/Date.lib.avt";
+import { DateTime } from "../lib/DateTime.lib.avt";
 import { Watcher } from "../lib/Watcher.lib.avt";
 
 /**
@@ -57,8 +60,11 @@ export function compareObject(obj1: any, obj2: any, tableOrder: boolean = true):
         if(obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
             return false;
         }
-        if(obj1 instanceof Date || obj2 instanceof Date) {
-            return obj1.toString() === obj2.toString();
+        if(obj1 instanceof Date || obj1 instanceof DateTime || obj1 instanceof Time) {
+            return obj1.equals(obj2);
+        }
+        if(obj2 instanceof Date || obj2 instanceof DateTime || obj2 instanceof Time) {
+            return false;
         }
 
         let oneProxy = false;

@@ -1,0 +1,49 @@
+import { DateSettings, type DateConfiguration } from './DateConfiguration.lib.avt';
+
+/** Immutable wall-clock time without date or timezone. Arithmetic wraps at midnight. */
+export class Time {
+    private readonly value: Temporal.PlainTime;
+    public constructor(hour: number = 0, minute: number = 0, second: number = 0, millisecond: number = 0, microsecond: number = 0, nanosecond: number = 0) {
+        if(![hour, minute, second, millisecond, microsecond, nanosecond].every(Number.isInteger)) throw new RangeError('Time fields must be integers');
+        this.value = new Temporal.PlainTime(hour, minute, second, millisecond, microsecond, nanosecond);
+    }
+    public static configure(options: Partial<DateConfiguration>): void { DateSettings.configure(options); }
+    public static get configuration(): DateConfiguration { return DateSettings.current; }
+    private static fromValue(value: Temporal.PlainTime): Time {
+        return new Time(value.hour, value.minute, value.second, value.millisecond, value.microsecond, value.nanosecond);
+    }
+    public static parse(text: string): Time {
+        if(!/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,9})?)?$/.test(text)) throw new RangeError('Expected HH:mm[:ss[.fraction]]');
+        return Time.fromValue(Temporal.PlainTime.from(text));
+    }
+    public static tryParse(text: string): Time | null { try { return Time.parse(text); } catch { return null; } }
+    public static get now(): Time { return Time.fromValue(Temporal.Now.plainTimeISO(DateSettings.current.timeZone)); }
+    public get hour(): number { return this.value.hour; }
+    public get minute(): number { return this.value.minute; }
+    public get second(): number { return this.value.second; }
+    public get millisecond(): number { return this.value.millisecond; }
+    public get microsecond(): number { return this.value.microsecond; }
+    public get nanosecond(): number { return this.value.nanosecond; }
+    public addHours(hours: number): Time { return Time.fromValue(this.value.add({ hours })); }
+    public addMinutes(minutes: number): Time { return Time.fromValue(this.value.add({ minutes })); }
+    public addSeconds(seconds: number): Time { return Time.fromValue(this.value.add({ seconds })); }
+    public addMilliseconds(milliseconds: number): Time { return Time.fromValue(this.value.add({ milliseconds })); }
+    public compareTo(other: Time): number { return Temporal.PlainTime.compare(this.value, other.value); }
+    public equals(other: unknown): boolean { return other instanceof Time && this.compareTo(other) === 0; }
+    public equalsToMinute(other: unknown): boolean { return other instanceof Time && this.hour === other.hour && this.minute === other.minute; }
+    /** Absolute whole units on the same day; does not assume an overnight interval. */
+    public diffMinutes(other: Time): number { return Math.floor(Math.abs(this.value.until(other.value).total({ unit: 'minutes' }))); }
+    public diffHours(other: Time): number { return Math.floor(Math.abs(this.value.until(other.value).total({ unit: 'hours' }))); }
+    public toLocaleString(options?: Intl.DateTimeFormatOptions, locale?: string | string[]): string {
+        const config = DateSettings.current;
+        const date = new Temporal.PlainDate(1970, 1, 1).toPlainDateTime(this.value);
+        return new Intl.DateTimeFormat(locale ?? config.locale, { ...(options ?? config.timeFormat), timeZone: 'UTC' })
+            .format(date.toZonedDateTime('UTC').epochMilliseconds);
+    }
+    /** Stable input representation; minute precision is explicit and does not alter the value. */
+    public toInputString(precision: 'minute' | 'second' | 'auto' = 'auto'): string {
+        return precision === 'auto' ? this.toString() : this.value.toString({ smallestUnit: precision });
+    }
+    public toString(): string { return this.value.toString(); }
+    public toJSON(): string { return this.toString(); }
+}

@@ -1,3 +1,6 @@
+import { Time } from "../lib/Time.lib.avt";
+import { Date } from "../lib/Date.lib.avt";
+import { DateTime } from "../lib/DateTime.lib.avt";
 import { Template, type TemplateInstance } from "./WebComponentTemplate.lib.avt";
 import { Style } from "./Style.lib.avt";
 import { type PressManager } from "../lib/PressManager.lib.avt";
@@ -30,12 +33,12 @@ export class WebComponentInstance {
      */
     public static lastDefinition: number = 0;
     private static registerDefinition(def: new () => WebComponent) {
-        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.lastDefinition = performance.now();
         WebComponentInstance.__allDefinitions.push(def);
     }
 
     private static removeDefinition(def: new () => WebComponent) {
-        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.lastDefinition = performance.now();
         let index = WebComponentInstance.__allDefinitions.indexOf(def);
         if(index > -1) {
             WebComponentInstance.__allDefinitions.splice(index, 1);
@@ -650,39 +653,20 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
     //#region date
     protected dateToString(d: Date | string | null | undefined): string | null {
-        if(typeof d == 'string') {
-            d = this.stringToDate(d);
-        }
-        if(d instanceof Date) {
-            return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
-        }
-        return null;
+        if(typeof d === 'string') d = Date.tryParse(d);
+        return d instanceof Date ? d.toString() : null;
     }
-    protected dateTimeToString(dt: Date | string | null | undefined): string | null {
-        if(typeof dt == 'string') {
-            dt = this.stringToDate(dt);
-        }
-        if(dt instanceof Date) {
-            return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
-        }
-        return null;
+    protected dateTimeToString(dt: DateTime | string | null | undefined): string | null {
+        if(typeof dt === 'string') dt = DateTime.tryParse(dt);
+        return dt instanceof DateTime ? dt.toInputString() : null;
     }
-    protected stringToDate(s: string): Date | null {
-        let td = new Date(s);
-        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000)) as any;
-        if(isNaN(d)) {
-            return null;
-        }
-        return d;
+    protected stringToDate(s: string): Date | null { return Date.tryParse(s); }
+    protected stringToTime(s: string): Time | null { return Time.tryParse(s); }
+    protected timeToString(value: Time | string | null | undefined): string | null {
+        if(typeof value === 'string') value = Time.tryParse(value);
+        return value instanceof Time ? value.toString() : null;
     }
-    protected stringToDateTime(s: string): Date | null {
-        let td = new Date(s);
-        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000)) as any;
-        if(isNaN(d)) {
-            return null;
-        }
-        return d;
-    }
+    protected stringToDateTime(s: string): DateTime | null { return DateTime.tryParse(s); }
     //#endregion
 
     //#region boolean
@@ -781,6 +765,22 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     private getDateTimeProp(name: string) {
         this.__registerPropToWatcher(name);
         return this.getDateTimeAttr(name);
+    }
+    //#endregion
+
+    //#region time
+    private getTimeAttr(name: string) {
+        if(!this.hasAttribute(name)) return undefined;
+        return this.stringToTime(this.getAttribute(name)!);
+    }
+    private setTimeAttr(name: string, val: any) {
+        let valTxt = this.timeToString(val);
+        if(valTxt === null) { this.removeAttribute(name); }
+        else { this.setAttribute(name, valTxt); }
+    }
+    private getTimeProp(name: string) {
+        this.__registerPropToWatcher(name);
+        return this.getTimeAttr(name);
     }
     //#endregion
 

@@ -10,7 +10,7 @@ export class Tracker {
     /**
      * Timestamp of the last update.
      */
-    public updateTime: number = Date.now();
+    public updateTime: number = performance.now();
     /**
      * Change in position since the last update.
      */
@@ -41,7 +41,7 @@ export class Tracker {
             lastPosition,
         } = this;
 
-        const now = Date.now();
+        const now = performance.now();
         const position = this.getPosition(touch);
 
         const delta = {

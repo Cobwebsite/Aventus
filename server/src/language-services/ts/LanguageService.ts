@@ -1,4 +1,6 @@
 import { join, normalize, sep } from 'path';
+import { isIdentifier, Node } from 'typescript';
+import { isForbiddenNativeGlobal, isForbiddenNativeGlobalSymbol } from './ForbiddenNativeGlobals';
 import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind, Type, ModuleKind, getDefaultLibFilePath } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
@@ -262,6 +264,25 @@ export class AventusTsLanguageService {
             const syntaxDiagnostics: DiagnosticTs[] = this.languageService.getSyntacticDiagnostics(file.uri);
             const semanticDiagnostics: DiagnosticTs[] = this.languageService.getSemanticDiagnostics(file.uri);
             const allNormalDiagnostics: DiagnosticTs[] = syntaxDiagnostics.concat(semanticDiagnostics);
+            const program = this.languageService.getProgram();
+            const source = program?.getSourceFile(file.uri);
+            if (program && source && !source.isDeclarationFile) {
+                const checker = program.getTypeChecker();
+                const visit = (node: Node) => {
+                    const message = isIdentifier(node) ? isForbiddenNativeGlobal(node, checker) : undefined;
+                    if (message) {
+                        result.push({
+                            range: convertRange(file.documentInternal, { start: node.getStart(source), length: node.getWidth(source) }),
+                            severity: DiagnosticSeverity.Error,
+                            source: AventusLanguageId.TypeScript,
+                            code: 'forbidden-native-global',
+                            message,
+                        });
+                    }
+                    node.forEachChild(visit);
+                };
+                visit(source);
+            }
             for (let diag of allNormalDiagnostics) {
                 if (avoidCodes.includes(diag.code)) { continue; } // Decorators not valid
 
@@ -311,6 +332,7 @@ export class AventusTsLanguageService {
             let items: CompletionItem[] = [];
             for (let i = 0; i < completions.entries.length; i++) {
                 let entry = completions.entries[i];
+                if (isForbiddenNativeGlobalSymbol(entry.name, entry.symbol)) continue;
                 let remplacement = entry.insertText ? entry.insertText : entry.name
                 remplacement = remplacement.replace(/\.\?\./g, "?.");
                 let additionalTextEdits: TextEdit[] | undefined = undefined;
@@ -1638,7 +1660,7 @@ const compilerOptionsRead: CompilerOptions = {
     importHelpers: false,
     allowJs: true,
     checkJs: false,
-    // lib: ['lib.es2025.full.d.ts'],
+    lib: ['lib.es2025.full.d.ts', 'lib.esnext.temporal.d.ts'],
     target: ScriptTarget.ES2025,
     module: ModuleKind.NodeNext,
     moduleDetection: ModuleDetectionKind.Force,
@@ -1658,7 +1680,7 @@ const compilerOptionsCompile: CompilerOptions = {
     importHelpers: false,
     allowJs: true,
     checkJs: false,
-    // lib: ['lib.es2025.full.d.ts'],
+    lib: ['lib.es2025.full.d.ts', 'lib.esnext.temporal.d.ts'],
     target: ScriptTarget.ES2025,
     module: ModuleKind.NodeNext,
     moduleDetection: ModuleDetectionKind.Auto,
@@ -1673,6 +1695,7 @@ const compilerOptionsCompile: CompilerOptions = {
 
 };
 const completionOptions: GetCompletionsAtPositionOptions = {
+    includeSymbol: true,
     includeExternalModuleExports: true,
     includeInsertTextCompletions: true,
     includeCompletionsWithClassMemberSnippets: true,

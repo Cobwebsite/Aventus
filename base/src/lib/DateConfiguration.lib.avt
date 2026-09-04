@@ -1,0 +1,66 @@
+export type DateNameFormat = 'long' | 'short' | 'narrow';
+/** Intl year display formats, reusable in component attributes. */
+export type DateYearFormat = 'numeric' | '2-digit';
+/** Intl month display formats, including numeric and localized names. */
+export type DateMonthFormat = 'numeric' | '2-digit' | 'long' | 'short' | 'narrow';
+/** Intl day-of-month display formats (not weekday names). */
+export type DateDayFormat = 'numeric' | '2-digit';
+export type DateWeekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+/** Shared display/calendar defaults. ISO parsing and JSON serialization never use these options. */
+export interface DateConfiguration {
+    locale?: string | string[];
+    timeZone?: string;
+    firstDayOfWeek: DateWeekday;
+    dateFormat: Intl.DateTimeFormatOptions;
+    dateTimeFormat: Intl.DateTimeFormatOptions;
+    timeFormat: Intl.DateTimeFormatOptions;
+    monthNameFormat: DateNameFormat;
+    dayNameFormat: DateNameFormat;
+}
+
+/** Shared implementation behind Date.configure and DateTime.configure. */
+export class DateSettings {
+    private static options: DateConfiguration = {
+        firstDayOfWeek: 1,
+        dateFormat: { year: 'numeric', month: 'long', day: '2-digit' },
+        dateTimeFormat: { year: 'numeric', month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' },
+        timeFormat: { hour: '2-digit', minute: '2-digit' },
+        monthNameFormat: 'long',
+        dayNameFormat: 'long',
+    };
+
+    public static get current(): DateConfiguration {
+        return {
+            ...this.options,
+            locale: Array.isArray(this.options.locale) ? [...this.options.locale] : this.options.locale,
+            dateFormat: { ...this.options.dateFormat },
+            dateTimeFormat: { ...this.options.dateTimeFormat },
+            timeFormat: { ...this.options.timeFormat },
+        };
+    }
+
+    /** Partial update. Each supplied format replaces the previous format in full. */
+    public static configure(options: Partial<DateConfiguration>): void {
+        const next = { ...this.current, ...options };
+        if(!Number.isInteger(next.firstDayOfWeek) || next.firstDayOfWeek < 0 || next.firstDayOfWeek > 6) {
+            throw new RangeError('firstDayOfWeek must be between 0 (Sunday) and 6 (Saturday)');
+        }
+        if(!next.dateFormat || !next.dateTimeFormat || !next.timeFormat) throw new TypeError('Date/time formats must be objects');
+        // Validate before committing, so an invalid update leaves the previous configuration intact.
+        new Intl.DateTimeFormat(next.locale, { ...next.dateFormat, timeZone: next.dateFormat.timeZone ?? next.timeZone });
+        new Intl.DateTimeFormat(next.locale, { ...next.dateTimeFormat, timeZone: next.dateTimeFormat.timeZone ?? next.timeZone });
+        new Intl.DateTimeFormat(next.locale, { timeZone: next.timeZone });
+        new Intl.DateTimeFormat(next.locale, { ...next.timeFormat, timeZone: 'UTC' });
+        if(!['long', 'short', 'narrow'].includes(next.monthNameFormat) || !['long', 'short', 'narrow'].includes(next.dayNameFormat)) {
+            throw new RangeError('Name formats must be long, short or narrow');
+        }
+        this.options = {
+            ...next,
+            locale: Array.isArray(next.locale) ? [...next.locale] : next.locale,
+            dateFormat: { ...next.dateFormat },
+            dateTimeFormat: { ...next.dateTimeFormat },
+            timeFormat: { ...next.timeFormat },
+        };
+    }
+}
