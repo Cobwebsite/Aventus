@@ -1,3 +1,6 @@
+import { Time } from "../lib/Time.lib.avt";
+import { Date } from "../lib/Date.lib.avt";
+import { DateTime } from "../lib/DateTime.lib.avt";
 import { Data } from "../data/IData.data.avt";
 import { Json } from "./Json.lib.avt";
 
@@ -65,7 +68,7 @@ export class ConverterTransform implements IConverterTransform {
             }
             return result;
         }
-        if(data instanceof Date) {
+        if(data instanceof Date || data instanceof DateTime || data instanceof Time) {
             return data;
         }
 
@@ -89,10 +92,13 @@ export class ConverterTransform implements IConverterTransform {
                     obj = Json.classFromJson(obj, data, {
                         transformValue: (key, value) => {
                             if(obj[key] instanceof Date) {
-                                return value ? new Date(value) : null;
+                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
                             }
-                            else if(typeof value == 'string' && DateConverter.converter.isStringDate(value)) {
-                                return value ? DateConverter.converter.fromString(value) : null;
+                            else if(obj[key] instanceof DateTime) {
+                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
+                            }
+                            else if(obj[key] instanceof Time) {
+                                return value == null ? null : value instanceof Time ? value : Time.parse(value);
                             }
                             else if(obj[key] instanceof Map) {
                                 let map = new Map();
@@ -107,7 +113,10 @@ export class ConverterTransform implements IConverterTransform {
                             else if(obj instanceof Data) {
                                 let cst = obj.constructor as typeof Data;
 
-                                if(cst.$schema[key] == 'boolean') {
+                                if(['Time', 'Aventus.Time', 'time'].includes(cst.$schema[key])) {
+                                    return value == null ? null : value instanceof Time ? value : Time.parse(value);
+                                }
+                                else if(cst.$schema[key] == 'boolean') {
                                     return value ? true : false;
                                 }
                                 else if(cst.$schema[key] == 'number') {
@@ -116,8 +125,11 @@ export class ConverterTransform implements IConverterTransform {
                                 else if(cst.$schema[key] == 'number') {
                                     return isNaN(Number(value)) ? 0 : Number(value);
                                 }
-                                else if(cst.$schema[key] == 'Date') {
-                                    return value ? new Date(value) : null;
+                                else if(cst.$schema[key] == 'Date' || cst.$schema[key] == 'Aventus.Date' || cst.$schema[key] == 'date') {
+                                    return value == null ? null : value instanceof Date ? value : Date.parse(value);
+                                }
+                                else if(cst.$schema[key] == "DateTime" || cst.$schema[key] == "Aventus.DateTime" || cst.$schema[key] == "datetime") {
+                                    return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
                                 }
                             }
                             return this.transformLoop(value);
@@ -135,8 +147,11 @@ export class ConverterTransform implements IConverterTransform {
             return result;
         }
 
-        if(typeof data == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(data)) {
-            return new Date(data);
+        if(typeof data === 'string' && /^\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/.test(data)) {
+            return Time.tryParse(data) ?? data;
+        }
+        if(typeof data == 'string' && DateConverter.converter.isStringDate(data)) {
+            return DateConverter.converter.fromString(data) ?? data;
         }
         return data;
     }
@@ -273,19 +288,12 @@ export class DateConverter {
     }
 
     public isStringDate(txt: string): boolean {
-        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3,6})Z$/.exec(txt) !== null;
+        return /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?)?$/.test(txt);
     }
-    public fromString(txt: string): Date | null {
-        return new Date(txt);
+    public fromString(txt: string): Date | DateTime | null {
+        return txt.includes('T') ? DateTime.tryParse(txt) : Date.tryParse(txt);
     }
-    public toString(date: Date): string {
-        if(date.getFullYear() < 100) {
-            return "0001-01-01T00:00:00.000Z";
-        }
-        const clonedDate = new Date(date);
-        clonedDate.setMinutes(
-            clonedDate.getMinutes() - clonedDate.getTimezoneOffset()
-        );
-        return clonedDate.toISOString();
+    public toString(date: Date | DateTime | Time): string {
+        return date.toJSON();
     }
 }

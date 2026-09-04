@@ -1,16 +1,19 @@
 import { join } from 'path';
-import { ClassDeclaration, createProgram, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, MethodDeclaration, SyntaxKind, TypeAliasDeclaration, VariableDeclaration } from 'typescript';
+import { ClassDeclaration, createProgram, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, MethodDeclaration, SyntaxKind, TypeAliasDeclaration, VariableDeclaration, isModuleDeclaration } from 'typescript';
 import { TYPESCRIPT_LIB_SOURCE } from '../libLoader';
 
 export class BaseLibInfo {
     private static libInfo: string[] = [];
     private static init() {
-        let prog = createProgram([join(TYPESCRIPT_LIB_SOURCE(), "lib.es2025.full.d.ts")], {});
+        let prog = createProgram([join(TYPESCRIPT_LIB_SOURCE(), "lib.es2025.full.d.ts"), join(TYPESCRIPT_LIB_SOURCE(), "lib.esnext.temporal.d.ts")], {});
         let files = prog.getSourceFiles();
         for (let file of files) {
             if (file.statements) {
                 for (let st of file.statements) {
                     try {
+                        if (isModuleDeclaration(st) && !this.libInfo.includes(st.name.text)) {
+                            this.libInfo.push(st.name.text);
+                        }
                         if(st.kind == SyntaxKind.FunctionDeclaration){
                             let name = (st as FunctionDeclaration).name?.getText(file);
                             if(name){

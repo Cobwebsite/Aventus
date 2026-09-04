@@ -1,33 +1,3 @@
-if(!Object.hasOwn(window, "AvInstance")) {
-	Object.defineProperty(window, "AvInstance", {
-		get() {return Aventus?.Instance;}
-	});
-
-	(() => {
-		Map.prototype._defaultHas = Map.prototype.has;
-		Map.prototype._defaultSet = Map.prototype.set;
-		Map.prototype._defaultGet = Map.prototype.get;
-		Map.prototype.has = function(key) {
-			if(Aventus.Watcher?.is(key)) {
-				return Map.prototype._defaultHas.call(this,key.getTarget())
-			}
-			return Map.prototype._defaultHas.call(this,key);
-		}
-
-		Map.prototype.set = function(key, value) {
-			if(Aventus.Watcher?.is(key)) {
-				return Map.prototype._defaultSet.call(this, key.getTarget(), value)
-			}
-			return Map.prototype._defaultSet.call(this, key, value);
-		}
-		Map.prototype.get = function(key) {
-			if(Aventus.Watcher?.is(key)) {
-				return Map.prototype._defaultGet.call(this, key.getTarget())
-			}
-			return Map.prototype._defaultGet.call(this, key);
-		}
-	})();
-}
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
@@ -63,32 +33,6 @@ let isClass=function isClass(v) {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }
 __as1(_, 'isClass', isClass);
-
-let DateConverter=class DateConverter {
-    static __converter = new DateConverter();
-    static get converter() {
-        return this.__converter;
-    }
-    static set converter(value) {
-        this.__converter = value;
-    }
-    isStringDate(txt) {
-        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3,6})Z$/.exec(txt) !== null;
-    }
-    fromString(txt) {
-        return new Date(txt);
-    }
-    toString(date) {
-        if (date.getFullYear() < 100) {
-            return "0001-01-01T00:00:00.000Z";
-        }
-        const clonedDate = new Date(date);
-        clonedDate.setMinutes(clonedDate.getMinutes() - clonedDate.getTimezoneOffset());
-        return clonedDate.toISOString();
-    }
-}
-DateConverter.Namespace=`Aventus`;
-__as1(_, 'DateConverter', DateConverter);
 
 let ElementExtension=class ElementExtension {
     /**
@@ -754,100 +698,45 @@ let Callback=class Callback {
 Callback.Namespace=`Aventus`;
 __as1(_, 'Callback', Callback);
 
-let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
-    if (Array.isArray(obj1)) {
-        if (!Array.isArray(obj2)) {
-            return false;
-        }
-        obj2 = obj2.slice();
-        if (obj1.length !== obj2.length) {
-            return false;
-        }
-        if (tableOrder) {
-            for (let i = 0; i < obj1.length; i++) {
-                if (!compareObject(obj1[i], obj2[i])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        else {
-            for (let i = 0; i < obj1.length; i++) {
-                let foundElement = false;
-                for (let j = 0; j < obj2.length; j++) {
-                    if (compareObject(obj1[i], obj2[j])) {
-                        obj2.splice(j, 1);
-                        foundElement = true;
-                        break;
-                    }
-                }
-                if (!foundElement) {
-                    return false;
-                }
-            }
-        }
-        return true;
+let DateSettings=class DateSettings {
+    static options = {
+        firstDayOfWeek: 1,
+        dateFormat: { year: 'numeric', month: 'long', day: '2-digit' },
+        dateTimeFormat: { year: 'numeric', month: 'long', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' },
+        monthNameFormat: 'long',
+        dayNameFormat: 'long',
+    };
+    static get current() {
+        return {
+            ...this.options,
+            locale: Array.isArray(this.options.locale) ? [...this.options.locale] : this.options.locale,
+            dateFormat: { ...this.options.dateFormat },
+            dateTimeFormat: { ...this.options.dateTimeFormat },
+        };
     }
-    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
-        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
-            return false;
+    static configure(options) {
+        const next = { ...this.current, ...options };
+        if (!Number.isInteger(next.firstDayOfWeek) || next.firstDayOfWeek < 0 || next.firstDayOfWeek > 6) {
+            throw new RangeError('firstDayOfWeek must be between 0 (Sunday) and 6 (Saturday)');
         }
-        if (obj1 == obj2) {
-            return true;
+        if (!next.dateFormat || !next.dateTimeFormat)
+            throw new TypeError('Date formats must be objects');
+        new Intl.DateTimeFormat(next.locale, { ...next.dateFormat, timeZone: next.dateFormat.timeZone ?? next.timeZone });
+        new Intl.DateTimeFormat(next.locale, { ...next.dateTimeFormat, timeZone: next.dateTimeFormat.timeZone ?? next.timeZone });
+        new Intl.DateTimeFormat(next.locale, { timeZone: next.timeZone });
+        if (!['long', 'short', 'narrow'].includes(next.monthNameFormat) || !['long', 'short', 'narrow'].includes(next.dayNameFormat)) {
+            throw new RangeError('Name formats must be long, short or narrow');
         }
-        if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
-            return false;
-        }
-        if (obj1 instanceof Date || obj2 instanceof Date) {
-            return obj1.toString() === obj2.toString();
-        }
-        let oneProxy = false;
-        if (Watcher.is(obj1)) {
-            oneProxy = true;
-            obj1 = Watcher.extract(obj1, false);
-        }
-        if (Watcher.is(obj2)) {
-            oneProxy = true;
-            obj2 = Watcher.extract(obj2, false);
-        }
-        if (obj1 instanceof Map && obj2 instanceof Map) {
-            if (obj1.size != obj2.size) {
-                return false;
-            }
-            const keys = obj1.keys();
-            for (let key in keys) {
-                if (!obj2.has(key)) {
-                    return false;
-                }
-                if (!compareObject(obj1.get(key), obj2.get(key))) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        else {
-            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
-                return false;
-            }
-            for (let key in obj1) {
-                if (oneProxy && Watcher['__reservedName'][key]) {
-                    continue;
-                }
-                if (!(key in obj2)) {
-                    return false;
-                }
-                if (!compareObject(obj1[key], obj2[key])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-    else {
-        return obj1 === obj2;
+        this.options = {
+            ...next,
+            locale: Array.isArray(next.locale) ? [...next.locale] : next.locale,
+            dateFormat: { ...next.dateFormat },
+            dateTimeFormat: { ...next.dateTimeFormat },
+        };
     }
 }
-__as1(_, 'compareObject', compareObject);
+DateSettings.Namespace=`Aventus`;
+__as1(_, 'DateSettings', DateSettings);
 
 let getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
@@ -1062,6 +951,293 @@ let Signal=class Signal {
 Signal.Namespace=`Aventus`;
 __as1(_, 'Signal', Signal);
 
+let Date=class Date {
+    static configure(options) { DateSettings.configure(options); }
+    static get configuration() { return DateSettings.current; }
+    value;
+    constructor(year = 1, month = 1, day = 1) {
+        if (!Number.isInteger(year) || year < 1 || year > 9999)
+            throw new RangeError('Year must be between 1 and 9999');
+        this.value = new Temporal.PlainDate(year, month, day);
+    }
+    static parse(text) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(text))
+            throw new RangeError('Expected YYYY-MM-DD');
+        const value = Temporal.PlainDate.from(text);
+        return new Date(value.year, value.month, value.day);
+    }
+    static tryParse(text) {
+        try {
+            return Date.parse(text);
+        }
+        catch {
+            return null;
+        }
+    }
+    static get today() {
+        const value = Temporal.Now.plainDateISO(DateSettings.current.timeZone);
+        return new Date(value.year, value.month, value.day);
+    }
+    get year() { return this.value.year; }
+    get month() { return this.value.month; }
+    get day() { return this.value.day; }
+    get dayOfWeek() { return this.value.dayOfWeek % 7; }
+    get dayOfYear() { return this.value.dayOfYear; }
+    get daysInMonth() { return this.value.daysInMonth; }
+    get isLeapYear() { return this.value.inLeapYear; }
+    addDays(days) { return Date.parse(this.value.add({ days }).toString()); }
+    addMonths(months) { return Date.parse(this.value.add({ months }).toString()); }
+    addYears(years) { return Date.parse(this.value.add({ years }).toString()); }
+    compareTo(other) { return Temporal.PlainDate.compare(this.value, other.value); }
+    equals(other) { return other instanceof Date && this.compareTo(other) === 0; }
+    startOfMonth() { return new Date(this.year, this.month, 1); }
+    endOfMonth() { return new Date(this.year, this.month, this.daysInMonth); }
+    startOfWeek(firstDay = DateSettings.current.firstDayOfWeek) {
+        if (!Number.isInteger(firstDay) || firstDay < 0 || firstDay > 6)
+            throw new RangeError('Invalid first day of week');
+        return this.addDays(-((this.dayOfWeek - firstDay + 7) % 7));
+    }
+    endOfWeek(firstDay = DateSettings.current.firstDayOfWeek) { return this.startOfWeek(firstDay).addDays(6); }
+    diffDays(other) { return Math.abs(this.value.until(other.value, { largestUnit: 'days' }).days); }
+    toLocaleString(options, locale) {
+        const config = DateSettings.current;
+        return new Intl.DateTimeFormat(locale ?? config.locale, { ...(options ?? config.dateFormat), timeZone: 'UTC' })
+            .format(this.value.toZonedDateTime('UTC').epochMilliseconds);
+    }
+    getMonthName(format = DateSettings.current.monthNameFormat, locale) {
+        return this.toLocaleString({ month: format }, locale);
+    }
+    getDayName(format = DateSettings.current.dayNameFormat, locale) {
+        return this.toLocaleString({ weekday: format }, locale);
+    }
+    static getMonthNames(format = DateSettings.current.monthNameFormat, locale) {
+        return Array.from({ length: 12 }, (_, i) => new Date(2024, i + 1, 15).getMonthName(format, locale));
+    }
+    static getDayNames(format = DateSettings.current.dayNameFormat, locale, firstDay = DateSettings.current.firstDayOfWeek) {
+        const start = new Date(2024, 1, 7).startOfWeek(firstDay);
+        return Array.from({ length: 7 }, (_, i) => start.addDays(i).getDayName(format, locale));
+    }
+    toString() { return this.value.toString(); }
+    toJSON() { return this.toString(); }
+}
+Date.Namespace=`Aventus`;
+__as1(_, 'Date', Date);
+
+let DateTime=class DateTime {
+    static configure(options) { DateSettings.configure(options); }
+    static get configuration() { return DateSettings.current; }
+    value;
+    kind;
+    constructor(year = 1, month = 1, day = 1, hour = 0, minute = 0, second = 0, millisecond = 0, kind = 'unspecified', microsecond = 0, nanosecond = 0) {
+        if (!Number.isInteger(year) || year < 1 || year > 9999)
+            throw new RangeError('Year must be between 1 and 9999');
+        this.value = new Temporal.PlainDateTime(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond);
+        this.kind = kind;
+    }
+    static fromValue(value, kind) {
+        return new DateTime(value.year, value.month, value.day, value.hour, value.minute, value.second, value.millisecond, kind, value.microsecond, value.nanosecond);
+    }
+    static parse(text) {
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?$/.test(text))
+            throw new RangeError('Expected ISO date and time');
+        const utc = /(?:Z|[+-]\d{2}:\d{2})$/.test(text);
+        const value = utc ? Temporal.Instant.from(text).toZonedDateTimeISO('UTC').toPlainDateTime() : Temporal.PlainDateTime.from(text);
+        return DateTime.fromValue(value, utc ? 'utc' : 'unspecified');
+    }
+    static tryParse(text) {
+        try {
+            return DateTime.parse(text);
+        }
+        catch {
+            return null;
+        }
+    }
+    static get now() { return DateTime.fromValue(Temporal.Now.plainDateTimeISO(DateSettings.current.timeZone), 'unspecified'); }
+    static get utcNow() { return DateTime.fromValue(Temporal.Now.plainDateTimeISO('UTC'), 'utc'); }
+    get year() { return this.value.year; }
+    get month() { return this.value.month; }
+    get day() { return this.value.day; }
+    get hour() { return this.value.hour; }
+    get minute() { return this.value.minute; }
+    get second() { return this.value.second; }
+    get millisecond() { return this.value.millisecond; }
+    get microsecond() { return this.value.microsecond; }
+    get nanosecond() { return this.value.nanosecond; }
+    get date() { return new Date(this.year, this.month, this.day); }
+    addYears(years) { return DateTime.fromValue(this.value.add({ years }), this.kind); }
+    addMonths(months) { return DateTime.fromValue(this.value.add({ months }), this.kind); }
+    addDays(days) { return DateTime.fromValue(this.value.add({ days }), this.kind); }
+    addHours(hours) { return DateTime.fromValue(this.value.add({ hours }), this.kind); }
+    addMinutes(minutes) { return DateTime.fromValue(this.value.add({ minutes }), this.kind); }
+    addSeconds(seconds) { return DateTime.fromValue(this.value.add({ seconds }), this.kind); }
+    addMilliseconds(milliseconds) { return DateTime.fromValue(this.value.add({ milliseconds }), this.kind); }
+    toUtc(timeZone) {
+        if (this.kind === 'utc')
+            return this;
+        return DateTime.parse(this.value.toZonedDateTime(timeZone, { disambiguation: 'reject' }).toInstant().toString());
+    }
+    compareTo(other) {
+        if (this.kind !== other.kind)
+            throw new RangeError('Convert both DateTime values to the same kind before comparing');
+        return Temporal.PlainDateTime.compare(this.value, other.value);
+    }
+    equals(other) { return other instanceof DateTime && this.kind === other.kind && this.compareTo(other) === 0; }
+    equalsToMinute(other) {
+        return other instanceof DateTime && this.kind === other.kind && this.date.equals(other.date)
+            && this.hour === other.hour && this.minute === other.minute;
+    }
+    boundary(date, end = false) {
+        return new DateTime(date.year, date.month, date.day, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0, this.kind, end ? 999 : 0, end ? 999 : 0);
+    }
+    startOfDay() { return this.boundary(this.date); }
+    endOfDay() { return this.boundary(this.date, true); }
+    startOfMonth() { return this.boundary(this.date.startOfMonth()); }
+    endOfMonth() { return this.boundary(this.date.endOfMonth(), true); }
+    startOfWeek(firstDay = DateSettings.current.firstDayOfWeek) { return this.boundary(this.date.startOfWeek(firstDay)); }
+    endOfWeek(firstDay = DateSettings.current.firstDayOfWeek) { return this.boundary(this.date.endOfWeek(firstDay), true); }
+    diff(other, unit) {
+        if (this.kind !== other.kind)
+            throw new RangeError('Convert both DateTime values to the same kind before comparing');
+        return Math.floor(Math.abs(this.value.until(other.value, { largestUnit: 'days' }).total({ unit })));
+    }
+    diffDays(other) { return this.diff(other, 'days'); }
+    diffHours(other) { return this.diff(other, 'hours'); }
+    diffMinutes(other) { return this.diff(other, 'minutes'); }
+    toLocaleString(options, locale) {
+        const config = DateSettings.current;
+        const format = options ?? config.dateTimeFormat;
+        if (this.kind === 'utc') {
+            return new Intl.DateTimeFormat(locale ?? config.locale, { ...format, timeZone: format.timeZone ?? config.timeZone })
+                .format(Temporal.Instant.from(this.toString()).epochMilliseconds);
+        }
+        return new Intl.DateTimeFormat(locale ?? config.locale, { ...format, timeZone: 'UTC' })
+            .format(this.value.toZonedDateTime('UTC').epochMilliseconds);
+    }
+    getMonthName(format = DateSettings.current.monthNameFormat, locale) { return this.date.getMonthName(format, locale); }
+    getDayName(format = DateSettings.current.dayNameFormat, locale) { return this.date.getDayName(format, locale); }
+    toInputString() { return this.value.toString(); }
+    toString() { return this.value.toString() + (this.kind === 'utc' ? 'Z' : ''); }
+    toJSON() { return this.toString(); }
+}
+DateTime.Namespace=`Aventus`;
+__as1(_, 'DateTime', DateTime);
+
+let DateConverter=class DateConverter {
+    static __converter = new DateConverter();
+    static get converter() {
+        return this.__converter;
+    }
+    static set converter(value) {
+        this.__converter = value;
+    }
+    isStringDate(txt) {
+        return /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?)?$/.test(txt);
+    }
+    fromString(txt) {
+        return txt.includes('T') ? DateTime.tryParse(txt) : Date.tryParse(txt);
+    }
+    toString(date) {
+        return date.toJSON();
+    }
+}
+DateConverter.Namespace=`Aventus`;
+__as1(_, 'DateConverter', DateConverter);
+
+let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
+    if (Array.isArray(obj1)) {
+        if (!Array.isArray(obj2)) {
+            return false;
+        }
+        obj2 = obj2.slice();
+        if (obj1.length !== obj2.length) {
+            return false;
+        }
+        if (tableOrder) {
+            for (let i = 0; i < obj1.length; i++) {
+                if (!compareObject(obj1[i], obj2[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else {
+            for (let i = 0; i < obj1.length; i++) {
+                let foundElement = false;
+                for (let j = 0; j < obj2.length; j++) {
+                    if (compareObject(obj1[i], obj2[j])) {
+                        obj2.splice(j, 1);
+                        foundElement = true;
+                        break;
+                    }
+                }
+                if (!foundElement) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
+        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
+            return false;
+        }
+        if (obj1 == obj2) {
+            return true;
+        }
+        if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
+            return false;
+        }
+        if (obj1 instanceof Date || obj2 instanceof Date || obj1 instanceof DateTime || obj2 instanceof DateTime) {
+            return (obj1 instanceof Date || obj1 instanceof DateTime) && obj1.equals(obj2);
+        }
+        let oneProxy = false;
+        if (Watcher.is(obj1)) {
+            oneProxy = true;
+            obj1 = Watcher.extract(obj1, false);
+        }
+        if (Watcher.is(obj2)) {
+            oneProxy = true;
+            obj2 = Watcher.extract(obj2, false);
+        }
+        if (obj1 instanceof Map && obj2 instanceof Map) {
+            if (obj1.size != obj2.size) {
+                return false;
+            }
+            const keys = obj1.keys();
+            for (let key in keys) {
+                if (!obj2.has(key)) {
+                    return false;
+                }
+                if (!compareObject(obj1.get(key), obj2.get(key))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else {
+            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+                return false;
+            }
+            for (let key in obj1) {
+                if (oneProxy && Watcher['__reservedName'][key]) {
+                    continue;
+                }
+                if (!(key in obj2)) {
+                    return false;
+                }
+                if (!compareObject(obj1[key], obj2[key])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+    else {
+        return obj1 === obj2;
+    }
+}
+__as1(_, 'compareObject', compareObject);
+
 let Watcher=class Watcher {
     static isNative(obj) {
         if (obj instanceof Blob ||
@@ -1266,6 +1442,8 @@ let Watcher=class Watcher {
             getProxyObject(target, element, prop) {
                 let newProxy;
                 element = replaceByAlias(target, element, prop, null, true);
+                if (element instanceof Date || element instanceof DateTime)
+                    return element;
                 if (element instanceof Object && element.__isProxy) {
                     newProxy = element;
                 }
@@ -1302,7 +1480,7 @@ let Watcher=class Watcher {
                         setProxyPath(newProxy, newPath);
                     }
                 }
-                else if (element instanceof Date) {
+                else if (element instanceof Date || element instanceof DateTime) {
                     return element;
                 }
                 else {
@@ -3443,18 +3621,29 @@ let TemplateInstance=class TemplateInstance {
             }
         });
         this.computeds.push(computed);
-        computed.subscribe((action, path, value, dones) => {
+        const apply = (value, dones) => {
             for (const el of this._components[injection.id]) {
-                if (el instanceof WebComponent && el.__watch && Object.hasOwn(el.__watch, injection.injectionName)) {
+                if (dones && el instanceof WebComponent && el.__watch && Object.hasOwn(el.__watch, injection.injectionName)) {
                     el.__watch.__injectedDones(dones);
                 }
-                el[injection.injectionName] = computed.value;
+                el[injection.injectionName] = value;
             }
+        };
+        computed.subscribe((action, path, value, dones) => {
+            apply(computed.value, dones);
         });
         this.firstRenderCb.push(() => {
-            for (const el of this._components[injection.id]) {
+            for (const el of this._components[injection.id])
                 customElements.upgrade(el);
-                el[injection.injectionName] = computed.value;
+            let value = computed.value;
+            apply(value);
+            if (value == null) {
+                queueMicrotask(() => {
+                    if (computed.isDestroy)
+                        return;
+                    computed.isInit = false;
+                    apply(computed.value);
+                });
             }
         });
     }
@@ -4534,39 +4723,17 @@ let WebComponent=class WebComponent extends HTMLElement {
         this.__stateCleared = true;
     }
     dateToString(d) {
-        if (typeof d == 'string') {
-            d = this.stringToDate(d);
-        }
-        if (d instanceof Date) {
-            return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
-        }
-        return null;
+        if (typeof d === 'string')
+            d = Date.tryParse(d);
+        return d instanceof Date ? d.toString() : null;
     }
     dateTimeToString(dt) {
-        if (typeof dt == 'string') {
-            dt = this.stringToDate(dt);
-        }
-        if (dt instanceof Date) {
-            return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
-        }
-        return null;
+        if (typeof dt === 'string')
+            dt = DateTime.tryParse(dt);
+        return dt instanceof DateTime ? dt.toInputString() : null;
     }
-    stringToDate(s) {
-        let td = new Date(s);
-        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
-        if (isNaN(d)) {
-            return null;
-        }
-        return d;
-    }
-    stringToDateTime(s) {
-        let td = new Date(s);
-        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
-        if (isNaN(d)) {
-            return null;
-        }
-        return d;
-    }
+    stringToDate(s) { return Date.tryParse(s); }
+    stringToDateTime(s) { return DateTime.tryParse(s); }
     getBoolean(val) {
         if (val === true || val === 1 || val === 'true' || val === '') {
             return true;
@@ -4816,11 +4983,11 @@ let WebComponentInstance=class WebComponentInstance {
      */
     static lastDefinition = 0;
     static registerDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.lastDefinition = performance.now();
         WebComponentInstance.__allDefinitions.push(def);
     }
     static removeDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.lastDefinition = performance.now();
         let index = WebComponentInstance.__allDefinitions.indexOf(def);
         if (index > -1) {
             WebComponentInstance.__allDefinitions.splice(index, 1);
@@ -4909,7 +5076,7 @@ let ConverterTransform=class ConverterTransform {
             }
             return result;
         }
-        if (data instanceof Date) {
+        if (data instanceof Date || data instanceof DateTime) {
             return data;
         }
         if (typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
@@ -4932,10 +5099,10 @@ let ConverterTransform=class ConverterTransform {
                     obj = Json.classFromJson(obj, data, {
                         transformValue: (key, value) => {
                             if (obj[key] instanceof Date) {
-                                return value ? new Date(value) : null;
+                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
                             }
-                            else if (typeof value == 'string' && DateConverter.converter.isStringDate(value)) {
-                                return value ? DateConverter.converter.fromString(value) : null;
+                            else if (obj[key] instanceof DateTime) {
+                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
                             }
                             else if (obj[key] instanceof Map) {
                                 let map = new Map();
@@ -4958,8 +5125,11 @@ let ConverterTransform=class ConverterTransform {
                                 else if (cst.$schema[key] == 'number') {
                                     return isNaN(Number(value)) ? 0 : Number(value);
                                 }
-                                else if (cst.$schema[key] == 'Date') {
-                                    return value ? new Date(value) : null;
+                                else if (cst.$schema[key] == 'Date' || cst.$schema[key] == 'Aventus.Date' || cst.$schema[key] == 'date') {
+                                    return value == null ? null : value instanceof Date ? value : Date.parse(value);
+                                }
+                                else if (cst.$schema[key] == "DateTime" || cst.$schema[key] == "Aventus.DateTime" || cst.$schema[key] == "datetime") {
+                                    return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
                                 }
                             }
                             return this.transformLoop(value);
@@ -4975,8 +5145,8 @@ let ConverterTransform=class ConverterTransform {
             }
             return result;
         }
-        if (typeof data == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(data)) {
-            return new Date(data);
+        if (typeof data == 'string' && DateConverter.converter.isStringDate(data)) {
+            return DateConverter.converter.fromString(data) ?? data;
         }
         return data;
     }
@@ -5581,7 +5751,7 @@ let HttpRequest=class HttpRequest {
             const key = keys[i];
             let value = obj[key];
             const newKey = parentKey ? `${parentKey}[${key}]` : key;
-            if (value instanceof Date) {
+            if (value instanceof Date || value instanceof DateTime) {
                 formData.append(newKey, DateConverter.converter.toString(value));
             }
             else if (typeof value === 'object' &&
@@ -5611,7 +5781,7 @@ let HttpRequest=class HttpRequest {
     }
     jsonReplacer(key, value) {
         const t = this;
-        if (t[key] instanceof Date) {
+        if (t[key] instanceof Date || t[key] instanceof DateTime) {
             return DateConverter.converter.toString(t[key]);
         }
         return value;
@@ -5635,7 +5805,7 @@ let HttpRequest=class HttpRequest {
                         useFormData = true;
                         break;
                     }
-                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date) && !(obj[key] instanceof DateTime)) {
                         analyseFormData(obj[key]);
                         if (useFormData) {
                             break;
@@ -6657,6 +6827,37 @@ __as1(_, 'Animation', Animation);
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
+ 
+if(!Object.hasOwn(window, "AvInstance")) {
+	Object.defineProperty(window, "AvInstance", {
+		get() {return Aventus?.Instance;}
+	});
+
+	(() => {
+		Map.prototype._defaultHas = Map.prototype.has;
+		Map.prototype._defaultSet = Map.prototype.set;
+		Map.prototype._defaultGet = Map.prototype.get;
+		Map.prototype.has = function(key) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultHas.call(this,key.getTarget())
+			}
+			return Map.prototype._defaultHas.call(this,key);
+		}
+
+		Map.prototype.set = function(key, value) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultSet.call(this, key.getTarget(), value)
+			}
+			return Map.prototype._defaultSet.call(this, key, value);
+		}
+		Map.prototype.get = function(key) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultGet.call(this, key.getTarget())
+			}
+			return Map.prototype._defaultGet.call(this, key);
+		}
+	})();
+}
 
 var Aventus;
 (Aventus||(Aventus = {}));
@@ -7024,7 +7225,7 @@ let Tracker=class Tracker {
     /**
      * Timestamp of the last update.
      */
-    updateTime = Date.now();
+    updateTime = performance.now();
     /**
      * Change in position since the last update.
      */
@@ -7048,7 +7249,7 @@ let Tracker=class Tracker {
      */
     update(touch) {
         const { velocity, updateTime, lastPosition, } = this;
-        const now = Date.now();
+        const now = performance.now();
         const position = this.getPosition(touch);
         const delta = {
             x: -(position.x - lastPosition.x),

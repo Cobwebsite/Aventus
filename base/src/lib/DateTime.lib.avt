@@ -1,0 +1,101 @@
+import { Date } from './Date.lib.avt';
+import { Time } from './Time.lib.avt';
+import { DateSettings, type DateConfiguration, type DateNameFormat, type DateWeekday } from './DateConfiguration.lib.avt';
+
+/** Immutable date and time. Offset inputs are normalized to UTC; offset-free inputs remain unspecified. */
+export class DateTime {
+    public static configure(options: Partial<DateConfiguration>): void { DateSettings.configure(options); }
+    public static get configuration(): DateConfiguration { return DateSettings.current; }
+    private readonly value: Temporal.PlainDateTime;
+    public readonly kind: 'unspecified' | 'utc';
+
+    public constructor(year: number = 1, month: number = 1, day: number = 1, hour: number = 0, minute: number = 0, second: number = 0, millisecond: number = 0, kind: 'unspecified' | 'utc' = 'unspecified', microsecond: number = 0, nanosecond: number = 0) {
+        if(!Number.isInteger(year) || year < 1 || year > 9999) throw new RangeError('Year must be between 1 and 9999');
+        this.value = new Temporal.PlainDateTime(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond);
+        this.kind = kind;
+    }
+    private static fromValue(value: Temporal.PlainDateTime, kind: 'unspecified' | 'utc'): DateTime {
+        return new DateTime(value.year, value.month, value.day, value.hour, value.minute, value.second, value.millisecond, kind, value.microsecond, value.nanosecond);
+    }
+    public static parse(text: string): DateTime {
+        if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?$/.test(text)) throw new RangeError('Expected ISO date and time');
+        const utc = /(?:Z|[+-]\d{2}:\d{2})$/.test(text);
+        const value = utc ? Temporal.Instant.from(text).toZonedDateTimeISO('UTC').toPlainDateTime() : Temporal.PlainDateTime.from(text);
+        return DateTime.fromValue(value, utc ? 'utc' : 'unspecified');
+    }
+    public static tryParse(text: string): DateTime | null {
+        try { return DateTime.parse(text); } catch { return null; }
+    }
+    public static get now(): DateTime { return DateTime.fromValue(Temporal.Now.plainDateTimeISO(DateSettings.current.timeZone), 'unspecified'); }
+    public static get utcNow(): DateTime { return DateTime.fromValue(Temporal.Now.plainDateTimeISO('UTC'), 'utc'); }
+    public get year(): number { return this.value.year; }
+    public get month(): number { return this.value.month; }
+    public get day(): number { return this.value.day; }
+    public get hour(): number { return this.value.hour; }
+    public get minute(): number { return this.value.minute; }
+    public get second(): number { return this.value.second; }
+    public get millisecond(): number { return this.value.millisecond; }
+    public get microsecond(): number { return this.value.microsecond; }
+    public get nanosecond(): number { return this.value.nanosecond; }
+    public get date(): Date { return new Date(this.year, this.month, this.day); }
+    public get time(): Time { return new Time(this.hour, this.minute, this.second, this.millisecond, this.microsecond, this.nanosecond); }
+    public get dayOfWeek(): number { return this.value.dayOfWeek % 7; }
+    public get dayOfYear(): number { return this.value.dayOfYear; }
+    public get daysInMonth(): number { return this.value.daysInMonth; }
+    public get isLeapYear(): boolean { return this.value.inLeapYear; }
+    public addYears(years: number): DateTime { return DateTime.fromValue(this.value.add({ years }), this.kind); }
+    public addMonths(months: number): DateTime { return DateTime.fromValue(this.value.add({ months }), this.kind); }
+    public addDays(days: number): DateTime { return DateTime.fromValue(this.value.add({ days }), this.kind); }
+    public addHours(hours: number): DateTime { return DateTime.fromValue(this.value.add({ hours }), this.kind); }
+    public addMinutes(minutes: number): DateTime { return DateTime.fromValue(this.value.add({ minutes }), this.kind); }
+    public addSeconds(seconds: number): DateTime { return DateTime.fromValue(this.value.add({ seconds }), this.kind); }
+    public addMilliseconds(milliseconds: number): DateTime { return DateTime.fromValue(this.value.add({ milliseconds }), this.kind); }
+    /** Resolve an unspecified time in an explicit zone. Reject ambiguous/nonexistent local times. */
+    public toUtc(timeZone: string): DateTime {
+        if(this.kind === 'utc') return this;
+        return DateTime.parse(this.value.toZonedDateTime(timeZone, { disambiguation: 'reject' }).toInstant().toString());
+    }
+    public compareTo(other: DateTime): number {
+        if(this.kind !== other.kind) throw new RangeError('Convert both DateTime values to the same kind before comparing');
+        return Temporal.PlainDateTime.compare(this.value, other.value);
+    }
+    public equals(other: unknown): boolean { return other instanceof DateTime && this.kind === other.kind && this.compareTo(other) === 0; }
+    public equalsToMinute(other: unknown): boolean {
+        return other instanceof DateTime && this.kind === other.kind && this.date.equals(other.date)
+            && this.hour === other.hour && this.minute === other.minute;
+    }
+    private boundary(date: Date, end: boolean = false): DateTime {
+        return new DateTime(date.year, date.month, date.day, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0,
+            end ? 999 : 0, this.kind, end ? 999 : 0, end ? 999 : 0);
+    }
+    public startOfDay(): DateTime { return this.boundary(this.date); }
+    public endOfDay(): DateTime { return this.boundary(this.date, true); }
+    public startOfMonth(): DateTime { return this.boundary(this.date.startOfMonth()); }
+    public endOfMonth(): DateTime { return this.boundary(this.date.endOfMonth(), true); }
+    public startOfWeek(firstDay: DateWeekday = DateSettings.current.firstDayOfWeek): DateTime { return this.boundary(this.date.startOfWeek(firstDay)); }
+    public endOfWeek(firstDay: DateWeekday = DateSettings.current.firstDayOfWeek): DateTime { return this.boundary(this.date.endOfWeek(firstDay), true); }
+    private diff(other: DateTime, unit: 'days' | 'hours' | 'minutes'): number {
+        if(this.kind !== other.kind) throw new RangeError('Convert both DateTime values to the same kind before comparing');
+        return Math.floor(Math.abs(this.value.until(other.value, { largestUnit: 'days' }).total({ unit })));
+    }
+    /** Absolute number of complete units. UTC compares instants; unspecified compares wall-clock times. */
+    public diffDays(other: DateTime): number { return this.diff(other, 'days'); }
+    public diffHours(other: DateTime): number { return this.diff(other, 'hours'); }
+    public diffMinutes(other: DateTime): number { return this.diff(other, 'minutes'); }
+    public toLocaleString(options?: Intl.DateTimeFormatOptions, locale?: string | string[]): string {
+        const config = DateSettings.current;
+        const format = options ?? config.dateTimeFormat;
+        if(this.kind === 'utc') {
+            return new Intl.DateTimeFormat(locale ?? config.locale, { ...format, timeZone: format.timeZone ?? config.timeZone })
+                .format(Temporal.Instant.from(this.toString()).epochMilliseconds);
+        }
+        return new Intl.DateTimeFormat(locale ?? config.locale, { ...format, timeZone: 'UTC' })
+            .format(this.value.toZonedDateTime('UTC').epochMilliseconds);
+    }
+    public getMonthName(format: DateNameFormat = DateSettings.current.monthNameFormat, locale?: string | string[]): string { return this.date.getMonthName(format, locale); }
+    public getDayName(format: DateNameFormat = DateSettings.current.dayNameFormat, locale?: string | string[]): string { return this.date.getDayName(format, locale); }
+    /** Wall-clock representation for datetime-local inputs. */
+    public toInputString(): string { return this.value.toString(); }
+    public toString(): string { return this.value.toString() + (this.kind === 'utc' ? 'Z' : ''); }
+    public toJSON(): string { return this.toString(); }
+}

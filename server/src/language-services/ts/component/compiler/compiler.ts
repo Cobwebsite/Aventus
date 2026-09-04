@@ -779,8 +779,8 @@ export class AventusWebcomponentCompiler {
                 attType = 'boolean';
             }
             else if (type.kind == "type") {
-                if (type.value == "Date" || type.value == "DateTime") {
-                    control = "date";
+                if (type.value == "Date" || type.value == "DateTime" || type.value == "Time") {
+                    control = type.value === "Time" ? "text" : "date";
                 }
                 else {
                     let info = ParserTs.getBaseInfo(type.value, this.document.uri);
@@ -1039,6 +1039,10 @@ export class AventusWebcomponentCompiler {
             result += `get '${key}'() { return this.getDateTime${propTxt}('${key}') }
     set '${key}'(val) { this.setDateTimeAttr('${key}', val) }${EOL}`;
         }
+        else if (type.kind === "type" && type.value == "Time") {
+            result += `get '${key}'() { return this.getTime${propTxt}('${key}') }
+    set '${key}'(val) { this.setTimeAttr('${key}', val) }${EOL}`;
+        }
         return result;
     }
     private getDefaultValueAttr(field: CustomFieldModel, type: TypeInfo, contentType: number): string {
@@ -1067,7 +1071,7 @@ export class AventusWebcomponentCompiler {
                 result += "if(!this.hasAttribute('" + key + "')) { this.attributeChangedCallback('" + key + "', false, false); }" + EOL;
             }
         }
-        else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
+        else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime" || type.value == "Time")) {
             if (defaultValue !== null) {
                 result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + defaultValue + "; }" + EOL;
             }
@@ -1911,6 +1915,9 @@ this.clearWatchHistory = () => {
             else if (type.kind == "type" && type.value == "DateTime") {
                 realType = "DateTime";
             }
+            else if (type.kind == "type" && type.value == "Time") {
+                realType = "Time";
+            }
             this.htmlDoc[this.tagName].attributes[field.name] = {
                 name: field.name,
                 description: field.documentation?.definitions.join(EOL) ?? '',
@@ -2173,7 +2180,7 @@ this.clearWatchHistory = () => {
             return type;
         }
         else if (type.kind == "type") {
-            if (type.value == "Date" || type.value == "DateTime") {
+            if (type.value == "Date" || type.value == "DateTime" || type.value == "Time") {
                 return type;
             }
             else {

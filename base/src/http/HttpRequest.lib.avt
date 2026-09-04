@@ -1,3 +1,6 @@
+import { Time } from "../lib/Time.lib.avt";
+import { Date } from "../lib/Date.lib.avt";
+import { DateTime } from "../lib/DateTime.lib.avt";
 import { type HttpRouter } from "./HttpRouter.lib.avt";
 import { ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
@@ -85,7 +88,7 @@ export class HttpRequest {
 
             const newKey = parentKey ? `${parentKey}[${key}]` : key;
 
-            if(value instanceof Date) {
+            if(value instanceof Date || value instanceof DateTime || value instanceof Time) {
                 formData.append(newKey, DateConverter.converter.toString(value));
             }
             else if(
@@ -119,7 +122,7 @@ export class HttpRequest {
     }
     public jsonReplacer(key: string, value: any) {
         const t = this as any;
-        if(t[key] instanceof Date) {
+        if(t[key] instanceof Date || t[key] instanceof DateTime || t[key] instanceof Time) {
             return DateConverter.converter.toString(t[key]);
         }
         return value;
@@ -143,7 +146,7 @@ export class HttpRequest {
                         useFormData = true;
                         break;
                     }
-                    else if(typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+                    else if(typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date) && !(obj[key] instanceof DateTime) && !(obj[key] instanceof Time)) {
                         analyseFormData(obj[key]);
                         if(useFormData) {
                             break;
