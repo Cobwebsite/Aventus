@@ -6,6 +6,7 @@ import { DateSettings, type DateConfiguration, type DateNameFormat, type DateWee
 export class DateTime {
     public static configure(options: Partial<DateConfiguration>): void { DateSettings.configure(options); }
     public static get configuration(): DateConfiguration { return DateSettings.current; }
+
     private readonly value: Temporal.PlainDateTime;
     public readonly kind: 'unspecified' | 'utc';
 
@@ -14,8 +15,14 @@ export class DateTime {
         this.value = new Temporal.PlainDateTime(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond);
         this.kind = kind;
     }
+
     private static fromValue(value: Temporal.PlainDateTime, kind: 'unspecified' | 'utc'): DateTime {
         return new DateTime(value.year, value.month, value.day, value.hour, value.minute, value.second, value.millisecond, kind, value.microsecond, value.nanosecond);
+    }
+    public static fromTimestamp(timestamp: number): DateTime {
+        if(!Number.isInteger(timestamp)) throw new RangeError('Timestamp must be an integer number of milliseconds');
+        const value = Temporal.Instant.fromEpochMilliseconds(timestamp).toZonedDateTimeISO('UTC').toPlainDateTime();
+        return DateTime.fromValue(value, 'utc');
     }
     public static parse(text: string): DateTime {
         if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?$/.test(text)) throw new RangeError('Expected ISO date and time');
@@ -28,6 +35,7 @@ export class DateTime {
     }
     public static get now(): DateTime { return DateTime.fromValue(Temporal.Now.plainDateTimeISO(DateSettings.current.timeZone), 'unspecified'); }
     public static get utcNow(): DateTime { return DateTime.fromValue(Temporal.Now.plainDateTimeISO('UTC'), 'utc'); }
+
     public get year(): number { return this.value.year; }
     public get month(): number { return this.value.month; }
     public get day(): number { return this.value.day; }
@@ -39,10 +47,19 @@ export class DateTime {
     public get nanosecond(): number { return this.value.nanosecond; }
     public get date(): Date { return new Date(this.year, this.month, this.day); }
     public get time(): Time { return new Time(this.hour, this.minute, this.second, this.millisecond, this.microsecond, this.nanosecond); }
+    /** Sunday = 0, Monday = 1, ..., Saturday = 6. */
     public get dayOfWeek(): number { return this.value.dayOfWeek % 7; }
     public get dayOfYear(): number { return this.value.dayOfYear; }
     public get daysInMonth(): number { return this.value.daysInMonth; }
+    public get quarter(): number { return Math.ceil(this.month / 3); }
     public get isLeapYear(): boolean { return this.value.inLeapYear; }
+    /** Unix timestamp in milliseconds. Unspecified values must first be resolved with toUtc(). */
+    public get timestamp(): number { return this.toTimestamp(); }
+
+    public with(values: { year?: number; month?: number; day?: number; hour?: number; minute?: number; second?: number; millisecond?: number; microsecond?: number; nanosecond?: number; }): DateTime {
+        return DateTime.fromValue(this.value.with(values), this.kind);
+    }
+
     public addYears(years: number): DateTime { return DateTime.fromValue(this.value.add({ years }), this.kind); }
     public addMonths(months: number): DateTime { return DateTime.fromValue(this.value.add({ months }), this.kind); }
     public addDays(days: number): DateTime { return DateTime.fromValue(this.value.add({ days }), this.kind); }
@@ -50,13 +67,11 @@ export class DateTime {
     public addMinutes(minutes: number): DateTime { return DateTime.fromValue(this.value.add({ minutes }), this.kind); }
     public addSeconds(seconds: number): DateTime { return DateTime.fromValue(this.value.add({ seconds }), this.kind); }
     public addMilliseconds(milliseconds: number): DateTime { return DateTime.fromValue(this.value.add({ milliseconds }), this.kind); }
-    /** Resolve an unspecified time in an explicit zone. Reject ambiguous/nonexistent local times. */
-    public toUtc(timeZone: string): DateTime {
-        if(this.kind === 'utc') return this;
-        return DateTime.parse(this.value.toZonedDateTime(timeZone, { disambiguation: 'reject' }).toInstant().toString());
-    }
+    public addMicroseconds(microseconds: number): DateTime { return DateTime.fromValue(this.value.add({ microseconds }), this.kind); }
+    public addNanoseconds(nanoseconds: number): DateTime { return DateTime.fromValue(this.value.add({ nanoseconds }), this.kind); }
+
     public compareTo(other: DateTime): number {
-        if(this.kind !== other.kind) throw new RangeError('Convert both DateTime values to the same kind before comparing');
+        this.ensureSameKind(other);
         return Temporal.PlainDateTime.compare(this.value, other.value);
     }
     public equals(other: unknown): boolean { return other instanceof DateTime && this.kind === other.kind && this.compareTo(other) === 0; }
@@ -64,38 +79,90 @@ export class DateTime {
         return other instanceof DateTime && this.kind === other.kind && this.date.equals(other.date)
             && this.hour === other.hour && this.minute === other.minute;
     }
+    public isBefore(other: DateTime): boolean { return this.compareTo(other) < 0; }
+    public isAfter(other: DateTime): boolean { return this.compareTo(other) > 0; }
+    public isSameOrBefore(other: DateTime): boolean { return this.compareTo(other) <= 0; }
+    public isSameOrAfter(other: DateTime): boolean { return this.compareTo(other) >= 0; }
+
+    private get current(): DateTime { return this.kind === 'utc' ? DateTime.utcNow : DateTime.now; }
+    public get isToday(): boolean { return this.date.equals(this.current.date); }
+    public get isPast(): boolean { return this.isBefore(this.current); }
+    public get isFuture(): boolean { return this.isAfter(this.current); }
+
     private boundary(date: Date, end: boolean = false): DateTime {
         return new DateTime(date.year, date.month, date.day, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0,
             end ? 999 : 0, this.kind, end ? 999 : 0, end ? 999 : 0);
     }
-    public startOfDay(): DateTime { return this.boundary(this.date); }
-    public endOfDay(): DateTime { return this.boundary(this.date, true); }
+    public startOfYear(): DateTime { return this.boundary(this.date.startOfYear()); }
+    public endOfYear(): DateTime { return this.boundary(this.date.endOfYear(), true); }
+    public startOfQuarter(): DateTime { return this.boundary(this.date.startOfQuarter()); }
+    public endOfQuarter(): DateTime { return this.boundary(this.date.endOfQuarter(), true); }
     public startOfMonth(): DateTime { return this.boundary(this.date.startOfMonth()); }
     public endOfMonth(): DateTime { return this.boundary(this.date.endOfMonth(), true); }
     public startOfWeek(firstDay: DateWeekday = DateSettings.current.firstDayOfWeek): DateTime { return this.boundary(this.date.startOfWeek(firstDay)); }
     public endOfWeek(firstDay: DateWeekday = DateSettings.current.firstDayOfWeek): DateTime { return this.boundary(this.date.endOfWeek(firstDay), true); }
-    private diff(other: DateTime, unit: 'days' | 'hours' | 'minutes'): number {
+    public startOfDay(): DateTime { return this.boundary(this.date); }
+    public endOfDay(): DateTime { return this.boundary(this.date, true); }
+
+    private ensureSameKind(other: DateTime): void {
         if(this.kind !== other.kind) throw new RangeError('Convert both DateTime values to the same kind before comparing');
-        return Math.floor(Math.abs(this.value.until(other.value, { largestUnit: 'days' }).total({ unit })));
     }
-    /** Absolute number of complete units. UTC compares instants; unspecified compares wall-clock times. */
-    public diffDays(other: DateTime): number { return this.diff(other, 'days'); }
-    public diffHours(other: DateTime): number { return this.diff(other, 'hours'); }
-    public diffMinutes(other: DateTime): number { return this.diff(other, 'minutes'); }
+    public yearsUntil(other: DateTime): number {
+        this.ensureSameKind(other);
+        return this.value.until(other.value, { largestUnit: 'years' }).years;
+    }
+    public monthsUntil(other: DateTime): number {
+        this.ensureSameKind(other);
+        const duration = this.value.until(other.value, { largestUnit: 'months' });
+        return duration.months + duration.years * 12;
+    }
+    private unitsUntil(other: DateTime, unit: 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): number {
+        this.ensureSameKind(other);
+        return Math.trunc(this.value.until(other.value, { largestUnit: 'days' }).total({ unit }));
+    }
+    public daysUntil(other: DateTime): number { return this.unitsUntil(other, 'days'); }
+    public hoursUntil(other: DateTime): number { return this.unitsUntil(other, 'hours'); }
+    public minutesUntil(other: DateTime): number { return this.unitsUntil(other, 'minutes'); }
+    public secondsUntil(other: DateTime): number { return this.unitsUntil(other, 'seconds'); }
+    public millisecondsUntil(other: DateTime): number { return this.unitsUntil(other, 'milliseconds'); }
+    /** Absolute number of complete calendar years. */
+    public diffYears(other: DateTime): number { return Math.abs(this.yearsUntil(other)); }
+    /** Absolute number of complete calendar months. */
+    public diffMonths(other: DateTime): number { return Math.abs(this.monthsUntil(other)); }
+    /** Absolute number of complete units. UTC values represent instants; unspecified values represent wall-clock times. */
+    public diffDays(other: DateTime): number { return Math.abs(this.daysUntil(other)); }
+    public diffHours(other: DateTime): number { return Math.abs(this.hoursUntil(other)); }
+    public diffMinutes(other: DateTime): number { return Math.abs(this.minutesUntil(other)); }
+    public diffSeconds(other: DateTime): number { return Math.abs(this.secondsUntil(other)); }
+    public diffMilliseconds(other: DateTime): number { return Math.abs(this.millisecondsUntil(other)); }
+
+    /** Resolve an unspecified time in an explicit zone. Reject ambiguous/nonexistent local times. */
+    public toUtc(timeZone: string): DateTime {
+        if(this.kind === 'utc') return this;
+        return DateTime.parse(this.value.toZonedDateTime(timeZone, { disambiguation: 'reject' }).toInstant().toString());
+    }
+    /** Unix timestamp in milliseconds. Unspecified values require an explicit time zone. */
+    public toTimestamp(timeZone?: string): number {
+        if(this.kind === 'utc') return Temporal.Instant.from(this.toString()).epochMilliseconds;
+        if(!timeZone) throw new RangeError('A time zone is required to convert an unspecified DateTime to a timestamp');
+        return this.toUtc(timeZone).timestamp;
+    }
     public toLocaleString(options?: Intl.DateTimeFormatOptions, locale?: string | string[]): string {
         const config = DateSettings.current;
         const format = options ?? config.dateTimeFormat;
         if(this.kind === 'utc') {
             return new Intl.DateTimeFormat(locale ?? config.locale, { ...format, timeZone: format.timeZone ?? config.timeZone })
-                .format(Temporal.Instant.from(this.toString()).epochMilliseconds);
+                .format(this.timestamp);
         }
         return new Intl.DateTimeFormat(locale ?? config.locale, { ...format, timeZone: 'UTC' })
             .format(this.value.toZonedDateTime('UTC').epochMilliseconds);
     }
     public getMonthName(format: DateNameFormat = DateSettings.current.monthNameFormat, locale?: string | string[]): string { return this.date.getMonthName(format, locale); }
     public getDayName(format: DateNameFormat = DateSettings.current.dayNameFormat, locale?: string | string[]): string { return this.date.getDayName(format, locale); }
+
     /** Wall-clock representation for datetime-local inputs. */
     public toInputString(): string { return this.value.toString(); }
     public toString(): string { return this.value.toString() + (this.kind === 'utc' ? 'Z' : ''); }
     public toJSON(): string { return this.toString(); }
+    public toTemporal(): Temporal.PlainDateTime { return this.value; }
 }

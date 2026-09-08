@@ -2,13 +2,16 @@ import { DateSettings, type DateConfiguration } from './DateConfiguration.lib.av
 
 /** Immutable wall-clock time without date or timezone. Arithmetic wraps at midnight. */
 export class Time {
+    public static configure(options: Partial<DateConfiguration>): void { DateSettings.configure(options); }
+    public static get configuration(): DateConfiguration { return DateSettings.current; }
+
     private readonly value: Temporal.PlainTime;
+
     public constructor(hour: number = 0, minute: number = 0, second: number = 0, millisecond: number = 0, microsecond: number = 0, nanosecond: number = 0) {
         if(![hour, minute, second, millisecond, microsecond, nanosecond].every(Number.isInteger)) throw new RangeError('Time fields must be integers');
         this.value = new Temporal.PlainTime(hour, minute, second, millisecond, microsecond, nanosecond);
     }
-    public static configure(options: Partial<DateConfiguration>): void { DateSettings.configure(options); }
-    public static get configuration(): DateConfiguration { return DateSettings.current; }
+
     private static fromValue(value: Temporal.PlainTime): Time {
         return new Time(value.hour, value.minute, value.second, value.millisecond, value.microsecond, value.nanosecond);
     }
@@ -16,24 +19,54 @@ export class Time {
         if(!/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,9})?)?$/.test(text)) throw new RangeError('Expected HH:mm[:ss[.fraction]]');
         return Time.fromValue(Temporal.PlainTime.from(text));
     }
-    public static tryParse(text: string): Time | null { try { return Time.parse(text); } catch { return null; } }
+    public static tryParse(text: string): Time | null {
+        try { return Time.parse(text); } catch { return null; }
+    }
     public static get now(): Time { return Time.fromValue(Temporal.Now.plainTimeISO(DateSettings.current.timeZone)); }
+
     public get hour(): number { return this.value.hour; }
     public get minute(): number { return this.value.minute; }
     public get second(): number { return this.value.second; }
     public get millisecond(): number { return this.value.millisecond; }
     public get microsecond(): number { return this.value.microsecond; }
     public get nanosecond(): number { return this.value.nanosecond; }
+
+    public with(values: { hour?: number; minute?: number; second?: number; millisecond?: number; microsecond?: number; nanosecond?: number; }): Time {
+        return Time.fromValue(this.value.with(values));
+    }
+
     public addHours(hours: number): Time { return Time.fromValue(this.value.add({ hours })); }
     public addMinutes(minutes: number): Time { return Time.fromValue(this.value.add({ minutes })); }
     public addSeconds(seconds: number): Time { return Time.fromValue(this.value.add({ seconds })); }
     public addMilliseconds(milliseconds: number): Time { return Time.fromValue(this.value.add({ milliseconds })); }
+    public addMicroseconds(microseconds: number): Time { return Time.fromValue(this.value.add({ microseconds })); }
+    public addNanoseconds(nanoseconds: number): Time { return Time.fromValue(this.value.add({ nanoseconds })); }
+
     public compareTo(other: Time): number { return Temporal.PlainTime.compare(this.value, other.value); }
     public equals(other: unknown): boolean { return other instanceof Time && this.compareTo(other) === 0; }
     public equalsToMinute(other: unknown): boolean { return other instanceof Time && this.hour === other.hour && this.minute === other.minute; }
-    /** Absolute whole units on the same day; does not assume an overnight interval. */
-    public diffMinutes(other: Time): number { return Math.floor(Math.abs(this.value.until(other.value).total({ unit: 'minutes' }))); }
-    public diffHours(other: Time): number { return Math.floor(Math.abs(this.value.until(other.value).total({ unit: 'hours' }))); }
+    public isBefore(other: Time): boolean { return this.compareTo(other) < 0; }
+    public isAfter(other: Time): boolean { return this.compareTo(other) > 0; }
+    public isSameOrBefore(other: Time): boolean { return this.compareTo(other) <= 0; }
+    public isSameOrAfter(other: Time): boolean { return this.compareTo(other) >= 0; }
+
+    public get isPast(): boolean { return this.isBefore(Time.now); }
+    public get isFuture(): boolean { return this.isAfter(Time.now); }
+
+    private unitsUntil(other: Time, unit: 'hours' | 'minutes' | 'seconds' | 'milliseconds'): number {
+        return Math.trunc(this.value.until(other.value).total({ unit }));
+    }
+    /** Signed number of complete units on the same day; does not assume an overnight interval. */
+    public hoursUntil(other: Time): number { return this.unitsUntil(other, 'hours'); }
+    public minutesUntil(other: Time): number { return this.unitsUntil(other, 'minutes'); }
+    public secondsUntil(other: Time): number { return this.unitsUntil(other, 'seconds'); }
+    public millisecondsUntil(other: Time): number { return this.unitsUntil(other, 'milliseconds'); }
+    /** Absolute number of complete units on the same day; does not assume an overnight interval. */
+    public diffHours(other: Time): number { return Math.abs(this.hoursUntil(other)); }
+    public diffMinutes(other: Time): number { return Math.abs(this.minutesUntil(other)); }
+    public diffSeconds(other: Time): number { return Math.abs(this.secondsUntil(other)); }
+    public diffMilliseconds(other: Time): number { return Math.abs(this.millisecondsUntil(other)); }
+
     public toLocaleString(options?: Intl.DateTimeFormatOptions, locale?: string | string[]): string {
         const config = DateSettings.current;
         const date = new Temporal.PlainDate(1970, 1, 1).toPlainDateTime(this.value);
@@ -46,4 +79,5 @@ export class Time {
     }
     public toString(): string { return this.value.toString(); }
     public toJSON(): string { return this.toString(); }
+    public toTemporal(): Temporal.PlainTime { return this.value; }
 }
