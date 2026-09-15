@@ -58,10 +58,10 @@ export class Storie {
 	}
 
 	public async check() {
-		this.readEnvStoryBook();
+		await this.readEnvStoryBook();
 	}
 
-	public write(files: { [uri: string]: AventusTsFile; }, clear: boolean = false) {
+	public async write(files: { [uri: string]: AventusTsFile; }, clear: boolean = false) {
 		if (clear) {
 			this.clear();
 		}
@@ -70,23 +70,23 @@ export class Storie {
 			if (!currentFile.fileParsed) continue;
 			for (let name in currentFile.fileParsed.classes) {
 				const _class = currentFile.fileParsed.classes[name];
-				this.writeStory(_class, currentFile)
+				await this.writeStory(_class, currentFile)
 			}
 			for (let name in currentFile.fileParsed.aliases) {
 				const alias = currentFile.fileParsed.aliases[name];
-				this.writeStory(alias)
+				await this.writeStory(alias)
 			}
 			for (let name in currentFile.fileParsed.enums) {
 				const _enum = currentFile.fileParsed.enums[name];
-				this.writeStory(_enum)
+				await this.writeStory(_enum)
 			}
 			for (let name in currentFile.fileParsed.functions) {
 				const _function = currentFile.fileParsed.functions[name];
-				this.writeStory(_function)
+				await this.writeStory(_function)
 			}
 			for (let name in currentFile.fileParsed.variables) {
 				const _var = currentFile.fileParsed.variables[name];
-				this.writeStory(_var)
+				await this.writeStory(_var)
 			}
 		}
 	}
@@ -97,7 +97,7 @@ export class Storie {
 		//rmSync(outputPath, { recursive: true, force: true })
 	}
 
-	protected writeStory(info: BaseInfo, file?: AventusTsFile) {
+	protected async writeStory(info: BaseInfo, file?: AventusTsFile) {
 		if (!info.storieContent) return;
 		if (!this.buildConfig.stories) return;
 
@@ -126,7 +126,7 @@ export class Storie {
 				!hasNoLive
 		}
 
-		const writeMdx = () => {
+		const writeMdx = async () => {
 			let template = defaultMdxTempate();
 			template = this.replaceVariable(template, "name", info.name);
 			let tag = `<av-story-${storieContent.kind}-render json={JSON.stringify(Meta.aventus)}></av-story-${storieContent.kind}-render>`
@@ -148,7 +148,7 @@ export class Storie {
 			let typeUpper = storieContent.kind[0].toUpperCase() + storieContent.kind.slice(1);
 			template = this.replaceVariable(template, "render", `import { Story${typeUpper}Render } from '@aventusjs/storybook-render/AventusStorybook'`);
 
-			this.writeFile(outputPath + "_.mdx", template);
+			await this.writeFile(outputPath + "_.mdx", template);
 		}
 		const writeObjAsJson = (args: { [name: string]: any; }) => {
 			// JSON.stringify(args, null, 2)
@@ -166,7 +166,7 @@ export class Storie {
 			txt += '}'
 			return txt;
 		}
-		const writeStorie = () => {
+		const writeStorie = async () => {
 			let hasDefaultStory = true;
 			if (info.storieDecorator) {
 				if (info.storieDecorator.noDefaultStory) {
@@ -210,14 +210,14 @@ export class Storie {
 				template = this.replaceVariable(template, "args", "");
 			}
 
-			this.writeFile(outputPath + ".stories.ts", template);
+			await this.writeFile(outputPath + ".stories.ts", template);
 		}
 
-		writeMdx();
-		writeStorie();
+		await writeMdx();
+		await writeStorie();
 	}
 
-	public readEnvStoryBook() {
+	public async readEnvStoryBook() {
 		if (!this.buildConfig.stories) return;
 
 		if (!existsSync(this.buildConfig.stories.output)) {
@@ -241,7 +241,7 @@ export class Storie {
 			let folders = readdirSync(projectsFolder);
 			let folderPath: string = "";
 
-			const _internalLoop = (currentPath) => {
+			const _internalLoop = async (currentPath) => {
 				let files = readdirSync(currentPath);
 				for (let file of files) {
 					let templatePath = currentPath + sep + file;
@@ -254,7 +254,7 @@ export class Storie {
 					if (statSync(templatePath).isDirectory()) {
 						if (file == '.git') continue;
 						mkdirSync(exportPath);
-						_internalLoop(templatePath);
+						await _internalLoop(templatePath);
 					}
 					else {
 						if ((/\.(gif|jpe?g|tiff?|png|webp|bmp)$/i).test(templatePath.toLowerCase())) {
@@ -290,7 +290,7 @@ export class Storie {
 								packageJson.devDependencies = devDependencies;
 								ctx = JSON.stringify(packageJson, null, 4);
 							}
-							this.writeFile(exportPath, ctx);
+							await this.writeFile(exportPath, ctx);
 						}
 
 
@@ -305,7 +305,7 @@ export class Storie {
 			else {
 				throw 'TODO code multiple template'
 			}
-			_internalLoop(folderPath);
+			await _internalLoop(folderPath);
 
 		}
 
@@ -322,7 +322,7 @@ export class Storie {
 			let template = mainTemplate();
 			let uri = simplifyUri(pathToUri(this.buildConfig.stories.output), pathToUri(mainTsPath));
 			template = this.replaceVariable(template, "path", uri);
-			this.writeFile(mainTsPath, template);
+			await this.writeFile(mainTsPath, template);
 		}
 
 
@@ -330,7 +330,7 @@ export class Storie {
 		const previewPath = join(storyPath, "preview.ts");
 		if (!existsSync(previewPath)) {
 			let template = previewTemplate();
-			this.writeFile(previewPath, template);
+			await this.writeFile(previewPath, template);
 		}
 	}
 
@@ -341,7 +341,7 @@ export class Storie {
 		return src;
 	}
 
-	protected writeFile(output: string, content: string) {
-		writeFile(output, content, "storybook");
+	protected async writeFile(output: string, content: string) {
+		await writeFile(output, content, "storybook");
 	}
 }

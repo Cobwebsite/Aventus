@@ -378,7 +378,7 @@ export class Build {
 
         for (let compile of this.buildConfig.compile) {
             if (compile.i18n) {
-                this.writeBuildI18n(compile.i18n);
+                await this.writeBuildI18n(compile.i18n);
             }
             let compilationInfo = await this.buildOrderCompilationInfo(compile);
             let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
@@ -392,20 +392,20 @@ export class Build {
                 available: result.codeRenderInJs,
                 existing: result.codeNotRenderInJs
             }
-            this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm);
+            await this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm);
 
             if (compile.outputNpm.live) {
-                this.writeBuildNpm(compile.outputNpm, result);
+                await this.writeBuildNpm(compile.outputNpm, result);
             }
             if (this.buildConfig.stories && this.buildConfig.stories.live) {
                 await this.stories.check();
-                this.writeBuildNpm({
+                await this.writeBuildNpm({
                     path: [join(this.buildConfig.stories.output, "generated")],
                     packageJson: false,
                     npmName: '',
                     live: false
                 }, result);
-                this.stories.write(this.tsFiles);
+                await this.stories.write(this.tsFiles);
             }
         }
 
@@ -490,20 +490,20 @@ export class Build {
         for (let compile of this.buildConfig.compile) {
             let compilationInfo = await this.buildOrderCompilationInfo(compile);
             let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
-            this.writeBuildNpm({
+            await this.writeBuildNpm({
                 path: [join(this.buildConfig.stories.output, "generated")],
                 packageJson: false,
                 npmName: '',
                 live: false
             }, result);
         }
-        this.stories.write(this.tsFiles, true);
+        await this.stories.write(this.tsFiles, true);
     }
     public async buildNpm() {
         for (let compile of this.buildConfig.compile) {
             let compilationInfo = await this.buildOrderCompilationInfo(compile);
             let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
-            this.writeBuildNpm(compile.outputNpm, result);
+            await this.writeBuildNpm(compile.outputNpm, result);
         }
     }
 
@@ -624,7 +624,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                             GenericServer.error(e);
                         }
                     }
-                    this.writeFile(outputPath, outputInfo.code);
+                    await this.writeFile(outputPath, outputInfo.code);
                 }
             }
         }
@@ -634,7 +634,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
     /**
      * Write the code inside the exported .package.avt
      */
-    private writeBuildDocumentation(outputsPackage: string[], result: LocalCodeResult, srcInfo: {
+    private async writeBuildDocumentation(outputsPackage: string[], result: LocalCodeResult, srcInfo: {
         namespace: string,
         available: AventusPackageTsFileExport[],
         existing: AventusPackageTsFileExportNoCode[]
@@ -683,7 +683,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 
         for (let outputPackage of outputsPackage) {
             if (outputPackage) {
-                this.writeFile(outputPackage, finaltxt);
+                await this.writeFile(outputPackage, finaltxt);
             }
             else if (existsSync(outputPackage)) {
                 unlinkSync(outputPackage);
@@ -695,13 +695,13 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
             mkdirSync(pathPackages, { recursive: true });
         }
 
-        this.writeFile(join(pathPackages, this.buildConfig.fullname + AventusExtension.Package), finaltxt);
+        await this.writeFile(join(pathPackages, this.buildConfig.fullname + AventusExtension.Package), finaltxt);
     }
 
     /**
      * Write the code inside the npm folders
      */
-    public writeBuildNpm(outputNpm: AventusConfigBuildCompileOutputNpm, result: LocalCodeResult) {
+    public async writeBuildNpm(outputNpm: AventusConfigBuildCompileOutputNpm, result: LocalCodeResult) {
         let keys = Object.keys(result.npm);
         if (!keys.includes("")) {
             keys.push("");
@@ -758,7 +758,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 if (!existsSync(outputDir)) {
                     mkdirSync(outputDir, { recursive: true });
                 }
-                this.writeFile(outputFile, txt);
+                await this.writeFile(outputFile, txt);
             }
 
             // add into export 
@@ -783,7 +783,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 
 
         }
-        const createFileDef = (_namespace: string, content: { content: string[], imports: { [uri: string]: string[] } } | undefined) => {
+        const createFileDef = async (_namespace: string, content: { content: string[], imports: { [uri: string]: string[] } } | undefined) => {
             if (!content) {
                 content = {
                     content: [],
@@ -825,11 +825,11 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.d.ts");
-                this.writeFile(indexDTs, txt);
+                await this.writeFile(indexDTs, txt);
             }
         }
 
-        const createFileJs = (_namespace: string) => {
+        const createFileJs = async (_namespace: string) => {
             let txt = "";
             let txtEnd = "";
             let namespaceNbDots = _namespace == "" ? 0 : _namespace.split(".").length;
@@ -860,12 +860,12 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.js");
-                this.writeFile(indexDTs, txt);
+                await this.writeFile(indexDTs, txt);
             }
         }
         for (let key of keys) {
-            createFileDef(key, result.npm[key])
-            createFileJs(key)
+            await createFileDef(key, result.npm[key])
+            await createFileJs(key)
         }
 
 
@@ -935,7 +935,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 finalPackage.name = packageJson.name;
                 finalPackage.displayName = packageJson.displayName;
                 finalPackage.version = packageJson.version;
-                this.writeFile(packageJsonPath, JSON.stringify(finalPackage, null, 2));
+                await this.writeFile(packageJsonPath, JSON.stringify(finalPackage, null, 2));
             }
         }
 
@@ -944,13 +944,13 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 if (!existsSync(outputPackage)) {
                     mkdirSync(outputPackage, { recursive: true });
                 }
-                manifest.write(outputPackage);
+                await manifest.write(outputPackage);
             }
         }
 
     }
 
-    public writeBuildI18n(outputs: AventusConfigBuildCompileOutputI18n[]) {
+    public async writeBuildI18n(outputs: AventusConfigBuildCompileOutputI18n[]) {
         const locales = this.buildConfig.i18n?.locales ?? [];
         for (let outputConfig of outputs) {
             for (let output of outputConfig.output) {
@@ -970,7 +970,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                         }
                         const outputFile = join(output, locale + ".json").toLowerCase();
 
-                        this.writeFile(outputFile, JSON.stringify(content, null, 4));
+                        await this.writeFile(outputFile, JSON.stringify(content, null, 4));
                     }
                     else if (outputConfig.mode == "oneToOne") {
                         for (let uri in this.tsLanguageService.i18nFiles) {
@@ -979,7 +979,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                             const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
                             const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
 
-                            this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                           await this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
                         }
                         for (let uri in this.i18nComponentsFiles) {
                             const file = this.i18nComponentsFiles[uri];
@@ -995,7 +995,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                                 const name = file.file.name.replace(AventusExtension.I18n, "");
                                 const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
 
-                                this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                                await this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
                             }
                         }
                     }
@@ -1006,7 +1006,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                             const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
                             const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
 
-                            this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                            await this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
                         }
                         let content: { [key: string]: string } = {};
                         for (let uri in this.i18nComponentsFiles) {
@@ -1015,7 +1015,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                         }
 
                         const outputFile = join(output, "_components_" + locale + ".json").toLowerCase();
-                        this.writeFile(outputFile, JSON.stringify(content, null, 4));
+                        await this.writeFile(outputFile, JSON.stringify(content, null, 4));
                     }
                     else if (outputConfig.mode == "basedOnAttribute") {
 
@@ -2432,8 +2432,8 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
         UnregisterBuild.send(this.project.getConfigFile().path, this.buildConfig.fullname);
     }
 
-    public writeFile(output: string, content: string) {
-        writeFile(output, content, "build", this.buildConfig.fullname);
+    public async writeFile(output: string, content: string) {
+        await writeFile(output, content, "build", this.buildConfig.fullname);
     }
 }
 

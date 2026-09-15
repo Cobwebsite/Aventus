@@ -20,16 +20,16 @@ export class ManifestPackage {
 	public static files: Record<string, AventusPackageFile> = {};
 	public static done: boolean = false;
 
-	public static register(file: AventusPackageFile) {
+	public static async register(file: AventusPackageFile) {
 		if (!this.files[file.file.uri]) {
 			this.files[file.file.uri] = file;
 			if (this.done) {
-				this.write();
+				await this.write();
 			}
 		}
 	}
 
-	public static write(force: boolean = false) {
+	public static async write(force: boolean = false) {
 		const result: EmmetCustomDataSchema = {
 			html: {
 				snippets: {
@@ -60,7 +60,7 @@ export class ManifestPackage {
 			if (!existsSync(emmetPath)) {
 				mkdirSync(emmetPath, { recursive: true })
 			}
-			writeFile(snippetPath, JSON.stringify(result, null, 2), "manifest");
+			await writeFile(snippetPath, JSON.stringify(result, null, 2), "manifest");
 			this.done = true;
 		}
 

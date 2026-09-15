@@ -26,8 +26,8 @@ export class WebTypes {
 		}
 	}
 
-	public write(dir: string) {
-		writeFile(join(dir, "web-types.json"), JSON.stringify(this._package, null, 2), "build", this.manifest.build.buildConfig.fullname);
+	public async write(dir: string) {
+		await writeFile(join(dir, "web-types.json"), JSON.stringify(this._package, null, 2), "build", this.manifest.build.buildConfig.fullname);
 	}
 
 	public register(file: AventusWebComponentLogicalFile, info: ManifestInfo) {

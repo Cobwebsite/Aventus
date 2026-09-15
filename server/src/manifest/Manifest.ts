@@ -149,10 +149,10 @@ export class Manifest {
 		}
 	}
 
-	public write(dir: string) {
-		this.customElements.write(dir);
-		this.htmlCustomData.write(dir)
-		this.emmetCustomData.write(dir)
+	public async write(dir: string) {
+		await this.customElements.write(dir);
+		await this.htmlCustomData.write(dir)
+		await this.emmetCustomData.write(dir)
 	}
 
 	public getTypeTxt(typeInfo: TypeInfo) {
