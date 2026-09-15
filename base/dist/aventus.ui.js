@@ -773,14 +773,14 @@ DateSettings.Namespace=`Aventus`;
 __as1(_, 'DateSettings', DateSettings);
 
 let Time=class Time {
+    static configure(options) { DateSettings.configure(options); }
+    static get configuration() { return DateSettings.current; }
     value;
     constructor(hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0) {
         if (![hour, minute, second, millisecond, microsecond, nanosecond].every(Number.isInteger))
             throw new RangeError('Time fields must be integers');
         this.value = new Temporal.PlainTime(hour, minute, second, millisecond, microsecond, nanosecond);
     }
-    static configure(options) { DateSettings.configure(options); }
-    static get configuration() { return DateSettings.current; }
     static fromValue(value) {
         return new Time(value.hour, value.minute, value.second, value.millisecond, value.microsecond, value.nanosecond);
     }
@@ -789,12 +789,14 @@ let Time=class Time {
             throw new RangeError('Expected HH:mm[:ss[.fraction]]');
         return Time.fromValue(Temporal.PlainTime.from(text));
     }
-    static tryParse(text) { try {
-        return Time.parse(text);
+    static tryParse(text) {
+        try {
+            return Time.parse(text);
+        }
+        catch {
+            return null;
+        }
     }
-    catch {
-        return null;
-    } }
     static get now() { return Time.fromValue(Temporal.Now.plainTimeISO(DateSettings.current.timeZone)); }
     get hour() { return this.value.hour; }
     get minute() { return this.value.minute; }
@@ -802,15 +804,35 @@ let Time=class Time {
     get millisecond() { return this.value.millisecond; }
     get microsecond() { return this.value.microsecond; }
     get nanosecond() { return this.value.nanosecond; }
+    with(values) {
+        return Time.fromValue(this.value.with(values));
+    }
     addHours(hours) { return Time.fromValue(this.value.add({ hours })); }
     addMinutes(minutes) { return Time.fromValue(this.value.add({ minutes })); }
     addSeconds(seconds) { return Time.fromValue(this.value.add({ seconds })); }
     addMilliseconds(milliseconds) { return Time.fromValue(this.value.add({ milliseconds })); }
+    addMicroseconds(microseconds) { return Time.fromValue(this.value.add({ microseconds })); }
+    addNanoseconds(nanoseconds) { return Time.fromValue(this.value.add({ nanoseconds })); }
     compareTo(other) { return Temporal.PlainTime.compare(this.value, other.value); }
     equals(other) { return other instanceof Time && this.compareTo(other) === 0; }
     equalsToMinute(other) { return other instanceof Time && this.hour === other.hour && this.minute === other.minute; }
-    diffMinutes(other) { return Math.floor(Math.abs(this.value.until(other.value).total({ unit: 'minutes' }))); }
-    diffHours(other) { return Math.floor(Math.abs(this.value.until(other.value).total({ unit: 'hours' }))); }
+    isBefore(other) { return this.compareTo(other) < 0; }
+    isAfter(other) { return this.compareTo(other) > 0; }
+    isSameOrBefore(other) { return this.compareTo(other) <= 0; }
+    isSameOrAfter(other) { return this.compareTo(other) >= 0; }
+    get isPast() { return this.isBefore(Time.now); }
+    get isFuture() { return this.isAfter(Time.now); }
+    unitsUntil(other, unit) {
+        return Math.trunc(this.value.until(other.value).total({ unit }));
+    }
+    hoursUntil(other) { return this.unitsUntil(other, 'hours'); }
+    minutesUntil(other) { return this.unitsUntil(other, 'minutes'); }
+    secondsUntil(other) { return this.unitsUntil(other, 'seconds'); }
+    millisecondsUntil(other) { return this.unitsUntil(other, 'milliseconds'); }
+    diffHours(other) { return Math.abs(this.hoursUntil(other)); }
+    diffMinutes(other) { return Math.abs(this.minutesUntil(other)); }
+    diffSeconds(other) { return Math.abs(this.secondsUntil(other)); }
+    diffMilliseconds(other) { return Math.abs(this.millisecondsUntil(other)); }
     toLocaleString(options, locale) {
         const config = DateSettings.current;
         const date = new Temporal.PlainDate(1970, 1, 1).toPlainDateTime(this.value);
@@ -820,8 +842,20 @@ let Time=class Time {
     toInputString(precision = 'auto') {
         return precision === 'auto' ? this.toString() : this.value.toString({ smallestUnit: precision });
     }
+    get nanosecondsSinceMidnight() {
+        return (this.hour * 3_600_000_000_000 +
+            this.minute * 60_000_000_000 +
+            this.second * 1_000_000_000 +
+            this.millisecond * 1_000_000 +
+            this.microsecond * 1_000 +
+            this.nanosecond);
+    }
+    valueOf() {
+        return this.nanosecondsSinceMidnight;
+    }
     toString() { return this.value.toString(); }
     toJSON() { return this.toString(); }
+    toTemporal() { return this.value; }
 }
 Time.Namespace=`Aventus`;
 __as1(_, 'Time', Time);
@@ -1049,6 +1083,11 @@ let Date=class Date {
         this.value = new Temporal.PlainDate(year, month, day);
     }
     static parse(text) {
+        text = text.trim();
+        if (text.includes('T'))
+            text = text.split("T")[0];
+        if (text.includes(' '))
+            text = text.split(" ")[0];
         if (!/^\d{4}-\d{2}-\d{2}$/.test(text))
             throw new RangeError('Expected YYYY-MM-DD');
         const value = Temporal.PlainDate.from(text);
@@ -1072,12 +1111,28 @@ let Date=class Date {
     get dayOfWeek() { return this.value.dayOfWeek % 7; }
     get dayOfYear() { return this.value.dayOfYear; }
     get daysInMonth() { return this.value.daysInMonth; }
+    get quarter() { return Math.ceil(this.month / 3); }
     get isLeapYear() { return this.value.inLeapYear; }
-    addDays(days) { return Date.parse(this.value.add({ days }).toString()); }
-    addMonths(months) { return Date.parse(this.value.add({ months }).toString()); }
+    with(values) {
+        const value = this.value.with(values);
+        return new Date(value.year, value.month, value.day);
+    }
     addYears(years) { return Date.parse(this.value.add({ years }).toString()); }
+    addMonths(months) { return Date.parse(this.value.add({ months }).toString()); }
+    addDays(days) { return Date.parse(this.value.add({ days }).toString()); }
     compareTo(other) { return Temporal.PlainDate.compare(this.value, other.value); }
     equals(other) { return other instanceof Date && this.compareTo(other) === 0; }
+    isBefore(other) { return this.compareTo(other) < 0; }
+    isAfter(other) { return this.compareTo(other) > 0; }
+    isSameOrBefore(other) { return this.compareTo(other) <= 0; }
+    isSameOrAfter(other) { return this.compareTo(other) >= 0; }
+    get isToday() { return this.equals(Date.today); }
+    get isPast() { return this.isBefore(Date.today); }
+    get isFuture() { return this.isAfter(Date.today); }
+    startOfYear() { return new Date(this.year, 1, 1); }
+    endOfYear() { return new Date(this.year, 12, 31); }
+    startOfQuarter() { return new Date(this.year, (this.quarter - 1) * 3 + 1, 1); }
+    endOfQuarter() { return this.startOfQuarter().addMonths(3).addDays(-1); }
     startOfMonth() { return new Date(this.year, this.month, 1); }
     endOfMonth() { return new Date(this.year, this.month, this.daysInMonth); }
     startOfWeek(firstDay = DateSettings.current.firstDayOfWeek) {
@@ -1085,8 +1140,22 @@ let Date=class Date {
             throw new RangeError('Invalid first day of week');
         return this.addDays(-((this.dayOfWeek - firstDay + 7) % 7));
     }
-    endOfWeek(firstDay = DateSettings.current.firstDayOfWeek) { return this.startOfWeek(firstDay).addDays(6); }
-    diffDays(other) { return Math.abs(this.value.until(other.value, { largestUnit: 'days' }).days); }
+    endOfWeek(firstDay = DateSettings.current.firstDayOfWeek) {
+        return this.startOfWeek(firstDay).addDays(6);
+    }
+    yearsUntil(other) {
+        return this.value.until(other.value, { largestUnit: 'years' }).years;
+    }
+    monthsUntil(other) {
+        const duration = this.value.until(other.value, { largestUnit: 'months' });
+        return duration.months + duration.years * 12;
+    }
+    daysUntil(other) {
+        return this.value.until(other.value, { largestUnit: 'days' }).days;
+    }
+    diffYears(other) { return Math.abs(this.yearsUntil(other)); }
+    diffMonths(other) { return Math.abs(this.monthsUntil(other)); }
+    diffDays(other) { return Math.abs(this.daysUntil(other)); }
     toLocaleString(options, locale) {
         const config = DateSettings.current;
         return new Intl.DateTimeFormat(locale ?? config.locale, { ...(options ?? config.dateFormat), timeZone: 'UTC' })
@@ -1105,8 +1174,15 @@ let Date=class Date {
         const start = new Date(2024, 1, 7).startOfWeek(firstDay);
         return Array.from({ length: 7 }, (_, i) => start.addDays(i).getDayName(format, locale));
     }
+    get numericValue() {
+        return this.year * 10000 + this.month * 100 + this.day;
+    }
+    valueOf() {
+        return this.numericValue;
+    }
     toString() { return this.value.toString(); }
     toJSON() { return this.toString(); }
+    toTemporal() { return this.value; }
 }
 Date.Namespace=`Aventus`;
 __as1(_, 'Date', Date);
@@ -1124,6 +1200,12 @@ let DateTime=class DateTime {
     }
     static fromValue(value, kind) {
         return new DateTime(value.year, value.month, value.day, value.hour, value.minute, value.second, value.millisecond, kind, value.microsecond, value.nanosecond);
+    }
+    static fromTimestamp(timestamp) {
+        if (!Number.isInteger(timestamp))
+            throw new RangeError('Timestamp must be an integer number of milliseconds');
+        const value = Temporal.Instant.fromEpochMilliseconds(timestamp).toZonedDateTimeISO('UTC').toPlainDateTime();
+        return DateTime.fromValue(value, 'utc');
     }
     static parse(text) {
         if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?$/.test(text))
@@ -1153,6 +1235,15 @@ let DateTime=class DateTime {
     get nanosecond() { return this.value.nanosecond; }
     get date() { return new Date(this.year, this.month, this.day); }
     get time() { return new Time(this.hour, this.minute, this.second, this.millisecond, this.microsecond, this.nanosecond); }
+    get dayOfWeek() { return this.value.dayOfWeek % 7; }
+    get dayOfYear() { return this.value.dayOfYear; }
+    get daysInMonth() { return this.value.daysInMonth; }
+    get quarter() { return Math.ceil(this.month / 3); }
+    get isLeapYear() { return this.value.inLeapYear; }
+    get timestamp() { return this.toTimestamp(); }
+    with(values) {
+        return DateTime.fromValue(this.value.with(values), this.kind);
+    }
     addYears(years) { return DateTime.fromValue(this.value.add({ years }), this.kind); }
     addMonths(months) { return DateTime.fromValue(this.value.add({ months }), this.kind); }
     addDays(days) { return DateTime.fromValue(this.value.add({ days }), this.kind); }
@@ -1160,14 +1251,10 @@ let DateTime=class DateTime {
     addMinutes(minutes) { return DateTime.fromValue(this.value.add({ minutes }), this.kind); }
     addSeconds(seconds) { return DateTime.fromValue(this.value.add({ seconds }), this.kind); }
     addMilliseconds(milliseconds) { return DateTime.fromValue(this.value.add({ milliseconds }), this.kind); }
-    toUtc(timeZone) {
-        if (this.kind === 'utc')
-            return this;
-        return DateTime.parse(this.value.toZonedDateTime(timeZone, { disambiguation: 'reject' }).toInstant().toString());
-    }
+    addMicroseconds(microseconds) { return DateTime.fromValue(this.value.add({ microseconds }), this.kind); }
+    addNanoseconds(nanoseconds) { return DateTime.fromValue(this.value.add({ nanoseconds }), this.kind); }
     compareTo(other) {
-        if (this.kind !== other.kind)
-            throw new RangeError('Convert both DateTime values to the same kind before comparing');
+        this.ensureSameKind(other);
         return Temporal.PlainDateTime.compare(this.value, other.value);
     }
     equals(other) { return other instanceof DateTime && this.kind === other.kind && this.compareTo(other) === 0; }
@@ -1175,29 +1262,74 @@ let DateTime=class DateTime {
         return other instanceof DateTime && this.kind === other.kind && this.date.equals(other.date)
             && this.hour === other.hour && this.minute === other.minute;
     }
+    isBefore(other) { return this.compareTo(other) < 0; }
+    isAfter(other) { return this.compareTo(other) > 0; }
+    isSameOrBefore(other) { return this.compareTo(other) <= 0; }
+    isSameOrAfter(other) { return this.compareTo(other) >= 0; }
+    get current() { return this.kind === 'utc' ? DateTime.utcNow : DateTime.now; }
+    get isToday() { return this.date.equals(this.current.date); }
+    get isPast() { return this.isBefore(this.current); }
+    get isFuture() { return this.isAfter(this.current); }
     boundary(date, end = false) {
         return new DateTime(date.year, date.month, date.day, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0, this.kind, end ? 999 : 0, end ? 999 : 0);
     }
-    startOfDay() { return this.boundary(this.date); }
-    endOfDay() { return this.boundary(this.date, true); }
+    startOfYear() { return this.boundary(this.date.startOfYear()); }
+    endOfYear() { return this.boundary(this.date.endOfYear(), true); }
+    startOfQuarter() { return this.boundary(this.date.startOfQuarter()); }
+    endOfQuarter() { return this.boundary(this.date.endOfQuarter(), true); }
     startOfMonth() { return this.boundary(this.date.startOfMonth()); }
     endOfMonth() { return this.boundary(this.date.endOfMonth(), true); }
     startOfWeek(firstDay = DateSettings.current.firstDayOfWeek) { return this.boundary(this.date.startOfWeek(firstDay)); }
     endOfWeek(firstDay = DateSettings.current.firstDayOfWeek) { return this.boundary(this.date.endOfWeek(firstDay), true); }
-    diff(other, unit) {
+    startOfDay() { return this.boundary(this.date); }
+    endOfDay() { return this.boundary(this.date, true); }
+    ensureSameKind(other) {
         if (this.kind !== other.kind)
             throw new RangeError('Convert both DateTime values to the same kind before comparing');
-        return Math.floor(Math.abs(this.value.until(other.value, { largestUnit: 'days' }).total({ unit })));
     }
-    diffDays(other) { return this.diff(other, 'days'); }
-    diffHours(other) { return this.diff(other, 'hours'); }
-    diffMinutes(other) { return this.diff(other, 'minutes'); }
+    yearsUntil(other) {
+        this.ensureSameKind(other);
+        return this.value.until(other.value, { largestUnit: 'years' }).years;
+    }
+    monthsUntil(other) {
+        this.ensureSameKind(other);
+        const duration = this.value.until(other.value, { largestUnit: 'months' });
+        return duration.months + duration.years * 12;
+    }
+    unitsUntil(other, unit) {
+        this.ensureSameKind(other);
+        return Math.trunc(this.value.until(other.value, { largestUnit: 'days' }).total({ unit }));
+    }
+    daysUntil(other) { return this.unitsUntil(other, 'days'); }
+    hoursUntil(other) { return this.unitsUntil(other, 'hours'); }
+    minutesUntil(other) { return this.unitsUntil(other, 'minutes'); }
+    secondsUntil(other) { return this.unitsUntil(other, 'seconds'); }
+    millisecondsUntil(other) { return this.unitsUntil(other, 'milliseconds'); }
+    diffYears(other) { return Math.abs(this.yearsUntil(other)); }
+    diffMonths(other) { return Math.abs(this.monthsUntil(other)); }
+    diffDays(other) { return Math.abs(this.daysUntil(other)); }
+    diffHours(other) { return Math.abs(this.hoursUntil(other)); }
+    diffMinutes(other) { return Math.abs(this.minutesUntil(other)); }
+    diffSeconds(other) { return Math.abs(this.secondsUntil(other)); }
+    diffMilliseconds(other) { return Math.abs(this.millisecondsUntil(other)); }
+    toUtc(timeZone) {
+        if (this.kind === 'utc')
+            return this;
+        return DateTime.parse(this.value.toZonedDateTime(timeZone, { disambiguation: 'reject' }).toInstant().toString());
+    }
+    toTimestamp(timeZone) {
+        if (this.kind === 'utc')
+            return Temporal.Instant.from(this.toString()).epochMilliseconds;
+        if (!timeZone)
+            throw new RangeError('A time zone is required to convert an unspecified DateTime to a timestamp');
+        return this.toUtc(timeZone).timestamp;
+    }
     toLocaleString(options, locale) {
         const config = DateSettings.current;
         const format = options ?? config.dateTimeFormat;
         if (this.kind === 'utc') {
             return new Intl.DateTimeFormat(locale ?? config.locale, { ...format, timeZone: format.timeZone ?? config.timeZone })
-                .format(Temporal.Instant.from(this.toString()).epochMilliseconds);
+                .format(this.timestamp);
         }
         return new Intl.DateTimeFormat(locale ?? config.locale, { ...format, timeZone: 'UTC' })
             .format(this.value.toZonedDateTime('UTC').epochMilliseconds);
@@ -1207,6 +1339,7 @@ let DateTime=class DateTime {
     toInputString() { return this.value.toString(); }
     toString() { return this.value.toString() + (this.kind === 'utc' ? 'Z' : ''); }
     toJSON() { return this.toString(); }
+    toTemporal() { return this.value; }
 }
 DateTime.Namespace=`Aventus`;
 __as1(_, 'DateTime', DateTime);
@@ -11365,7 +11498,7 @@ Navigation.Page = class Page extends Aventus.WebComponent {
         return true;
     }
     getSlugs(path) {
-        const slugs = this.router?.getSlugs();
+        const slugs = this.router?.getSlugs(path);
         return slugs;
     }
 }
