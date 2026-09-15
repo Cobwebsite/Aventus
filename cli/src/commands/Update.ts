@@ -31,18 +31,25 @@ export class Update extends Action<UpdateOptions> {
 			return;
 		}
 
-		const globalRoot = (await this.runNpm(['root', '--global'])).trim();
-		const packageRoot = realpathSync(resolve(__dirname, '..', '..'));
+		const globalRoot = realpathSync(
+			(await this.runNpm(['root', '--global'])).trim()
+		);
+
+		const packageJsonPath = require.resolve('../../package.json');
+		const packageRoot = realpathSync(resolve(packageJsonPath, '..'));
+
 		let globalPackageRoot: string | undefined;
 
 		try {
 			globalPackageRoot = realpathSync(resolve(globalRoot, packageName));
 		}
 		catch {
-			// The package is not installed globally.
+			// Not globally installed
 		}
 
 		const isGlobal = globalPackageRoot === packageRoot;
+
+
 		const installArgs = isGlobal
 			? ['install', '--global', `${packageName}@${latestVersion}`]
 			: ['install', '--save-dev', `${packageName}@${latestVersion}`];

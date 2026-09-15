@@ -48,13 +48,13 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	}
 	protected async onSave(): Promise<void> {
 		this.savedOnce = true;
-		this.compileRoot();
+		await this.compileRoot();
 		this.project.globalSCSSLanguageService.loadVariables(this, this.file.uri);
 	}
-	private compileRoot() {
+	private async compileRoot() {
 		if (Object.values(this.usedBy).length == 0) {
 			// it's a root file
-			this.compile();
+			await this.compile();
 		}
 		else {
 			// it's a depend file like vars file
@@ -63,7 +63,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			}
 		}
 	}
-	private compile() {
+	private async compile() {
 		try {
 			let newCompiledTxt = this.compiledTxt;
 
@@ -127,7 +127,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			if (newCompiledTxt != this.compiledTxt) {
 				this.compiledVersion++;
 				this.compiledTxt = newCompiledTxt;
-				this.export();
+				await this.export();
 			}
 		} catch (e) {
 			console.error(e);
@@ -183,11 +183,11 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			if (!this.savedOnce) {
 				await this.onSave();
 			}
-			this.export();
+			await this.export();
 		}
 	}
 
-	private export() {
+	private async export() {
 		for (let outPath in this.staticNamebyOutPath) {
 			let pathOut = normalize(outPath);
 			let splitted = pathOut.split(sep);
@@ -197,7 +197,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			if (!existsSync(folder)) {
 				mkdirSync(folder, { recursive: true });
 			}
-			writeFile(pathOut, this.compiledTxt, "static", this.staticNamebyOutPath[outPath]);
+			await writeFile(pathOut, this.compiledTxt, "static", this.staticNamebyOutPath[outPath]);
 		}
 	}
 

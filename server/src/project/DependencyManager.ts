@@ -289,7 +289,7 @@ export class DependencyManager {
 
 			}
 
-			ManifestPackage.register(packageFile);
+			await ManifestPackage.register(packageFile);
 		}
 
 		return packageFile;

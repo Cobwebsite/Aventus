@@ -59,7 +59,7 @@ export class Static {
                 return result;
             }
 
-            const copyFile = (pathFile, pathOut) => {
+            const copyFile = async (pathFile, pathOut) => {
                 try {
                     pathOut = normalize(pathOut);
                     let splitted = pathOut.split(sep);
@@ -74,7 +74,7 @@ export class Static {
                             let style = compile(pathFile, {
                                 style: 'compressed',
                             }).css.toString().trim();
-                            writeFile(pathOut.replace(".scss", ".css"), style, "static", this.name);
+                            await writeFile(pathOut.replace(".scss", ".css"), style, "static", this.name);
                         }
                     }
                     else {
@@ -103,7 +103,7 @@ export class Static {
                         }
                     }
                     else {
-                        copyFile(filePath, resultPath);
+                        await copyFile(filePath, resultPath);
                     }
                 }
             }

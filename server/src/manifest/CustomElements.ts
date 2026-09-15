@@ -23,8 +23,8 @@ export class CustomElements {
 			readme: ""
 		}
 	}
-	public write(dir: string) {
-		writeFile(join(dir, "custom-elements.json"), JSON.stringify(this._package, null, 2), "build", this.manifest.build.buildConfig.fullname);
+	public async write(dir: string) {
+		await writeFile(join(dir, "custom-elements.json"), JSON.stringify(this._package, null, 2), "build", this.manifest.build.buildConfig.fullname);
 	}
 
 	public register(file: AventusTsFile, info: ManifestInfo) {

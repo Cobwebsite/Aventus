@@ -442,7 +442,7 @@ export class GenericServer {
 			}
 			else {
 				await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
-				ManifestPackage.write();
+				await ManifestPackage.write();
 			}
 		}
 		else {

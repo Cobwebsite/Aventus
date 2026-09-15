@@ -11,6 +11,7 @@ import { Statistics } from './notification/Statistics';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 import { createHash } from 'crypto';
+import { Mutex } from './Mutex';
 
 export const execAsync = promisify(exec);
 export const statAsync = promisify(stat);
@@ -338,19 +339,59 @@ export function setValueToObject(path: string, obj: any, value: any) {
 
 }
 
+export function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 const md5HashFile: { [path: string]: string } = {};
-export function writeFile(outputFile: string, txt: string, type: "build" | "static" | "storybook" | "manifest", name?: string) {
-    txt = txt.replace(/\r\n?/g, "\n");
-    let hash = md5(txt);
-    const folder = dirname(outputFile);
-    if (!existsSync(folder)) {
-        mkdirSync(folder, { recursive: true });
+const fileMutexes = new Map<string, Mutex>();
+function getFileMutex(file: string): Mutex {
+    let mutex = fileMutexes.get(file);
+
+    if (!mutex) {
+        mutex = new Mutex();
+        fileMutexes.set(file, mutex);
     }
-    let exist = existsSync(outputFile);
-    if (!md5HashFile[outputFile] || md5HashFile[outputFile] != hash || !exist) {
-        md5HashFile[outputFile] = hash;
-        Statistics.sendFileSize(outputFile, txt, type, name);
-        writeFileSync(outputFile, txt);
+
+    return mutex;
+}
+
+export async function writeFile(outputFile: string, txt: string, type: "build" | "static" | "storybook" | "manifest", name?: string, maxRetries: number = 5): Promise<void> {
+
+    const mutex = getFileMutex(outputFile);
+
+    await mutex.waitOne();
+    for (let attempt = 0; ; attempt++) {
+        try {
+            txt = txt.replace(/\r\n?/g, "\n");
+            let hash = md5(txt);
+            const folder = dirname(outputFile);
+            if (!existsSync(folder)) {
+                mkdirSync(folder, { recursive: true });
+            }
+            let exist = existsSync(outputFile);
+            if (!md5HashFile[outputFile] || md5HashFile[outputFile] != hash || !exist) {
+                writeFileSync(outputFile, txt);
+                md5HashFile[outputFile] = hash;
+                Statistics.sendFileSize(outputFile, txt, type, name);
+            }
+            mutex.release();
+            return;
+        }
+        catch (e: any) {
+            const retryable =
+                e.code === "EBUSY" ||
+                e.code === "EPERM" ||
+                e.code === "EACCES" ||
+                e.code === "UNKNOWN";
+
+            if (!retryable || attempt >= maxRetries) {
+                mutex.release();
+                throw e;
+            }
+
+            await sleep(20 * (attempt + 1));
+        }
     }
 }
 
