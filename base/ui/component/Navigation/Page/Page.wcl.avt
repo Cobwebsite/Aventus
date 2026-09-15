@@ -105,7 +105,7 @@ namespace Navigation {
         public getSlugs(): Partial<Slug> | undefined;
         public getSlugs(path: string): Partial<Slug> | undefined;
         public getSlugs(path?: string): Partial<Slug> | undefined {
-            const slugs = this.router?.getSlugs();
+            const slugs = this.router?.getSlugs(path);
             return slugs as Partial<Slug> | undefined;
         }
         //#endregion

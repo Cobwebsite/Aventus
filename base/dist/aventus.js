@@ -960,6 +960,17 @@ let Time=class Time {
     toInputString(precision = 'auto') {
         return precision === 'auto' ? this.toString() : this.value.toString({ smallestUnit: precision });
     }
+    get nanosecondsSinceMidnight() {
+        return (this.hour * 3_600_000_000_000 +
+            this.minute * 60_000_000_000 +
+            this.second * 1_000_000_000 +
+            this.millisecond * 1_000_000 +
+            this.microsecond * 1_000 +
+            this.nanosecond);
+    }
+    valueOf() {
+        return this.nanosecondsSinceMidnight;
+    }
     toString() { return this.value.toString(); }
     toJSON() { return this.toString(); }
     toTemporal() { return this.value; }
@@ -977,6 +988,11 @@ let Date=class Date {
         this.value = new Temporal.PlainDate(year, month, day);
     }
     static parse(text) {
+        text = text.trim();
+        if (text.includes('T'))
+            text = text.split("T")[0];
+        if (text.includes(' '))
+            text = text.split(" ")[0];
         if (!/^\d{4}-\d{2}-\d{2}$/.test(text))
             throw new RangeError('Expected YYYY-MM-DD');
         const value = Temporal.PlainDate.from(text);
@@ -1062,6 +1078,12 @@ let Date=class Date {
     static getDayNames(format = DateSettings.current.dayNameFormat, locale, firstDay = DateSettings.current.firstDayOfWeek) {
         const start = new Date(2024, 1, 7).startOfWeek(firstDay);
         return Array.from({ length: 7 }, (_, i) => start.addDays(i).getDayName(format, locale));
+    }
+    get numericValue() {
+        return this.year * 10000 + this.month * 100 + this.day;
+    }
+    valueOf() {
+        return this.numericValue;
     }
     toString() { return this.value.toString(); }
     toJSON() { return this.toString(); }
