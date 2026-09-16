@@ -531,12 +531,12 @@ export class AttributeInfo {
 			})
 		}
 		else if (this.name.startsWith("@bind") || this.name.startsWith("$")) {
-			let binding = new Binding(this.name, value, valueStart, valueEnd)
+			let binding = new Binding(this.tag.tagName, this.name, value, valueStart, valueEnd)
 			this.tag.bindings.push(binding);
 			ParserHtml.addBinding(binding);
 		}
 		else if (this.name.startsWith(":")) {
-			let injection = new Injection(this.name.slice(1), value, valueStart, valueEnd)
+			let injection = new Injection(this.tag.tagName, this.name.slice(1), value, valueStart, valueEnd)
 			this.tag.injections.push(injection);
 			ParserHtml.addInjection(injection);
 		}
@@ -578,7 +578,7 @@ export class AttributeInfo {
 
 		}
 		else {
-			let result = parseTxt(value, this.valueStart);
+			let result = parseTxt(value, this.valueStart, this.tag.tagName, this.name);
 			if (result.changes.length > 0) {
 				this.tag.addChanges(this.name, result.txt, result.once);
 				this.mustBeAdded = false;
@@ -1103,6 +1103,8 @@ export interface InjectionRender {
 	injectFctName: string,
 	start: number,
 	end: number
+	tagName: string,
+	attributeName: string,
 }
 export class Injection implements InjectionRender {
 	public start: number = 0;
@@ -1113,8 +1115,12 @@ export class Injection implements InjectionRender {
 	public injectTxt: string;
 	public variables: string[] = [];
 	public computedOnce: boolean = false;
+	public tagName: string;
+	public attributeName: string;
 
-	public constructor(attr: string, value: string, valueStart: number, valueEnd: number) {
+	public constructor(tagName: string, attr: string, value: string, valueStart: number, valueEnd: number) {
+		this.tagName = tagName;
+		this.attributeName = attr;
 		this.attr = attr;
 		this.start = ParserHtml.fromCompiledToRaw(valueStart);
 		this.end = ParserHtml.fromCompiledToRaw(valueEnd);
@@ -1141,8 +1147,11 @@ export class Binding implements InjectionRender {
 	public extractTxt: string;
 	public variables: string[] = [];
 	public computedOnce: boolean = false;
+	public tagName: string;
+	public attributeName: string;
 
-	public constructor(attr: string, value: string, valueStart: number, valueEnd: number) {
+	public constructor(tagName: string, attr: string, value: string, valueStart: number, valueEnd: number) {
+		this.tagName = tagName;
 		let splitted = attr.split(":")
 		let fct = splitted[0];
 		if (fct.startsWith("@bind_")) {
@@ -1154,6 +1163,7 @@ export class Binding implements InjectionRender {
 		if (splitted.length > 1) {
 			this.valueName = splitted[1];
 		}
+		this.attributeName = this.valueName;
 		this.start = ParserHtml.fromCompiledToRaw(valueStart);
 		this.end = ParserHtml.fromCompiledToRaw(valueEnd);
 		this.injectFctName = ParserHtml.getCustomFctName() ?? "";
@@ -1175,7 +1185,7 @@ export class Binding implements InjectionRender {
 		this.extractTxt = `(c, v) => c.comp.${this.extractFctName}(${extractParams})`
 	}
 }
-function parseTxt(value: string, valueStart: number): {
+function parseTxt(value: string, valueStart: number, tagName?: string, attributeName?: string): {
 	changes: ActionChange[],
 	txt: string,
 	variables: string[],
@@ -1203,6 +1213,8 @@ function parseTxt(value: string, valueStart: number): {
 			txt: m[1],
 			start: start,
 			end: end,
+			tagName,
+			attributeName,
 		});
 		if (result.once && !isComputedOnce(m[1])) {
 			result.once = false;

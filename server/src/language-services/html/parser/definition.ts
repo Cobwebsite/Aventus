@@ -96,6 +96,8 @@ export type ActionChange = {
 	txt: string,
 	variables: string[],
 	once?: boolean
+	tagName?: string,
+	attributeName?: string,
 };
 export type ActionContextEdit = {
 	fct: string,

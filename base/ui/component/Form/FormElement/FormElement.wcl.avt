@@ -1,5 +1,5 @@
 import { Form } from "../Form/Form.wcl.avt";
-import type { IForm, IFormElement, InternalFormPart } from "../Form/FormType.lib.avt";
+import type { DefinedFormValue, IForm, IFormElement, InternalFormPart } from "../Form/FormType.lib.avt";
 
 namespace Form {
     /**
@@ -37,7 +37,7 @@ namespace Form {
         @Watch((target: FormElement<T>) => {
             target.onValueChange(target.value);
         })
-        public value: T | undefined;
+        public value: DefinedFormValue<T> | undefined;
 
         /**
          * List of error messages for the current form element. Changes to this property trigger onErrorsChange().
@@ -50,16 +50,16 @@ namespace Form {
         /**
          * Internal reference to the element's part within the overall form handler.
          */
-        private _form?: InternalFormPart<T>;
+        private _form?: InternalFormPart<DefinedFormValue<T>>;
 
         /**
          * Gets or sets the element's part within the overall form handler. Setting this property will unlink and relink the form part.
          */
         @Injectable()
-        public get form(): InternalFormPart<T> | undefined {
+        public get form(): InternalFormPart<DefinedFormValue<T>> | undefined {
             return this._form;
         }
-        public set form(value: InternalFormPart<T> | undefined) {
+        public set form(value: InternalFormPart<DefinedFormValue<T>> | undefined) {
             this.unlinkFormPart();
             this._form = value;
             this.linkFormPart();
@@ -94,7 +94,7 @@ namespace Form {
         /**
          * Callback triggered when the value of the form element changes.
          */
-        public onChange: Aventus.Callback<(value: T | undefined) => void> = new Aventus.Callback();
+        public onChange: Aventus.Callback<(value: DefinedFormValue<T> | undefined) => void> = new Aventus.Callback();
         //#endregion
 
 
@@ -183,7 +183,7 @@ namespace Form {
         /**
          * Updates the element's value, triggers the onChange callback, and updates the form's value if linked.
          */
-        protected triggerChange(value: T | undefined) {
+        protected triggerChange(value: DefinedFormValue<T> | undefined) {
             this.value = value;
             this.onChange.trigger(this.value);
             if(this.form) {
@@ -194,7 +194,7 @@ namespace Form {
         /**
          * Called when the value property changes. Links the new value to the form.
          */
-        protected onValueChange(value: T | undefined) {
+        protected onValueChange(value: DefinedFormValue<T> | undefined) {
             this.linkValueToForm();
         }
         /**
