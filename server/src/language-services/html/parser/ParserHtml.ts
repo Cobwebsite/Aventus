@@ -151,11 +151,13 @@ export class ParserHtml {
 		return null;
 	}
 
-	public static createChange(fct: { start: number, end: number, txt: string }): ActionChange | null {
+	public static createChange(fct: { start: number, end: number, txt: string, tagName?: string, attributeName?: string }): ActionChange | null {
 		if (this.currentParsingDoc) {
 			// TODO ajout des variables ici
 
-			let contentmd5 = md5(fct.txt);
+			// Keep expressions used by different attributes separate: their expected
+			// types may differ even when the expression text is identical.
+			let contentmd5 = md5(fct.txt + "\0" + (fct.tagName ?? "") + "\0" + (fct.attributeName ?? ""));
 			if (this.currentParsingDoc.fcts[contentmd5]) {
 				this.currentParsingDoc.fcts[contentmd5].positions.push({
 					start: fct.start,
@@ -175,6 +177,8 @@ export class ParserHtml {
 						}],
 						txt: fct.txt,
 						variables: variables,
+						tagName: fct.tagName,
+						attributeName: fct.attributeName,
 					}
 					this.currentParsingDoc.fcts[contentmd5] = result;
 					return result;

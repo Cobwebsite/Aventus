@@ -10,10 +10,10 @@ import { AventusTsFile } from "../File";
 import { AventusWebcomponentCompiler } from "./compiler/compiler";
 import { CompileComponentResult } from "./compiler/def";
 import { ClassInfo } from '../parser/ClassInfo';
-import { EOL, md5, replaceNotImportAliases, unlinkSync } from '../../../tools';
+import { EOL, md5, replaceNotImportAliases, unlinkSync, uriToPath } from '../../../tools';
 import { QuickParser } from './QuickParser';
 import { HTMLFormat } from '../../html/parser/definition';
-import { join } from 'path';
+import { dirname, join, relative } from 'path';
 import { InjectionRender } from '../../html/parser/TagInfo';
 import { InputType } from '@aventusjs/storybook';
 import { AventusWebSCSSFile } from '../../scss/File';
@@ -219,6 +219,30 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         return parameters;
                     }
 
+                    const getInjectionResultType = (tagName?: string, attributeName?: string): string => {
+                        if (!tagName || !attributeName) return 'Aventus.NotVoid';
+                        const definition = this.build.getWebComponentDefinition(tagName);
+                        const field = definition?.class.getField(attributeName);
+                        if (!definition || !field || field.isPrivate || field.isProtected || field.isStatic) {
+                            return 'Aventus.NotVoid';
+                        }
+                        let componentType = definition.class.fullName;
+                        if (definition.isLocal && definition.class.fileUri != this.file.uri) {
+                            let moduleName = relative(
+                                dirname(uriToPath(this.file.uri)),
+                                uriToPath(definition.class.fileUri)
+                            ).replace(/\\/g, '/');
+                            if (!moduleName.startsWith('.')) moduleName = './' + moduleName;
+                            // A type query resolves the component in its own module without
+                            // adding an import to the user's source file. Aventus component
+                            // files expose their class by its short exported name.
+                            componentType = `import(${JSON.stringify(moduleName)}).${definition.class.name}`;
+                        }
+                        // InstanceType also works for generic component classes without
+                        // requiring us to recreate their type arguments here.
+                        return `InstanceType<typeof ${componentType}>[${JSON.stringify(attributeName)}]`;
+                    }
+
                     if (tsIsDiff) {
                         // if the typescript, maybe the type of the loop changed => we must reinfered all types
                         const inferForType = () => {
@@ -364,7 +388,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         let fullStart = newContent.length;
                         let parameters: string[] = getParameters(method.variables);
 
-                        let resultType = 'Aventus.NotVoid';
+                        let resultType = getInjectionResultType(method.tagName, method.attributeName);
 
                         // TODO correct indentation
                         let t = this._space;
@@ -528,7 +552,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                         // TODO correct indentation
                         let t = this._space;
-                        newContent += `\n${t}/** */\n${t}private ${injection.injectFctName}(${parameters.join(",")}): Aventus.NotVoid {\n`;
+                        const resultType = getInjectionResultType(injection.tagName, injection.attributeName);
+                        newContent += `\n${t}/** */\n${t}private ${injection.injectFctName}(${parameters.join(",")}): ${resultType} {\n`;
                         let start = newContent.length;
                         newContent += injectionTxt + "\n";
                         let end = newContent.length;

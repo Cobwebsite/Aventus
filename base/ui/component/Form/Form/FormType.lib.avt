@@ -6,6 +6,12 @@ import type { Validator } from "./Validator.lib.avt";
 
 namespace Form {
     /**
+     * Represents the value handled by a form once the absence marker has been removed.
+     * Form APIs add `undefined` themselves where a value may be absent.
+     */
+    export type DefinedFormValue<T> = Exclude<T, undefined>;
+
+    /**
      * Defines the contract for classes that can act as a form handler.
      */
     export interface IForm {
@@ -18,14 +24,16 @@ namespace Form {
      */
     export interface IFormElement<T = any> {
         errors: string[];
-        value: T | undefined;
-        onChange: Aventus.Callback<(value: T) => void>;
-        formPart?: InternalFormPart<T>;
+        value: DefinedFormValue<T> | undefined;
+        onChange: Aventus.Callback<(value: DefinedFormValue<T> | undefined) => void>;
+        formPart?: InternalFormPart<DefinedFormValue<T>>;
     }
     /**
      * Represents the internal structure of a form, mapping field names to their internal form parts.
      */
-    export type InternalForm<T> = { [K in keyof T]?: InternalFormPart<T[K]> };
+    export type InternalForm<T> = {
+        [K in keyof T]?: InternalFormPart<DefinedFormValue<T[K]>>
+    };
 
     /**
      * Represents the internal structure of a single form field or part, including its value, validation rules, and associated elements.
@@ -34,7 +42,10 @@ namespace Form {
         /**
          * The value of the form part, which can be of type T or an object with get and set methods.
          */
-        value: { get: () => T; set: (value: T | undefined) => void; },
+        value: {
+            get(): T;
+            set(value: T | undefined): void;
+        },
         /**
          * A validation function for the form part.
          */
@@ -102,7 +113,13 @@ namespace Form {
      * Represents a validation function for a value of type T.
      * The function takes a value of type T or undefined and returns a FormValidateResult.
      */
-    export type FormPartValidate<T> = (value: T | undefined, name: string, globalValidation: () => Promise<void>) => FormValidateResult;
+    export type FormPartValidate<T> = {
+        bivarianceHack(
+            value: T | undefined,
+            name: string,
+            globalValidation: () => Promise<void>
+        ): FormValidateResult;
+    }['bivarianceHack'];
 
     /**
      * Represents a global validation function for a form field.
