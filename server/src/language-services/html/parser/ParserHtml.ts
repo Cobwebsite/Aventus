@@ -296,6 +296,9 @@ export class ParserHtml {
 	private document: TextDocument;
 
 	private rootTags: TagInfo[] = [];
+	public get validationRootTags(): readonly TagInfo[] {
+		return this.rootTags;
+	}
 	public tags: TagInfo[] = [];
 
 

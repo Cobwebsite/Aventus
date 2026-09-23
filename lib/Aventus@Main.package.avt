@@ -1794,7 +1794,7 @@ interface IRamAction<Resource, Request> {
     offDelete(callback: (item: this) => void): void;
 }
 
-type RamItem<Resource extends Aventus.IRamData, Request> = Resource & Aventus.IRamAction<Resource, Request>;
+type RamItem<Resource extends Aventus.IRamData, Request = Resource> = Resource & Aventus.IRamAction<Resource, Request>;
 
 @Storybook({
     prefix: "Ram"

@@ -14,10 +14,11 @@ import { EOL, md5, replaceNotImportAliases, unlinkSync, uriToPath } from '../../
 import { QuickParser } from './QuickParser';
 import { HTMLFormat } from '../../html/parser/definition';
 import { dirname, join, relative } from 'path';
-import { InjectionRender } from '../../html/parser/TagInfo';
+import { ContentInfo, InjectionRender, TagInfo } from '../../html/parser/TagInfo';
 import { InputType } from '@aventusjs/storybook';
 import { AventusWebSCSSFile } from '../../scss/File';
 import { AventusI18nFile } from '../../i18n/File';
+import { createSourceFile, isExpressionStatement, isReturnStatement, ScriptTarget } from 'typescript';
 
 type ViewMethodInfo = {
     name: string
@@ -35,12 +36,28 @@ type ViewMethodInfo = {
         txt: string;
     }
     kind: 'fct' | 'loop' | 'if' | 'context'
+    validatedExpression?: boolean
 }
+
+type ViewValidationMapping = {
+    generatedStart: number;
+    generatedEnd: number;
+    statementStart: number;
+    statementEnd: number;
+    sourceStart: number;
+    sourceEnd: number;
+    insertedAt?: number;
+    insertedLength?: number;
+};
 
 export class AventusWebComponentLogicalFile extends AventusTsFile {
     private _compilationResult: CompileComponentResult | undefined;
     public canUpdateComponent: boolean = true;
     private viewMethodsInfo: ViewMethodInfo[] = [];
+    private viewValidationMappings: ViewValidationMapping[] = [];
+    private viewValidationStart = -1;
+    private viewValidationEnd = -1;
+    private viewValidatedMethods: Map<string, number> = new Map();
 
     public storyBookInfo: {
         argsTypes: { [name: string]: InputType },
@@ -206,6 +223,10 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     }
                     newContent = oldContent.slice(0, this.componentEnd - startLine);
                     this.viewMethodsInfo = [];
+                    this.viewValidationMappings = [];
+                    this.viewValidationStart = -1;
+                    this.viewValidationEnd = -1;
+                    this.viewValidatedMethods.clear();
                     let returnAddedLength = 0;
 
                     let contentAfter = "";
@@ -242,6 +263,178 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         // requiring us to recreate their type arguments here.
                         return `InstanceType<typeof ${componentType}>[${JSON.stringify(attributeName)}]`;
                     }
+
+                    // This method exists only in the internal TypeScript document. Keeping
+                    // the template's control flow here lets TypeScript narrow properties
+                    // and loop variables using its own control-flow analysis.
+                    const writeViewValidation = () => {
+                        const roots = htmlFile.fileParsed?.validationRootTags ?? [];
+                        if (!roots.length) return;
+                        const t = this._space;
+                        this.viewValidationStart = newContent.length;
+                        newContent += `\n${t}@NoCompile()\n${t}private ${this.viewMethodName}ValidateView(): void {\n`;
+                        const writeExpression = (txt: string, sourceStart: number, sourceEnd: number, expectedType: string) => {
+                            const statementStart = newContent.length;
+                            newContent += `${t}    void ((`;
+                            const generatedStart = newContent.length;
+                            newContent += txt;
+                            const generatedEnd = newContent.length;
+                            newContent += `) satisfies ${expectedType});\n`;
+                            this.viewValidationMappings.push({
+                                generatedStart,
+                                generatedEnd,
+                                statementStart,
+                                statementEnd: newContent.length,
+                                sourceStart,
+                                sourceEnd,
+                            });
+                        };
+                        const writeViewCode = (txt: string, sourceStart: number, sourceEnd: number, expectedType: string): boolean => {
+                            const parsed = createSourceFile('view-expression.ts', txt, ScriptTarget.ESNext, true);
+                            const statements = parsed.statements;
+                            if (!statements.length) return false;
+                            if (statements.length === 1 && isExpressionStatement(statements[0]) &&
+                                statements[0].expression.getText(parsed) === txt.trim().replace(/;$/, '')) {
+                                writeExpression(txt, sourceStart, sourceEnd, expectedType);
+                                return true;
+                            }
+
+                            const last = statements[statements.length - 1];
+                            if (!isExpressionStatement(last) && !isReturnStatement(last)) return false;
+                            const returnOffset = isExpressionStatement(last) ? last.expression.getStart(parsed) : -1;
+                            let body = txt;
+                            if(returnOffset >= 0) {
+                                body = txt.slice(0, returnOffset) + 'return ' + txt.slice(returnOffset)
+                            }
+                            const statementStart = newContent.length;
+                            newContent += `${t}    void (((() => {\n`;
+                            const generatedStart = newContent.length;
+                            newContent += body;
+                            const generatedEnd = newContent.length;
+                            newContent += `\n})()) satisfies ${expectedType});\n`;
+                            this.viewValidationMappings.push({
+                                generatedStart,
+                                generatedEnd,
+                                statementStart,
+                                statementEnd: newContent.length,
+                                sourceStart,
+                                sourceEnd,
+                                insertedAt: returnOffset >= 0 ? generatedStart + returnOffset : undefined,
+                                insertedLength: returnOffset >= 0 ? 'return '.length : undefined,
+                            });
+                            return true;
+                        };
+                        const writeChanges = (changes: { name: string, txt: string }[], value: string, sourceBase: number, expectedType: string) => {
+                            const matches = value.matchAll(/\{\{([\s\S]*?)\}\}/g);
+                            let index = 0;
+                            for (const match of matches) {
+                                const change = changes[index++];
+                                if (!change) continue;
+                                const start = sourceBase + match.index + 2;
+                                const end = sourceBase + match.index + match[0].length - 2;
+                                if (writeViewCode(change.txt, start, end, expectedType)) {
+                                    this.viewValidatedMethods.set(change.name, (this.viewValidatedMethods.get(change.name) ?? 0) + 1);
+                                }
+                            }
+                        };
+                        const writeNodes = (nodes: readonly (TagInfo | ContentInfo)[]) => {
+                            for (let index = 0; index < nodes.length; index++) {
+                                const node = nodes[index];
+                                if (node instanceof ContentInfo) {
+                                    writeChanges(node.changes, node.content, node.start, 'Aventus.NotVoid');
+                                    continue;
+                                }
+                                if (node.isIf && node.ifInfo) {
+                                    const info = node.ifInfo;
+                                    const branches: TagInfo[] = [];
+                                    let lastBranchIndex = index;
+                                    for (let next = index; next < nodes.length && branches.length < info.idsTemplate.length; next++) {
+                                        const candidate = nodes[next];
+                                        if (candidate instanceof ContentInfo) {
+                                            if (candidate.changes.length) break;
+                                            continue;
+                                        }
+                                        branches.push(candidate);
+                                        lastBranchIndex = next;
+                                    }
+                                    const isNotInsideBranch = branches.some((branch, branchIndex) => !branch.isIf || branch.ifInfo !== info || Number(branch.attributes['id']?.value) !== info.idsTemplate[branchIndex])
+                                    if (branches.length !== info.idsTemplate.length || isNotInsideBranch) {
+                                        continue;
+                                    }
+                                    for (let i = 0; i < branches.length; i++) {
+                                        const branch = branches[i];
+                                        const condition = info.conditions[i];
+                                        newContent += condition
+                                            ? `${t}    ${i === 0 ? 'if' : 'else if'} (${condition.txt}) {\n`
+                                            : `${t}    else {\n`;
+                                        writeNodes(branch.children);
+                                        newContent += `${t}    }\n`;
+                                    };
+                                    index = lastBranchIndex;
+                                }
+                                else if (node.isLoop && node.loopInfo) {
+                                    const header = node.loopInfo.loopTxt.replace(/\s*}\s*$/, '');
+                                    newContent += `${t}    ${header}\n`;
+                                    // A mutable for-index is not narrowed by TypeScript across
+                                    // repeated indexed accesses. Snapshot it as a callback
+                                    // parameter, while keeping the template expressions intact.
+                                    const loopVariables = node.loopInfo.variableNames.filter(name => /^[A-Za-z_$][\w$]*$/.test(name));
+                                    const stableNames = loopVariables.map((_, variableIndex) => `__avtLoop${node.loopInfo!.idTemplate}_${variableIndex}`);
+                                    for (let variableIndex = 0; variableIndex < loopVariables.length; variableIndex++) {
+                                        newContent += `${t}    const ${stableNames[variableIndex]} = ${loopVariables[variableIndex]};\n`;
+                                    }
+                                    if (loopVariables.length) {
+                                        const parameters = loopVariables.map((name, variableIndex) => `${name}: typeof ${stableNames[variableIndex]}`);
+                                        newContent += `${t}    ((${parameters.join(', ')}) => {\n`;
+                                    }
+                                    writeNodes(node.children);
+                                    if (loopVariables.length) {
+                                        newContent += `${t}    })(${stableNames.join(', ')});\n`;
+                                    }
+                                    newContent += `${t}    }\n`;
+                                }
+                                else if (node.isContextEditing && node.contextEdit) {
+                                    const name = node.contextEdit.mapping[0].replace(/['"`]/g, '');
+                                    const source = node.contextEdit.mapping[1];
+                                    if (/^[A-Za-z_$][\w$]*$/.test(name) && source) {
+                                        newContent += `${t}    const ${name} = ${source};\n`;
+                                    }
+                                }
+                                else if (!node.isContextEditing) {
+                                    for (const injection of node.injections) {
+                                        writeViewCode(
+                                            injection.injectTsTxt,
+                                            injection.start + 1,
+                                            injection.end - 1,
+                                            getInjectionResultType(injection.tagName, injection.attributeName)
+                                        );
+                                    }
+                                    for (const binding of node.bindings) {
+                                        writeViewCode(
+                                            binding.injectTsTxt,
+                                            binding.start + 1,
+                                            binding.end - 1,
+                                            getInjectionResultType(binding.tagName, binding.attributeName)
+                                        );
+                                    }
+                                    for (const attribute of Object.values(node.attributes)) {
+                                        writeChanges(
+                                            attribute.changes,
+                                            attribute.value ?? '',
+                                            attribute.valueStart + 1,
+                                            getInjectionResultType(node.tagName, attribute.name)
+                                        );
+                                    }
+                                    writeNodes(node.children);
+                                }
+                            }
+                        };
+                        writeNodes(roots);
+                        newContent += `${t}}`;
+                        this.viewValidationEnd = newContent.length;
+                    };
+
+                    writeViewValidation();
 
                     if (tsIsDiff) {
                         // if the typescript, maybe the type of the loop changed => we must reinfered all types
@@ -399,7 +592,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         newContent += t + '}';
 
 
-                        const wrapper = function (rPos: number, returnLength: number) {
+                        const wrapper = (rPos: number, returnLength: number) => {
                             let result: ViewMethodInfo = {
                                 name: method.name,
                                 fullStart: fullStart,
@@ -409,6 +602,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 offsetBefore: "{{".length,
                                 offsetAfter: "}}".length,
                                 kind: "fct",
+                                validatedExpression: this.viewValidatedMethods.get(method.name) === method.positions.length,
                                 transform(start, currentPos) {
                                     if (start >= rPos) {
                                         currentPos += returnLength;
@@ -527,6 +721,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     const writeInjection = (injection: InjectionRender) => {
                         let injectionTxt = injection.injectTsTxt.replace(/\n/g, ";");
                         let returnPosition = -1;
+                        let returnAddedLength = 0;
 
                         let resultTemp: string[] = injectionTxt.split(";");
                         if (!injectionTxt.includes("return ")) {
@@ -553,6 +748,22 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         // TODO correct indentation
                         let t = this._space;
                         const resultType = getInjectionResultType(injection.tagName, injection.attributeName);
+                        const validatedExpression = this.viewValidationMappings.some(mapping => mapping.sourceStart === injection.start + 1);
+                        if (validatedExpression) {
+                            // The legacy helper has no template control flow. Its return
+                            // value is checked in ValidateView instead, so keep this helper
+                            // type-correct without changing its public contextual type.
+                            const parsed = createSourceFile('view-helper.ts', injectionTxt, ScriptTarget.ESNext, true);
+                            const returns = parsed.statements.filter(isReturnStatement);
+                            for (const statement of returns.reverse()) {
+                                if (statement.expression) {
+                                    const start = statement.expression.getStart(parsed);
+                                    const end = statement.expression.end;
+                                    injectionTxt = injectionTxt.slice(0, start) + '(' + injectionTxt.slice(start, end) + `) as unknown as ${resultType}` + injectionTxt.slice(end);
+                                    returnAddedLength += 1;
+                                }
+                            }
+                        }
                         newContent += `\n${t}/** */\n${t}private ${injection.injectFctName}(${parameters.join(",")}): ${resultType} {\n`;
                         let start = newContent.length;
                         newContent += injectionTxt + "\n";
@@ -560,7 +771,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         newContent += t + '}';
 
 
-                        const wrapper = function (rPos: number, returnLength: number) {
+                        const wrapper = (rPos: number, returnLength: number) => {
                             let result: ViewMethodInfo = {
                                 name: injection.injectFctName,
                                 fullStart: fullStart,
@@ -576,6 +787,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 offsetBefore: '"'.length,
                                 offsetAfter: '"'.length,
                                 kind: "fct",
+                                validatedExpression,
                                 transform(start, currentPos) {
                                     if (start >= rPos) {
                                         currentPos += returnLength;
@@ -694,11 +906,39 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 let diagEnd = this.file.documentInternal.offsetAt(diagnostic.range.end);
                 let found = false;
                 let avoid = diagStart >= this.file.contentUser.length;
+                if (diagStart >= this.viewValidationStart && diagStart < this.viewValidationEnd) {
+                    const mapping = this.viewValidationMappings.find(item => diagStart < item.statementEnd && diagEnd > item.statementStart);
+                    if (mapping) {
+                        let sourceStart: number = mapping.sourceStart;
+                        let sourceEnd: number = mapping.sourceEnd;
+                        if (diagStart >= mapping.generatedStart && diagEnd <= mapping.generatedEnd) {
+                            const insertedAt = mapping.insertedAt ?? Number.MAX_SAFE_INTEGER;
+                            const insertedLength = mapping.insertedLength ?? 0;
+                            if (diagEnd <= insertedAt || diagStart >= insertedAt + insertedLength) {
+                                sourceStart = mapping.sourceStart + diagStart - mapping.generatedStart - (diagStart >= insertedAt ? insertedLength : 0);
+                                sourceEnd = mapping.sourceStart + diagEnd - mapping.generatedStart - (diagEnd > insertedAt ? insertedLength : 0);
+                            }
+                        }
+                        htmlDiags.push({
+                            ...diagnostic,
+                            source: AventusLanguageId.HTML,
+                            range: {
+                                start: html.file.documentInternal.positionAt(sourceStart),
+                                end: html.file.documentInternal.positionAt(sourceEnd),
+                            },
+                        });
+                    }
+                    continue;
+                }
                 for (let i = 0; i < this.viewMethodsInfo.length; i++) {
                     let start = this.viewMethodsInfo[i].fullStart;
                     let end = this.viewMethodsInfo[i].end;
 
                     if (diagStart > start && diagEnd < end) {
+                        if (this.viewMethodsInfo[i].validatedExpression) {
+                            found = true;
+                            break;
+                        }
                         // it's inside the {{ }}
                         diagnostic.source = AventusLanguageId.HTML;
                         let methodView = this.viewMethodsInfo[i].fct;
