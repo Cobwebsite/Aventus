@@ -1,28 +1,36 @@
 # Change Log
 
-## 1.5.0 (2026-08-)
+## 1.5.0 (2026-09-23)
 
 ### Features
- - Add color detection for oklch
- - Add space key to shortcutmanager
- - Allow ` inside html view
- - Change aventus cli to be more user friendly + start only server part needed
- - Upgrade from ts5 to ts6
- - Improve template
- - Correct node_modules with rollup
- - Add DB view editor for file *.db.avt
- - Add Migration view creator for AventusSharp projet
- - Extract csharp and php transpiler. Now it ll download the package need from nuget/packagist
- - Allow import file from path alias
- - Add emmet snippets via command : "Aventus : Create emmet snippets"
- - Export c# route from compiled dll to improve route generation
- - Add cache to request + cachable generation from c#
+ - Add OKLCH color detection
+ - Support the space key in ShortcutManager and backticks in HTML views
+ - Upgrade the compiler to TypeScript 6 and ES2025
+ - Improve the CLI and load only the required server features
+ - Add CLI commands for formatting, AI documentation and updates
+ - Add global templates and improve template loading
+ - Improve npm dependency bundling
+ - Add the *.db.avt editor and AventusSharp migration creator
+ - Install C# and PHP converters as external tools
+ - Export C# routes from compiled assemblies
+ - Resolve imports and auto-imports through path aliases
+ - Generate Emmet snippets with "Aventus : Create emmet snippets"
+ - Add HTTP response caching and cache generation from C# routes
+ - Add build outputs selected by imported library
+ - Add an option to disable builds inside the IDE
+ - Add @NoType and Temporal-based Date, DateTime and Time types
+ - Improve type checking and narrowing inside views
+ - Add separate RAM request, list resource and detail resource types
+ - Improve Router, Form, Modal, Toast, Collapse, Tabs and grid components
 
 ### Bug Fixes
  - Correct inheritance with same name
  - Correct i18n loading
- - Correct config dependances => dependencies
+ - Rename config dependances to dependencies
  - Correct EOL to have same build file across linux/mac/windows
+ - Correct HTML loop and conditional compilation
+ - Correct date, datetime and time conversions
+ - Correct CLI updates and file writing
 
 ## 1.4.1 (2025-10-23)
 
