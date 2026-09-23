@@ -118,16 +118,38 @@ let Style=class Style {
         Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
     }
     stylesheets = new Map();
+    stylesheetsWaiting = {};
     async load(name, url) {
         try {
+            const key = name + '°' + url;
+            if (this.stylesheetsWaiting.hasOwnProperty(key)) {
+                return await this.awaitFctHead(key);
+            }
+            this.stylesheetsWaiting[key] = [];
             let style = this.stylesheets.get(name);
             if (!style || style.cssRules.length == 0) {
                 let txt = await (await fetch(url)).text();
                 this.store(name, txt);
             }
+            this.releaseAwaitFctHead(key);
         }
         catch (e) {
         }
+    }
+    releaseAwaitFctHead(key) {
+        if (this.stylesheetsWaiting[key]) {
+            for (let i = 0; i < this.stylesheetsWaiting[key].length; i++) {
+                this.stylesheetsWaiting[key][i]();
+            }
+            delete this.stylesheetsWaiting[key];
+        }
+    }
+    awaitFctHead(key) {
+        return new Promise((resolve) => {
+            this.stylesheetsWaiting[key].push(() => {
+                resolve();
+            });
+        });
     }
     store(name, content) {
         let style = this.stylesheets.get(name);
