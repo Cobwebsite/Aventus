@@ -54,18 +54,42 @@ export class Style {
     }
 
     private stylesheets: Map<string, CSSStyleSheet> = new Map();
+    private stylesheetsWaiting: { [key: string]: (() => void)[]; } = {};
 
     public async load(name: string, url: string): Promise<void> {
         try {
+            const key = name + '°' + url;
+            if(this.stylesheetsWaiting.hasOwnProperty(key)) {
+                return await this.awaitFctHead(key);
+            }
+
+            this.stylesheetsWaiting[key] = [];
             let style = this.stylesheets.get(name);
             if(!style || style.cssRules.length == 0) {
                 let txt = await (await fetch(url)).text();
                 this.store(name, txt);
             }
+            this.releaseAwaitFctHead(key);
         }
         catch(e) {
 
         }
+    }
+
+    private releaseAwaitFctHead(key: string) {
+        if(this.stylesheetsWaiting[key]) {
+            for(let i = 0; i < this.stylesheetsWaiting[key].length; i++) {
+                this.stylesheetsWaiting[key][i]();
+            }
+            delete this.stylesheetsWaiting[key];
+        }
+    }
+    private awaitFctHead(key: string): Promise<void> {
+        return new Promise((resolve) => {
+            this.stylesheetsWaiting[key].push(() => {
+                resolve();
+            });
+        });
     }
 
     public store(name: string, content: string) {
