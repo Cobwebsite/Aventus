@@ -484,6 +484,7 @@ export class AttributeInfo {
 	public valueEnd: number = 0;
 	public tag: TagInfo;
 	public mustBeAdded: boolean = true;
+	public changes: ActionChange[] = [];
 
 
 	public constructor(name: string, nameStart: number, nameEnd: number, tag: TagInfo) {
@@ -579,6 +580,7 @@ export class AttributeInfo {
 		}
 		else {
 			let result = parseTxt(value, this.valueStart, this.tag.tagName, this.name);
+			this.changes = result.changes;
 			if (result.changes.length > 0) {
 				this.tag.addChanges(this.name, result.txt, result.once);
 				this.mustBeAdded = false;
@@ -593,6 +595,7 @@ export class ContentInfo {
 	public end: number = 0;
 	public tag: TagInfo;
 	public mustBeAdded: boolean = true;
+	public changes: ActionChange[] = [];
 
 	public constructor(content: string, start: number, end: number, tag: TagInfo, parse: boolean = true) {
 		this.content = content;
@@ -607,6 +610,7 @@ export class ContentInfo {
 	private manageVariables() {
 		let content = this.content;
 		let result = parseTxt(content, this.start);
+		this.changes = result.changes;
 		if (result.changes.length > 0) {
 			this.tag.addChanges("@HTML", result.txt, result.once);
 			this.mustBeAdded = false;

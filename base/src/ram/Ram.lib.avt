@@ -43,7 +43,7 @@ export interface IRamAction<Resource, Request> {
 @Storybook({
     prefix: "Ram"
 })
-export type RamItem<Resource extends IRamData, Request> = Resource & IRamAction<Resource, Request>;
+export type RamItem<Resource extends IRamData, Request = Resource> = Resource & IRamAction<Resource, Request>;
 @Storybook({
     prefix: "Ram"
 })
