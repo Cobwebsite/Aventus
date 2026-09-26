@@ -930,60 +930,54 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     }
                     continue;
                 }
-                for (let i = 0; i < this.viewMethodsInfo.length; i++) {
-                    let start = this.viewMethodsInfo[i].fullStart;
-                    let end = this.viewMethodsInfo[i].end;
+                const viewMethodInfo = this.viewMethodsInfo.find(method => diagStart > method.fullStart && diagEnd < method.end);
+                // ValidateView already reports this expression at its HTML location.
+                if (viewMethodInfo?.validatedExpression) {
+                    continue;
+                }
+                if (viewMethodInfo) {
+                    // it's inside the {{ }}
+                    diagnostic.source = AventusLanguageId.HTML;
+                    let methodView = viewMethodInfo.fct;
+                    let offsetAfter = viewMethodInfo.offsetAfter
+                    let offsetBefore = viewMethodInfo.offsetBefore
 
-                    if (diagStart > start && diagEnd < end) {
-                        if (this.viewMethodsInfo[i].validatedExpression) {
-                            found = true;
-                            break;
-                        }
-                        // it's inside the {{ }}
-                        diagnostic.source = AventusLanguageId.HTML;
-                        let methodView = this.viewMethodsInfo[i].fct;
-                        let offsetAfter = this.viewMethodsInfo[i].offsetAfter
-                        let offsetBefore = this.viewMethodsInfo[i].offsetBefore
+                    if (convertedRanges.indexOf(diagnostic.range) == -1) {
+                        let offsetReturn = viewMethodInfo.transform(diagStart, 0);
 
-                        if (convertedRanges.indexOf(diagnostic.range) == -1) {
-                            let offsetReturn = this.viewMethodsInfo[i].transform(diagStart, 0);
+                        convertedRanges.push(diagnostic.range);
+                        let offsetStart = diagStart - viewMethodInfo.start - offsetReturn;
+                        let offsetEnd = diagEnd - viewMethodInfo.start - offsetReturn;
 
-                            convertedRanges.push(diagnostic.range);
-                            let offsetStart = diagStart - this.viewMethodsInfo[i].start - offsetReturn;
-                            let offsetEnd = diagEnd - this.viewMethodsInfo[i].start - offsetReturn;
+                        for (let j = 0; j < methodView.positions.length; j++) {
+                            let start = methodView.positions[j].start;
+                            let end = methodView.positions[j].end;
+                            let diag: Diagnostic = diagnostic;
 
-                            for (let j = 0; j < methodView.positions.length; j++) {
-                                let start = methodView.positions[j].start;
-                                let end = methodView.positions[j].end;
-                                let diag: Diagnostic = diagnostic;
-
-                                if (j > 0) {
-                                    diag = { ...diagnostic };
-                                }
-                                let finalPositionStart = start + offsetBefore + offsetStart;
-                                let finalPositionEnd = start + offsetBefore + offsetEnd;
-                                if (finalPositionStart < start || finalPositionEnd > end - offsetAfter) {
-                                    diag.range = {
-                                        start: html.file.documentInternal.positionAt(start),
-                                        end: html.file.documentInternal.positionAt(end)
-                                    }
-                                }
-                                else {
-                                    diag.range = {
-                                        start: html.file.documentInternal.positionAt(finalPositionStart),
-                                        end: html.file.documentInternal.positionAt(finalPositionEnd)
-                                    }
-                                }
-                                if (j > 0) {
-                                    htmlDiags.push(diag);
+                            if (j > 0) {
+                                diag = { ...diagnostic };
+                            }
+                            let finalPositionStart = start + offsetBefore + offsetStart;
+                            let finalPositionEnd = start + offsetBefore + offsetEnd;
+                            if (finalPositionStart < start || finalPositionEnd > end - offsetAfter) {
+                                diag.range = {
+                                    start: html.file.documentInternal.positionAt(start),
+                                    end: html.file.documentInternal.positionAt(end)
                                 }
                             }
-
+                            else {
+                                diag.range = {
+                                    start: html.file.documentInternal.positionAt(finalPositionStart),
+                                    end: html.file.documentInternal.positionAt(finalPositionEnd)
+                                }
+                            }
+                            if (j > 0) {
+                                htmlDiags.push(diag);
+                            }
                         }
-                        found = true;
 
-                        break;
                     }
+                    found = true;
                 }
 
                 if (found) {
