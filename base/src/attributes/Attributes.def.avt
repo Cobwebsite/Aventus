@@ -6,7 +6,7 @@ declare global {
         context: ClassDecoratorContext<Class>
     ) => Class | void;
 
-    type AvClassComponentDecorator = <Class extends ConstructorConstraint<Aventus.WebComponent>>(
+    type AvClassComponentDecorator = <Class extends ConstructorConstraint<Aventus.WebComponent | Aventus.NativeWebComponent>>(
         value: Class,
         context: ClassDecoratorContext<Class>
     ) => Class | void;

@@ -8,6 +8,7 @@ import { Build } from "../../../project/Build";
 import { AventusHTMLFile } from "../../html/File";
 import { AventusTsFile } from "../File";
 import { AventusWebcomponentCompiler } from "./compiler/compiler";
+import { AventusWebcomponentCompilerSimple } from "./compiler/compilerSimple";
 import { CompileComponentResult } from "./compiler/def";
 import { ClassInfo } from '../parser/ClassInfo';
 import { EOL, md5, replaceNotImportAliases, unlinkSync, uriToPath } from '../../../tools';
@@ -150,7 +151,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     this.isCompiling = true;
                     this.needRebuild = false;
                     this.recreateFileContent();
-                    let compiler = new AventusWebcomponentCompiler(this, this.build);
+                    let native = Object.values(this.fileParsed?.classes ?? {}).some(info => info.isNativeWebcomponent);
+                    let compiler = native ? new AventusWebcomponentCompilerSimple(this, this.build) : new AventusWebcomponentCompiler(this, this.build);
                     this._compilationResult = compiler.compile();
                     this.build.scssLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.scssDoc);
                     this.build.htmlLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.htmlDoc, this);
@@ -1017,6 +1019,10 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
     protected async onSave() {
         await this.runWebCompiler();
+        if (this.compilationResult?.nativeOutput) {
+            const output = this.compilationResult.nativeOutput;
+            writeFileSync(join(this.file.folderPath, output.name), output.content);
+        }
         if (this.compilationResult) {
             this.setCompileResult(this.compilationResult.result);
         }
@@ -1049,7 +1055,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             for (let result of this.compileResult) {
                 if (result.classScript != "" && oldInfo[result.classScript]) {
                     if (oldInfo[result.classScript] != result.compiled) {
-                        if (result.classScript != this.compilationResult.componentName) {
+                        if (this.compilationResult.nativeOutput || result.classScript != this.compilationResult.componentName) {
                             this.build.reloadPage = true;
                         }
                         else {

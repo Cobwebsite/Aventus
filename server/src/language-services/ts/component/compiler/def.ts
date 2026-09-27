@@ -7,6 +7,7 @@ import { PropertyInfo } from '../../parser/PropertyInfo';
 
 
 export interface CompileComponentResult {
+	nativeOutput?: { name: string, content: string };
 	diagnostics: Diagnostic[],
 	writeCompiled: Boolean,
 	missingViewElements: { position: number, elements: { [name: string]: string } },

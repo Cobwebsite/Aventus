@@ -34,7 +34,10 @@ export class ClassInfo extends BaseInfo {
 	public implementsType: TypeInfo[] = [];
 	public extraConstructorCode: string[] = [];
 	public get isWebcomponent(): boolean {
-		return this.implements.includes("Aventus.DefaultComponent") && !this.isInterface
+		return (this.implements.includes("Aventus.DefaultComponent") || this.isNativeWebcomponent) && !this.isInterface
+	}
+	public get isNativeWebcomponent(): boolean {
+		return !this.isInterface && this.extends.some(name => name === "Aventus.NativeWebComponent" || name === "NativeWebComponent");
 	}
 
 	public get constructorContent(): string {

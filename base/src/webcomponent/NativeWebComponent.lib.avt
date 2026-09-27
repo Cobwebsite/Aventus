@@ -1,0 +1,6 @@
+/** Compiler marker. Native component output embeds its own HTMLElement implementation. */
+export abstract class NativeWebComponent extends HTMLElement {
+    protected postCreation(): void { }
+    protected postConnect(): void { }
+    protected postDisconnect(): void { }
+}

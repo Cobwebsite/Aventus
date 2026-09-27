@@ -1,0 +1,10 @@
+{
+    "module": "NativeDemo",
+    "componentPrefix": "demo",
+    "build": [{
+        "name": "Main",
+        "src": ["./src/"],
+        "dependencies": { "Aventus@Main": { "uri": "../../../../lib/Aventus@Main.package.avt", "include": "need" } },
+        "compile": [{ "output": "./dist/demo.js" }]
+    }]
+}

@@ -90,10 +90,11 @@ export class QuickParser {
 		if (node.name && node.heritageClauses) {
 			let name = node.name;
 			for (let heritage of node.heritageClauses) {
-				if (heritage.token == SyntaxKind.ImplementsKeyword) {
+				if (heritage.token == SyntaxKind.ImplementsKeyword || heritage.token == SyntaxKind.ExtendsKeyword) {
 					forEachChild(heritage, x => {
 						if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
-							if (x.getText() == this.AventusDefaultComponent) {
+							if ((heritage.token == SyntaxKind.ImplementsKeyword && x.getText() == this.AventusDefaultComponent) ||
+								(heritage.token == SyntaxKind.ExtendsKeyword && /^(Aventus\.)?NativeWebComponent$/.test(x.getText()))) {
 								this.end = node.getEnd()
 								this.fullname = [...this.currentNamespace, name.getText()].join('.')
 								this.className = name.getText();

@@ -69,6 +69,14 @@ const _ = {};
 
 
 let _n;
+let NativeWebComponent=class NativeWebComponent extends HTMLElement {
+    postCreation() { }
+    postConnect() { }
+    postDisconnect() { }
+}
+NativeWebComponent.Namespace=`Aventus`;
+__as1(_, 'NativeWebComponent', NativeWebComponent);
+
 let Style=class Style {
     static instance;
     static noAnimation;

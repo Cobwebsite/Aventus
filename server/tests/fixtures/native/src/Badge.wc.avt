@@ -1,0 +1,20 @@
+<script>
+    export class Badge extends Aventus.NativeWebComponent {
+        /** Text displayed by the badge. */
+        @Attribute()
+        public text: string = "Native";
+
+        @ViewElement()
+        private label!: HTMLSpanElement;
+
+        protected override postCreation(): void {
+            this.label.textContent = this.text;
+        }
+    }
+</script>
+<template>
+    <span @element="label"></span>
+</template>
+<style>
+    :host { display: inline-block; }
+</style>

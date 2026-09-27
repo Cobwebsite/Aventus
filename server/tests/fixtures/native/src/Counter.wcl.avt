@@ -1,0 +1,22 @@
+@TagName("demo-counter")
+export class Counter extends Aventus.NativeWebComponent {
+    /** Label displayed on the button. */
+    @Attribute()
+    public label: string = "Increment";
+
+    /** Current counter value. */
+    @Property((component: Counter) => component.render())
+    public count: number = 0;
+
+    @ViewElement()
+    private button!: HTMLButtonElement;
+    @ViewElement()
+    private output!: HTMLSpanElement;
+
+    protected override postCreation(): void {
+        this.button.textContent = this.label;
+        this.render();
+    }
+    private increment(): void { this.count++; }
+    private render(): void { this.output.textContent = String(this.count); }
+}

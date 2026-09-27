@@ -8,7 +8,8 @@ export class TagNameDecorator {
 		if (decorator.name == "TagName") {
 			let result = new TagNameDecorator();
 			if (decorator.arguments.length > 0) {
-				result.tagName = decorator.arguments[0].value;
+				const value = decorator.arguments[0].value;
+				result.tagName = /^["'`]/.test(value) ? value.slice(1, -1) : value;
 			}
 			return result;
 		}
