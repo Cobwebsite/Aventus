@@ -472,6 +472,16 @@ export const AventusSharpSchema: JSONSchema = {
             default: true,
             description: "Define if errors must be exported. You can override behaviour with [Export] or [NoExport]"
         },
+        "exportSseEndPointByDefault": {
+            type: "boolean",
+            default: true,
+            description: "Define if SSE endpoints must be exported. You can override behaviour with [Export] or [NoExport]"
+        },
+        "exportSseEventByDefault": {
+            type: "boolean",
+            default: true,
+            description: "Define if SSE events must be exported. You can override behaviour with [Export] or [NoExport]"
+        },
         "exportWsEndPointByDefault": {
             type: "boolean",
             default: true,
@@ -498,6 +508,8 @@ export const AventusSharpSchema: JSONSchema = {
                 "normalClass": { "$ref": "#/$defs/replacerPart" },
                 "storable": { "$ref": "#/$defs/replacerPart" },
                 "withError": { "$ref": "#/$defs/replacerPart" },
+                "sseEndPoint": { "$ref": "#/$defs/replacerPart" },
+                "sseEvent": { "$ref": "#/$defs/replacerPart" },
                 "wsEndPoint": { "$ref": "#/$defs/replacerPart" },
                 "wsEvent": { "$ref": "#/$defs/replacerPart" },
                 "wsRouter": { "$ref": "#/$defs/replacerPart" }
@@ -518,6 +530,19 @@ export const AventusSharpSchema: JSONSchema = {
                 addFormData: { type: "boolean", default: true, description: "Add ` | FormData` to the route body" },
                 cacheByDefault: { type: "boolean", default: false, description: "Add cache to the function generated" },
                 clearCacheFct: { type: "boolean", default: false, description: "Add function to clear cache to the function generated" },
+            }
+        },
+        "sseEndpoint": {
+            type: "object",
+            additionalProperties: false,
+            description: "Configure the generated SSE endpoints and events",
+            properties: {
+                host: { type: "string", description: "The SSE host. Defaults to the current page hostname" },
+                port: { type: "integer", description: "The SSE port. Defaults to the current page port" },
+                useHttps: { type: "boolean", description: "Use HTTPS. Defaults to the current page protocol" },
+                withCredentials: { type: "boolean", description: "Include credentials in cross-origin EventSource requests" },
+                listenOnBoot: { type: "boolean", default: false, description: "Start listening when generated SSE events are initialized" },
+                parent: { type: "string", default: "AventusSharp.SSE.EndPoint", description: "The parent type for generated SSE endpoints" }
             }
         },
         "wsEndpoint": {

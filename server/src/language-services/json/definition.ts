@@ -120,6 +120,8 @@ export interface AventusSharp {
 	exportStorableByDefault?: boolean,
 	exportHttpRouteByDefault?: boolean,
 	exportErrorsByDefault?: boolean,
+	exportSseEndPointByDefault?: boolean,
+	exportSseEventByDefault?: boolean,
 	exportWsEndPointByDefault?: boolean,
 	exportWsEventByDefault?: boolean,
 	exportWsRouteByDefault?: boolean,
@@ -130,11 +132,14 @@ export interface AventusSharp {
 		normalClass?: AventusSharpReplacerPart
 		storable?: AventusSharpReplacerPart
 		withError?: AventusSharpReplacerPart
+		sseEndPoint?: AventusSharpReplacerPart
+		sseEvent?: AventusSharpReplacerPart
 		wsEndPoint?: AventusSharpReplacerPart
 		wsEvent?: AventusSharpReplacerPart
 		wsRouter?: AventusSharpReplacerPart
 	},
 	httpRouter?: AventusSharpHttpRouter,
+	sseEndpoint?: AventusSharpSseEndPoint,
 	wsEndpoint?: AventusSharpWsEndPoint
 }
 
@@ -173,6 +178,14 @@ interface AventusSharpWsEndPoint {
 	prefix?: string,
 }
 
+interface AventusSharpSseEndPoint {
+	host?: string,
+	port?: number,
+	useHttps?: boolean,
+	withCredentials?: boolean,
+	listenOnBoot?: boolean,
+	parent?: string,
+}
 export interface AventusPhp {
 	output: string,
 	exportAsTs?: boolean,
