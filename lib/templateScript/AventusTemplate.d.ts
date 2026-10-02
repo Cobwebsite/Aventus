@@ -108,6 +108,8 @@ declare abstract class AventusTemplate {
     protected removeIndent(text: string): string;
     /** Exec a command. For example: "npm i" */
     protected exec(cmd: string, asAdmin?: boolean): Promise<void>;
+    /** Exec an aventus command */
+	protected aventusCommand(cmd: string, args?: any[]): Promise<void>;
     /** Show an error message inside the IDE */
     protected showErrorMessage(msg: string): void;
     /** Show a warning message inside the IDE */

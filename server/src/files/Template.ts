@@ -12,6 +12,7 @@ import { serverFolder } from '../language-services/ts/libLoader';
 import { InputOptions, SelectItem, SelectOptions } from '../IConnection';
 import { ProgressStart } from '../notification/ProgressStart';
 import { ProgressStop } from '../notification/ProgressStop';
+import { Commands } from '../cmds';
 
 
 export interface TemplateConfigVariable {
@@ -240,6 +241,20 @@ export class TemplateScript {
 											GenericServer.error('stdout: ' + stdout);
 											GenericServer.error('stderr: ' + stderr);
 										}
+									})
+								} catch (e) {
+									GenericServer.error(e);
+									GenericServer.showErrorMessage("The command " + config + " failed");
+								}
+								answer(payload.cmd, "done");
+							}
+							else if (payload.cmd == "aventusCommand") {
+								let config = payload.config as { command: string, arguments: any[] }
+
+								try {
+									await Commands.execute({
+										command: config.command,
+										arguments: config.arguments
 									})
 								} catch (e) {
 									GenericServer.error(e);

@@ -260,7 +260,7 @@ export abstract class AventusTemplate {
 			AventusExtension.ConfigTemplate
 		]
 		let filesPath: string[] = [];
-		const _internalLoop = async (currentPath) => {
+		const _internalLoop = async (currentPath: string) => {
 			try {
 				let files = readdirSync(currentPath);
 				for (let file of files) {
@@ -381,7 +381,7 @@ export abstract class AventusTemplate {
 	}
 	protected replaceBlocks(ctx: string) {
 		for (let blockName in this.blocks) {
-			const regex = new RegExp('#\\{\\{' + blockName + '\\}\\}((\\s|\\S)*)#\\{\\{' + blockName + '\\/\\}\\}', 'gm');
+			const regex = new RegExp('#\\{\\{' + blockName + '\\}\\}((\\s|\\S)*?)#\\{\\{' + blockName + '\\/\\}\\}', 'gm');
 			const block = this.blocks[blockName];
 			const contentBefore = block.before();
 			const contentAfter = block.after();
@@ -426,6 +426,10 @@ export abstract class AventusTemplate {
 		}
 	}
 
+	protected async aventusCommand(cmd: string, args?: any[]): Promise<void> {
+		await this.runCommand("aventusCommand", { command: cmd, arguments: args });
+	}
+
 	protected showErrorMessage(msg: string): void {
 		return this.runCommand("showErrorMessage", msg);
 	}
@@ -433,10 +437,10 @@ export abstract class AventusTemplate {
 		return this.runCommand("showWarningMessage", msg);
 	}
 	protected showInformationMessage(msg: string): void {
-		return this.runCommand("showErrorMessage", msg);
+		return this.runCommand("showInformationMessage", msg);
 	}
 	protected async showProgress(txt: string): Promise<string> {
-		return await this.runCommandWithAnswer("progressStart", txt);
+		return (await this.runCommandWithAnswer("progressStart", txt))!;
 	}
 	protected async hideProgress(uuid: string): Promise<void> {
 		await this.runCommand("progressStop", uuid);
