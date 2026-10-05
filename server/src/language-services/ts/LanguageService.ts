@@ -634,7 +634,7 @@ export class AventusTsLanguageService {
                         }
                     }
                 }
-                return result;
+                return this.mapLocationsToView(result);
             }
             else if (definition && definition.length == 0) {
                 let program = this.languageService.getProgram();
@@ -689,7 +689,42 @@ export class AventusTsLanguageService {
         } catch (e) {
             this.printCatchError(e);
         }
-        return result;
+        return this.mapLocationsToView(result);
+    }
+
+    private mapLocationsToView(locations: Location[]): Location[] {
+        return locations.flatMap(location => {
+            const target = this.build.tsFiles[location.uri];
+            if (!(target instanceof AventusWebComponentLogicalFile)) return [location];
+            const ranges = target.mapGeneratedRangeToView(location.range);
+            if (ranges === null) {
+                const sourceRange = target.mapInternalRangeToUser(location.range);
+                return [{ ...location, range: sourceRange ?? location.range }];
+            }
+            return ranges.map(range => ({ uri: target.HTMLFile!.file.uri, range }));
+        });
+    }
+
+    private mapWorkspaceEditToView(edit: WorkspaceEdit): WorkspaceEdit {
+        if (!edit.changes) return edit;
+        const changes: { [uri: string]: TextEdit[] } = {};
+        const seen = new Set<string>();
+        for (const [uri, edits] of Object.entries(edit.changes)) {
+            const target = this.build.tsFiles[uri];
+            for (const textEdit of edits) {
+                const component = target instanceof AventusWebComponentLogicalFile ? target : null;
+                const ranges = component?.mapGeneratedRangeToView(textEdit.range) ?? null;
+                const destination = ranges === null ? uri : component!.HTMLFile!.file.uri;
+                const sourceRange = ranges === null ? component?.mapInternalRangeToUser(textEdit.range) : null;
+                for (const range of ranges ?? [sourceRange ?? textEdit.range]) {
+                    const key = JSON.stringify([destination, range, textEdit.newText]);
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    (changes[destination] ??= []).push({ ...textEdit, range });
+                }
+            }
+        }
+        return { ...edit, changes };
     }
     public async format(file: AventusFile, range: Range, formatParams: FormattingOptions, semiColon: boolean = true): Promise<TextEdit[]> {
         try {
@@ -759,13 +794,13 @@ export class AventusTsLanguageService {
 
             }
             for (let action of actions) {
-                let changes: TextEdit[] = [];
                 let workspaceEdit: WorkspaceEdit = {
-                    changes: {
-                        [document.uri]: changes
-                    }
+                    changes: {}
                 }
                 for (let change of action.changes) {
+                    const changeDocument = this.filesLoaded[change.fileName]?.file.documentInternal;
+                    if (!changeDocument || !workspaceEdit.changes) continue;
+                    const changes = workspaceEdit.changes[change.fileName] ??= [];
                     for (let textChange of change.textChanges) {
                         if (action.description.startsWith("Add import from")) {
                             textChange.newText = textChange.newText.replace(/'/g, '"');
@@ -846,7 +881,7 @@ export class AventusTsLanguageService {
                         }
                         changes.push({
                             newText: textChange.newText,
-                            range: convertRange(document, textChange.span),
+                            range: convertRange(changeDocument, textChange.span),
                         })
                     }
                 }
@@ -860,7 +895,10 @@ export class AventusTsLanguageService {
         } catch (e) {
             this.printCatchError(e);
         }
-        return result;
+        return result.map(action => action.edit
+            ? { ...action, edit: this.mapWorkspaceEditToView(action.edit) }
+            : action
+        ).filter(action => !action.edit?.changes || Object.values(action.edit.changes).some(edits => edits.length > 0));
     }
 
     public async onReferences(file: AventusFile, position: Position): Promise<Location[]> {
@@ -886,7 +924,7 @@ export class AventusTsLanguageService {
         } catch (e) {
             this.printCatchError(e);
         }
-        return result;
+        return this.mapLocationsToView(result);
     }
 
     public async onCodeLens(file: AventusFile): Promise<CodeLens[]> {
@@ -975,7 +1013,7 @@ export class AventusTsLanguageService {
                 }
             }
         }
-        return res;
+        return this.mapWorkspaceEditToView(res);
     }
 
     public async onRenameFile(oldUri: string, newUri: string): Promise<{ [uri: string]: TextEdit[] }> {
