@@ -27,8 +27,12 @@ export class I18nParser {
 		let children = jsonDoc.root?.children ?? [];
 		for (let child of children) {
 			if (child.type == "property") {
-				const keyObj = child.children[0];
-				const locales = child.children[1].children ?? [];
+				const keyObj = child.children?.[0];
+				const valueObj = child.children?.[1];
+				if (!keyObj || !valueObj || valueObj.type !== "object") {
+					continue;
+				}
+				const locales = valueObj.children ?? [];
 
 				const item: I18nParsedItem = {
 					key: keyObj.value + '',
@@ -39,12 +43,17 @@ export class I18nParser {
 
 				for (let localeObj of locales) {
 					if (localeObj.type == "property") {
-						const locale = localeObj.children[0].value + '';
-						const localeStart = localeObj.children[0].offset;
-						const localeEnd = localeStart + localeObj.children[0].length;
-						const value = localeObj.children[1].value + '';
-						const valueStart = localeObj.children[1].offset;
-						const valueEnd = valueStart + localeObj.children[1].length;
+						const localeKeyObj = localeObj.children?.[0];
+						const localeValueObj = localeObj.children?.[1];
+						if (!localeKeyObj || !localeValueObj) {
+							continue;
+						}
+						const locale = localeKeyObj.value + '';
+						const localeStart = localeKeyObj.offset;
+						const localeEnd = localeStart + localeKeyObj.length;
+						const value = localeValueObj.value + '';
+						const valueStart = localeValueObj.offset;
+						const valueEnd = valueStart + localeValueObj.length;
 
 						item.locales[locale] = {
 							locale,
