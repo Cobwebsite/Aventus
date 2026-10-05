@@ -12,6 +12,8 @@ import { getFolder, pathToUri, uriToPath } from '../../tools';
 import { normalize } from 'path';
 
 export abstract class AventusTsFile extends AventusBaseFile {
+    private static readonly dependentValidationDelay = 2000;
+    private static readonly pendingValidations = new WeakMap<Build, { uris: Set<string>, timer?: NodeJS.Timeout }>();
     public get tsLanguageService() {
         return this.build.tsLanguageService;
     }
@@ -65,15 +67,30 @@ export abstract class AventusTsFile extends AventusBaseFile {
     }
 
     protected async onSave(): Promise<void> {
-        if (this.build.initDone) {
-            const dependents = this.getDependentFiles();
-            for (const dependent of dependents) {
-                await dependent.revalidateAfterDependencyChange();
-            }
+        if (!this.build.initDone) return;
+
+        let pending = AventusTsFile.pendingValidations.get(this.build);
+        if (!pending) {
+            pending = { uris: new Set() };
+            AventusTsFile.pendingValidations.set(this.build, pending);
+        }
+        pending.uris.add(this.file.uri);
+        if (pending.timer) clearTimeout(pending.timer);
+        pending.timer = setTimeout(() => {
+            const changedUris = pending!.uris;
+            pending!.uris = new Set();
+            pending!.timer = undefined;
+            void this.validateDependents(changedUris).catch(error => console.error(error));
+        }, AventusTsFile.dependentValidationDelay);
+    }
+
+    private async validateDependents(changedUris: Set<string>): Promise<void> {
+        for (const dependent of this.getDependentFiles(changedUris)) {
+            await dependent.revalidateAfterDependencyChange();
         }
     }
 
-    private getDependentFiles(): AventusTsFile[] {
+    private getDependentFiles(changedUris: Set<string>): AventusTsFile[] {
         const reverse = new Map<string, Set<string>>();
         for (const [fileUri, tsFile] of Object.entries(this.build.tsFiles)) {
             const parsed = tsFile.fileParsed;
@@ -98,8 +115,8 @@ export abstract class AventusTsFile extends AventusBaseFile {
             }
         }
 
-        const visited = new Set([this.file.uri]);
-        const pending = [this.file.uri];
+        const visited = new Set(changedUris);
+        const pending = [...changedUris];
         const result: AventusTsFile[] = [];
         while (pending.length) {
             for (const uri of reverse.get(pending.shift()!) ?? []) {
@@ -107,7 +124,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
                 visited.add(uri);
                 pending.push(uri);
                 const dependent = this.build.tsFiles[uri];
-                if (dependent) result.push(dependent);
+                if (dependent && !changedUris.has(uri)) result.push(dependent);
             }
         }
         return result;
