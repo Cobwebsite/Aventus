@@ -876,7 +876,8 @@
 		"publish": "npx vsce publish --allow-star-activation && npx node-notifier-cli notify -t \"Publish done\" -m \"The aventus extension has been published\" -i \"./icons/icon.png\"",
 		"package:cli": "node ./cli/build.mjs",
 		"_package:cli": "rimraf cli/lib && rimraf cli/out && cross-env NODE_ENV=production rolldown -c ./cli/rolldown.config.mjs  && node ./cli/postBuild.mjs",
-		"test": "jest",
+		"test": "npm run test:server",
+		"test:server": "node --experimental-transform-types --test tests/server/*.test.mjs",
 		"watch": "concurrently \"npm run dev:server\" \"npm run dev:client\" -n \"server,client\"",
 		"watch:cli": "concurrently \"npm run dev:server\" \"npm run dev:cli\" -n \"server,cli\""
 	},
