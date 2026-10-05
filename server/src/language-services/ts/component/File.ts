@@ -122,6 +122,11 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private writeHtml: boolean = false;
     private writeTs: boolean = false;
     private needRebuild: boolean = false;
+
+    protected override async revalidateAfterDependencyChange(): Promise<void> {
+        this.needRebuild = true;
+        await super.revalidateAfterDependencyChange();
+    }
     public htmlDiagnostics: Diagnostic[] = [];
 
     constructor(file: AventusFile, build: Build) {
@@ -1016,6 +1021,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     }
 
     protected async onSave() {
+        await super.onSave();
         await this.runWebCompiler();
         if (this.compilationResult) {
             this.setCompileResult(this.compilationResult.result);

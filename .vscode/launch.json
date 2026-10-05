@@ -55,10 +55,10 @@
 		{
 			"type": "node",
 			"request": "launch",
-			"name": "Launch CLI Test",
+			"name": "Launch CLI",
 			"program": "${workspaceFolder}/cli/out/cli.js",
 			"args": [
-				"build",
+				"watch",
 			],
 			"cwd": "D:/Spalio/Web/app/frontend",
 			"outFiles": [
