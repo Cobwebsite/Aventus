@@ -57,6 +57,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private viewValidationMappings: ViewValidationMapping[] = [];
     private viewValidationStart = -1;
     private viewValidationEnd = -1;
+    private viewGeneratedStart = -1;
+    private viewGeneratedEnd = -1;
+    private viewUserSuffixEnd = -1;
     private viewValidatedMethods: Map<string, number> = new Map();
 
     public storyBookInfo: {
@@ -227,6 +230,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         startLine++;
                     }
                     newContent = oldContent.slice(0, this.componentEnd - startLine);
+                    this.viewGeneratedStart = newContent.length;
                     this.viewMethodsInfo = [];
                     this.viewValidationMappings = [];
                     this.viewValidationStart = -1;
@@ -308,7 +312,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                             if (!isExpressionStatement(last) && !isReturnStatement(last)) return false;
                             const returnOffset = isExpressionStatement(last) ? last.expression.getStart(parsed) : -1;
                             let body = txt;
-                            if(returnOffset >= 0) {
+                            if (returnOffset >= 0) {
                                 body = txt.slice(0, returnOffset) + 'return ' + txt.slice(returnOffset)
                             }
                             const statementStart = newContent.length;
@@ -855,7 +859,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         writeI18n(i18nFile);
                     }
 
+                    this.viewGeneratedEnd = newContent.length;
                     newContent += oldContent.slice(this.componentEnd - startLine);
+                    this.viewUserSuffixEnd = newContent.length;
                     newContent += contentAfter;
                     if (this.file instanceof InternalAventusFile) {
                         this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, v, newContent));
@@ -1359,72 +1365,60 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 }
             }
         }
-        let locations = [...locationsTs, ...locationsHTML];
-        locations = this.transformRefrencesToView(locations);
-        return locations;
+        return [...locationsTs, ...locationsHTML];
     }
 
-    protected transformRefrencesToView(locations: Location[]) {
-        let result: Location[] = [];
-        for (let location of locations) {
-            if (location.uri.endsWith(AventusExtension.ComponentLogic)) {
-                let file = this.build.tsFiles[location.uri];
-                if (!file) {
-                    continue;
-                }
-
-                if (file instanceof AventusWebComponentLogicalFile) {
-                    let html = file.HTMLFile;
-                    if (html) {
-                        let convertedRanges: Range[] = [];
-                        let diagStart = file._file.documentInternal.offsetAt(location.range.start);
-                        let diagEnd = file._file.documentInternal.offsetAt(location.range.end);
-                        for (let i = 0; i < this.viewMethodsInfo.length; i++) {
-                            let start = this.viewMethodsInfo[i].fullStart;
-                            let end = this.viewMethodsInfo[i].end;
-
-                            if (diagStart > start && diagEnd < end) {
-                                // it's inside the {{ }}
-                                location.uri = html.file.uri;
-                                let methodView = this.viewMethodsInfo[i].fct;
-                                let offsetBefore = this.viewMethodsInfo[i].offsetBefore;
-                                let offsetAfter = this.viewMethodsInfo[i].offsetAfter;
-
-                                if (convertedRanges.indexOf(location.range) == -1) {
-                                    let offsetReturn = this.viewMethodsInfo[i].transform(diagStart, 0);
-                                    convertedRanges.push(location.range);
-                                    let offsetStart = diagStart - this.viewMethodsInfo[i].start - offsetReturn;
-                                    let offsetEnd = diagEnd - this.viewMethodsInfo[i].start - offsetReturn;
-
-                                    for (let j = 0; j < methodView.positions.length; j++) {
-                                        let finalPositionStart = methodView.positions[j].start + offsetBefore + offsetStart;
-                                        let finalPositionEnd = methodView.positions[j].start + offsetBefore + offsetEnd;
-                                        let loc: Location = location;
-                                        if (j > 0) {
-                                            loc = { ...loc };
-                                        }
-                                        loc.range = {
-                                            start: html.file.documentInternal.positionAt(finalPositionStart),
-                                            end: html.file.documentInternal.positionAt(finalPositionEnd)
-                                        }
-                                        if (j > 0) {
-                                            result.push(loc);
-                                        }
-                                    }
-
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                }
-            }
-            result.push(location);
+    public mapGeneratedRangeToView(range: Range): Range[] | null {
+        const html = this.HTMLFile;
+        if (!html || this.viewGeneratedStart < 0) return null;
+        const generatedStart = this._file.documentInternal.offsetAt(range.start);
+        const generatedEnd = this._file.documentInternal.offsetAt(range.end);
+        if (generatedStart >= this.viewValidationStart && generatedStart < this.viewValidationEnd) {
+            const mapping = this.viewValidationMappings.find(item => generatedStart >= item.generatedStart && generatedEnd <= item.generatedEnd);
+            if (!mapping) return [];
+            const insertedAt = mapping.insertedAt ?? Number.MAX_SAFE_INTEGER;
+            const insertedLength = mapping.insertedLength ?? 0;
+            if (generatedStart < insertedAt + insertedLength && generatedEnd > insertedAt) return [];
+            const sourceStart = mapping.sourceStart + generatedStart - mapping.generatedStart - (generatedStart >= insertedAt ? insertedLength : 0);
+            const sourceEnd = mapping.sourceStart + generatedEnd - mapping.generatedStart - (generatedEnd > insertedAt ? insertedLength : 0);
+            return [{
+                start: html.file.documentInternal.positionAt(sourceStart),
+                end: html.file.documentInternal.positionAt(sourceEnd),
+            }];
         }
-        return result;
+
+        const method = this.viewMethodsInfo.find(item => generatedStart > item.fullStart && generatedEnd < item.end);
+        if (!method) {
+            const isGenerated = generatedStart >= this.viewGeneratedStart && generatedStart < this.viewGeneratedEnd;
+            const isGeneratedSuffix = generatedStart >= this.viewUserSuffixEnd;
+            return isGenerated || isGeneratedSuffix ? [] : null;
+        }
+        if (method.validatedExpression) return [];
+        const offsetReturn = method.transform(generatedStart, 0);
+        const offsetStart = generatedStart - method.start - offsetReturn;
+        const offsetEnd = generatedEnd - method.start - offsetReturn;
+        return method.fct.positions.flatMap(position => {
+            const sourceStart = position.start + method.offsetBefore + offsetStart;
+            const sourceEnd = position.start + method.offsetBefore + offsetEnd;
+            if (sourceStart < position.start || sourceEnd > position.end - method.offsetAfter) return [];
+            return [{
+                start: html.file.documentInternal.positionAt(sourceStart),
+                end: html.file.documentInternal.positionAt(sourceEnd),
+            }];
+        });
     }
 
+    public mapInternalRangeToUser(range: Range): Range | null {
+        if (this.viewGeneratedStart < 0) return null;
+        const start = this._file.documentInternal.offsetAt(range.start);
+        const end = this._file.documentInternal.offsetAt(range.end);
+        if (start < this.viewGeneratedEnd || end > this.viewUserSuffixEnd) return null;
+        const insertedLength = this.viewGeneratedEnd - this.viewGeneratedStart;
+        return {
+            start: this.file.documentUser.positionAt(start - insertedLength),
+            end: this.file.documentUser.positionAt(end - insertedLength),
+        };
+    }
 
     protected async onCodeLens(document: AventusFile): Promise<CodeLens[]> {
         return this.tsLanguageService.onCodeLens(document);
@@ -1451,84 +1445,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return null;
     }
     protected async onRename(document: AventusFile, position: Position, newName: string): Promise<WorkspaceEdit | null> {
-        let result = await this.tsLanguageService.onRename(document, position, newName);
-        if (result) {
-            this.transformRenameToView(result);
-        }
-        return result;
+        return this.tsLanguageService.onRename(document, position, newName);
     }
-    protected transformRenameToView(workspaceEdit: WorkspaceEdit) {
-        if (workspaceEdit.changes) {
-            let toAdd: { [uri: string]: TextEdit[] } = {}
-            for (let uri in workspaceEdit.changes) {
-                if (uri.endsWith(AventusExtension.ComponentLogic)) {
-                    let changes = workspaceEdit.changes[uri];
-                    let file = this.build.tsFiles[uri];
-                    if (!file) {
-                        continue;
-                    }
-
-                    if (file instanceof AventusWebComponentLogicalFile) {
-                        let html = file.HTMLFile;
-                        if (html) {
-                            for (let j = 0; j < changes.length; j++) {
-                                let change = changes[j];
-                                let diagStart = file._file.documentInternal.offsetAt(change.range.start);
-                                let diagEnd = file._file.documentInternal.offsetAt(change.range.end);
-                                for (let i = 0; i < this.viewMethodsInfo.length; i++) {
-                                    let start = this.viewMethodsInfo[i].fullStart;
-                                    let end = this.viewMethodsInfo[i].end;
-
-                                    if (diagStart > start && diagEnd < end) {
-                                        // it's inside the {{ }}
-                                        if (!toAdd[html.file.uri]) {
-                                            toAdd[html.file.uri] = [];
-                                        }
-                                        let methodView = this.viewMethodsInfo[i].fct;
-
-                                        let offsetReturn = this.viewMethodsInfo[i].transform(diagStart, 0);
-
-                                        let offsetStart = diagStart - this.viewMethodsInfo[i].start - offsetReturn;
-                                        let offsetEnd = diagEnd - this.viewMethodsInfo[i].start - offsetReturn;
-
-                                        for (let position of methodView.positions) {
-                                            let finalPositionStart = position.start + this.viewMethodsInfo[i].offsetBefore + offsetStart;
-                                            let finalPositionEnd = position.start + this.viewMethodsInfo[i].offsetBefore + offsetEnd;
-
-                                            toAdd[html.file.uri].push({
-                                                newText: change.newText,
-                                                range: {
-                                                    start: html.file.documentInternal.positionAt(finalPositionStart),
-                                                    end: html.file.documentInternal.positionAt(finalPositionEnd)
-                                                }
-                                            });
-                                        }
-
-                                        changes.splice(j, 1);
-                                        j--;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-
-                    }
-                }
-            }
-
-            for (let uri in toAdd) {
-                if (!workspaceEdit.changes[uri]) {
-                    workspaceEdit.changes[uri] = toAdd[uri];
-                }
-                else {
-                    for (let textEdit of toAdd[uri]) {
-                        workspaceEdit.changes[uri].push(textEdit);
-                    }
-                }
-            }
-        }
-    }
-
     private addCustomCodeAction(actions: CodeAction[]) {
         let missingView = false;
         let missingMethod = false;
