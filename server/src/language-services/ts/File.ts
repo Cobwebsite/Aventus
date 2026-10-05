@@ -7,6 +7,9 @@ import { AventusBaseFile } from "../BaseFile";
 import { CompileTsResult } from './LanguageService';
 import { ParserTs } from './parser/ParserTs';
 import { ClassInfo } from './parser/ClassInfo';
+import { createSourceFile, isImportDeclaration, isStringLiteral, ScriptTarget } from 'typescript';
+import { getFolder, pathToUri, uriToPath } from '../../tools';
+import { normalize } from 'path';
 
 export abstract class AventusTsFile extends AventusBaseFile {
     public get tsLanguageService() {
@@ -53,6 +56,61 @@ export abstract class AventusTsFile extends AventusBaseFile {
         if (!isExternal) {
             this.replaceNamespace();
         }
+    }
+
+    protected async revalidateAfterDependencyChange(): Promise<void> {
+        delete ParserTs.parsedDoc[this.file.uri];
+        this.refreshFileParsed();
+        await this.file.validate();
+    }
+
+    protected async onSave(): Promise<void> {
+        if (this.build.initDone) {
+            const dependents = this.getDependentFiles();
+            for (const dependent of dependents) {
+                await dependent.revalidateAfterDependencyChange();
+            }
+        }
+    }
+
+    private getDependentFiles(): AventusTsFile[] {
+        const reverse = new Map<string, Set<string>>();
+        for (const [fileUri, tsFile] of Object.entries(this.build.tsFiles)) {
+            const parsed = tsFile.fileParsed;
+            if (!parsed) continue;
+            const dependencies = new Set<string>();
+            const source = createSourceFile(fileUri, parsed.document.getText(), ScriptTarget.Latest);
+            for (const statement of source.statements) {
+                if (!isImportDeclaration(statement) || !isStringLiteral(statement.moduleSpecifier)) continue;
+                const moduleName = this.build.project.resolveAlias(statement.moduleSpecifier.text, tsFile.file);
+                if (moduleName.startsWith('.')) {
+                    dependencies.add(pathToUri(normalize(getFolder(uriToPath(fileUri)) + '/' + moduleName)));
+                }
+            }
+            for (const info of [...Object.values(parsed.classes), ...Object.values(parsed.functions), ...Object.values(parsed.enums)]) {
+                for (const dependency of Object.values(info.dependencies)) {
+                    if (this.build.tsFiles[dependency.uri]) dependencies.add(dependency.uri);
+                }
+            }
+            for (const dependencyUri of dependencies) {
+                if (!reverse.has(dependencyUri)) reverse.set(dependencyUri, new Set());
+                reverse.get(dependencyUri)!.add(fileUri);
+            }
+        }
+
+        const visited = new Set([this.file.uri]);
+        const pending = [this.file.uri];
+        const result: AventusTsFile[] = [];
+        while (pending.length) {
+            for (const uri of reverse.get(pending.shift()!) ?? []) {
+                if (visited.has(uri)) continue;
+                visited.add(uri);
+                pending.push(uri);
+                const dependent = this.build.tsFiles[uri];
+                if (dependent) result.push(dependent);
+            }
+        }
+        return result;
     }
 
     public async refreshDeprecated(sendRevalidate: boolean) {

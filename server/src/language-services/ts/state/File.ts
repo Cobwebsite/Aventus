@@ -43,6 +43,7 @@ export class AventusStateFile extends AventusTsFile {
         this.refreshFileParsed();
     }
     protected async onSave() {
+        await super.onSave();
         this.setCompileResult(genericTsCompile(this));
     }
     protected onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {
