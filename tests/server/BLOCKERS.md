@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Fichier généré modifié hors du serveur
-
-- Source : `server/src/tools.ts`, méthode `writeFile` et cache `md5HashFile`.
-- Reproduction automatisée : `write-file-round15.test.mjs` écrit une sortie, modifie son contenu sur disque, puis redemande le même contenu généré.
-- Résultat actuel : le fichier modifié reste tel quel car le hash du texte demandé correspond au dernier hash en mémoire. Décider si le build doit restaurer sa sortie ou préserver les modifications externes ; le comportement voulu déterminera si le fichier existant doit être relu avant de sauter l'écriture.
-
 ## Texte des types TypeScript avancés
 
 - Source : `server/src/language-services/ts/parser/TypeInfo.ts`, méthode `getFullTxt`.
