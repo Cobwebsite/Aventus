@@ -14,6 +14,7 @@ export class FilesWatcher {
         return this.instance;
     }
     private watcher?: FSWatcher;
+    private pendingEvents: Map<string, Promise<void>> = new Map();
     private constructor() {
         if (SettingsManager.getInstance().settings.watchFiles) {
             this.watcher = watch('\t', {
@@ -21,9 +22,9 @@ export class FilesWatcher {
                 persistent: true
             });
             this.watcher
-                .on('add', this.onContentChange.bind(this))
-                .on('change', this.onContentChange.bind(this))
-                .on('unlink', this.onRemove.bind(this));
+                .on('add', async path => void this.onContentChange(path).catch(GenericServer.error))
+                .on('change', async path => void this.onContentChange(path).catch(GenericServer.error))
+                .on('unlink', async path => void this.onRemove(path).catch(GenericServer.error))
         }
     }
 
@@ -48,14 +49,25 @@ export class FilesWatcher {
         GenericServer.debug("onContentChange : " + path)
         let uri = pathToUri(path);
         if (this.watcheUris.includes(uri)) {
-            FilesManager.getInstance().onUpdatedUri(uri);
+            await this.enqueue(uri, () => FilesManager.getInstance().onUpdatedUri(uri));
         }
     }
     public async onRemove(path: string) {
         let uri = pathToUri(path);
         if (this.watcheUris.includes(uri)) {
-            FilesManager.getInstance().onDeletedUri(uri);
+            await this.enqueue(uri, () => FilesManager.getInstance().onDeletedUri(uri));
         }
+    }
+    private enqueue(uri: string, action: () => Promise<void>): Promise<void> {
+        const pendingEvents = this.pendingEvents;
+        const previous = pendingEvents.get(uri) ?? Promise.resolve();
+        const current = previous.catch(() => { }).then(action);
+        pendingEvents.set(uri, current);
+        const cleanup = () => {
+            if (pendingEvents.get(uri) === current) pendingEvents.delete(uri);
+        };
+        current.then(cleanup, cleanup);
+        return current;
     }
     public async destroy() {
         await this.watcher?.close();

@@ -43,7 +43,7 @@ test('watch without an active filesystem watcher does not record the URI', () =>
     assert.deepEqual(watcher.watcheUris, []);
 });
 
-test('watcher callbacks currently resolve before asynchronous file processing finishes', async () => {
+test('watcher callbacks wait for file processing and preserve event order per URI', async () => {
     const oldManager = FilesManager.instance;
     const oldServer = GenericServer.instance;
     const path = 'D:/project/source.wcl.avt';
@@ -60,18 +60,49 @@ test('watcher callbacks currently resolve before asynchronous file processing fi
     };
     GenericServer.instance = { logLevel: 99 };
     try {
-        await watcher.onContentChange(path);
-        assert.deepEqual(calls, ['update start']);
-        await watcher.onRemove(path);
-        assert.deepEqual(calls, ['update start', 'delete start']);
-        releaseUpdate();
-        releaseDelete();
-        await Promise.all([updateGate, deleteGate]);
+        const update = watcher.onContentChange(path);
+        let updateDone = false;
+        void update.then(() => { updateDone = true; });
         await new Promise(resolve => setImmediate(resolve));
-        assert.deepEqual(calls, ['update start', 'delete start', 'update end', 'delete end']);
+        assert.deepEqual(calls, ['update start']);
+        const remove = watcher.onRemove(path);
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepEqual(calls, ['update start']);
+        assert.equal(updateDone, false);
+        releaseUpdate();
+        await update;
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepEqual(calls, ['update start', 'update end', 'delete start']);
+        releaseDelete();
+        await remove;
+        assert.deepEqual(calls, ['update start', 'update end', 'delete start', 'delete end']);
     } finally {
         releaseUpdate();
         releaseDelete();
+        FilesManager.instance = oldManager;
+        GenericServer.instance = oldServer;
+    }
+});
+
+test('watcher propagates processing errors and continues with the next event', async () => {
+    const oldManager = FilesManager.instance;
+    const oldServer = GenericServer.instance;
+    const path = 'D:/project/source.wcl.avt';
+    const watcher = Object.create(FilesWatcher.prototype);
+    watcher.watcheUris = [pathToUri(path)];
+    const calls = [];
+    FilesManager.instance = {
+        onUpdatedUri: async () => { calls.push('update'); throw new Error('update failed'); },
+        onDeletedUri: async () => { calls.push('delete'); },
+    };
+    GenericServer.instance = { logLevel: 99 };
+    try {
+        const update = watcher.onContentChange(path);
+        const remove = watcher.onRemove(path);
+        await assert.rejects(update, /update failed/);
+        await remove;
+        assert.deepEqual(calls, ['update', 'delete']);
+    } finally {
         FilesManager.instance = oldManager;
         GenericServer.instance = oldServer;
     }

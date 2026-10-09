@@ -1,18 +1,5 @@
 # Cas serveur en attente de changement de code
 
-## Attentes abandonnées lors de la destruction du mutex
-
-- Source : `server/src/Mutex.ts`, `Mutex.dispose`.
-- Reproduction automatisée : `concurrency.test.mjs` prend le verrou, ajoute une attente, appelle `dispose` puis `release` et vérifie que la promesse en attente ne se résout pas.
-- Résultat actuel : `dispose` vide la liste des callbacks sans résoudre ni rejeter les promesses correspondantes. Un nouveau verrou peut être obtenu, mais les appelants déjà en attente restent suspendus.
-- Décision à prendre : annuler ces attentes avec un rejet explicite, les résoudre, ou documenter ce comportement.
-
-## Fin prématurée des callbacks du watcher
-
-- Source : `server/src/files/FilesWatcher.ts`, `onContentChange` et `onRemove`.
-- Reproduction automatisée : `files-watcher-dispatch-round6.test.mjs` retient les promesses de `FilesManager` ; les deux callbacks du watcher se terminent avant leur résolution.
-- Les opérations peuvent ainsi se chevaucher et leurs erreurs asynchrones ne remontent pas à l'appelant. Décider si les callbacks doivent attendre le gestionnaire et quel ordre appliquer aux événements rapprochés.
-
 ## Création disque terminée avant la sauvegarde
 
 - Source : `server/src/files/FilesManager.ts`, méthode `onCreatedUri`.
