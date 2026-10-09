@@ -2,21 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Color picker : document sans saut de ligne
-
-- Source : `server/src/color-picker/ColorPicker.ts`, méthode `getPos` appelée par `getMatches`.
-- Reproduction automatisée : `color-picker-locations-round7.test.mjs` vérifie qu'un nom de couleur à l'index 0 est omis et qu'une couleur après la colonne 0 sur la première ligne lève `TypeError`.
-- Résultat actuel : exception `Cannot read properties of undefined (reading 'index')`.
-- Résultat attendu : une couleur trouvée avec une plage sur la ligne 0.
-- Autre cas du même document : une couleur qui commence à l'index 0 est ignorée par `if (!match.index) continue` dans `getMatches`.
-- Les tests nominaux existants utilisent un saut de ligne initial ; la reproduction du défaut est maintenant active.
-
-## Color picker : syntaxe HSLA et contexte CSS
-
-- Source : `server/src/color-picker/ColorPicker.ts`, méthode `getMatches`.
-- Reproduction automatisée : `color-picker-context-round12.test.mjs` détecte `hsl(...)` et `rgba(...)`, mais aucune couleur pour `hsla(120, 100%, 50%, 0.5)` ; l'expression régulière HSLA est mal formée.
-- Le même test trouve `blue` et `#ff0000` à l'intérieur d'un commentaire CSS. Décider si le color picker doit ignorer les commentaires et les chaînes avant de corriger l'analyse lexicale.
-
 ## Color picker : syntaxes CSS modernes absentes
 
 - Reproduction automatisée : `color-parser-spaces-round45.test.mjs` montre que le parseur de couleurs accepte `rgb(255 0 0)` et `color(srgb 1 0 0)`, mais que `ColorPicker.onDocumentColor` ne relève que la syntaxe RGB à virgules dans le même document.

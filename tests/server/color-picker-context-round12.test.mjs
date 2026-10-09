@@ -20,17 +20,26 @@ test('color picker converts HSL and RGBA colors on a later line', () => {
     assert.ok(found.every(item => item.range.start.line === 1));
 });
 
-test('color picker currently omits HSLA values while finding the adjacent HSL color', () => {
+test('color picker finds HSLA values and the adjacent HSL color', () => {
     const found = colors('.x { color: hsla(120, 100%, 50%, 0.5); background: hsl(120, 100%, 50%); }');
-    assert.equal(found.length, 1);
-    assert.deepEqual(found[0].color, { red: 0, green: 1, blue: 0, alpha: 1 });
+    assert.equal(found.length, 2);
+    assert.deepEqual(found.map(item => item.color), [
+        { red: 0, green: 1, blue: 0, alpha: 0.5 },
+        { red: 0, green: 1, blue: 0, alpha: 1 },
+    ]);
 });
 
-test('color picker currently reports hex and named colors inside CSS comments', () => {
+test('color picker ignores colors inside CSS comments', () => {
     const source = '/* blue #ff0000 */ .x { color: green; }';
     const found = colors(source);
-    assert.equal(found.length, 3);
-    assert.deepEqual(found.map(item => item.range.start.character).sort((a, b) => a - b), [
-        source.indexOf('blue'), source.indexOf('#ff0000'), source.indexOf('green'),
-    ]);
+    assert.equal(found.length, 1);
+    assert.equal(found[0].range.start.character, source.indexOf('green'));
+});
+
+test('color picker ignores strings and keeps positions after multiline comments', () => {
+    const source = '.x { content: "blue \\"red\\""; /* #ff0000\n green */ color: hsla(120, 100%, 50%, 0.5); }';
+    const document = TextDocument.create('file:///palette.wcs.avt', 'scss', 1, source);
+    const found = ColorPicker.onDocumentColor(document);
+    assert.equal(found.length, 1);
+    assert.equal(document.getText(found[0].range), 'hsla(120, 100%, 50%, 0.5)');
 });
