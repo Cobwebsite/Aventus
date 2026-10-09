@@ -37,16 +37,19 @@ test('external parser indexes fully qualified declarations from nested namespace
     assert.equal(model.getBaseInfo('Demo.Parts.Card'), model.classes['Demo.Parts.Card']);
 });
 
-test('getBaseInfo with a source URI can resolve a declaration from another parsed file', () => {
+test('getBaseInfo with a source URI sees local declarations and explicit imports only', () => {
     const foreign = parse('export class Foreign {}');
     const owner = parse('export class Owner {}');
     assert.equal(ParserTs.getBaseInfo('Owner', owner.uri), owner.model.classes.Owner);
+    assert.equal(ParserTs.getBaseInfo('Foreign', owner.uri), null);
+    owner.model.importsLocal.Foreign = { info: foreign.model.classes.Foreign };
     assert.equal(ParserTs.getBaseInfo('Foreign', owner.uri), foreign.model.classes.Foreign);
     assert.equal(ParserTs.getBaseInfo('NoSuchDeclaration', owner.uri), null);
 });
 
-test('getBaseInfoFullName currently accepts an unrelated namespace for a local class', () => {
+test('getBaseInfoFullName requires the complete namespace', () => {
     const { model } = parse('namespace Demo { export class Card {} }');
     assert.equal(model.classes.Card.fullName, 'Demo.Card');
-    assert.equal(model.getBaseInfoFullName('Other.Card'), model.classes.Card);
+    assert.equal(model.getBaseInfoFullName('Demo.Card'), model.classes.Card);
+    assert.equal(model.getBaseInfoFullName('Other.Card'), null);
 });
