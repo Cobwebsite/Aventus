@@ -36,27 +36,32 @@ test('parser cache reuses a version and refreshes declarations and npm registrat
     assert.deepEqual(firstBuild.unregistered, [uri, uri]);
 });
 
-test('parser cache currently shares the same URI/version result between distinct builds', () => {
+test('parser cache separates the same URI and version between distinct builds', () => {
     const uri = 'file:///D:/test/parse-cache-cross-build-round7.lib.avt';
     const firstBuild = build();
     const secondBuild = build();
     const input = file('export class Shared {}', uri);
     const first = ParserTs.parse(input, false, firstBuild);
     const second = ParserTs.parse(input, false, secondBuild);
-    assert.equal(second, first);
-    assert.equal(second.build, firstBuild);
+    assert.notEqual(second, first);
+    assert.equal(second.build, secondBuild);
     assert.deepEqual(firstBuild.unregistered, [uri]);
-    assert.deepEqual(secondBuild.unregistered, []);
+    assert.deepEqual(secondBuild.unregistered, [uri]);
+    assert.equal(ParserTs.parse(input, false, firstBuild), first);
+    assert.equal(ParserTs.getCached(uri, secondBuild), second);
 });
 
-test('parser cache currently shares internal and external views of the same URI/version', () => {
+test('parser cache separates internal and external views of the same URI/version', () => {
     const uri = 'file:///D:/test/parse-cache-external-round7.lib.avt';
     const projectBuild = build();
     const input = file('namespace Demo { export class Shared {} }', uri);
     const internal = ParserTs.parse(input, false, projectBuild);
     const external = ParserTs.parse(input, true, projectBuild);
-    assert.equal(external, internal);
-    assert.equal(external.isExternal, false);
-    assert.ok(external.classes.Shared);
-    assert.equal(external.classes['Demo.Shared'], undefined);
+    assert.notEqual(external, internal);
+    assert.equal(external.isExternal, true);
+    assert.ok(internal.classes.Shared);
+    assert.ok(external.classes['Demo.Shared']);
+    assert.equal(ParserTs.parse(input, false, projectBuild), internal);
+    assert.equal(ParserTs.parse(input, true, projectBuild), external);
+    assert.deepEqual(projectBuild.unregistered, [uri, uri]);
 });

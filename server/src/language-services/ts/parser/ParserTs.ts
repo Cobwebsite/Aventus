@@ -40,14 +40,18 @@ import { PropertyInfo } from './PropertyInfo';
 export class ParserTs {
     private static waitingUri: { [uri: string]: (() => void)[] } = {};
     public static parsedDoc: { [uri: string]: { version: number, result: ParserTs } } = {};
+    private static parsedByBuild = new WeakMap<Build, Map<string, { internal?: ParserTs, external?: ParserTs }>>();
+    public static getCached(uri: string, build: Build, isExternal: boolean = false): ParserTs | undefined {
+        const entry = this.parsedByBuild.get(build)?.get(uri);
+        return isExternal ? entry?.external : entry?.internal;
+    }
     public static parse(document: AventusFile, isExternal: boolean, build: Build): ParserTs {
-        if (ParserTs.parsedDoc[document.uri]) {
-            if (this.parsedDoc[document.uri].version == document.versionInternal) {
-                return this.parsedDoc[document.uri].result;
-            }
+        const cached = this.getCached(document.uri, build, isExternal);
+        if (cached && cached.document.version === document.versionInternal) {
+            this.parsedDoc[document.uri] = { version: document.versionInternal, result: cached };
+            return cached;
         }
-        new ParserTs(document, isExternal, build);
-        return ParserTs.parsedDoc[document.uri].result;
+        return new ParserTs(document, isExternal, build);
     }
     private static parsingDocs: ParserTs[] = [];
     private static get currentParsingDoc(): ParserTs | null {
@@ -215,6 +219,15 @@ export class ParserTs {
             version: file.versionInternal,
             result: this,
         }
+        let buildCache = ParserTs.parsedByBuild.get(build);
+        if (!buildCache) {
+            buildCache = new Map();
+            ParserTs.parsedByBuild.set(build, buildCache);
+        }
+        const entry = buildCache.get(file.uri) ?? {};
+        if (isExternal) entry.external = this;
+        else entry.internal = this;
+        buildCache.set(file.uri, entry);
 
         ParserTs.parsingDocs.push(this);
         this.content = file.documentInternal.getText();

@@ -234,21 +234,22 @@ export class ImportInfo {
 			this.isTypeImport = false;
 			moduleUri = info.moduleUri;
 		}
-		if (!ParserTs.parsedDoc[moduleUri]) {
+		let moduleParser = ParserTs.getCached(moduleUri, this.parserInfo.build);
+		if (!moduleParser) {
 			let file = FilesManager.getInstance().getByUri(moduleUri);
 			if (file) {
-				ParserTs.parse(file, false, this.parserInfo.build);
+				moduleParser = ParserTs.parse(file, false, this.parserInfo.build);
 			}
 			else {
 				let modulePath = uriToPath(moduleUri);
 				let content = existsSync(modulePath) ? readFileSync(modulePath, 'utf8') : '';
 				let avFile = new InternalAventusFile(TextDocument.create(moduleUri, AventusLanguageId.TypeScript, 1, content));
-				ParserTs.parse(avFile, false, this.parserInfo.build);
+				moduleParser = ParserTs.parse(avFile, false, this.parserInfo.build);
 			}
 		}
 
-		if (ParserTs.parsedDoc[moduleUri]?.result.isReady) {
-			let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(this.name);
+		if (moduleParser.isReady) {
+			let baseInfoLinked = moduleParser.getBaseInfo(this.name);
 			if (baseInfoLinked) {
 				this.info = baseInfoLinked
 			}
@@ -261,14 +262,14 @@ export class ImportInfo {
 				return;
 			}
 			this.parserInfo.waitingImports[this.alias ?? this.name] = [];
-			ParserTs.parsedDoc[moduleUri].result.onReady(() => {
-				this.asyncImportLocal(moduleUri, this.alias ?? this.name);
+			moduleParser.onReady(() => {
+				this.asyncImportLocal(moduleParser, this.alias ?? this.name);
 			})
 		}
 	}
 
-	private asyncImportLocal(moduleUri: string, localName: string) {
-		let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
+	private asyncImportLocal(moduleParser: ParserTs, localName: string) {
+		let baseInfoLinked = moduleParser.getBaseInfo(localName);
 		if (baseInfoLinked) {
 			this.info = baseInfoLinked;
 			let types = [this.parserInfo.classes, this.parserInfo.enums, this.parserInfo.aliases, this.parserInfo.functions, this.parserInfo.variables];
@@ -291,7 +292,7 @@ export class ImportInfo {
 			delete this.parserInfo.waitingImports[localName]
 		}
 		else {
-			ParserTs.addError(this.nameStart, this.nameEnd, "Can't load " + moduleUri + " " + localName + " from " + this.parserInfo.document.uri)
+			ParserTs.addError(this.nameStart, this.nameEnd, "Can't load " + moduleParser.document.uri + " " + localName + " from " + this.parserInfo.document.uri)
 		}
 	}
 }
