@@ -24,11 +24,11 @@ export class ColorPicker {
 	private static parseColorString(color: string) {
 		try {
 			const value = parseComponentValue(tokenize({ css: color }));
-			if(!value) {
+			if (!value) {
 				return null;
 			}
 			const colorData = colorParser(value);
-			if(colorData === false) {
+			if (colorData === false) {
 				return null;
 			}
 			const srgb = XYZ_D50_to_sRGB_Gamut(colorData_to_XYZ_D50(colorData).channels);
@@ -88,39 +88,44 @@ export class ColorPicker {
 	static getMatches(text: string): Match[] {
 		let result: Match[] = [];
 		const searchable = this.maskCommentsAndStrings(text);
-		const matches = searchable.matchAll(/(#(?:[\da-f]{3,4}){2}|#(?:[\da-f]{3})|rgb\((?:\d{1,3},\s*){2}\d{1,3}\)|rgba\((?:\d{1,3},\s*){3}\d*\.?\d+\)|hsl\(\d{1,3}(?:,\s*\d{1,3}%){2}\)|hsla\(\d{1,3}(?:,\s*\d{1,3}%){2},\s*\d*\.?\d+\)|oklab\(\s*\d*\.?\d+\s*,\s*-?\d*\.?\d+\s*,\s*-?\d*\.?\d+\s*\)|oklch\(\s*\d*\.?\d+%?\s*(,| )\s*\d*\.?\d+\s*(,| )\s*\d*\.?\d+\s*\))/gi);
-		if (matches) {
-			for (let match of matches) {
-				const t = match[0];
-				if (match.index === undefined) {
-					continue;
-				}
-				const length = t.length;
-				let type: string = "";
-				if (t.startsWith('hsl(')) { type = "hsl"; }
-				else if (t.startsWith('hsla(')) { type = "hsla"; }
-				else if (t.startsWith('rgb(')) { type = "rgb"; }
-				else if (t.startsWith('rgba(')) { type = "rgba"; }
-				else if (t.startsWith('#')) { type = "hex"; }
-				else if (t.startsWith('oklch(')) { type = "oklch"; }
-				else if (t.startsWith('oklab(')) { type = "oklab"; }
+		const candidates: { index: number, value: string }[] = [];
+		for (const match of searchable.matchAll(/#(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})\b/gi)) {
+			candidates.push({ index: match.index, value: match[0] });
+		}
+		for (const match of searchable.matchAll(/\b(?:rgba?|hsla?|oklab|oklch|color)\(/gi)) {
+			let depth = 1;
+			let end = match.index + match[0].length;
+			for (; end < searchable.length && depth > 0; end++) {
+				if (searchable[end] === '(')
+					depth++;
+				else if (searchable[end] === ')')
+					depth--;
+			}
+			if (depth === 0) {
+				candidates.push({ index: match.index, value: searchable.slice(match.index, end) });
+			}
+		}
+		candidates.sort((a, b) => a.index - b.index);
+		for (const candidate of candidates) {
+			const t = candidate.value;
+			const length = t.length;
+			let type = t.startsWith('#') ? 'hex' : t.slice(0, t.indexOf('(')).toLowerCase();
 
-				const range = Range.create(
-					this.getPos(text, match.index),
-					this.getPos(text, match.index + t.length)
-				);
+			const range = Range.create(
+				this.getPos(text, candidate.index),
+				this.getPos(text, candidate.index + t.length)
+			);
 
-				const col = this.parseColorString(t);
+			const col = this.parseColorString(t);
 
 
-				if (col) {
-					result.push({
-						color: col,
-						type,
-						length,
-						range
-					} as Match);
-				}
+			if (col) {
+				result.push({
+					color: col,
+					type,
+					length,
+					range
+				} as Match);
 			}
 		}
 

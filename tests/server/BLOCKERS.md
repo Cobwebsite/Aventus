@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Color picker : syntaxes CSS modernes absentes
-
-- Reproduction automatisée : `color-parser-spaces-round45.test.mjs` montre que le parseur de couleurs accepte `rgb(255 0 0)` et `color(srgb 1 0 0)`, mais que `ColorPicker.onDocumentColor` ne relève que la syntaxe RGB à virgules dans le même document.
-- Source : `server/src/color-picker/ColorPicker.ts`, méthode `getMatches` fondée sur une expression régulière.
-- Décision à prendre : définir les syntaxes CSS Color que le color picker doit signaler, puis vérifier leurs plages sans faux positifs.
-
 ## Liste des sorties statiques
 
 - Source : `server/src/project/ProjectManager.ts`, méthode `getAllStatics`.

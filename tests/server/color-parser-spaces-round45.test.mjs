@@ -57,11 +57,27 @@ test('sRGB and Display P3 gamut decisions survive conversion through XYZ D65', (
     assert.equal(colorDataFitsDisplayP3_Gamut(vividD65), true);
 });
 
-test('color picker finds supported legacy CSS values but omits equivalent modern syntax', () => {
+test('color picker finds legacy and modern CSS syntax with exact ranges', () => {
     const css = '\n.x { a: rgb(255, 0, 0); b: rgb(255 0 0); c: color(srgb 1 0 0); }';
     const document = TextDocument.create('file:///colors.wcs.avt', 'scss', 1, css);
     const found = ColorPicker.onDocumentColor(document);
-    assert.equal(found.length, 1);
-    assert.equal(document.getText(found[0].range), 'rgb(255, 0, 0)');
-    assert.deepEqual(found[0].color, { red: 1, green: 0, blue: 0, alpha: 1 });
+    assert.deepEqual(found.map(item => document.getText(item.range)), [
+        'rgb(255, 0, 0)', 'rgb(255 0 0)', 'color(srgb 1 0 0)',
+    ]);
+    assert.ok(found.every(item => item.color.red === 1 && item.color.green === 0 && item.color.blue === 0));
+});
+
+test('color picker finds modern HSL, Oklab and Oklch while rejecting malformed values', () => {
+    const values = [
+        'hsl(120 100% 50% / 0.5)',
+        'oklab(0.627955 0.224863 0.125846)',
+        'oklch(0.627955 0.257683 29.234)',
+        'color(srgb 1 0 0 / 0.5)',
+    ];
+    const css = `.x { a: ${values[0]}; b: ${values[1]}; c: ${values[2]}; d: ${values[3]}; e: rgb(nope); }`;
+    const document = TextDocument.create('file:///colors.wcs.avt', 'scss', 1, css);
+    const found = ColorPicker.onDocumentColor(document);
+    assert.deepEqual(found.map(item => document.getText(item.range)), values);
+    assert.equal(found[0].color.alpha, 0.5);
+    assert.equal(found[3].color.alpha, 0.5);
 });
