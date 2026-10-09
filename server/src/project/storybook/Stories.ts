@@ -1,6 +1,6 @@
 import { join, normalize, resolve, sep } from 'path';
 import { Build } from '../Build';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'fs';
 import { GenericServer } from '../../GenericServer';
 import { EOL, getFolder, pathToUri, simplifyUri, uriToPath, writeFile } from '../../tools';
 import { mainTemplate } from './MainTemplate';
@@ -94,7 +94,7 @@ export class Storie {
 	protected clear() {
 		if (!this.buildConfig.stories) return;
 		let outputPath = join(this.buildConfig.stories.output, "auto");
-		//rmSync(outputPath, { recursive: true, force: true })
+		rmSync(outputPath, { recursive: true, force: true });
 	}
 
 	protected async writeStory(info: BaseInfo, file?: AventusTsFile) {

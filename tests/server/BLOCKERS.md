@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Fichiers Storybook périmés après suppression d'un export
-
-- Source : `server/src/project/storybook/Stories.ts`, `write(files, clear)` et `clear()`.
-- Reproduction automatisée : `storybook-clear-round8.test.mjs` écrit une story et son MDX, puis appelle `write({}, true)` ; les deux fichiers restent présents. La suppression dans `clear()` est commentée.
-- Décider quand nettoyer le dossier `auto` en préservant les fichiers créés manuellement.
-
 ## Condition HTML réduite à un identifiant
 
 - Source : `server/src/language-services/html/parser/TagInfo.ts`, `IfInfo.loadIf`.

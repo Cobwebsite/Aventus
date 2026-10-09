@@ -33,7 +33,7 @@ function register(manifest, { file, info }) {
     manifest.webTypes.register(file, info);
 }
 
-test('renaming one component retains its previous tag in the three written manifest files', async () => {
+test('renaming one component retains its previous tag in the written manifest files', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-manifest-lifecycle-'));
     const previous = SettingsManager.instance;
     SettingsManager.instance = { settings: { useStats: false } };
@@ -63,14 +63,16 @@ test('renaming one component retains its previous tag in the three written manif
             ['demo-card', 'demo-panel', 'demo-card-new']);
         assert.deepEqual(Object.keys(emmet.html.snippets),
             ['demo-card', 'demo-panel', 'demo-card-new']);
-        assert.equal(existsSync(join(root, 'web-types.json')), false);
+        const webTypes = JSON.parse(readFileSync(join(root, 'web-types.json'), 'utf8'));
+        assert.deepEqual(webTypes.contributions.html.elements.map(element => element.name),
+            ['demo-card', 'demo-panel', 'demo-card-new']);
     } finally {
         SettingsManager.instance = previous;
         rmSync(root, { recursive: true, force: true });
     }
 });
 
-test('Storybook rename writes new story and MDX files while old ones remain after clear', async () => {
+test('Storybook rename removes old story and MDX files after clear', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-storybook-rename-'));
     const previous = SettingsManager.instance;
     SettingsManager.instance = { settings: { useStats: false } };
@@ -93,10 +95,12 @@ test('Storybook rename writes new story and MDX files while old ones remain afte
         const oldMdx = join(root, 'auto', 'Demo', 'Card_.mdx');
         const newStory = join(root, 'auto', 'Demo', 'RenamedCard.stories.ts');
         const newMdx = join(root, 'auto', 'Demo', 'RenamedCard_.mdx');
-        for (const path of [oldStory, oldMdx, newStory, newMdx]) {
+        for (const path of [oldStory, oldMdx]) {
+            assert.equal(existsSync(path), false, path);
+        }
+        for (const path of [newStory, newMdx]) {
             assert.equal(existsSync(path), true, path);
         }
-        assert.match(readFileSync(oldStory, 'utf8'), /Old card docs/);
         assert.match(readFileSync(newStory, 'utf8'), /New card docs/);
         assert.match(readFileSync(newStory, 'utf8'), /Library\/Demo\/RenamedCard/);
     } finally {
