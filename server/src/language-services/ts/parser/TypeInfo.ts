@@ -312,7 +312,7 @@ export class TypeInfo {
 			return this.kind
 		if (this.kind == "conditional") {
 			const cond = this.conditionalType!;
-			return `${cond.check.getFullTxt()} extends ${cond.extends.getFullTxt} ? ${cond.true.getFullTxt()} : ${cond.false.getFullTxt()}`
+			return `${cond.check.getFullTxt()} extends ${cond.extends.getFullTxt()} ? ${cond.true.getFullTxt()} : ${cond.false.getFullTxt()}`
 		}
 		if (this.kind == "constructor") {
 			if (!this.fctType) return this.value;
@@ -375,7 +375,7 @@ export class TypeInfo {
 		}
 
 		if (this.kind == 'typeOperator') {
-			return `typeof ${this.nested[0].getFullTxt()}`
+			return `${this.value} ${this.nested[0].getFullTxt()}`
 		}
 
 		return "any"

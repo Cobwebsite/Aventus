@@ -187,7 +187,7 @@ export class Manifest {
 		else if (typeInfo.kind == "typeOperator") {
 			result = typeInfo.value;
 			if (typeInfo.nested.length > 0) {
-				result += `typeof ${this.getTypeTxt(typeInfo.nested[0])}`;
+				result += ` ${this.getTypeTxt(typeInfo.nested[0])}`;
 			}
 		}
 		else if (typeInfo.kind == "tuple") {
@@ -209,7 +209,7 @@ export class Manifest {
 			result = `${this.getTypeTxt(typeInfo.nested[0])}[${this.getTypeTxt(typeInfo.nested[1])}]`;
 		}
 		else if (typeInfo.kind == "infer") {
-			result = `infer ${typeInfo.value}]`;
+			result = `infer ${typeInfo.value}`;
 		}
 		else if (
 			typeInfo.kind == "typeLiteral" ||

@@ -19,15 +19,14 @@ test('type model retains mapped and inferred type structure', () => {
     assert.equal(parseType('infer U').getFullTxt(), 'infer U');
 });
 
-test('type text currently substitutes typeof for keyof', () => {
+test('type text preserves typeof and keyof operators', () => {
     assert.equal(parseType('typeof value').getFullTxt(), 'typeof value');
-    assert.equal(parseType('keyof T').getFullTxt(), 'typeof T');
+    assert.equal(parseType('keyof T').getFullTxt(), 'keyof T');
 });
 
-test('conditional type text currently interpolates the extends method itself', () => {
+test('conditional type text includes the extends type', () => {
     const conditional = parseType('T extends string ? number : never');
     assert.equal(conditional.kind, 'conditional');
     assert.equal(conditional.conditionalType.extends.getFullTxt(), 'string');
-    assert.notEqual(conditional.getFullTxt(), 'T extends string ? number : never');
-    assert.match(conditional.getFullTxt(), /getFullTxt/);
+    assert.equal(conditional.getFullTxt(), 'T extends string ? number : never');
 });
