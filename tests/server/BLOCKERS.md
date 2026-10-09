@@ -2,13 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Attributs du manifeste Web Types
-
-- Source : `server/src/manifest/WebTypes.ts`, méthode `register`.
-- Reproduction : enregistrer un composant avec un attribut `size`.
-- Résultat actuel : l'élément est ajouté, mais `element.attributes` reste absent ; la boucle construit `_attribute` sans l'ajouter au tableau `attributes`.
-- Résultat attendu : l'attribut figure dans la sortie Web Types.
-
 ## Fichier Web Types absent de l'écriture des manifestes
 
 - Source : `server/src/manifest/Manifest.ts`, méthode `write`.

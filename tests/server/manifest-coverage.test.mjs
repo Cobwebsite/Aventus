@@ -50,6 +50,9 @@ test('Web Types includes slot and JavaScript property documentation', () => {
     const { manifest, file, info } = fixture();
     manifest.webTypes.register(file, info);
     const element = manifest.webTypes._package.contributions.html.elements[0];
+    assert.equal(element.attributes[0].name, 'size');
+    assert.match(element.attributes[0].description, /Card size/);
+    assert.deepEqual(element.attributes[0].values, [{ type: 'small' }, { type: 'large' }]);
     assert.equal(element.slots[0].description, 'Header content');
     assert.equal(element.js.properties[0].name, 'active');
     assert.equal(element.js.properties[0].description, 'Is active');
