@@ -978,7 +978,7 @@ export class IfInfo {
 					}
 					loadBlocks(y as IfStatement, depth + 1, elseStart);
 				}
-				else if (SyntaxKind[y.kind].includes("Expression")) {
+				else if (y === _if.expression) {
 					let fctName = ParserHtml.getCustomFctName(this.conditions.length) ?? '';
 					let fctTxt = this.sliceText(y.getStart(), y.getEnd())
 
