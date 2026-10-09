@@ -50,7 +50,7 @@ test('TypeScript completion offers local members with replacement range and reso
     assert.equal(submit.data.offset, source.length);
 });
 
-test('TypeScript completion resolve currently drops metadata without adding available details', async () => {
+test('TypeScript completion resolve adds local signature and documentation', async () => {
     const source = 'class Card {\n/** Sends data */\npublic submit(): void {}\n}\nconst card = new Card();\ncard.sub';
     const { service, file, document } = fixture(source);
     const item = (await service.doComplete(file, document.positionAt(source.length))).items.find(entry => entry.label === 'submit');
@@ -59,8 +59,28 @@ test('TypeScript completion resolve currently drops metadata without adding avai
     assert.match(ts.displayPartsToString(details.displayParts), /submit\(\): void/);
     assert.match(ts.displayPartsToString(details.documentation), /Sends data/);
     const resolved = await service.doResolve(item);
-    assert.equal(resolved.detail, undefined);
-    assert.equal(resolved.documentation, undefined);
+    assert.match(resolved.detail, /submit\(\): void/);
+    assert.match(resolved.documentation, /Sends data/);
+    assert.equal(resolved.data, undefined);
+});
+
+test('TypeScript completion resolve forwards an imported entry source and metadata', async () => {
+    const source = 'const value = 1;\nval';
+    const { service, file, document } = fixture(source);
+    let received;
+    service.languageService = {
+        getCompletionsAtPosition: () => ({ entries: [{ name: 'value', kind: ts.ScriptElementKind.constElement, sortText: '0', source: './module', data: { exportName: 'value' } }] }),
+        getCompletionEntryDetails: (...args) => {
+            received = args;
+            return { displayParts: [{ text: 'const value: number', kind: 'text' }], documentation: [], codeActions: [] };
+        },
+    };
+    const item = (await service.doComplete(file, document.positionAt(source.length))).items[0];
+    assert.equal(item.data.source, './module');
+    const resolved = await service.doResolve(item);
+    assert.equal(received[4], './module');
+    assert.deepEqual(received[6], { exportName: 'value' });
+    assert.equal(resolved.detail, 'const value: number');
     assert.equal(resolved.data, undefined);
 });
 

@@ -363,7 +363,8 @@ export class AventusTsLanguageService {
                     additionalTextEdits: additionalTextEdits,
                     data: { // data used for resolving item details (see 'doResolve')
                         ...entry.data,
-                        ...customData
+                        ...customData,
+                        source: entry.source,
                     },
                 }
                 items.push(completionEntry)
@@ -381,26 +382,16 @@ export class AventusTsLanguageService {
             if (item.data) {
                 let tsFile = this.build.tsFiles[item.data.uri];
                 if (tsFile != null) {
-                    let myData = {
-                        languageId: item.data.languageIdJs,
-                        offset: item.data.offset,
-                        uri: item.data.uri
-                    }
-                    delete item.data.languageId;
-                    delete item.data.offset;
-                    delete item.data.uri;
-                    if (Object.keys(item.data).length == 0) {
-                        item.data = undefined
-                    }
+                    const { uri, offset, languageId, source, ...entryData } = item.data;
 
                     let details = this.languageService.getCompletionEntryDetails(
-                        myData.uri,
-                        myData.offset,
+                        uri,
+                        offset,
                         item.label,
                         {},
-                        tsFile.file.contentInternal,
+                        source,
                         completionOptions,
-                        item.data);
+                        Object.keys(entryData).length ? entryData : undefined);
 
                     if (details) {
                         // let additionalTextEdits: TextEdit[] | undefined = undefined;
