@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import ts from 'typescript';
-import { loadServerModule } from './helpers/load-ts.mjs';
+import { loadServerModules } from './helpers/load-ts.mjs';
 
-const { Manifest } = await loadServerModule('manifest/Manifest.ts');
+const [{ Manifest }, { TypeInfo }] = await loadServerModules(['manifest/Manifest.ts', 'language-services/ts/parser/TypeInfo.ts']);
 const manifest = Object.create(Manifest.prototype);
 
 const simple = (kind, value) => ({ kind, value, isArray: false });
@@ -22,6 +22,17 @@ test('manifest documentation formats nested composite TypeScript types', () => {
         kind: 'mappedType', isArray: false,
         mappedType: { parameterName: 'K', parameterType: simple('Keys'), modifier: '?', type: simple('string') },
     }), '{ [K in Keys]?: string }');
+});
+
+test('manifest preserves keyof, typeof and infer from TypeScript types', () => {
+    const parse = source => {
+        const file = ts.createSourceFile('types.ts', `type Value<T> = ${source};`, ts.ScriptTarget.Latest, true);
+        return new TypeInfo(file.statements[0].type);
+    };
+    assert.equal(manifest.getTypeTxt(parse('keyof T')), 'keyof T');
+    assert.equal(manifest.getTypeTxt(parse('typeof value')), 'typeof value');
+    assert.equal(manifest.getTypeTxt(parse('infer U')), 'infer U');
+    assert.equal(manifest.getTypeTxt(parse('T extends string ? number : never')), 'T extends string ? number : never');
 });
 
 test('manifest Markdown describes static properties, methods with defaults, and CSS literal chains', () => {

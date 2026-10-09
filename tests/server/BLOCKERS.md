@@ -2,14 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Texte des types TypeScript avancés
-
-- Source : `server/src/language-services/ts/parser/TypeInfo.ts`, méthode `getFullTxt`.
-- Reproduction automatisée : `type-info-advanced-round8.test.mjs` construit des types à partir de `keyof T` et de `T extends string ? number : never`.
-- Résultat actuel : `keyof T` est rendu comme `typeof T` ; le type conditionnel inclut le texte d'une fonction au lieu de sa valeur pour `extends`.
-- Résultat attendu : représentation textuelle équivalente au type d'entrée.
-- `manifest/Manifest.ts` présente aussi des écarts sur `getTypeTxt` : `infer U` ajoute un `]` final et `keyof T` ajoute `typeof` après `keyof`.
-
 ## Résolution des suggestions LSP
 
 - Source : `server/src/files/AventusFile.ts`, méthode `getCompletionResolve`.
