@@ -100,7 +100,7 @@ test('disk updates wait for save when registering and refreshing a file', async 
     }
 });
 
-test('deleted file currently retains validation, navigation and content guards', async () => {
+test('deleted file clears validation, navigation, build and content callbacks', async () => {
     const uri = 'file:///round14-removed.wcl.avt';
     const file = new InternalAventusFile(TextDocument.create(uri, 'typescript', 1, 'first'));
     const previousServer = GenericServer.instance;
@@ -110,6 +110,7 @@ test('deleted file currently retains validation, navigation and content guards',
     file.onCodeLens(async () => { seen.push('lens'); return []; });
     file.onRename(async () => { seen.push('rename'); return null; });
     file.onCanContentChange(() => { seen.push('guard'); return false; });
+    file.onGetBuild(() => { seen.push('build'); return null; });
     GenericServer.instance = { connection: { sendDiagnostics: () => {} } };
     try {
         await file.triggerDelete();
@@ -118,7 +119,8 @@ test('deleted file currently retains validation, navigation and content guards',
         await file.getCodeLens();
         await file.getRename({ line: 0, character: 0 }, 'new');
         await file.triggerContentChange(TextDocument.create(uri, 'typescript', 2, 'second'));
-        assert.deepEqual(seen, ['validate', 'references', 'lens', 'rename', 'guard']);
+        assert.deepEqual(seen, []);
+        assert.deepEqual(file.getBuild(), []);
         assert.equal(file.contentUser, 'first');
     } finally {
         clearTimeout(file.delayValidate);

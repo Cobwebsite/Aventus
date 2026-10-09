@@ -189,10 +189,13 @@ export class InternalAventusFile implements AventusFile {
     //#region validate
 
     private onValidateCb: { [uuid: string]: onValidateType } = {};
+    private deleted = false;
     public async validate(sendDiagnostics: boolean = true): Promise<Diagnostic[]> {
+        if (this.deleted) return [];
         let diagnostics: { [key: string]: Diagnostic } = {};
         for (let uuid in this.onValidateCb) {
             let diagTemps = await this.onValidateCb[uuid](this);
+            if (this.deleted) return [];
 
             for (let diagTemp of diagTemps) {
                 let key = diagTemp.message + "**" + diagTemp.range.start.line + ":" + diagTemp.range.start.character + "," + diagTemp.range.end.line + ":" + diagTemp.range.end.character;
@@ -245,11 +248,19 @@ export class InternalAventusFile implements AventusFile {
 
     public triggerContentChange(document: TextDocument): Promise<void> {
         return new Promise<void>((resolve) => {
+            if (this.deleted) {
+                resolve();
+                return;
+            }
             if (!this.triggerCanContentChange(document)) {
                 resolve();
                 return;
             }
             setTimeout(() => {
+                if (this.deleted) {
+                    resolve();
+                    return;
+                }
                 if (!this.waitingDocContentChange[document.uri]) {
                     this.waitingDocContentChange[document.uri] = true;
                     this.resolveContentChange[document.uri] = {
@@ -285,12 +296,14 @@ export class InternalAventusFile implements AventusFile {
             proms.push(this.onContentChangeCb[uuid](this));
         }
         await Promise.all(proms);
-        if (this.delayValidate) {
-            clearTimeout(this.delayValidate);
+        if (!this.deleted) {
+            if (this.delayValidate) {
+                clearTimeout(this.delayValidate);
+            }
+            this.delayValidate = setTimeout(() => {
+                void this.validate();
+            }, 500)
         }
-        this.delayValidate = setTimeout(async () => {
-            this.validate();
-        }, 500)
         if (this.resolveContentChange[document.uri]) {
             let versions = Object.keys(this.resolveContentChange[document.uri]);
             for (let version of versions) {
@@ -399,15 +412,35 @@ export class InternalAventusFile implements AventusFile {
     private onDeleteCb: { [uuid: string]: (document: AventusFile) => Promise<void> } = {};
 
     public async triggerDelete(): Promise<void> {
+        this.deleted = true;
+        if (this.delayValidate) {
+            clearTimeout(this.delayValidate);
+            this.delayValidate = undefined;
+        }
+        for (const versions of Object.values(this.resolveContentChange)) {
+            for (const resolves of Object.values(versions)) {
+                for (const resolve of resolves) resolve();
+            }
+        }
+        this.resolveContentChange = {};
+        this.waitingDocContentChange = {};
         let proms: Promise<void>[] = [];
         for (let uuid in this.onDeleteCb) {
             proms.push(this.onDeleteCb[uuid](this));
         }
-        await Promise.all(proms);
-        // delete all cb
-        this.removeAllCallbacks();
+        try {
+            await Promise.all(proms);
+        } finally {
+            this.removeAllCallbacks();
+        }
     }
     private removeAllCallbacks() {
+        this.onGetBuildCb = {};
+        this.onValidateCb = {};
+        this.onCanContentChangeCb = {};
+        this.onReferencesCb = {};
+        this.onCodeLensCb = {};
+        this.onRenameCb = {};
         this.onCodeActionCb = {};
         this.onCompletionCb = {};
         this.onCompletionResolveCb = {};
