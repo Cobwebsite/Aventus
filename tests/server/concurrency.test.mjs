@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ActionGuard, Mutex } from '../../server/src/Mutex.ts';
+import { ActionGuard, Mutex, MutexDisposedError } from '../../server/src/Mutex.ts';
 
 function deferred() {
     let resolve;
@@ -44,18 +44,16 @@ test('Mutex can acquire again after disposal or an extra release', async () => {
     mutex.release();
 });
 
-test('Mutex disposal currently abandons queued waiters without settling their promises', async () => {
+test('Mutex disposal rejects every queued waiter and allows a new acquisition', async () => {
     const mutex = new Mutex();
     await mutex.waitOne();
-    let settled = false;
-    const queued = mutex.waitOne().then(() => { settled = true; });
-    assert.equal(mutex.waitingList.length, 1);
+    const first = mutex.waitOne();
+    const second = mutex.waitOne();
+    assert.equal(mutex.waitingList.length, 2);
     mutex.dispose();
-    mutex.release();
-    await Promise.resolve();
-    assert.equal(settled, false);
+    await assert.rejects(first, MutexDisposedError);
+    await assert.rejects(second, MutexDisposedError);
     assert.equal(mutex.waitingList.length, 0);
-    assert.ok(queued instanceof Promise);
     await mutex.waitOne();
     mutex.release();
 });
