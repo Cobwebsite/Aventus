@@ -12,7 +12,7 @@ const { Manifest } = manifestModule;
 const { SettingsManager } = settingsModule;
 const { AventusWebComponentLogicalFile } = componentModule;
 
-test('manifest write creates parseable Custom Elements, HTML and Emmet files', async () => {
+test('manifest write creates parseable Custom Elements, HTML, Emmet and Web Types files', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-manifest-write-'));
     const oldSettings = SettingsManager.instance;
     SettingsManager.instance = { settings: { useStats: false } };
@@ -24,7 +24,7 @@ test('manifest write creates parseable Custom Elements, HTML and Emmet files', a
         const manifest = new Manifest({}, build);
         await manifest.write(root);
         const files = [
-            'custom-elements.json', 'vscode.html-custom-data.json', join('emmet', 'snippets.json'),
+            'custom-elements.json', 'vscode.html-custom-data.json', join('emmet', 'snippets.json'), 'web-types.json',
         ];
         for (const name of files) {
             assert.equal(existsSync(join(root, name)), true, name);
@@ -36,7 +36,7 @@ test('manifest write creates parseable Custom Elements, HTML and Emmet files', a
     }
 });
 
-test('registered component is written to Custom Elements, HTML and Emmet outputs', async () => {
+test('registered component is written to Custom Elements, HTML, Emmet and Web Types outputs', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-manifest-component-'));
     const oldSettings = SettingsManager.instance;
     SettingsManager.instance = { settings: { useStats: false } };
@@ -60,13 +60,16 @@ test('registered component is written to Custom Elements, HTML and Emmet outputs
         manifest.customElements.register(file, info);
         manifest.htmlCustomData.register(file, info);
         manifest.emmetCustomData.register(file, info);
+        manifest.webTypes.register(file, info);
         await manifest.write(root);
         const custom = JSON.parse(readFileSync(join(root, 'custom-elements.json'), 'utf8'));
         const html = JSON.parse(readFileSync(join(root, 'vscode.html-custom-data.json'), 'utf8'));
         const emmet = JSON.parse(readFileSync(join(root, 'emmet', 'snippets.json'), 'utf8'));
+        const webTypes = JSON.parse(readFileSync(join(root, 'web-types.json'), 'utf8'));
         assert.equal(custom.modules[0].declarations[0].tagName, 'demo-card');
         assert.equal(html.tags[0].name, 'demo-card');
         assert.equal(emmet.html.snippets['demo-card'], '<demo-card>${1}</demo-card>');
+        assert.equal(webTypes.contributions.html.elements[0].name, 'demo-card');
     } finally {
         SettingsManager.instance = oldSettings;
         rmSync(root, { recursive: true, force: true });

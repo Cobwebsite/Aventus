@@ -2,13 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Fichier Web Types absent de l'écriture des manifestes
-
-- Source : `server/src/manifest/Manifest.ts`, méthode `write`.
-- Reproduction : appeler `Manifest.write(dir)` ; les fichiers Custom Elements, HTML Custom Data et Emmet sont écrits, mais `web-types.json` est absent.
-- Résultat actuel : `this.webTypes.write(dir)` n'est jamais appelé, alors que `WebTypes.write` existe.
-- Résultat attendu : inclure le fichier Web Types dans les sorties générées si ce format est bien exposé par le manifeste.
-
 ## Méthodes absentes du manifeste Custom Elements
 
 - Source : `server/src/manifest/CustomElements.ts`, `register`.
