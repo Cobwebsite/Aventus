@@ -257,6 +257,7 @@ export class CustomElements {
 					}
 				}
 			}
+			members.push(member);
 		}
 		for (let method of info.methods) {
 			loadMethod(method, false);
