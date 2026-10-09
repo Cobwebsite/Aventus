@@ -49,31 +49,50 @@ export class ColorPicker {
 
 	}
 	private static getPos(text: string, index: number): Position {
-
-		const nMatches = Array.from(text.slice(0, index).matchAll(/\n/g));
-
-		const lineNumber = nMatches.length;
-		let lastMatch = nMatches[lineNumber - 1];
-		let indexMatch = 0;
-		if (lastMatch.index) {
-			indexMatch = lastMatch.index;
+		const before = text.slice(0, index);
+		const lineNumber = (before.match(/\n/g) ?? []).length;
+		const lastNewline = before.lastIndexOf('\n');
+		return Position.create(lineNumber, index - lastNewline - 1);
+	}
+	private static maskCommentsAndStrings(text: string): string {
+		const masked = text.split('');
+		let state: 'code' | 'comment' | 'string' = 'code';
+		let quote = '';
+		for (let i = 0; i < text.length; i++) {
+			const current = text[i];
+			const next = text[i + 1];
+			if (state === 'code') {
+				if (current === '/' && next === '*') {
+					state = 'comment';
+					masked[i] = masked[++i] = ' ';
+				} else if (current === '"' || current === "'") {
+					state = 'string';
+					quote = current;
+					masked[i] = ' ';
+				}
+			} else {
+				masked[i] = current === '\n' || current === '\r' ? current : ' ';
+				if (state === 'comment' && current === '*' && next === '/') {
+					masked[++i] = ' ';
+					state = 'code';
+				} else if (state === 'string' && current === '\\') {
+					if (next !== undefined) masked[++i] = next === '\n' || next === '\r' ? next : ' ';
+				} else if (state === 'string' && current === quote) {
+					state = 'code';
+				}
+			}
 		}
-		const characterIndex = index - indexMatch;
-
-
-		return Position.create(
-			lineNumber,
-			characterIndex - 1
-		);
+		return masked.join('');
 	}
 
 	static getMatches(text: string): Match[] {
 		let result: Match[] = [];
-		const matches = text.matchAll(/(#(?:[\da-f]{3,4}){2}|#(?:[\da-f]{3})|rgb\((?:\d{1,3},\s*){2}\d{1,3}\)|rgba\((?:\d{1,3},\s*){3}\d*\.?\d+\)|hsl\(\d{1,3}(?:,\s*\d{1,3}%){2}\)|hsla\(\d{1,3}(?:,\s*\d{1,3}%){2},\s*\d*\.?\d+\|oklab\(\s*\d*\.?\d+\s*,\s*-?\d*\.?\d+\s*,\s*-?\d*\.?\d+\s*\)|oklch\(\s*\d*\.?\d+%?\s*(,| )\s*\d*\.?\d+\s*(,| )\s*\d*\.?\d+\s*\))/gi);
+		const searchable = this.maskCommentsAndStrings(text);
+		const matches = searchable.matchAll(/(#(?:[\da-f]{3,4}){2}|#(?:[\da-f]{3})|rgb\((?:\d{1,3},\s*){2}\d{1,3}\)|rgba\((?:\d{1,3},\s*){3}\d*\.?\d+\)|hsl\(\d{1,3}(?:,\s*\d{1,3}%){2}\)|hsla\(\d{1,3}(?:,\s*\d{1,3}%){2},\s*\d*\.?\d+\)|oklab\(\s*\d*\.?\d+\s*,\s*-?\d*\.?\d+\s*,\s*-?\d*\.?\d+\s*\)|oklch\(\s*\d*\.?\d+%?\s*(,| )\s*\d*\.?\d+\s*(,| )\s*\d*\.?\d+\s*\))/gi);
 		if (matches) {
 			for (let match of matches) {
 				const t = match[0];
-				if (!match.index) {
+				if (match.index === undefined) {
 					continue;
 				}
 				const length = t.length;
@@ -116,11 +135,11 @@ export class ColorPicker {
 			this.colorTxtList = colors;
 		}
 		let regex = new RegExp("(?<![\\w\\d.\"'&$-])(" + this.colorTxtList.join("|") + ")(?![-\\w\\d])", "gi");
-		const matchesNamed = text.matchAll(regex);
+		const matchesNamed = searchable.matchAll(regex);
 		if (matchesNamed) {
 			for (let match of matchesNamed) {
 				const t = match[0];
-				if (!match.index) {
+				if (match.index === undefined) {
 					continue;
 				}
 				const length = t.length;
