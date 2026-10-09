@@ -1,13 +1,18 @@
 
+export class MutexDisposedError extends Error {
+	constructor() {
+		super('Mutex disposed while waiting for the lock');
+		this.name = 'MutexDisposedError';
+	}
+}
+
 export class Mutex {
-	private waitingList: (() => void)[] = [];
+	private waitingList: { resolve: () => void; reject: (error: Error) => void }[] = [];
 	private isLocked: boolean = false;
 	public waitOne() {
-		return new Promise<void>((resolve) => {
+		return new Promise<void>((resolve, reject) => {
 			if (this.isLocked) {
-				this.waitingList.push(() => {
-					resolve();
-				})
+				this.waitingList.push({ resolve, reject });
 			}
 			else {
 				this.isLocked = true;
@@ -19,15 +24,19 @@ export class Mutex {
 	public release() {
 		let nextFct = this.waitingList.shift();
 		if (nextFct) {
-			nextFct();
+			nextFct.resolve();
 		}
 		else {
 			this.isLocked = false;
 		}
 	}
 	public dispose() {
+		const waitingList = this.waitingList;
 		this.waitingList = [];
 		this.isLocked = false;
+		for (const waiter of waitingList) {
+			waiter.reject(new MutexDisposedError());
+		}
 	}
 }
 
