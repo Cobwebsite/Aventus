@@ -10,7 +10,7 @@ const [{ TemplateScript }, { GenericServer }] = await loadServerModules([
     'files/Template.ts', 'GenericServer.ts',
 ]);
 
-test('template script loads metadata and runs in a real child process', async () => {
+test('template script loads metadata and runs in a real child process', { timeout: 15_000 }, async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-child-'));
     const config = join(root, 'template.avt.ts');
     const destination = join(root, 'destination');

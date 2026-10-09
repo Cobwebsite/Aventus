@@ -53,3 +53,24 @@ test('template language service formats a script using requested indentation', a
     assert.match(result, /class Template \{/);
     assert.match(result, /return 1;/);
 });
+
+test('template script finds local references and renames every occurrence', async () => {
+    const service = new AventusTemplateLanguageService();
+    const source = 'class Template { value = 1; run() { return this.value; } }';
+    const file = fixture(source);
+    service.addFile(file);
+    try {
+        const position = file.documentInternal.positionAt(source.lastIndexOf('value') + 1);
+        const references = await service.onReferences(file, position);
+        assert.deepEqual(references.map(location => file.documentInternal.getText(location.range)), ['value', 'value']);
+        assert.ok(references.every(location => location.uri === file.uri));
+
+        const edit = await service.onRename(file, position, 'renamed');
+        assert.deepEqual(Object.keys(edit?.changes ?? {}), [file.uri]);
+        assert.equal(TextDocument.applyEdits(file.documentInternal, edit.changes[file.uri]),
+            'class Template { renamed = 1; run() { return this.renamed; } }');
+        assert.equal(await service.onRename(file, { line: 0, character: source.indexOf('1;') }, 'other'), null);
+    } finally {
+        service.removeFile(file);
+    }
+});
