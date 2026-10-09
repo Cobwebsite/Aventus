@@ -19,7 +19,7 @@ function fixture() {
     file.fileParsed = { classes: {} };
     file._componentClassName = 'Card';
     file._compileResult = [{ classScript: 'Demo.Card', tagName: 'demo-card' }];
-    const method = ts.createSourceFile('card.ts', 'class Card { open(force?: boolean): string { return "ok"; } }', ts.ScriptTarget.Latest, true).statements[0].members[0];
+    const [method, staticMethod] = ts.createSourceFile('card.ts', 'class Card { open(force?: boolean): string { return "ok"; } static reset(): void {} }', ts.ScriptTarget.Latest, true).statements[0].members;
     const info = {
         fullName: 'Demo.Card',
         class: { name: 'Card', documentation: { definitions: ['Card docs'] }, extends: [], isAbstract: false },
@@ -27,7 +27,7 @@ function fixture() {
         props: [{ name: 'active', local: true, type: { kind: 'boolean', isArray: false }, documentation: { definitions: ['Active docs'] } }],
         propsStatic: [{ name: 'count', local: true, type: { kind: 'number', isArray: false } }],
         methods: [{ name: 'open', local: true, node: method, documentation: { definitions: ['Open docs'], documentationParameters: { force: 'Force open' }, documentationReturn: 'Result' } }],
-        methodsStatic: [], cssProperties: [], slots: {},
+        methodsStatic: [{ name: 'reset', local: true, node: staticMethod, documentation: { definitions: ['Reset docs'], documentationParameters: {} } }], cssProperties: [], slots: {},
     };
     return { manifest, file, info };
 }
@@ -42,24 +42,30 @@ test('Custom Elements emits local instance and static fields with source metadat
     assert.equal(declaration.summary, 'Card docs');
     assert.deepEqual(declaration.attributes.map(({ name, type }) => [name, type.text]), [['mode', '"small"']]);
     assert.deepEqual(declaration.members.map(({ name, kind, static: isStatic }) => [name, kind, isStatic]), [
-        ['active', 'field', false], ['count', 'field', true],
+        ['active', 'field', false], ['count', 'field', true], ['open', 'method', false], ['reset', 'method', true],
     ]);
     assert.equal(module.exports[0].declaration.module, module.path);
 });
 
-test('Custom Elements currently omits a documented method from declaration members', () => {
+test('Custom Elements includes instance and static method signatures and documentation', () => {
     const { manifest, file, info } = fixture();
     manifest.customElements.register(file, info);
     const declaration = manifest.customElements._package.modules[0].declarations[0];
-    assert.equal(info.methods[0].name, 'open');
-    assert.equal(declaration.members.some(member => member.name === 'open'), false);
+    const open = declaration.members.find(member => member.name === 'open');
+    const reset = declaration.members.find(member => member.name === 'reset');
+    assert.equal(open.description, 'Open docs');
+    assert.deepEqual(open.parameters, [{ name: 'force', type: { text: 'boolean' }, description: 'Force open', optional: true }]);
+    assert.deepEqual(open.return, { type: { text: 'string' }, description: 'Result' });
+    assert.equal(reset.static, true);
+    assert.equal(reset.description, 'Reset docs');
+    assert.deepEqual(reset.return, { type: { text: 'void' } });
 });
 
-test('Web Types currently omits attributes while retaining JS properties', () => {
+test('Web Types includes attributes and JS properties', () => {
     const { manifest, file, info } = fixture();
     manifest.webTypes.register(file, info);
     const element = manifest.webTypes._package.contributions.html.elements[0];
     assert.equal(info.attributes[0].name, 'mode');
-    assert.equal(element.attributes, undefined);
+    assert.equal(element.attributes[0].name, 'mode');
     assert.deepEqual(element.js.properties.map(({ name, type }) => [name, type]), [['active', 'boolean']]);
 });

@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Méthodes absentes du manifeste Custom Elements
-
-- Source : `server/src/manifest/CustomElements.ts`, `register`.
-- Reproduction automatisée : `manifest-depth-round8.test.mjs` enregistre un composant dont la méthode `open(force?: boolean): string` est documentée. La déclaration contient les champs, mais pas la méthode.
-- `loadMethod` construit le membre sans l'ajouter à `members`. Décider si les méthodes d'instance et statiques doivent figurer dans ce manifeste avec signature et documentation.
-
 ## Fichiers Storybook périmés après suppression d'un export
 
 - Source : `server/src/project/storybook/Stories.ts`, `write(files, clear)` et `clear()`.
