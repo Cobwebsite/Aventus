@@ -1,4 +1,4 @@
-import { CallExpression, SyntaxKind, Node, canHaveDecorators, getDecorators, HasDecorators } from "typescript";
+import { CallExpression, SyntaxKind, Node, canHaveDecorators, getDecorators, HasDecorators, StringLiteralLike } from "typescript";
 import { ParserTs } from './ParserTs';
 import { ArgType, getArg } from "./tools";
 import { FunctionDeclaration } from '../../scss/helper/CSSNode';
@@ -81,6 +81,9 @@ export class DecoratorInfo {
                     for (let argument of call.arguments) {
                         let arg = getArg(argument);
                         if (arg) {
+                            if (arg.type === 'string') {
+                                arg.value = (argument as StringLiteralLike).text;
+                            }
                             info.arguments.push(arg);
                         }
                     }
