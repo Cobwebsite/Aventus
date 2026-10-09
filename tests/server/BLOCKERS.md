@@ -2,13 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Condition HTML réduite à un identifiant
-
-- Source : `server/src/language-services/html/parser/TagInfo.ts`, `IfInfo.loadIf`.
-- Reproduction : analyser `if (ready) { <p>Ready</p> } else if (pending) { <p>Wait</p> }`.
-- Résultat actuel : les blocs `IfInfo` sont créés, mais `conditions` reste vide car le filtre n'accepte que les `SyntaxKind` dont le nom contient `Expression`, pas `Identifier`.
-- Résultat attendu à confirmer : conserver `ready` et `pending` comme les expressions de comparaison déjà testées.
-
 ## Arguments textuels des décorateurs
 
 - `DecoratorInfo.buildDecorator` conserve les guillemets dans `arguments[].value` pour les littéraux chaîne : `@TagName("x-card")` transmet le texte avec guillemets.

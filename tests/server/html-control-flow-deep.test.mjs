@@ -31,6 +31,12 @@ test('HTML if and else-if chain preserves distinct conditions', () => {
     assert.equal(parsed.tags.filter(tag => tag.tagName === 'p').length, 3);
 });
 
+test('HTML if and else-if chain preserves identifier conditions', () => {
+    const parsed = parse('if (ready) { <p>Ready</p> } else if (pending) { <p>Wait</p> }');
+    assert.deepEqual(parsed.ifs[0].conditions.map(item => item.txt), ['ready', 'pending']);
+    assert.deepEqual(parsed.ifs[0].conditions.map(item => item.type), ['if', 'elif']);
+});
+
 test('HTML comment and escaped directives are not transformed into control flow', () => {
     const parsed = parse('<!-- if (hidden) { <b>Never</b> } -->\\if (literal) { <p>Text</p> }');
     assert.equal(parsed.ifs.length, 0);
