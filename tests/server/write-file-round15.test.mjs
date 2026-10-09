@@ -37,14 +37,29 @@ test('output writer creates parent folders, normalizes newlines and skips identi
     }
 });
 
-test('output writer currently keeps an externally modified file when generated text is unchanged', async () => {
+test('output writer restores an externally modified file when generated text is unchanged', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-output-cache-'));
     const path = join(root, 'result.css');
     try { await withSettings(root, async () => {
         await writeFile(path, 'generated', 'static', 'assets');
         writeFileSync(path, 'external edit');
         await writeFile(path, 'generated', 'static', 'assets');
-        assert.equal(readFileSync(path, 'utf8'), 'external edit');
+        assert.equal(readFileSync(path, 'utf8'), 'generated');
+    }); } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('output writer detects an external edit of the same size', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'aventus-output-same-size-'));
+    const path = join(root, 'result.css');
+    try { await withSettings(root, async () => {
+        await writeFile(path, 'generated', 'static', 'assets');
+        writeFileSync(path, 'overrides');
+        const old = new Date('2001-01-01T00:00:00.000Z');
+        utimesSync(path, old, old);
+        await writeFile(path, 'generated', 'static', 'assets');
+        assert.equal(readFileSync(path, 'utf8'), 'generated');
     }); } finally {
         rmSync(root, { recursive: true, force: true });
     }

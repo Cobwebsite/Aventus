@@ -6,7 +6,7 @@ import { AventusErrorCode, AventusExtension, AventusLanguageId } from "./definit
 import { SectionType } from './language-services/ts/LanguageService';
 import { AventusFile } from './files/AventusFile';
 import { AventusConfig } from './language-services/json/definition';
-import { existsSync, mkdirSync, stat, unlinkSync as rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, stat, statSync, unlinkSync as rmSync, writeFileSync } from 'fs';
 import { Statistics } from './notification/Statistics';
 import { promisify } from 'util';
 import { exec } from 'child_process';
@@ -343,7 +343,11 @@ export function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const md5HashFile: { [path: string]: string } = {};
+const writtenFiles = new Map<string, { hash: string, signature: string }>();
+function fileSignature(path: string): string {
+    const metadata = statSync(path, { bigint: true });
+    return `${metadata.size}:${metadata.mtimeNs}:${metadata.ctimeNs}`;
+}
 const fileMutexes = new Map<string, Mutex>();
 function getFileMutex(file: string): Mutex {
     let mutex = fileMutexes.get(file);
@@ -369,10 +373,23 @@ export async function writeFile(outputFile: string, txt: string, type: "build" |
             if (!existsSync(folder)) {
                 mkdirSync(folder, { recursive: true });
             }
-            let exist = existsSync(outputFile);
-            if (!md5HashFile[outputFile] || md5HashFile[outputFile] != hash || !exist) {
+            const cached = writtenFiles.get(outputFile);
+            const exists = existsSync(outputFile);
+            let shouldWrite = true;
+            let signature: string | undefined;
+            if (cached?.hash === hash && exists) {
+                signature = fileSignature(outputFile);
+                if (signature === cached.signature) {
+                    shouldWrite = false;
+                }
+                else if (md5(readFileSync(outputFile, 'utf8')) === hash) {
+                    writtenFiles.set(outputFile, { hash, signature });
+                    shouldWrite = false;
+                }
+            }
+            if (shouldWrite) {
                 writeFileSync(outputFile, txt);
-                md5HashFile[outputFile] = hash;
+                writtenFiles.set(outputFile, { hash, signature: signature ?? fileSignature(outputFile) });
                 Statistics.sendFileSize(outputFile, txt, type, name);
             }
             mutex.release();
