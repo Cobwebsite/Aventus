@@ -1,11 +1,5 @@
 # Cas serveur en attente de changement de code
 
-## Abonnements conservés après suppression d'un fichier
-
-- Source : `server/src/files/AventusFile.ts`, méthode `removeAllCallbacks`.
-- Reproduction automatisée : `protocol-files-audit-round14.test.mjs` constate qu'après `triggerDelete`, les abonnements de validation, de navigation et les gardes de contenu continuent à s'exécuter.
-- Décision : préciser si une instance supprimée peut rester accessible durant une opération asynchrone. Sinon, vider aussi `onValidateCb`, `onCanContentChangeCb`, `onReferencesCb`, `onCodeLensCb`, `onRenameCb` et `onGetBuildCb` et annuler la validation en attente.
-
 ## Import de templates globaux homonymes
 
 - Source : `server/src/files/TemplateManager.ts`, `getSelectItem` utilisé par `selectGlobalToImport`.
@@ -127,12 +121,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 - `AventusTemplateLanguageService.onReferences` et `onCodeLens` renvoient un tableau vide ; `onRename` renvoie `null`.
 - La validation, la complétion, le hover et le formatage sont testés. Décider si les trois autres capacités doivent être implémentées ou rester indisponibles pour `template.avt.ts`.
-
-## Validation différée après suppression d'un fichier
-
-- Source : `server/src/files/AventusFile.ts`, `triggerContentChangeNoBuffer` et `triggerDelete`.
-- Reproduction automatisée : `aventus-file-buffering-round5.test.mjs` modifie puis supprime un fichier avant la validation différée ; le callback se lance encore et republie le diagnostic `stale`.
-- Test à activer après clarification ou correction : modifier puis supprimer immédiatement un fichier et vérifier l'absence de diagnostics non vides après la fenêtre de validation.
 
 ## Dossier d'installation fourni par un template
 

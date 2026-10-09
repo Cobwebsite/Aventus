@@ -66,7 +66,7 @@ test('unlinking internal content keeps generated document stable across user cha
     }
 });
 
-test('deleting a changed file still runs its pending validation timer', async () => {
+test('deleting a changed file cancels its pending validation timer', async () => {
     const file = new InternalAventusFile(document(1, 'first'));
     const previousServer = GenericServer.instance;
     const previousSettings = SettingsManager.instance;
@@ -82,13 +82,64 @@ test('deleting a changed file still runs its pending validation timer', async ()
         await file.triggerContentChange(document(2, 'second'));
         await file.triggerDelete();
         await new Promise(resolve => setTimeout(resolve, 560));
-        assert.equal(validated, 1);
-        assert.equal(sent.length, 1);
-        assert.equal(sent[0].diagnostics[0].message, 'stale');
+        assert.equal(validated, 0);
+        assert.deepEqual(sent, []);
     } finally {
         clearTimeout(file.delayValidate);
         GenericServer.instance = previousServer;
         SettingsManager.instance = previousSettings;
+    }
+});
+
+test('deleting a file suppresses diagnostics from an in-flight validation', async () => {
+    const file = new InternalAventusFile(document(1, 'first'));
+    const previousServer = GenericServer.instance;
+    const previousSettings = SettingsManager.instance;
+    const gate = deferred();
+    const started = deferred();
+    const sent = [];
+    GenericServer.instance = { connection: { sendDiagnostics: params => sent.push(params) } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
+    file.onValidate(async () => {
+        started.resolve();
+        await gate.promise;
+        return [{ message: 'stale', range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } } }];
+    });
+    try {
+        const validation = file.validate();
+        await started.promise;
+        await file.triggerDelete();
+        gate.resolve();
+        assert.deepEqual(await validation, []);
+        assert.deepEqual(sent, []);
+    } finally {
+        gate.resolve();
+        GenericServer.instance = previousServer;
+        SettingsManager.instance = previousSettings;
+    }
+});
+
+test('deleting a file settles queued content changes without applying them', async () => {
+    const file = new InternalAventusFile(document(1, 'first'));
+    const gate = deferred();
+    const seen = [];
+    file.onContentChange(async current => {
+        seen.push(current.contentUser);
+        await gate.promise;
+    });
+    try {
+        const first = file.triggerContentChange(document(2, 'second'));
+        await until(() => seen.length === 1);
+        const queued = file.triggerContentChange(document(3, 'third'));
+        await new Promise(resolve => setTimeout(resolve, 5));
+        await file.triggerDelete();
+        await Promise.all([first, queued]);
+        gate.resolve();
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepEqual(seen, ['second']);
+        assert.equal(file.contentUser, 'second');
+    } finally {
+        gate.resolve();
     }
 });
 
