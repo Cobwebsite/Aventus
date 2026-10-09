@@ -16,7 +16,7 @@ function deferred() {
     return { promise, resolve };
 }
 
-test('disk creation currently returns before its asynchronous save callback finishes', async () => {
+test('disk creation waits for its asynchronous save callback', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-create-save-'));
     const path = join(root, 'sample.wcl.avt');
     writeFileSync(path, 'class Sample {}');
@@ -39,18 +39,63 @@ test('disk creation currently returns before its asynchronous save callback fini
         });
     });
     try {
-        await manager.onCreatedUri(uri);
+        let finished = false;
+        const creation = manager.onCreatedUri(uri).then(() => { finished = true; });
         await started.promise;
         assert.deepEqual(events, ['save-started']);
+        assert.equal(finished, false);
         assert.equal(manager.getByUri(uri).contentUser, 'class Sample {}');
         gate.resolve();
-        await new Promise(resolve => setImmediate(resolve));
+        await creation;
         assert.deepEqual(events, ['save-started', 'save-finished']);
     } finally {
         gate.resolve();
         for (const file of Object.values(manager.files)) clearTimeout(file.delayValidate);
         GenericServer.instance = previousServer;
         FilesWatcher.instance = previousWatcher;
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('disk updates wait for save when registering and refreshing a file', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'aventus-update-save-'));
+    const path = join(root, 'sample.wcl.avt');
+    const uri = pathToUri(path);
+    const manager = Object.create(FilesManager.prototype);
+    manager.files = {};
+    manager.lockedUpdatedUri = {};
+    const saves = [];
+    manager.registerFile = async document => {
+        manager.files[uri] = { versionUser: document.version };
+    };
+    manager.onContentChange = async document => {
+        manager.files[uri].versionUser = document.version;
+    };
+    manager.onSave = async () => {
+        const gate = deferred();
+        saves.push(gate);
+        await gate.promise;
+    };
+    try {
+        writeFileSync(path, 'first');
+        let firstFinished = false;
+        const first = manager.onUpdatedUri(uri).then(() => { firstFinished = true; });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(saves.length, 1);
+        assert.equal(firstFinished, false);
+        saves[0].resolve();
+        await first;
+
+        writeFileSync(path, 'second');
+        let secondFinished = false;
+        const second = manager.onUpdatedUri(uri).then(() => { secondFinished = true; });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(saves.length, 2);
+        assert.equal(secondFinished, false);
+        saves[1].resolve();
+        await second;
+    } finally {
+        for (const save of saves) save.resolve();
         rmSync(root, { recursive: true, force: true });
     }
 });

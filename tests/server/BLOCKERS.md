@@ -1,11 +1,5 @@
 # Cas serveur en attente de changement de code
 
-## Création disque terminée avant la sauvegarde
-
-- Source : `server/src/files/FilesManager.ts`, méthode `onCreatedUri`.
-- Reproduction automatisée : `protocol-files-audit-round14.test.mjs` retient un callback de sauvegarde ; `onCreatedUri` se termine avant celui-ci, car `onSave` n'est pas attendu.
-- Décision : préciser si la promesse de création doit couvrir toute la sauvegarde. Si oui, attendre `onSave` et examiner le même schéma dans `onUpdatedUri`.
-
 ## Abonnements conservés après suppression d'un fichier
 
 - Source : `server/src/files/AventusFile.ts`, méthode `removeAllCallbacks`.
