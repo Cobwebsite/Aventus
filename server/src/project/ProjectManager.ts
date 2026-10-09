@@ -147,10 +147,10 @@ export class ProjectManager {
         let result: { name: string, uri: string }[] = [];
         for (let uri in this.projects) {
             let project = this.projects[uri];
-            let builds = project.getBuildsName();
-            for (let build of builds) {
+            let statics = project.getStaticsName();
+            for (let name of statics) {
                 result.push({
-                    name: build,
+                    name,
                     uri: project.getConfigFile().uri
                 })
             }

@@ -7,7 +7,7 @@ const [{ ProjectManager }, { InternalAventusFile }] = await loadServerModules([
     'project/ProjectManager.ts', 'files/AventusFile.ts',
 ]);
 
-test('static output listing currently returns build names instead of static names', () => {
+test('static output listing returns names from every project, including projects without builds', () => {
     const manager = Object.create(ProjectManager.prototype);
     manager.projects = {
         'file:///a/aventus.conf.avt': {
@@ -22,7 +22,8 @@ test('static output listing currently returns build names instead of static name
         },
     };
     assert.deepEqual(manager.getAllStatics(), [
-        { name: 'A@web', uri: 'file:///a/aventus.conf.avt' },
+        { name: 'A@assets', uri: 'file:///a/aventus.conf.avt' },
+        { name: 'B@assets', uri: 'file:///b/aventus.conf.avt' },
     ]);
 });
 
