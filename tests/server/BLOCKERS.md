@@ -2,15 +2,9 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Exécution réelle des scripts de template
+## CodeLens du script de template
 
-- Un essai isolé de `TemplateScript.create()` avec une fixture locale `template.avt.ts` a laissé le processus de test en attente plus de 35 secondes sur Windows, sans sortie ni résolution. Le test expérimental a été retiré pour garder la suite déterministe.
-- Le chargement passe par `execAsync('node --no-warnings ...')` dans `TemplateScript.prepareScript`. Un test de bout en bout doit borner et isoler le processus enfant pour distinguer une limite du banc d'une anomalie du serveur.
-
-## Capacités LSP du script de template
-
-- `AventusTemplateLanguageService.onReferences` et `onCodeLens` renvoient un tableau vide ; `onRename` renvoie `null`.
-- La validation, la complétion, le hover et le formatage sont testés. Décider si les trois autres capacités doivent être implémentées ou rester indisponibles pour `template.avt.ts`.
+- `AventusTemplateLanguageService.onCodeLens` renvoie toujours un tableau vide. Les références et le renommage sont implémentés et testés.
 
 ## Dossier d'installation fourni par un template
 

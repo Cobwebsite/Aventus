@@ -13,6 +13,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 export class AventusTemplateLanguageService {
 	private languageService: LanguageService;
 	private filesLoaded: { [uri: string]: { versionInternal: number, contentInternal: string } } = {}
+	private templateFiles: { [uri: string]: AventusFile } = {};
 	private filesNeeded: string[] = [];
 	private filesNpm: string[] = [];
 
@@ -125,6 +126,7 @@ export class AventusTemplateLanguageService {
 			this.filesNeeded.push(file.uri);
 			this.filesLoaded[file.uri] = file;
 		}
+		this.templateFiles[file.uri] = file;
 	}
 	public removeFile(file: AventusFile) {
 		let index = this.filesNeeded.indexOf(file.uri);
@@ -132,6 +134,7 @@ export class AventusTemplateLanguageService {
 			this.filesNeeded.splice(index, 1);
 			delete this.filesLoaded[file.uri];
 		}
+		delete this.templateFiles[file.uri];
 	}
 
 
@@ -418,7 +421,16 @@ export class AventusTemplateLanguageService {
 	public async onReferences(file: AventusFile, position: Position): Promise<Location[]> {
 		let result: Location[] = []
 		try {
-
+			const offset = file.documentInternal.offsetAt(position);
+			const symbols = this.languageService.findReferences(file.uri, offset);
+			for (const symbol of symbols ?? []) {
+				for (const reference of symbol.references) {
+					const referencedFile = this.templateFiles[reference.fileName];
+					if (referencedFile) {
+						result.push(Location.create(reference.fileName, convertRange(referencedFile.documentInternal, reference.textSpan)));
+					}
+				}
+			}
 		} catch (e) {
 			this.printCatchError(e);
 		}
@@ -435,7 +447,29 @@ export class AventusTemplateLanguageService {
 		return result;
 	}
 	public async onRename(file: AventusFile, position: Position, newName: string): Promise<WorkspaceEdit | null> {
-		return null;
+		try {
+			const offset = file.documentInternal.offsetAt(position);
+			if (!this.languageService.getRenameInfo(file.uri, offset, {}).canRename) {
+				return null;
+			}
+			const locations = this.languageService.findRenameLocations(file.uri, offset, false, false, {});
+			if (!locations) {
+				return null;
+			}
+			const changes: { [uri: string]: TextEdit[] } = {};
+			for (const location of locations) {
+				const targetFile = this.templateFiles[location.fileName];
+				if (targetFile) {
+					(changes[location.fileName] ??= []).push(TextEdit.replace(
+						convertRange(targetFile.documentInternal, location.textSpan), newName
+					));
+				}
+			}
+			return Object.keys(changes).length ? { changes } : null;
+		} catch (e) {
+			this.printCatchError(e);
+			return null;
+		}
 	}
 
 
