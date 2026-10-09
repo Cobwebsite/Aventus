@@ -1,11 +1,5 @@
 # Cas serveur en attente de changement de code
 
-## Cache du parseur TypeScript entre builds et vues
-
-- Source : `server/src/language-services/ts/parser/ParserTs.ts`, `parse`.
-- Reproduction automatisée : `ts-parser-cache-round7.test.mjs` parse la même URI/version dans deux builds puis en vue interne et externe. Le second appel réutilise l'objet du premier build, sans `npmBuilder.unregister` pour le second ; la vue externe conserve aussi le modèle et les noms internes.
-- Décider si la clé du cache doit inclure le build et `isExternal`, ou si chaque build doit posséder son propre cache.
-
 ## Portée de la résolution des déclarations TypeScript
 
 - Source : `server/src/language-services/ts/parser/ParserTs.ts`, `getBaseInfo` et `getBaseInfoFullName`.
