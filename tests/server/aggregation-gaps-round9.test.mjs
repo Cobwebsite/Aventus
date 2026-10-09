@@ -27,7 +27,7 @@ test('static output listing returns names from every project, including projects
     ]);
 });
 
-test('file completion resolve invokes subscribers but currently discards their result', async () => {
+test('file completion resolve waits for subscribers and returns their result', async () => {
     const file = new InternalAventusFile(TextDocument.create('file:///demo.wcl.avt', 'typescript', 1, 'x'));
     const item = { label: 'method', data: { id: 1 } };
     const calls = [];
@@ -39,11 +39,14 @@ test('file completion resolve invokes subscribers but currently discards their r
         return { ...received, detail: 'resolved' };
     });
     try {
-        const result = await file.getCompletionResolve(item);
-        assert.equal(result, item);
+        let finished = false;
+        const resolution = file.getCompletionResolve(item).then(result => { finished = true; return result; });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(finished, false);
         assert.deepEqual(calls, [[file, item]]);
         finish();
-        await gate;
+        const result = await resolution;
+        assert.deepEqual(result, { ...item, detail: 'resolved' });
         file.removeOnCompletionResolve(subscription);
         calls.length = 0;
         assert.equal(await file.getCompletionResolve(item), item);
@@ -52,4 +55,13 @@ test('file completion resolve invokes subscribers but currently discards their r
         finish();
         file.removeOnCompletionResolve(subscription);
     }
+});
+
+test('file completion resolve passes each result to the next subscriber', async () => {
+    const file = new InternalAventusFile(TextDocument.create('file:///chain.wcl.avt', 'typescript', 1, 'x'));
+    file.onCompletionResolve(async (_, item) => ({ ...item, detail: 'first' }));
+    file.onCompletionResolve(async (_, item) => ({ ...item, documentation: `${item.detail} docs` }));
+    assert.deepEqual(await file.getCompletionResolve({ label: 'method' }), {
+        label: 'method', detail: 'first', documentation: 'first docs',
+    });
 });

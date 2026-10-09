@@ -511,10 +511,8 @@ export class InternalAventusFile implements AventusFile {
 
     public async getCompletionResolve(item: CompletionItem): Promise<CompletionItem> {
         let result = item;
-
-        let proms: Promise<CompletionItem>[] = [];
         for (let uuid in this.onCompletionResolveCb) {
-            proms.push(this.onCompletionResolveCb[uuid](this, item));
+            result = await this.onCompletionResolveCb[uuid](this, result);
         }
         return result;
     }

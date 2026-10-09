@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Résolution des suggestions LSP
-
-- Source : `server/src/files/AventusFile.ts`, méthode `getCompletionResolve`.
-- Reproduction automatisée : `aggregation-gaps-round9.test.mjs` enregistre un callback asynchrone contrôlé, puis appelle `getCompletionResolve`. Le callback est appelé, mais la méthode se termine avant lui et renvoie l'élément d'entrée tel quel.
-- Résultat attendu : le callback enrichit ou remplace l'élément retourné.
-
 ## Attributs du manifeste Web Types
 
 - Source : `server/src/manifest/WebTypes.ts`, méthode `register`.
