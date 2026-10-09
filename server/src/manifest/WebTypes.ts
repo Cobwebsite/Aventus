@@ -91,7 +91,7 @@ export class WebTypes {
 			if (values.length > 0) {
 				_attribute.values = values;
 			}
-
+			attributes.push(_attribute);
 		}
 		if (attributes.length > 0) {
 			element.attributes = attributes;
