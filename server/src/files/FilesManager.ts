@@ -50,7 +50,7 @@ export class FilesManager {
                 let currentPath = uriToPath(uri);
                 let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
                 await this.registerFile(textDoc);
-                this.onSave(textDoc);
+                await this.onSave(textDoc);
             }
         }
     }
@@ -72,13 +72,13 @@ export class FilesManager {
         if (!this.files[uri]) {
             let textDoc = TextDocument.create(uri, extension, 0, content);
             await this.registerFile(textDoc);
-            this.onSave(textDoc);
+            await this.onSave(textDoc);
         }
         else {
             let newVersion = this.files[uri].versionUser + 1;
             let textDoc = TextDocument.create(uri, extension, newVersion, content);
             await this.onContentChange(textDoc);
-            this.onSave(textDoc);
+            await this.onSave(textDoc);
         }
     }
 
