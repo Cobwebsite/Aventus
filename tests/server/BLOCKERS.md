@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Arguments textuels des décorateurs
-
-- `DecoratorInfo.buildDecorator` conserve les guillemets dans `arguments[].value` pour les littéraux chaîne : `@TagName("x-card")` transmet le texte avec guillemets.
-- Décision à prendre : conserver le texte TypeScript brut ou transmettre aux consommateurs la valeur littérale décodée.
-- Effet reproduit dans la compilation : `@TagName("demo-card")` donne un `tagName` contenant encore les guillemets (`'"demo-card"'`) dans le résultat de `AventusWebcomponentCompiler`. Un nom de balise utilisable devrait probablement être `demo-card`.
-
 ## Exécution réelle des scripts de template
 
 - Un essai isolé de `TemplateScript.create()` avec une fixture locale `template.avt.ts` a laissé le processus de test en attente plus de 35 secondes sur Windows, sans sortie ni résolution. Le test expérimental a été retiré pour garder la suite déterministe.

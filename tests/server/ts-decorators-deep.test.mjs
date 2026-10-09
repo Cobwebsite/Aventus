@@ -27,10 +27,15 @@ test('decorator calls are indexed with argument values and source spans', () => 
     const model = parse(source);
     const card = model.classes.Card;
     assert.equal(card.decorators[0].name, 'TagName');
-    assert.equal(card.decorators[0].arguments[0].value, '"x-card"');
+    assert.equal(card.decorators[0].arguments[0].value, 'x-card');
     assert.equal(source.slice(card.decorators[0].start, card.decorators[0].end), '@TagName("x-card")');
     assert.equal(card.properties.active.decorators[0].name, 'Property');
     assert.ok(card.compileTransformations[`${card.decorators[0].start}_${card.decorators[0].end}`]);
+});
+
+test('decorator string arguments decode quotes and escapes', () => {
+    const model = parse("@TagName('x\\u002dcard') export class Card {}");
+    assert.equal(model.classes.Card.decorators[0].arguments[0].value, 'x-card');
 });
 
 test('bare decorator reports diagnostic with position rather than entering model', () => {
@@ -60,7 +65,7 @@ test('Internal and Deprecated change property metadata and compiled accessibilit
     const property = model.classes.Card.properties.old;
     assert.equal(property.isPrivate, true);
     assert.equal(property.deprecated, true);
-    assert.equal(property.deprecatedMsg, '"Use next"');
+    assert.equal(property.deprecatedMsg, 'Use next');
     assert.match(property.compiledContent, /private old/);
     assert.doesNotMatch(property.compiledContent, /@Internal|@Deprecated/);
 });

@@ -61,6 +61,7 @@ test('component compiler emits script and tag for a minimal component', () => {
     fileParsed.classes.Card.implements.push('Aventus.DefaultComponent');
     const result = new AventusWebcomponentCompiler(logical, build).compile();
     assert.equal(result.componentName, 'Card');
+    assert.equal(result.result[0].tagName, 'demo-card');
     assert.ok(result.result.some(item => item.compiled.includes('Card')));
 });
 
