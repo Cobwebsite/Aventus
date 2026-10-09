@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## Liste des sorties statiques
-
-- Source : `server/src/project/ProjectManager.ts`, méthode `getAllStatics`.
-- Reproduction automatisée : `aggregation-gaps-round9.test.mjs` configure deux projets avec noms de build et de sortie statique différents ; la méthode renvoie le nom du build du premier projet et omet la sortie statique du second, sans build.
-- Résultat attendu : la liste contient `A@assets` et `B@assets`, chacun avec l'URI de son projet.
-
 ## Fichier généré modifié hors du serveur
 
 - Source : `server/src/tools.ts`, méthode `writeFile` et cache `md5HashFile`.
