@@ -1,11 +1,5 @@
 # Cas serveur en attente de changement de code
 
-## Résolution des complétions TypeScript
-
-- Source : `server/src/language-services/ts/LanguageService.ts`, `doResolve`.
-- Reproduction automatisée : `ts-lsp-round7.test.mjs` obtient une méthode locale et constate que TypeScript fournit signature et JSDoc, tandis que `doResolve` renvoie l'élément sans `detail` ni `documentation` et efface `data`.
-- Le service transmet le contenu du fichier comme argument `source` de `getCompletionEntryDetails`, destiné au module d'origine d'une suggestion. Décider de l'argument à utiliser pour symboles locaux et imports.
-
 ## Cache du parseur TypeScript entre builds et vues
 
 - Source : `server/src/language-services/ts/parser/ParserTs.ts`, `parse`.
