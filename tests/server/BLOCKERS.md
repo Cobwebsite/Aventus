@@ -1,0 +1,506 @@
+# Cas serveur en attente de changement de code
+
+## Attentes abandonnées lors de la destruction du mutex
+
+- Source : `server/src/Mutex.ts`, `Mutex.dispose`.
+- Reproduction automatisée : `concurrency.test.mjs` prend le verrou, ajoute une attente, appelle `dispose` puis `release` et vérifie que la promesse en attente ne se résout pas.
+- Résultat actuel : `dispose` vide la liste des callbacks sans résoudre ni rejeter les promesses correspondantes. Un nouveau verrou peut être obtenu, mais les appelants déjà en attente restent suspendus.
+- Décision à prendre : annuler ces attentes avec un rejet explicite, les résoudre, ou documenter ce comportement.
+
+## Fin prématurée des callbacks du watcher
+
+- Source : `server/src/files/FilesWatcher.ts`, `onContentChange` et `onRemove`.
+- Reproduction automatisée : `files-watcher-dispatch-round6.test.mjs` retient les promesses de `FilesManager` ; les deux callbacks du watcher se terminent avant leur résolution.
+- Les opérations peuvent ainsi se chevaucher et leurs erreurs asynchrones ne remontent pas à l'appelant. Décider si les callbacks doivent attendre le gestionnaire et quel ordre appliquer aux événements rapprochés.
+
+## Création disque terminée avant la sauvegarde
+
+- Source : `server/src/files/FilesManager.ts`, méthode `onCreatedUri`.
+- Reproduction automatisée : `protocol-files-audit-round14.test.mjs` retient un callback de sauvegarde ; `onCreatedUri` se termine avant celui-ci, car `onSave` n'est pas attendu.
+- Décision : préciser si la promesse de création doit couvrir toute la sauvegarde. Si oui, attendre `onSave` et examiner le même schéma dans `onUpdatedUri`.
+
+## Abonnements conservés après suppression d'un fichier
+
+- Source : `server/src/files/AventusFile.ts`, méthode `removeAllCallbacks`.
+- Reproduction automatisée : `protocol-files-audit-round14.test.mjs` constate qu'après `triggerDelete`, les abonnements de validation, de navigation et les gardes de contenu continuent à s'exécuter.
+- Décision : préciser si une instance supprimée peut rester accessible durant une opération asynchrone. Sinon, vider aussi `onValidateCb`, `onCanContentChangeCb`, `onReferencesCb`, `onCodeLensCb`, `onRenameCb` et `onGetBuildCb` et annuler la validation en attente.
+
+## Import de templates globaux homonymes
+
+- Source : `server/src/files/TemplateManager.ts`, `getSelectItem` utilisé par `selectGlobalToImport`.
+- Reproduction automatisée : `template-global-round7.test.mjs` propose deux scripts globaux nommés `Shared`, sélectionne le second puis constate que le premier est copié.
+- La sélection compare uniquement le `label`, sans conserver l'identité de l'élément choisi. Décider comment distinguer les sources homonymes pendant l'import des projets, templates et templates globaux.
+
+## Résolution des complétions TypeScript
+
+- Source : `server/src/language-services/ts/LanguageService.ts`, `doResolve`.
+- Reproduction automatisée : `ts-lsp-round7.test.mjs` obtient une méthode locale et constate que TypeScript fournit signature et JSDoc, tandis que `doResolve` renvoie l'élément sans `detail` ni `documentation` et efface `data`.
+- Le service transmet le contenu du fichier comme argument `source` de `getCompletionEntryDetails`, destiné au module d'origine d'une suggestion. Décider de l'argument à utiliser pour symboles locaux et imports.
+
+## Cache du parseur TypeScript entre builds et vues
+
+- Source : `server/src/language-services/ts/parser/ParserTs.ts`, `parse`.
+- Reproduction automatisée : `ts-parser-cache-round7.test.mjs` parse la même URI/version dans deux builds puis en vue interne et externe. Le second appel réutilise l'objet du premier build, sans `npmBuilder.unregister` pour le second ; la vue externe conserve aussi le modèle et les noms internes.
+- Décider si la clé du cache doit inclure le build et `isExternal`, ou si chaque build doit posséder son propre cache.
+
+## Portée de la résolution des déclarations TypeScript
+
+- Source : `server/src/language-services/ts/parser/ParserTs.ts`, `getBaseInfo` et `getBaseInfoFullName`.
+- Reproduction automatisée : `ts-parser-resolution-round9.test.mjs` montre que `getBaseInfoFullName('Other.Card')` renvoie `Demo.Card`, en ne comparant que le dernier segment. Décider si un nom qualifié doit correspondre intégralement.
+- Le même test montre que `ParserTs.getBaseInfo('Foreign', ownerUri)` peut trouver une classe dans un autre fichier sans import dans le fichier demandeur. Définir la portée voulue entre fichiers et projets avant de figer un résultat attendu différent.
+
+Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
+
+## Color picker : document sans saut de ligne
+
+- Source : `server/src/color-picker/ColorPicker.ts`, méthode `getPos` appelée par `getMatches`.
+- Reproduction automatisée : `color-picker-locations-round7.test.mjs` vérifie qu'un nom de couleur à l'index 0 est omis et qu'une couleur après la colonne 0 sur la première ligne lève `TypeError`.
+- Résultat actuel : exception `Cannot read properties of undefined (reading 'index')`.
+- Résultat attendu : une couleur trouvée avec une plage sur la ligne 0.
+- Autre cas du même document : une couleur qui commence à l'index 0 est ignorée par `if (!match.index) continue` dans `getMatches`.
+- Les tests nominaux existants utilisent un saut de ligne initial ; la reproduction du défaut est maintenant active.
+
+## Color picker : syntaxe HSLA et contexte CSS
+
+- Source : `server/src/color-picker/ColorPicker.ts`, méthode `getMatches`.
+- Reproduction automatisée : `color-picker-context-round12.test.mjs` détecte `hsl(...)` et `rgba(...)`, mais aucune couleur pour `hsla(120, 100%, 50%, 0.5)` ; l'expression régulière HSLA est mal formée.
+- Le même test trouve `blue` et `#ff0000` à l'intérieur d'un commentaire CSS. Décider si le color picker doit ignorer les commentaires et les chaînes avant de corriger l'analyse lexicale.
+
+## Color picker : syntaxes CSS modernes absentes
+
+- Reproduction automatisée : `color-parser-spaces-round45.test.mjs` montre que le parseur de couleurs accepte `rgb(255 0 0)` et `color(srgb 1 0 0)`, mais que `ColorPicker.onDocumentColor` ne relève que la syntaxe RGB à virgules dans le même document.
+- Source : `server/src/color-picker/ColorPicker.ts`, méthode `getMatches` fondée sur une expression régulière.
+- Décision à prendre : définir les syntaxes CSS Color que le color picker doit signaler, puis vérifier leurs plages sans faux positifs.
+
+## Liste des sorties statiques
+
+- Source : `server/src/project/ProjectManager.ts`, méthode `getAllStatics`.
+- Reproduction automatisée : `aggregation-gaps-round9.test.mjs` configure deux projets avec noms de build et de sortie statique différents ; la méthode renvoie le nom du build du premier projet et omet la sortie statique du second, sans build.
+- Résultat attendu : la liste contient `A@assets` et `B@assets`, chacun avec l'URI de son projet.
+
+## Fichier généré modifié hors du serveur
+
+- Source : `server/src/tools.ts`, méthode `writeFile` et cache `md5HashFile`.
+- Reproduction automatisée : `write-file-round15.test.mjs` écrit une sortie, modifie son contenu sur disque, puis redemande le même contenu généré.
+- Résultat actuel : le fichier modifié reste tel quel car le hash du texte demandé correspond au dernier hash en mémoire. Décider si le build doit restaurer sa sortie ou préserver les modifications externes ; le comportement voulu déterminera si le fichier existant doit être relu avant de sauter l'écriture.
+
+## Texte des types TypeScript avancés
+
+- Source : `server/src/language-services/ts/parser/TypeInfo.ts`, méthode `getFullTxt`.
+- Reproduction automatisée : `type-info-advanced-round8.test.mjs` construit des types à partir de `keyof T` et de `T extends string ? number : never`.
+- Résultat actuel : `keyof T` est rendu comme `typeof T` ; le type conditionnel inclut le texte d'une fonction au lieu de sa valeur pour `extends`.
+- Résultat attendu : représentation textuelle équivalente au type d'entrée.
+- `manifest/Manifest.ts` présente aussi des écarts sur `getTypeTxt` : `infer U` ajoute un `]` final et `keyof T` ajoute `typeof` après `keyof`.
+
+## Résolution des suggestions LSP
+
+- Source : `server/src/files/AventusFile.ts`, méthode `getCompletionResolve`.
+- Reproduction automatisée : `aggregation-gaps-round9.test.mjs` enregistre un callback asynchrone contrôlé, puis appelle `getCompletionResolve`. Le callback est appelé, mais la méthode se termine avant lui et renvoie l'élément d'entrée tel quel.
+- Résultat attendu : le callback enrichit ou remplace l'élément retourné.
+
+## Attributs du manifeste Web Types
+
+- Source : `server/src/manifest/WebTypes.ts`, méthode `register`.
+- Reproduction : enregistrer un composant avec un attribut `size`.
+- Résultat actuel : l'élément est ajouté, mais `element.attributes` reste absent ; la boucle construit `_attribute` sans l'ajouter au tableau `attributes`.
+- Résultat attendu : l'attribut figure dans la sortie Web Types.
+
+## Fichier Web Types absent de l'écriture des manifestes
+
+- Source : `server/src/manifest/Manifest.ts`, méthode `write`.
+- Reproduction : appeler `Manifest.write(dir)` ; les fichiers Custom Elements, HTML Custom Data et Emmet sont écrits, mais `web-types.json` est absent.
+- Résultat actuel : `this.webTypes.write(dir)` n'est jamais appelé, alors que `WebTypes.write` existe.
+- Résultat attendu : inclure le fichier Web Types dans les sorties générées si ce format est bien exposé par le manifeste.
+
+## Méthodes absentes du manifeste Custom Elements
+
+- Source : `server/src/manifest/CustomElements.ts`, `register`.
+- Reproduction automatisée : `manifest-depth-round8.test.mjs` enregistre un composant dont la méthode `open(force?: boolean): string` est documentée. La déclaration contient les champs, mais pas la méthode.
+- `loadMethod` construit le membre sans l'ajouter à `members`. Décider si les méthodes d'instance et statiques doivent figurer dans ce manifeste avec signature et documentation.
+
+## Fichiers Storybook périmés après suppression d'un export
+
+- Source : `server/src/project/storybook/Stories.ts`, `write(files, clear)` et `clear()`.
+- Reproduction automatisée : `storybook-clear-round8.test.mjs` écrit une story et son MDX, puis appelle `write({}, true)` ; les deux fichiers restent présents. La suppression dans `clear()` est commentée.
+- Décider quand nettoyer le dossier `auto` en préservant les fichiers créés manuellement.
+
+## Condition HTML réduite à un identifiant
+
+- Source : `server/src/language-services/html/parser/TagInfo.ts`, `IfInfo.loadIf`.
+- Reproduction : analyser `if (ready) { <p>Ready</p> } else if (pending) { <p>Wait</p> }`.
+- Résultat actuel : les blocs `IfInfo` sont créés, mais `conditions` reste vide car le filtre n'accepte que les `SyntaxKind` dont le nom contient `Expression`, pas `Identifier`.
+- Résultat attendu à confirmer : conserver `ready` et `pending` comme les expressions de comparaison déjà testées.
+
+## Arguments textuels des décorateurs
+
+- `DecoratorInfo.buildDecorator` conserve les guillemets dans `arguments[].value` pour les littéraux chaîne : `@TagName("x-card")` transmet le texte avec guillemets.
+- Décision à prendre : conserver le texte TypeScript brut ou transmettre aux consommateurs la valeur littérale décodée.
+- Effet reproduit dans la compilation : `@TagName("demo-card")` donne un `tagName` contenant encore les guillemets (`'"demo-card"'`) dans le résultat de `AventusWebcomponentCompiler`. Un nom de balise utilisable devrait probablement être `demo-card`.
+
+## Exécution réelle des scripts de template
+
+- Un essai isolé de `TemplateScript.create()` avec une fixture locale `template.avt.ts` a laissé le processus de test en attente plus de 35 secondes sur Windows, sans sortie ni résolution. Le test expérimental a été retiré pour garder la suite déterministe.
+- Le chargement passe par `execAsync('node --no-warnings ...')` dans `TemplateScript.prepareScript`. Un test de bout en bout doit borner et isoler le processus enfant pour distinguer une limite du banc d'une anomalie du serveur.
+
+## Capacités LSP du script de template
+
+- `AventusTemplateLanguageService.onReferences` et `onCodeLens` renvoient un tableau vide ; `onRename` renvoie `null`.
+- La validation, la complétion, le hover et le formatage sont testés. Décider si les trois autres capacités doivent être implémentées ou rester indisponibles pour `template.avt.ts`.
+
+## Validation différée après suppression d'un fichier
+
+- Source : `server/src/files/AventusFile.ts`, `triggerContentChangeNoBuffer` et `triggerDelete`.
+- Reproduction automatisée : `aventus-file-buffering-round5.test.mjs` modifie puis supprime un fichier avant la validation différée ; le callback se lance encore et republie le diagnostic `stale`.
+- Test à activer après clarification ou correction : modifier puis supprimer immédiatement un fichier et vérifier l'absence de diagnostics non vides après la fenêtre de validation.
+
+## Dossier d'installation fourni par un template
+
+- Source : `server/src/files/TemplateManager.ts`, imports locaux et `downloadTemplateFromStore`.
+- Reproduction automatisée : `template-installation-path-round19.test.mjs` importe un template puis un projet local avec `installationFolder: '../outside'`. Les deux écritures arrivent dans un dossier voisin de la racine d'installation configurée.
+- Résultat actuel : `installationFolder` est ajouté à la racine sans vérifier que le chemin final y reste.
+- Décision à prendre : limiter ce champ à un chemin interne à la racine, puis tester également les chemins absolus et les séparateurs mixtes.
+
+## Archive Store invalide conservée dans le dossier temporaire
+
+- Source : `server/src/files/TemplateManager.ts`, méthode `downloadTemplateFromStore`.
+- Reproduction automatisée : `template-store-archive-round17.test.mjs` télécharge une archive ZIP invalide ; l'installation est refusée, mais `temp/packageTemp/temp.zip` reste présent après le retour.
+- Décision : préciser si chaque échec de téléchargement, d'extraction ou de validation doit supprimer les fichiers temporaires avant une nouvelle tentative.
+
+## Erreurs des premières configurations de compilation perdues
+
+- Source : `server/src/project/Build.ts`, méthode `_build`.
+- Reproduction automatisée : `build-pipeline-round17.test.mjs` lance deux configurations `compile` qui produisent chacune une erreur.
+- Résultat actuel : la notification `aventus/compiled` ne contient que l'erreur de la dernière configuration, car `buildErrors` est réaffecté à chaque `writeBuildCode`.
+- Décision : agréger les erreurs de toutes les configurations avant la notification si celle-ci doit représenter le build complet.
+
+## Option `autoInit` quotée du décorateur Effect
+
+- Source : `server/src/language-services/ts/parser/decorators/EffectDecorator.ts` et construction des objets littéraux dans le parseur TypeScript.
+- Reproduction automatisée : `ts-reactive-decorators-round19.test.mjs` compare `@Effect({autoInit:false})` à `@Effect({"autoInit":false})`.
+- Résultat actuel : la clé non quotée donne `false`, tandis que la clé quotée conserve la valeur par défaut `true`. Décider si les noms de propriétés quotés doivent être acceptés, puis normaliser leur lecture si oui.
+
+## Fusion lancée depuis le fichier de style
+
+- Source : `server/src/cmds/MergeComponent.ts`, expression `regex` de `run`.
+- Reproduction : composant séparé `Button.wcl.avt`, `Button.wcv.avt`, `Button.wcs.avt` ; lancer la fusion depuis `Button.wcs.avt`.
+- Résultat actuel selon le code : la regex répète `.wcv.avt` et ne reconnaît pas `.wcs.avt`. Les sources ne sont pas retrouvées, la suppression du dossier peut échouer et une sortie au nom erroné peut déjà avoir été écrite.
+- Résultat attendu : fusion identique depuis chacun des trois fichiers, sans sortie partielle.
+
+## Création dans un dossier voisin du projet
+
+- Source : `server/src/cmds/Create.ts`, `checkIfProject`.
+- Reproduction automatisée : `command-notification-round10.test.mjs` configure le projet `app` puis lance la création dans `app-extra`.
+- Résultat actuel : `startsWith` classe le dossier voisin dans le projet et l'envoie à `localTemplateManager.createTemplate`.
+- Résultat attendu : comparer les segments des chemins avant de décider du projet parent.
+
+## Arrêt de surveillance d'un fichier
+
+- Source : `server/src/files/FilesWatcher.ts`, méthode `unwatch`.
+- Reproduction : appeler `watch(uri)` puis `unwatch(uri)` avec un watcher actif.
+- Résultat actuel : l'URI quitte la liste interne, mais `watcher.unwatch(path)` n'est jamais appelé.
+- Résultat attendu : le watcher sous-jacent cesse aussi de surveiller le chemin.
+
+## Notification de modification des réglages
+
+- Source : `server/src/notification/SetSettings.ts`, méthode `send`.
+- Reproduction automatisée : `notification-edge-round5.test.mjs` intercepte l'envoi et constate que la promesse de `SetSettings.send` reste pendante.
+- Résultat actuel : la notification est envoyée, mais la promesse créée n'appelle jamais `resolve` et reste en attente indéfiniment.
+- Décision à prendre : préciser si cette méthode doit renvoyer `void` ou une promesse liée à un accusé de réception réel.
+
+## Fin de la commande de formatage
+
+- Source : `server/src/cmds/Format.ts`, méthode `run`.
+- Reproduction : attendre `Format.run(uri)` avec un `showLoadingMessage` dont l'action de formatage est asynchrone.
+- Résultat actuel : `Format.run` se résout avant la fin de l'action et de l'écriture du fichier, car l'appel à `GenericServer.showLoadingMessage` n'est pas attendu.
+- Décision à prendre : confirmer si l'appelant doit pouvoir attendre la fin du formatage ; dans ce cas, retourner ou attendre cette promesse.
+
+## Fin des commandes de notification de fichiers
+
+- Source : `server/src/cmds/file-system/FileCreated.ts`, `FileUpdated.ts`, `FileDeleted.ts`.
+- Résultat actuel : `run` appelle le gestionnaire sans `return` ni `await`. La commande se termine avant l'action et ne transmet pas un éventuel rejet asynchrone.
+- Décision à prendre : préciser si la réponse de commande doit couvrir la fin du traitement ; dans ce cas, retourner ou attendre sa promesse.
+
+## Sélection répétée lors de la publication d'un package
+
+- Source : `server/src/cmds/store/PublishPackage.ts`, boucle sur les builds disponibles.
+- Résultat actuel avec deux builds : `GenericServer.Select` est appelé une première fois avec le premier build puis de nouveau avec les deux ; le second choix remplace le premier.
+- Résultat attendu : construire la liste entière, puis afficher une seule sélection.
+
+## Ajout d'une traduction sans effet observable
+
+- Source : `server/src/language-services/i18n/LanguageService.ts`, `addValueToFile`.
+- Reproduction automatisée : `i18n-add-value-round8.test.mjs` ajoute une clé et constate qu'aucune édition n'est renvoyée et que document, version et objet de traductions restent inchangés.
+- Résultat actuel : la méthode construit un objet et un nouveau `TextDocument`, sans appliquer le document au fichier ni le renvoyer.
+- Décision à prendre : définir l'effet attendu de la commande d'ajout de traduction avant un test de bout en bout.
+
+## Préfixe et capacités des traductions i18n
+
+- `AventusI18nFile.transformForExport` produit `Demo°°hello` lorsque le module est `Demo` et que `classInfo` est absent. Décider si le séparateur vide est voulu, s'il faut produire `Demo°hello`, ou signaler une erreur.
+- Les fichiers i18n renvoient actuellement une complétion vide et `null` pour hover, définition et renommage. Préciser si ces capacités du TODO sont attendues avant de figer les assertions.
+- `i18n-boundaries-round14.test.mjs` précise les limites de plage et la sélection multi-build ; les attentes positives de navigation restent à définir.
+
+## Mise à jour des manifestes
+
+- Les générateurs Custom Elements, HTML Custom Data, Emmet Custom Data et Web Types disposent de `register` mais d'aucune opération `unregister` ni remise à zéro publique. Un nouvel enregistrement peut donc ajouter une entrée en double ou laisser une entrée périmée.
+- Reproduction automatisée : `manifest-lifecycle-round10.test.mjs` change le tag d'un composant après un premier enregistrement ; les quatre formats conservent l'ancienne entrée en plus de la nouvelle.
+- Décision à prendre : reconstruire les manifestes lors de la modification, du renommage ou de la suppression d'un composant, ou exposer un mécanisme de retrait.
+
+## Sélection avec libellés homonymes
+
+- Source : `server/src/notification/AskSelect.ts`, méthode `resolve`.
+- Reproduction automatisée : `command-notification-round10.test.mjs` répond avec la première de deux options ayant le même `label`.
+- Résultat actuel : la réponse est remplacée par la dernière option portant ce libellé. Décider comment conserver un identifiant ou un index stable pour les options homonymes.
+
+## Migration 1.4.1 dans les valeurs JSON
+
+- Source : `server/src/updates/1.4.1.ts`.
+- Reproduction automatisée : `migrations-round10.test.mjs` contient le mot `dependances` dans une description JSON.
+- Résultat actuel : la migration remplace aussi ce mot dans la valeur. Décider si la transformation doit cibler seulement les clés de dépendances.
+
+## Scénarios d'intégration encore ouverts
+
+- Le protocole est testé au niveau des handlers et de l'adaptateur VS Code simulé. Un échange JSON-RPC réel avec `server.ts` reste à vérifier dans un processus isolé.
+- Le renommage détecté sur disque, la sélection de tous les services par extension et les projets complets demandent encore des fixtures intégrées. La fenêtre de deux secondes de `FilesManager.preventUpdateUri` est testée fonctionnellement sans horloge simulée pour sa durée exacte.
+- La compilation SCSS complète, les liens vue/classe/style, les composants HTML enregistrés dynamiquement et leurs interactions avec les builds demandent des fixtures de projet intégrées. Le chargement isolé du service HTML en bundle CommonJS échoue sur une dépendance circulaire ; cela ne démontre pas un défaut à l'exécution du serveur.
+- Le test HTTP de traversée de chemin confirme l'absence de divulgation ; le middleware journalise toutefois `ForbiddenError` sur stderr. Décider si ce journal est acceptable.
+- La génération Storybook est testée au niveau des titres et contenus MDX/stories. La copie complète des ressources depuis l'extension et la mise à jour après suppression demandent une fixture intégrée.
+- Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
+- `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
+
+## Nouvel essai de compilation npm après erreur
+
+- Source : `server/src/project/BuildNpm.ts`, méthode `compile`.
+- Reproduction automatisée : `npm-retry-round8.test.mjs` compile avec un module absent, installe le module, puis recompile avec les mêmes imports. La même erreur est renvoyée, même après `unregister()` et `register()` identiques.
+- Résultat actuel : les informations de compilation sont mises en cache avant le résultat d'esbuild ; `lastInfo` et `lastInfoToCompile` restent égaux au texte généré après l'échec.
+- Décision à prendre : relancer systématiquement après un échec ou invalider le cache lors de l'apparition du module.
+
+## Import npm nommé avec namespace du même module
+
+- Source : `server/src/project/BuildNpm.ts`, `NpmBuilder.writeFileToCompile`.
+- Reproduction automatisée : `npm-import-combinations-round9.test.mjs` compile puis exécute un module avec deux alias nommés et un alias `*`. Les alias nommés pointent vers l'objet namespace entier au lieu de la valeur exportée.
+- Décider si les alias nommés doivent rester des valeurs individuelles en présence d'un import global du même module.
+
+## Import npm wildcard invalide conservé
+
+- Source : `server/src/project/BuildNpm.ts`, `NpmBuilder.register` et `rebuildInfo`.
+- Reproduction automatisée : `npm-import-combinations-round9.test.mjs` enregistre `libName: '*'` sans alias. `register` lève, mais garde l'entrée dans `storedInfo` ; `rebuildInfo` échoue encore jusqu'au retrait du fichier.
+- Décider de valider avant l'enregistrement ou d'annuler l'entrée lors de l'exception.
+
+## Cycle de dépendances
+
+- Source : `server/src/project/DependencyManager.ts`, `orderLoop`.
+- Résultat actuel selon le parcours du code : un cycle `A → B → A` n'est pas détecté comme tel ; la récursion se termine en débordement de pile.
+- Décision à prendre : définir le diagnostic attendu pour un cycle avant d'ajouter un test actif.
+
+## Section Build générée invalide
+
+- Source : `server/src/cmds/AddConfigSection.ts`.
+- Résultat actuel : la commande écrit `compile` comme objet, alors que le schéma et le type `AventusConfigBuild` attendent un tableau. Le fichier généré ne peut donc plus être chargé comme configuration valide.
+- Test à activer après correction : valider sans diagnostic la configuration écrite par la commande.
+
+## README explicitement configuré lors de la publication d'un package
+
+- Source : `server/src/store/Store.ts`, méthode `publishPackage`.
+- Reproduction automatisée : `store.test.mjs` configure un fichier `CUSTOM-README.test.md` présent uniquement dans le projet. Le nom évite le `README.md` de la racine du dépôt, que le code trouve aussi depuis le répertoire courant.
+- Résultat actuel : `finalPath` devient absolu, puis `readFileSync(join(rootPath, finalPath))` recompose un chemin de type `D:\projet\D:\projet\CUSTOM-README.test.md` et lève `ENOENT` avant l'envoi.
+- Résultat attendu : lire le fichier README configuré et l'ajouter au formulaire.
+
+## Identifiants du store écrits dans la console
+
+- Source : `server/src/cmds/store/Connect.ts`, méthode `run`.
+- Reproduction automatisée : `store-commands.test.mjs` intercepte `console.log` et reçoit l'identifiant et le mot de passe de test après la saisie, avant `Store.connect`.
+- Résultat attendu : ne pas écrire le mot de passe ni l'identifiant dans les journaux du serveur.
+
+## Sortie statique conservée après suppression de la source
+
+- Source : `server/src/project/Static.ts`, méthode `export`.
+- Reproduction automatisée : `static-export-round8.test.mjs` exporte deux fichiers, supprime une source, puis rappelle `export()` en vérifiant que l'autre sortie est actualisée.
+- Résultat actuel : `output/data.txt` reste présent. Décider si la sortie doit être synchronisée avec les sources, en protégeant les fichiers d'autres builds.
+- `static-removal-categories-round43.test.mjs` confirme ce résultat sur deux destinations aussi pour une copie binaire, le CSS issu d'un SCSS et le CSS d'un style global ; les autres ressources sont bien actualisées.
+- Les sous-dossiers, contrairement à une hypothèse précédente, sont correctement exportés ; un test actif le confirme.
+
+## Compilation différée après destruction du build
+
+- Source : `server/src/project/Build.ts`, méthodes `build` et `destroy`.
+- Reproduction automatisée : `build-resource-lifecycle.test.mjs` planifie une compilation, détruit le build puis observe un appel à `_build()` après la notification de retrait. `destroy` n'annule pas `timerBuild`.
+- `project-destroy-round38.test.mjs` confirme le même comportement dans un vrai projet contenant un build et un export statique ; les abonnements et le watcher statique sont bien libérés, mais le timer du build se déclenche encore.
+- Résultat attendu : annuler la compilation différée et empêcher une écriture ou des diagnostics après destruction.
+
+## Suppression sur disque non attendue par le gestionnaire
+
+- Source : `server/src/files/FilesManager.ts`, `onUpdatedUri` et `onClose`.
+- Reproduction automatisée : `files-disk-events.test.mjs` utilise un callback de suppression retenu par une promesse contrôlée, puis attend `onUpdatedUri(uri)`.
+- Résultat actuel : la méthode appelle `onDeletedUri(uri)` sans `await` ; sa promesse se termine alors que le fichier reste dans le cache et que les callbacks de suppression n'ont pas fini.
+- Résultat attendu : clarifier si la promesse doit couvrir la suppression complète ; dans ce cas, l'attendre.
+
+## Correspondance d'espace de travail par préfixe brut
+
+- Source : `server/src/files/TemplateManager.ts`, `findWorkspace`.
+- Reproduction automatisée : `template-manager.test.mjs` cherche `D:\\apple\\src` avec `D:\\app` dans les espaces de travail, puis cherche un chemin enfant lorsque les racines sont `D:\\app` et `D:\\app\\feature`.
+- Résultat actuel : la méthode choisit le préfixe `D:\\app` dans les deux cas. Celui-ci n'est pas parent du dossier voisin, et la racine imbriquée plus précise n'est pas retenue.
+- Résultat attendu : comparer les segments des chemins normalisés et choisir le parent le plus précis.
+
+## Import npm par défaut
+
+- Source : `server/src/language-services/ts/parser/ImportInfo.ts`, branche de `ImportInfo.Parse` pour `import Item from "package"`.
+- Résultat actuel selon le code : une méthode statique passe `this.name` à `npmBuilder.register` et indexe `npmImports[this.name]` ; `this` désigne la classe, pas l'identifiant importé.
+- Test à activer après correction : vérifier `libName: 'default'`, `alias: 'Item'` et `npmImports.Item`.
+
+## Plusieurs tags HTML internes liés au même fichier
+
+- Source : `server/src/language-services/html/LanguageService.ts`, `removeInternalTagUri`.
+- Reproduction automatisée : `html-definition-lifecycle.test.mjs` associe deux tags à la même URI, les retire par source et constate que le second reste enregistré. Un tag provenant d'une autre URI est conservé.
+- Décision à prendre : retirer toutes les associations ou garantir qu'un fichier n'enregistre qu'un seul tag.
+
+## Intégrations encore à compléter après le deuxième passage
+
+- Le processus serveur échange désormais de vraies trames JSON-RPC pour `initialize`, `didOpen`, `didChange`, `didClose` et `hover`. L'initialisation complète d'un espace, la validation du contenu et les diagnostics de service restent à vérifier.
+- La sélection et l'installation de templates/projets locaux sont testées avec dossiers temporaires. L'exécution réelle du script dans son processus enfant, l'import Git/Store et le remplacement d'une installation restent à couvrir.
+- Le package Aventus est généré, relu et reconstruit dans les tests. Un build multi-fichiers complet avec vues, styles, npm et dépendances reste à vérifier.
+- Le modèle et une compilation simple TypeScript, la complétion et le formatage HTML, ainsi que les liens HTML–SCSS sont testés. Les décorateurs, composants complets, boucles conditionnelles et liens vue/classe restent à couvrir avec une fixture de projet.
+
+## Métadonnées npm mal formées
+
+- Source : `server/src/language-services/ts/libLoader.ts`, `loadNodeModules`.
+- Reproduction automatisée : `ts-lib-loader-round4.test.mjs` crée un paquet avec un `package.json` invalide.
+- Résultat actuel : `JSON.parse` lève `SyntaxError` et interrompt la découverte, y compris pour les autres paquets valides.
+- Décision à prendre : ignorer le paquet invalide avec un diagnostic ou interrompre explicitement le chargement.
+
+## Priorité des templates homonymes
+
+- Source : `server/src/files/TemplateManager.ts`, `readTemplates`.
+- Reproduction automatisée : `template-sources-round4.test.mjs` contrôle l'ordre de fin de deux `TemplateScript.create` de même nom, puis l'inverse. Le dernier terminé remplace l'autre, quel que soit l'ordre des répertoires. Le compteur `nb` vaut deux alors que le registre ne contient qu'un template.
+- Décision à prendre : définir la priorité des répertoires et si `nb` doit compter les scripts valides ou les noms disponibles.
+
+## Espaces de travail imbriqués
+
+- Source : `server/src/files/FilesManager.ts`, `loadAllAventusConfigFiles` et `loadAllAventusFiles`.
+- Reproduction automatisée : `files-multiworkspace-round4.test.mjs` fournit des racines parent et enfant et récupère deux objets distincts pour la même URI de configuration.
+- Un second test observe deux tentatives d'enregistrement pour chaque fichier enfant, configuration comprise, dans `loadAllAventusFiles`. Avec le cache réel, un troisième test confirme qu'un fichier logique déclenche une création puis un callback de changement de contenu sans changement réel. Définir si les racines ou les URI découvertes doivent être dédupliquées.
+
+## Découverte avec `readDirs` dans le répertoire temporaire du sandbox Windows
+
+- Source à examiner si nécessaire : `server/src/files/FilesManager.ts`, méthode `parseWorkspace`.
+- Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
+- Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
+
+## Enums et variables absents de la documentation des packages
+
+- Source : `server/src/manifest/ManifestPackage.ts`, constructeur de `ManifestPackageMd`.
+- Reproduction automatisée : `manifest-package-exports-round34.test.mjs` fournit une classe, une fonction, un enum et une variable exportés. Le Markdown contient la classe et la fonction, mais pas l'enum `Mode` ni la variable `VERSION`.
+- Les branches `InfoType.enum` et `InfoType.variable` sont commentées. Décision à prendre : définir leur format dans l'aperçu et les sections détaillées, puis activer leur génération.
+
+## Installation de l'environnement non attendue par son appelant
+
+- Source : `server/src/environment.ts`, `initEnvironnment` appelle `installEnvironment(...)` sans `await` dans son bloc `try`.
+- `environment-unix-round34.test.mjs` couvre l'écriture du profil Bash dans un dossier temporaire isolé. Un second test exécute l'initialiseur dans un processus enfant sans `HOME` : le rejet non intercepté termine le processus avec le code 1, ce qui confirme qu'il échappe au `catch`.
+- Décision à prendre : attendre l'installation pour garantir sa fin et la remontée des erreurs, puis tester une erreur de fichier ou de profil sans toucher au profil utilisateur réel.
+
+## Sorties statiques conservées après rechargement d'un projet
+
+- Source : `server/src/project/Project.ts`, `loadConfig` et `onConfigSave`.
+- Reproduction automatisée : `project-config-build-static-round33.test.mjs` charge deux builds et deux sorties statiques. Après une configuration qui les remplace par un build et une sortie, `getBuildsName()` ne contient que le nouveau build, mais `getStaticsName()` contient encore les deux anciennes sorties. Une configuration invalide supprime les builds et laisse les trois sorties statiques.
+- Les anciens objets `Static` restent accessibles à `getStatic` et `buildAll` même après `destroy()` ; le test vérifie que `buildAll()` réexporte les trois anciennes sorties après invalidation. Décision à prendre : vider la collection au rechargement et à l'invalidation, puis préciser le sort des fichiers déjà produits.
+
+## Condition HTML externe perdue avec une boucle interne
+
+- Reproduction automatisée : `html-nested-controls-round33.test.mjs` parse `if (ready) { for (const item of items) { <li>{{item}}</li> } }`. Le code compilé contient le contrôle externe, mais `ifs[0].conditions` est vide. Dans l'ordre inverse, la condition interne `item.active` est conservée.
+- Source à examiner : `server/src/language-services/html/parser/ParserHtml.ts`. Décider comment préserver les conditions des contrôles parents dans les structures imbriquées.
+
+## Expression HTML invalide sans erreur du parseur isolé
+
+- Reproduction automatisée : `html-nested-controls-round33.test.mjs` constate que `ParserHtml.parse` renvoie `errors: []` pour `<div :value="{{bad(}}"></div>`.
+- Décision à prendre : vérifier si la validation TypeScript ultérieure doit produire le diagnostic et définir sa plage source. Ce constat ne prouve pas l'absence de diagnostic dans le LSP complet.
+
+## Options d'objet des décorateurs `I18n` et `OverrideView`
+
+- Reproduction automatisée : `ts-decorators-options-round33.test.mjs` parse `@I18n({"autoInit":false})` et `@OverrideView({"removeViewVariables":["title","button"]})`. Dans ce parcours, `I18nDecorator.is` conserve `autoInit: true` et `OverrideViewDecorator.is` une liste vide, comme sans argument.
+- Décision à prendre : préciser la syntaxe d'objet acceptée et corriger la conversion ou le décodage des arguments pour que les options explicites prennent effet.
+
+## Mise à jour partielle de sorties après une erreur d'écriture
+
+- Reproduction automatisée : `build-error-recovery-round32.test.mjs` échoue sur l'écriture de la seconde configuration. La première sortie contient déjà la nouvelle révision, la seconde conserve l'ancienne, et aucune notification `aventus/compiled` n'annonce ce passage. Le build suivant réécrit correctement les deux sorties.
+- Décision à prendre : préciser si cet état partiel doit être signalé explicitement ou si les sorties doivent être publiées ensemble après toutes les écritures réussies.
+
+## Branche imbriquée absente dans un `Map`
+
+- Source : `server/src/tools.ts`, `setValueToObject`.
+- Reproduction automatisée : `tools-path-alias-round26.test.mjs` appelle `setValueToObject('parent.child', map, 42)` sur un `Map` vide. La branche est créée comme propriété `map.parent`, tandis que `map.get('parent')` reste `undefined`. Une clé simple est correctement ajoutée au `Map`.
+- Décision à prendre : déterminer si la fonction doit accepter un `Map` comme conteneur racine pour un chemin imbriqué ; si oui, créer les branches avec `Map.set` et adapter le test au résultat attendu.
+
+## Observation du contenu et des callbacks dans le cycle LSP
+
+- `jsonrpc-document-cycle-round30.test.mjs` traverse un vrai processus LSP : `didOpen`, deux `didChange`, `didSave`, suppression et `didClose`. Les diagnostics successifs prouvent indirectement l'application des contenus et leur effacement final.
+- Le protocole ne renvoie ni version/contenu du cache ni accusé de traitement de `didSave` ; ce test ne peut donc pas attester directement le callback de sauvegarde. Les tests unitaires de `FilesManager` couvrent ce chemin séparément.
+- Décision éventuelle : exposer un état ou une commande de diagnostic uniquement si la vérification bout en bout de ce callback est exigée. Aucun changement n'est requis par les assertions actuelles.
+
+## Première sauvegarde d'un document absent du cache
+
+- Source : `server/src/files/FilesManager.ts`, méthode `onSave`.
+- Reproduction : `files-protocol-audit-round27.test.mjs` enregistre un callback `onSave` lors de `onNewFile`, puis sauvegarde un document absent du cache. Le fichier est créé, mais le callback de sauvegarde ne s'exécute qu'au second `onSave`.
+- Décision à prendre : déterminer si le premier `didSave` doit également lancer les traitements de sauvegarde après l'enregistrement du fichier.
+
+## Sources npm obsolètes après reconstruction
+
+- Reproduction automatisée : `build-npm-package-round26.test.mjs` écrit un package avec `__src/obsolete.ts`, puis reconstruit les mêmes sorties sans cette source. `index.js` est actualisé, mais `__src/obsolete.ts` reste présent dans chaque destination.
+- Source : `server/src/project/Build.ts`, `writeBuildNpm`. La suppression préalable de `__src` est commentée.
+- Décision à prendre : préciser si la reconstruction doit supprimer les sources générées devenues obsolètes tout en préservant d'éventuels fichiers utilisateur. Après correction, exiger leur absence dans toutes les destinations.
+
+## Recherche de texte adjacente à une position contenant des espaces
+
+- Source : `server/src/tools.ts`, `checkTxtBefore` et `checkTxtAfter`.
+- Reproduction automatisée : `tools-adjacent-whitespace-round29.test.mjs` lance chaque recherche dans un worker isolé et constate qu'elle ne revient pas après avoir atteint un espace. Les deux boucles exécutent `continue` sans modifier `offset`.
+- Décision à prendre : avancer ou reculer l'offset sur les espaces, puis remplacer le test de caractérisation par des assertions sur les résultats et les positions.
+
+## Extraction des propriétés CSS de `:host` après un préfixe blanc
+
+- Source : `server/src/language-services/scss/LanguageService.ts`, `AventusSCSSLanguageService.getCustomProperty`.
+- Reproduction : `scss-component-boundaries-round24.test.mjs` extrait `--accent` de `:host { --internal-accent: var(--accent, red); }`, mais renvoie une liste vide si la feuille commence par `\n  `.
+- Cause possible à confirmer : le parcours démarre avec `getNodePath(doc, 0)`, hors de la règle après les blancs. Décider si la racine SCSS doit être parcourue indépendamment de l'offset initial, puis exiger l'extraction dans les deux cas.
+
+## Types des valeurs de traduction i18n
+
+- Source : `server/src/language-services/i18n/schema.ts` et `LanguageService.ts`.
+- Reproduction automatisée : `i18n-schema-round23.test.mjs` constate qu'une traduction numérique (`23`) ne produit aucun diagnostic et qu'une valeur booléenne (`false`) n'est pas signalée ; seul le manque de la locale `fr` est rapporté dans le second cas.
+- Décision à prendre : préciser si les traductions doivent obligatoirement être des chaînes. Si oui, compléter le schéma et vérifier les diagnostics à la plage de la valeur fautive.
+
+## Clés i18n homonymes entre fichiers globaux
+
+- Reproduction automatisée : `i18n-cross-files-round39.test.mjs` enregistre deux fichiers globaux avec la même clé. Les diagnostics restent propres à chaque fichier ; l'export `singleFile` garde la dernière valeur enregistrée pour une locale, tandis que `oneToOne` produit deux sorties distinctes.
+- Décision à prendre : autoriser explicitement la surcharge selon l'ordre d'enregistrement ou signaler le doublon entre fichiers. Un test normatif pourra être ajouté après ce choix.
+
+## Documentation des packages contenant seulement des fonctions
+
+- Source : `server/src/manifest/ManifestPackage.ts`, `ManifestPackageMd`.
+- Reproduction automatisée : `manifest-package.test.mjs` exporte uniquement une fonction TypeScript documentée.
+- Résultat actuel : `loadFunction` ajoute la fonction aux parties détaillées, mais pas aux aperçus. Le constructeur n'écrit le Markdown que si un aperçu existe ; il renvoie donc une chaîne vide. La même fonction est bien documentée lorsqu'une classe figure aussi dans le package.
+- Résultat attendu à confirmer : produire l'aperçu et la documentation des fonctions même sans classe exportée.
+
+## Définition locale dans un script de template
+
+- Reproduction automatisée : `template-script-navigation-round46.test.mjs` obtient la définition d'un membre de `AventusTemplate.d.ts`, mais reçoit `null` pour une propriété déclarée dans le `template.avt.ts` ouvert.
+- Source : `server/src/language-services/ts/template/LanguageService.ts`, `findDefinition()` demande `loadLibrary(d.fileName)` et écarte la définition locale lorsque ce chargement échoue.
+- Décision à prendre : préciser si la navigation vers les déclarations du script courant doit être prise en charge ; si oui, retourner la position dans le document ouvert.
+
+## Builds dupliqués après sauvegarde d'une configuration identique
+
+- Reproduction automatisée : `project-config-subscriptions-round47.test.mjs` crée deux builds, charge une autre configuration à deux builds, puis la sauvegarde de nouveau sans changement. `getBuildsName()` contient alors chaque build deux fois et les sorties statiques s'accumulent ; lors de l'invalidation suivante, les anciens identifiants d'abonnement sont retirés une seconde fois.
+- Cause probable : `Project.loadConfig()` revient tôt pour une configuration identique, tandis que `onConfigSave()` ajoute des objets sans vider `this.builds`.
+- Décision à prendre : conserver les objets et abonnements sur une sauvegarde identique, ou reconstruire la collection sans doublons. Vérifier ensuite noms, identités et abonnements.
+
+## Vue absente à l'ouverture d'un composant en fichier unique
+
+- Reproduction automatisée : `component-format-equivalence-round48.test.mjs` ouvre un composant contenant `<template>`, script et style. Les régions extraites compilent comme les fichiers séparés, mais `AventusWebComponentSingleFile.view` reste `undefined` après construction.
+- Source : `server/src/language-services/ts/component/SingleFile.ts`, `getDocuments()` déclare un second `let html` dans le bloc du template et masque la valeur retournée.
+- Décision à prendre : rattacher la vue dès l'ouverture et vérifier l'équivalence complète du cycle du composant.
+
+## Découverte locale de templates qui remplace le registre général
+
+- Reproduction automatisée : `template-priority-round48.test.mjs` trouve un nom identique dans les dossiers installés et locaux pour les trois familles de templates. La découverte locale remplace l'entrée du registre général et le compteur vaut 2 pour un seul nom accessible.
+- Décision à prendre : isoler le registre par workspace et compter les noms uniques, ou conserver explicitement cette priorité et compter les scripts lus.
+
+## Notification LSP de paramètres terminée avant leur chargement
+
+- Reproduction automatisée : `lsp-settings-live-round48.test.mjs` diffère la réponse du client pendant `GenericServer.onDidChangeConfiguration()`. Le gestionnaire rend la main avant l'application des nouveaux paramètres et données HTML.
+- Source : `server/src/GenericServer.ts`, appel à `loadSettings()` sans attendre sa promesse.
+- Décision à prendre : garantir que les requêtes suivantes voient les paramètres rechargés en attendant la fin du chargement, ou documenter ce délai.
