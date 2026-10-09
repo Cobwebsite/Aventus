@@ -1,11 +1,5 @@
 # Cas serveur en attente de changement de code
 
-## Import de templates globaux homonymes
-
-- Source : `server/src/files/TemplateManager.ts`, `getSelectItem` utilisé par `selectGlobalToImport`.
-- Reproduction automatisée : `template-global-round7.test.mjs` propose deux scripts globaux nommés `Shared`, sélectionne le second puis constate que le premier est copié.
-- La sélection compare uniquement le `label`, sans conserver l'identité de l'élément choisi. Décider comment distinguer les sources homonymes pendant l'import des projets, templates et templates globaux.
-
 ## Résolution des complétions TypeScript
 
 - Source : `server/src/language-services/ts/LanguageService.ts`, `doResolve`.

@@ -10,6 +10,7 @@ export interface SelectItem {
 	label: string,
 	detail: string,
 	picked?: boolean,
+	id?: string,
 }
 
 
