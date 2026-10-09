@@ -153,6 +153,7 @@ export class Manifest {
 		await this.customElements.write(dir);
 		await this.htmlCustomData.write(dir)
 		await this.emmetCustomData.write(dir)
+		await this.webTypes.write(dir);
 	}
 
 	public getTypeTxt(typeInfo: TypeInfo) {
