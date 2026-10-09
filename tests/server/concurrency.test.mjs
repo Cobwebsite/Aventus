@@ -33,6 +33,33 @@ test('Mutex grants the lock in arrival order', async () => {
     mutex.release();
 });
 
+test('Mutex can acquire again after disposal or an extra release', async () => {
+    const mutex = new Mutex();
+    await mutex.waitOne();
+    mutex.dispose();
+    await mutex.waitOne();
+    mutex.release();
+    mutex.release();
+    await mutex.waitOne();
+    mutex.release();
+});
+
+test('Mutex disposal currently abandons queued waiters without settling their promises', async () => {
+    const mutex = new Mutex();
+    await mutex.waitOne();
+    let settled = false;
+    const queued = mutex.waitOne().then(() => { settled = true; });
+    assert.equal(mutex.waitingList.length, 1);
+    mutex.dispose();
+    mutex.release();
+    await Promise.resolve();
+    assert.equal(settled, false);
+    assert.equal(mutex.waitingList.length, 0);
+    assert.ok(queued instanceof Promise);
+    await mutex.waitOne();
+    mutex.release();
+});
+
 test('ActionGuard shares one in-flight action for equal keys', async () => {
     const guard = new ActionGuard();
     const pending = deferred();
@@ -71,4 +98,15 @@ test('ActionGuard propagates a failure and permits a retry', async () => {
     await assert.rejects(first, /build failed/);
     await assert.rejects(second, /build failed/);
     assert.equal(await guard.run(['build'], async () => 'recovered'), 'recovered');
+});
+
+test('ActionGuard supports an action without keys and rejects a missing action', async () => {
+    const guard = new ActionGuard();
+    const pending = deferred();
+    const first = guard.run(() => pending.promise);
+    const second = guard.run(() => Promise.resolve('unexpected'));
+    assert.equal(first, second);
+    pending.resolve('done');
+    assert.equal(await first, 'done');
+    await assert.rejects(guard.run(['missing']), /No action inside the ActionGuard.run/);
 });
