@@ -109,7 +109,7 @@ test('global project creation delegates Init choice to local project creation', 
     }
 });
 
-test('homonymous global choices currently import the first source even when the second is selected', async () => {
+test('homonymous global choices import the selected source', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-global-duplicate-'));
     const base = join(root, 'extension', 'templates', 'global');
     const first = join(base, 'first');
@@ -130,7 +130,11 @@ test('homonymous global choices currently import the first source even when the 
         _extensionPath: join(root, 'extension'), logLevel: 99,
         connection: {
             Select: async () => ({ label: 'Local' }),
-            SelectMultiple: async items => { assert.deepEqual(items.map(item => item.label), ['Shared', 'Shared']); return [items[1]]; },
+            SelectMultiple: async items => {
+                assert.deepEqual(items.map(item => item.label), ['Shared', 'Shared']);
+                assert.notEqual(items[0].id, items[1].id);
+                return [{ ...items[1] }];
+            },
             showInformationMessage() {},
         },
     };
@@ -140,11 +144,58 @@ test('homonymous global choices currently import the first source even when the 
     manager.reloadGlobal = async () => {};
     try {
         await manager.selectGlobalToImport(false);
-        assert.equal(readFileSync(join(destination, 'first-target', 'source.txt'), 'utf8'), 'first');
-        assert.equal(existsSync(join(destination, 'second-target')), false);
+        assert.equal(existsSync(join(destination, 'first-target')), false);
+        assert.equal(readFileSync(join(destination, 'second-target', 'source.txt'), 'utf8'), 'second');
     } finally {
         GenericServer.instance = previousServer;
         TemplateScript.create = previousCreate;
         rmSync(root, { recursive: true, force: true });
     }
 });
+
+for (const family of ['projects', 'templates']) {
+    test(`homonymous ${family} import the selected source`, async () => {
+        const root = mkdtempSync(join(tmpdir(), `aventus-${family}-duplicate-`));
+        const base = join(root, 'extension', 'templates', family);
+        const first = join(base, 'first');
+        const second = join(base, 'second');
+        const destination = join(root, 'installed');
+        mkdirSync(first, { recursive: true });
+        mkdirSync(second, { recursive: true });
+        mkdirSync(destination);
+        writeFileSync(join(first, 'template.avt.ts'), 'first');
+        writeFileSync(join(second, 'template.avt.ts'), 'second');
+        writeFileSync(join(first, 'source.txt'), 'first');
+        writeFileSync(join(second, 'source.txt'), 'second');
+        const previousServer = GenericServer.instance;
+        const previousCreate = TemplateScript.create;
+        GenericServer.instance = {
+            _extensionPath: join(root, 'extension'), _template: { workspaces: [root] }, logLevel: 99,
+            connection: {
+                Select: async () => ({ label: 'Local' }),
+                SelectMultiple: async items => {
+                    assert.deepEqual(items.map(item => item.label), ['Shared', 'Shared']);
+                    assert.notEqual(items[0].id, items[1].id);
+                    return [{ ...items[1] }];
+                },
+                showInformationMessage() {},
+            },
+        };
+        TemplateScript.create = async path => ({ name: 'Shared', installationFolder: path.startsWith(first) ? 'first-target' : 'second-target' });
+        const manager = Object.create(TemplateManager.prototype);
+        manager.projectPath = [destination];
+        manager.templatePath = [destination];
+        manager.reloadProjects = async () => {};
+        manager.reloadTemplates = async () => {};
+        try {
+            if (family === 'projects') await manager.selectProjectToImport(false);
+            else await manager.selectTemplateToImport();
+            assert.equal(existsSync(join(destination, 'first-target')), false);
+            assert.equal(readFileSync(join(destination, 'second-target', 'source.txt'), 'utf8'), 'second');
+        } finally {
+            GenericServer.instance = previousServer;
+            TemplateScript.create = previousCreate;
+            rmSync(root, { recursive: true, force: true });
+        }
+    });
+}

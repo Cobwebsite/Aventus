@@ -255,10 +255,11 @@ export class CliConnection implements IConnection {
 			title += options.placeHolder;
 		}
 		let values: { value: string, name: string, checked?: boolean }[] = [];
-		for (let item of items) {
+		for (let index = 0; index < items.length; index++) {
+			let item = items[index];
 			let detail = item.detail ? item.label + " - " + item.detail : item.label;
 			values.push({
-				value: item.label,
+				value: String(index),
 				name: detail,
 				checked: item.picked ?? false
 			})
@@ -266,12 +267,7 @@ export class CliConnection implements IConnection {
 
 		let result = await RealServer.interaction.select(title, values);
 
-		for (let item of items) {
-			if (item.label == result) {
-				return item;
-			}
-		}
-		return null;
+		return result === null ? null : items[Number(result)] ?? null;
 	}
 	async SelectMultiple(items: SelectItem[], options: SelectOptions): Promise<SelectItem[] | null> {
 		let title = "";
@@ -285,10 +281,11 @@ export class CliConnection implements IConnection {
 			title += options.placeHolder;
 		}
 		let values: { value: string, name: string, checked: boolean }[] = [];
-		for (let item of items) {
+		for (let index = 0; index < items.length; index++) {
+			let item = items[index];
 			let detail = item.detail ? item.label + " - " + item.detail : item.label;
 			values.push({
-				value: item.label,
+				value: String(index),
 				name: detail,
 				checked: item.picked ?? false
 			})
@@ -299,11 +296,10 @@ export class CliConnection implements IConnection {
 			return null;
 		}
 		let ret: SelectItem[] = [];
-		for (let result of results) {
-			for (let item of items) {
-				if (item.label == result) {
-					ret.push(item);
-				}
+		for (const result of results) {
+			const item = items[Number(result)];
+			if (item !== undefined) {
+				ret.push(item);
 			}
 		}
 		return ret.length > 0 ? ret : null;

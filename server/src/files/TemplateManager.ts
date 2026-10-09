@@ -224,8 +224,9 @@ export class TemplateManager {
 								scripts[folderPath] = template;
 								let quickPick: SelectItem = {
 									label: template.name,
-									detail: template.description ?? "",
+									detail: [template.description, folder].filter(Boolean).join(' - '),
 									picked: picked,
+									id: folderPath,
 								}
 								quickPicks.set(quickPick, folderPath);
 							}
@@ -307,8 +308,9 @@ export class TemplateManager {
 								scripts[folderPath] = template;
 								let quickPick: SelectItem = {
 									label: template.name,
-									detail: template.description ?? "",
+									detail: [template.description, folder].filter(Boolean).join(' - '),
 									picked: false,
+									id: folderPath,
 								}
 								quickPicks.set(quickPick, folderPath);
 							}
@@ -388,8 +390,9 @@ export class TemplateManager {
 								scripts[folderPath] = template;
 								let quickPick: SelectItem = {
 									label: template.name,
-									detail: template.description ?? "",
+									detail: [template.description, folder].filter(Boolean).join(' - '),
 									picked: picked,
+									id: folderPath,
 								}
 								quickPicks.set(quickPick, folderPath);
 							}
@@ -552,8 +555,9 @@ export class TemplateManager {
 	}
 
 	private getSelectItem<T>(map: Map<SelectItem, T>, item: SelectItem) {
+		if (map.has(item)) return map.get(item) as T;
 		for (let key of map.keys()) {
-			if (key.label == item.label) {
+			if (item.id ? key.id === item.id : key.label === item.label && key.detail === item.detail) {
 				return map.get(key) as T;
 			}
 		}
