@@ -1,11 +1,5 @@
 # Cas serveur en attente de changement de code
 
-## Portée de la résolution des déclarations TypeScript
-
-- Source : `server/src/language-services/ts/parser/ParserTs.ts`, `getBaseInfo` et `getBaseInfoFullName`.
-- Reproduction automatisée : `ts-parser-resolution-round9.test.mjs` montre que `getBaseInfoFullName('Other.Card')` renvoie `Demo.Card`, en ne comparant que le dernier segment. Décider si un nom qualifié doit correspondre intégralement.
-- Le même test montre que `ParserTs.getBaseInfo('Foreign', ownerUri)` peut trouver une classe dans un autre fichier sans import dans le fichier demandeur. Définir la portée voulue entre fichiers et projets avant de figer un résultat attendu différent.
-
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
 ## Color picker : document sans saut de ligne

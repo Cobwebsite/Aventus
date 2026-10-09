@@ -108,17 +108,10 @@ export class ParserTs {
             const fullname = currentDoc.packages[name].fullname;
             const packageInfo = currentDoc.build.externalPackageInformation.getByFullName(fullname);
             if (packageInfo) {
-                let temp = this.parsedDoc[packageInfo.uri].result.getBaseInfo(fullname);
+                let temp = this.getCached(packageInfo.uri, currentDoc.build, true)?.getBaseInfoFullName(fullname);
                 if (temp) {
                     return temp;
                 }
-            }
-        }
-
-        for (let uri in this.parsedDoc) {
-            let temp = this.parsedDoc[uri].result.getBaseInfo(name);
-            if (temp) {
-                return temp;
             }
         }
         return null;
@@ -507,8 +500,9 @@ export class ParserTs {
     }
 
     public getBaseInfoFullName(fullName: string): BaseInfo | null {
-        const name: string = fullName.split(".").pop() ?? fullName;
-        return this.getBaseInfo(name);
+        const name = fullName.split(".").pop() ?? fullName;
+        const direct = this.getBaseInfo(fullName) ?? this.getBaseInfo(name);
+        return direct?.fullName === fullName ? direct : null;
     }
 
     public registerGeneratedImport(options: { uri: string, name: string, compiled: boolean, alias: string, onlySrc?: boolean, nameAlias?: string, forced: boolean }) {
