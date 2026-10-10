@@ -2,13 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Erreurs des premières configurations de compilation perdues
-
-- Source : `server/src/project/Build.ts`, méthode `_build`.
-- Reproduction automatisée : `build-pipeline-round17.test.mjs` lance deux configurations `compile` qui produisent chacune une erreur.
-- Résultat actuel : la notification `aventus/compiled` ne contient que l'erreur de la dernière configuration, car `buildErrors` est réaffecté à chaque `writeBuildCode`.
-- Décision : agréger les erreurs de toutes les configurations avant la notification si celle-ci doit représenter le build complet.
-
 ## Option `autoInit` quotée du décorateur Effect
 
 - Source : `server/src/language-services/ts/parser/decorators/EffectDecorator.ts` et construction des objets littéraux dans le parseur TypeScript.
