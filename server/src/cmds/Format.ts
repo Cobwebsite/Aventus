@@ -16,7 +16,7 @@ export class Format {
 		else {
 			uris = FilesManager.getInstance().getUris();
 		}
-		GenericServer.showLoadingMessage("Formatting " + uris.length + " files", async () => {
+		await GenericServer.showLoadingMessage("Formatting " + uris.length + " files", async () => {
 			for (let uriTemp of uris) {
 				let file = FilesManager.getInstance().getByUri(uriTemp);
 				if (file instanceof InternalAventusFile) {
