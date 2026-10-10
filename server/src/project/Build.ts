@@ -383,9 +383,8 @@ export class Build {
             let compilationInfo = await this.buildOrderCompilationInfo(compile);
             let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
 
-            buildErrors = await this.writeBuildCode(result, compilationInfo.libSrc, compile.output, compile.compressed);
-
-            buildErrors = [...buildErrors, ...compilationInfo.errors]
+            const outputErrors = await this.writeBuildCode(result, compilationInfo.libSrc, compile.output, compile.compressed);
+            buildErrors.push(...outputErrors, ...compilationInfo.errors);
 
             let srcInfo = {
                 namespace: this.buildConfig.module,

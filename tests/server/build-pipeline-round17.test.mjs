@@ -70,15 +70,28 @@ test('a build combines output and dependency errors from its final compile confi
         ['Demo@web', [outputError, dependencyError]]]);
 });
 
-test('a build currently reports only the final configuration errors', async t => {
+test('a build reports errors from every compile configuration', async t => {
     const firstError = { message: 'first output failed' };
+    const firstDependencyError = { message: 'first dependency missing' };
     const secondError = { message: 'second output failed' };
     const { build, events } = pipeline(t, [
-        { id: 'one', output: { errors: [firstError] }, package: 'one', outputNpm: { live: false } },
+        { id: 'one', output: { errors: [firstError] }, dependencyErrors: [firstDependencyError], package: 'one', outputNpm: { live: false } },
         { id: 'two', output: { errors: [secondError] }, package: 'two', outputNpm: { live: false } },
     ]);
 
     await build.build();
 
-    assert.deepEqual(events.at(-1), ['notification', 'aventus/compiled', ['Demo@web', [secondError]]]);
+    assert.deepEqual(events.at(-1), ['notification', 'aventus/compiled', ['Demo@web', [firstError, firstDependencyError, secondError]]]);
+});
+
+test('a successful final configuration does not erase earlier errors', async t => {
+    const firstError = { message: 'first output failed' };
+    const { build, events } = pipeline(t, [
+        { id: 'one', output: { errors: [firstError] }, package: 'one', outputNpm: { live: false } },
+        { id: 'two', output: { errors: [] }, package: 'two', outputNpm: { live: false } },
+    ]);
+
+    await build.build();
+
+    assert.deepEqual(events.at(-1), ['notification', 'aventus/compiled', ['Demo@web', [firstError]]]);
 });
