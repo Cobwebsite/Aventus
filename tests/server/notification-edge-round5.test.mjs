@@ -21,15 +21,14 @@ test('edit-file notification preserves grouped transformations and their order',
     }
 });
 
-test('settings notification sends values and scope but leaves its promise pending', async () => {
+test('settings notification sends values and scope without leaving a pending promise', () => {
     const sent = [];
     const previous = GenericServer.instance;
     GenericServer.instance = { connection: { sendNotification: (...args) => sent.push(args) } };
     try {
-        const pending = SetSettings.send({ logLevel: 2 }, true);
+        const result = SetSettings.send({ logLevel: 2 }, true);
         assert.deepEqual(sent, [['aventus/setsettings', [{ logLevel: 2 }, true]]]);
-        const state = await Promise.race([pending.then(() => 'resolved'), new Promise(resolve => setTimeout(() => resolve('pending'), 10))]);
-        assert.equal(state, 'pending');
+        assert.equal(result, undefined);
     } finally {
         GenericServer.instance = previous;
     }
