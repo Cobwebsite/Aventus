@@ -29,9 +29,9 @@ test('Effect reads explicit autoInit false from a parsed method decorator', () =
     assert.doesNotMatch(card.methods.refresh.compiledContent, /@Effect/);
 });
 
-test('Effect currently ignores a quoted autoInit property name', () => {
+test('Effect accepts a quoted autoInit property name', () => {
     const card = parse('export class Card { @Effect({"autoInit":false}) public refresh(): void {} }');
-    assert.equal(EffectDecorator.is(card.methods.refresh.decorators[0]).options.autoInit, true);
+    assert.equal(EffectDecorator.is(card.methods.refresh.decorators[0]).options.autoInit, false);
 });
 
 test('Effect retains default autoInit when options are missing or malformed', () => {

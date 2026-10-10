@@ -28,10 +28,10 @@ function parse(source) {
     return ParserTs.parse(file, false, build).classes.Card;
 }
 
-test('I18n and OverrideView keep defaults when object arguments cannot be decoded', () => {
+test('I18n reads quoted option names and OverrideView receives quoted string values', () => {
     const card = parse('@I18n({"autoInit":false}) @OverrideView({"removeViewVariables":["title","button"]}) export class Card {}');
-    assert.deepEqual(I18nDecorator.is(card.decorators[0]).options, { autoInit: true });
-    assert.deepEqual(OverrideViewDecorator.is(card.decorators[1]).removeViewVariables, []);
+    assert.deepEqual(I18nDecorator.is(card.decorators[0]).options, { autoInit: false });
+    assert.deepEqual(OverrideViewDecorator.is(card.decorators[1]).removeViewVariables, ['"title"', '"button"']);
     const defaults = parse('@I18n() @OverrideView() export class Card {}');
     assert.deepEqual(I18nDecorator.is(defaults.decorators[0]).options, { autoInit: true });
     assert.deepEqual(OverrideViewDecorator.is(defaults.decorators[1]).removeViewVariables, []);
