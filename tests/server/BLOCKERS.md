@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Sélection répétée lors de la publication d'un package
-
-- Source : `server/src/cmds/store/PublishPackage.ts`, boucle sur les builds disponibles.
-- Résultat actuel avec deux builds : `GenericServer.Select` est appelé une première fois avec le premier build puis de nouveau avec les deux ; le second choix remplace le premier.
-- Résultat attendu : construire la liste entière, puis afficher une seule sélection.
-
 ## Ajout d'une traduction sans effet observable
 
 - Source : `server/src/language-services/i18n/LanguageService.ts`, `addValueToFile`.

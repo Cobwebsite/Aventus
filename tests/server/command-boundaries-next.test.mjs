@@ -120,6 +120,9 @@ test('store package publication reports each service error and honors cancellati
         setBuilds([{ name: 'A', uri: 'file:///a' }, { name: 'B', uri: 'file:///b' }]);
         await commands['aventus.store.publish_package'].run();
         assert.deepEqual(calls, []);
+        assert.deepEqual(events, [['select', [
+            { label: 'A', detail: 'file:///a' }, { label: 'B', detail: 'file:///b' },
+        ], { title: 'Project to compile' }]]);
         events.length = 0;
         setSelection({ label: 'B', detail: 'file:///b' });
         setPublication(new QueryError([{ code: 1, message: 'Unauthorized' }, { code: 2, message: 'Invalid package' }]));
