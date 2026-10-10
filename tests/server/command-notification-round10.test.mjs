@@ -109,10 +109,11 @@ test('formatting continues after a file fails and writes the other formatted fil
     }
 });
 
-test('create classifies a sibling path with the same prefix as inside the project', async () => {
+test('create treats a sibling path as outside and a child path as inside the project', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-create-boundary-'));
     const projectPath = join(root, 'app');
     const siblingPath = join(root, 'app-extra');
+    const childPath = join(projectPath, 'src');
     const previousProject = ProjectManager.getInstance;
     const previousServer = GenericServer.instance;
     const calls = [];
@@ -124,9 +125,12 @@ test('create classifies a sibling path with the same prefix as inside the projec
     };
     try {
         await commands['aventus.create'].run(pathToUri(siblingPath));
-        assert.equal(calls.length, 1);
-        assert.equal(calls[0][0], 'template');
+        await commands['aventus.create'].run(pathToUri(childPath));
+        assert.equal(calls.length, 2);
+        assert.equal(calls[0][0], 'project');
         assert.equal(calls[0][1].toLowerCase(), siblingPath.toLowerCase());
+        assert.equal(calls[1][0], 'template');
+        assert.equal(calls[1][1].toLowerCase(), childPath.toLowerCase());
     } finally {
         ProjectManager.getInstance = previousProject;
         GenericServer.instance = previousServer;
