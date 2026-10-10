@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Fin des commandes de notification de fichiers
-
-- Source : `server/src/cmds/file-system/FileCreated.ts`, `FileUpdated.ts`, `FileDeleted.ts`.
-- Résultat actuel : `run` appelle le gestionnaire sans `return` ni `await`. La commande se termine avant l'action et ne transmet pas un éventuel rejet asynchrone.
-- Décision à prendre : préciser si la réponse de commande doit couvrir la fin du traitement ; dans ce cas, retourner ou attendre sa promesse.
-
 ## Sélection répétée lors de la publication d'un package
 
 - Source : `server/src/cmds/store/PublishPackage.ts`, boucle sur les builds disponibles.

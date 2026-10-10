@@ -6,7 +6,7 @@ export class FileDeleted {
 
 	public static async run(uri: string) {
 		if (uri) {
-			FilesManager.getInstance().onDeletedUri(uri);
+			await FilesManager.getInstance().onDeletedUri(uri);
 		}
 	}
 }

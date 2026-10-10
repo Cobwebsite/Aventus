@@ -5,7 +5,7 @@ export class FileUpdated {
 
 	public static async run(uri: string) {
 		if (uri) {
-			FilesManager.getInstance().onUpdatedUri(uri);
+			await FilesManager.getInstance().onUpdatedUri(uri);
 		}
 	}
 }
