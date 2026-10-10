@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Archive Store invalide conservée dans le dossier temporaire
-
-- Source : `server/src/files/TemplateManager.ts`, méthode `downloadTemplateFromStore`.
-- Reproduction automatisée : `template-store-archive-round17.test.mjs` télécharge une archive ZIP invalide ; l'installation est refusée, mais `temp/packageTemp/temp.zip` reste présent après le retour.
-- Décision : préciser si chaque échec de téléchargement, d'extraction ou de validation doit supprimer les fichiers temporaires avant une nouvelle tentative.
-
 ## Erreurs des premières configurations de compilation perdues
 
 - Source : `server/src/project/Build.ts`, méthode `_build`.

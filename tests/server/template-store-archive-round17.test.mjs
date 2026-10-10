@@ -80,7 +80,7 @@ test('invalid Store archive is rejected before an installation is created', asyn
         await manager.downloadTemplateFromStore(`${Store.url}/template/download/broken/1.2.3`);
         assert.deepEqual(errors, ['Error extracting package to analyze']);
         assert.equal(existsSync(join(root, 'templates', 'broken')), false);
-        assert.equal(existsSync(join(root, 'temp', 'packageTemp', 'temp.zip')), true);
+        assert.equal(existsSync(join(root, 'temp', 'packageTemp')), false);
     } finally {
         console.error = originalError;
         GenericServer.instance = previousServer;
