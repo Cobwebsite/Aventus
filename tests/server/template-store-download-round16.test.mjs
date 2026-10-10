@@ -115,3 +115,47 @@ test('Store download rejects an installation folder outside its root before extr
         rmSync(root, { recursive: true, force: true });
     }
 });
+
+for (const failure of ['download', 'analysis', 'validation', 'installation']) {
+    test(`Store download clears temporary files after ${failure} failure`, async () => {
+        const root = mkdtempSync(join(tmpdir(), `aventus-store-cleanup-${failure}-`));
+        const previousServer = GenericServer.instance;
+        const previousCreate = TemplateScript.create;
+        const temporary = join(root, 'temp', 'packageTemp');
+        mkdirSync(temporary, { recursive: true });
+        writeFileSync(join(temporary, 'stale.txt'), 'old attempt');
+        const errors = [];
+        const manager = Object.create(TemplateManager.prototype);
+        manager.templatePath = [join(root, 'templates')];
+        manager.projectPath = [join(root, 'projects')];
+        manager.globalPath = [join(root, 'global')];
+        GenericServer.instance = {
+            _savePath: root,
+            connection: { showErrorMessage: message => errors.push(message) },
+        };
+        manager.downloadFile = async path => {
+            assert.equal(existsSync(join(temporary, 'stale.txt')), false);
+            writeFileSync(path, 'archive fixture');
+            return failure !== 'download';
+        };
+        let extractionCount = 0;
+        manager.extractZip = async (path, output) => {
+            extractionCount++;
+            if (failure === 'analysis' || (failure === 'installation' && extractionCount === 2)) return false;
+            if (extractionCount === 1) writeFileSync(join(output, 'template.avt.ts'), 'fixture');
+            return true;
+        };
+        TemplateScript.create = async () => failure === 'validation' ? undefined : {
+            installationFolder: 'nested/sample', isProject: false, isGlobal: false,
+        };
+        try {
+            await manager.downloadTemplateFromStore(`${Store.url}/template/download/sample/1.2.3`);
+            assert.equal(existsSync(temporary), false);
+            assert.equal(errors.length, 1);
+        } finally {
+            TemplateScript.create = previousCreate;
+            GenericServer.instance = previousServer;
+            rmSync(root, { recursive: true, force: true });
+        }
+    });
+}

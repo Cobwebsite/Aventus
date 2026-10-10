@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ TemplateManager }, { TemplateScript }, { GenericServer }, { getInstallationPath }] = await loadServerModules([
-    'files/TemplateManager.ts', 'files/Template.ts', 'GenericServer.ts', 'files/InstallationPath.ts',
+const [{ TemplateManager }, { TemplateScript }, { GenericServer }] = await loadServerModules([
+    'files/TemplateManager.ts', 'files/Template.ts', 'GenericServer.ts',
 ]);
 
 for (const kind of ['templates', 'projects']) {
@@ -59,7 +59,7 @@ for (const kind of ['templates', 'projects']) {
 
 test('installation paths allow nested folders inside the root', () => {
     const root = join(tmpdir(), 'aventus-install-root');
-    assert.equal(getInstallationPath(root, 'nested\\sample'), join(root, 'nested', 'sample'));
-    assert.equal(getInstallationPath(root, 'nested/../sample'), join(root, 'sample'));
-    assert.equal(getInstallationPath(root, '.'), null);
+    assert.equal(TemplateManager.getInstallationPath(root, 'nested\\sample'), join(root, 'nested', 'sample'));
+    assert.equal(TemplateManager.getInstallationPath(root, 'nested/../sample'), join(root, 'sample'));
+    assert.equal(TemplateManager.getInstallationPath(root, '.'), null);
 });

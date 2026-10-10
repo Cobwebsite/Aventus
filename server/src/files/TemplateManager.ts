@@ -644,6 +644,7 @@ export class TemplateManager {
 	}
 
 	public async downloadTemplateFromStore(uri?: string) {
+		let packageTempPath: string | undefined;
 		try {
 			const regex = `^${Store.url.replace(/\//g, '\\/')}\\/template\\/download\\/(?<name>[^/]+)\\/(?<version>\\d+\\.\\d+\\.\\d+)$`
 			if (!uri) {
@@ -666,10 +667,9 @@ export class TemplateManager {
 			const packageName = match[1];
 			const packageVersion = match[2];
 
-			const packageTempPath = join(GenericServer.savePath, "temp", "packageTemp");
-			if (!existsSync(packageTempPath)) {
-				mkdirSync(packageTempPath, { recursive: true })
-			}
+			packageTempPath = join(GenericServer.savePath, "temp", "packageTemp");
+			rmSync(packageTempPath, { recursive: true, force: true });
+			mkdirSync(packageTempPath, { recursive: true });
 			let downloadPath = join(packageTempPath, "temp.zip");
 			if (!await this.downloadFile(downloadPath, uri)) {
 				GenericServer.showErrorMessage("Error downloading package");
@@ -711,7 +711,6 @@ export class TemplateManager {
 					await this.reloadTemplates();
 				}
 				GenericServer.showInformationMessage("Template " + packageName + " installed");
-				rmSync(packageTempPath, { force: true, recursive: true });
 			}
 			else {
 				GenericServer.showErrorMessage(AventusExtension.Template + " not found");
@@ -720,6 +719,10 @@ export class TemplateManager {
 		} catch (e) {
 			GenericServer.showErrorMessage("Error unknown");
 			console.error(e)
+		} finally {
+			if (packageTempPath) {
+				rmSync(packageTempPath, { recursive: true, force: true });
+			}
 		}
 	}
 
