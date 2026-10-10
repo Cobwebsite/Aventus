@@ -2,9 +2,8 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Préfixe et capacités des traductions i18n
+## Capacités des traductions i18n
 
-- `AventusI18nFile.transformForExport` produit `Demo°°hello` lorsque le module est `Demo` et que `classInfo` est absent. Décider si le séparateur vide est voulu, s'il faut produire `Demo°hello`, ou signaler une erreur.
 - Les fichiers i18n renvoient actuellement une complétion vide et `null` pour hover, définition et renommage. Préciser si ces capacités du TODO sont attendues avant de figer les assertions.
 - `i18n-boundaries-round14.test.mjs` précise les limites de plage et la sélection multi-build ; les attentes positives de navigation restent à définir.
 

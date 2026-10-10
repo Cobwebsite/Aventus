@@ -1088,6 +1088,11 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
     }
     protected async onDelete(): Promise<void> {
+		const i18nFile = this.I18nFile;
+		if (i18nFile) {
+			i18nFile.transformForExport();
+			await i18nFile.validate();
+		}
         await super.onDelete();
         this.build.scssLanguageService.removeInternalDefinition(this.file.uri);
         this.build.htmlLanguageService.removeInternalDefinition(this.file.uri);
