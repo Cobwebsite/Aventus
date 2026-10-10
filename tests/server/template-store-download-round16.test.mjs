@@ -81,3 +81,37 @@ test('Store download rejects an invalid URI before creating an archive', async (
         rmSync(root, { recursive: true, force: true });
     }
 });
+
+test('Store download rejects an installation folder outside its root before extracting there', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'aventus-store-path-'));
+    const previousServer = GenericServer.instance;
+    const previousCreate = TemplateScript.create;
+    const errors = [];
+    const extracts = [];
+    const manager = Object.create(TemplateManager.prototype);
+    manager.templatePath = [join(root, 'templates')];
+    manager.projectPath = [join(root, 'projects')];
+    manager.globalPath = [join(root, 'global')];
+    GenericServer.instance = {
+        _savePath: root,
+        connection: { showErrorMessage: message => errors.push(message) },
+    };
+    manager.downloadFile = async path => { writeFileSync(path, 'archive fixture'); return true; };
+    manager.extractZip = async (path, output) => {
+        extracts.push(output);
+        mkdirSync(output, { recursive: true });
+        writeFileSync(join(output, 'template.avt.ts'), 'fixture');
+        return true;
+    };
+    TemplateScript.create = async () => ({ installationFolder: '..\\outside', isProject: false, isGlobal: false });
+    try {
+        await manager.downloadTemplateFromStore(`${Store.url}/template/download/sample/1.2.3`);
+        assert.equal(extracts.length, 1);
+        assert.deepEqual(errors, ['Invalid installation folder']);
+        assert.equal(existsSync(join(root, 'outside')), false);
+    } finally {
+        TemplateScript.create = previousCreate;
+        GenericServer.instance = previousServer;
+        rmSync(root, { recursive: true, force: true });
+    }
+});

@@ -160,6 +160,27 @@ test('store publication submits template metadata, README and archive then clean
     }
 });
 
+test('store publication rejects unsafe installation folders before creating or sending an archive', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'aventus-store-invalid-path-'));
+    const oldPost = Store.postWithErrors;
+    const oldZip = Store.zip;
+    Store.postWithErrors = async () => assert.fail('invalid template must not be sent');
+    Store.zip = async () => assert.fail('invalid template must not be archived');
+    try {
+        for (const installationFolder of ['../outside', '..\\outside', 'nested/..\\..\\outside', '/absolute', 'C:\\absolute']) {
+            const result = await Store.publishTemplate({
+                folderPath: root, name: 'sample', installationFolder,
+            });
+            assert.ok(result instanceof QueryError);
+            assert.deepEqual(result.errors, [{ code: 422, message: 'Invalid installation folder' }]);
+        }
+    } finally {
+        Store.postWithErrors = oldPost;
+        Store.zip = oldZip;
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
 test('store package publication requires a built package and submits optional README', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-store-package-'));
     const output = join(root, 'output');

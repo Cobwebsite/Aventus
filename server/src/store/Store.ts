@@ -10,6 +10,7 @@ import { TemplateScript } from '../files/Template';
 import { create as createArchive } from 'archiver'
 import { GenericServer } from '../GenericServer';
 import { unlinkSync } from '../tools';
+import { TemplateManager } from '../files/TemplateManager';
 
 type StoreSettings = HiddenSettings["store"];
 
@@ -124,6 +125,9 @@ export class Store {
 	}
 
 	public static async publishTemplate(template: TemplateScript): Promise<boolean | QueryError> {
+		if (!TemplateManager.getInstallationPath(template.folderPath, template.installationFolder ?? template.name)) {
+			return new QueryError([{ code: 422, message: "Invalid installation folder" }]);
+		}
 		const form = new FormData();
 		form.append("name", template.name);
 		form.append("description", template.description);
