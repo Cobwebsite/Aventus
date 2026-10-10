@@ -23,6 +23,7 @@ export type onGetBuildType = () => Build[] | null;
 export type onGetFileApplyTextEditsType = () => TextDocument;
 
 export interface AventusFile {
+    readonly isDeleted: boolean;
     readonly documentUser: TextDocument;
     readonly documentInternal: TextDocument;
     uri: string;
@@ -190,6 +191,9 @@ export class InternalAventusFile implements AventusFile {
 
     private onValidateCb: { [uuid: string]: onValidateType } = {};
     private deleted = false;
+    public get isDeleted(): boolean {
+        return this.deleted;
+    }
     public async validate(sendDiagnostics: boolean = true): Promise<Diagnostic[]> {
         if (this.deleted) return [];
         let diagnostics: { [key: string]: Diagnostic } = {};

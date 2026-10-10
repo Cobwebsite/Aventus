@@ -8,7 +8,7 @@ import { I18nParsed, I18nParser } from './Parser';
 import { AventusExtension } from '../../definition';
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
 import { ClassInfo } from '../ts/parser/ClassInfo';
-import { EOL } from '../../tools';
+import { createErrorI18n, EOL } from '../../tools';
 
 export type AventusI18nFileSrcParsed = { [key: string]: { [locale: string]: string } };
 export type AventusI18nExported = { [locales: string]: { [key: string]: string } };
@@ -21,7 +21,7 @@ export class AventusI18nFile extends AventusBaseFile {
 
 	public get classInfo(): ClassInfo | undefined {
 		var tsFile = this.build.tsFiles[this.file.uri.replace(AventusExtension.I18n, AventusExtension.ComponentLogic)];
-		if (tsFile instanceof AventusWebComponentLogicalFile && tsFile.fileParsed) {
+		if (tsFile instanceof AventusWebComponentLogicalFile && !tsFile.file.isDeleted && tsFile.fileParsed) {
 			return tsFile.fileParsed.classes[tsFile.componentClassName];
 		}
 		return undefined
@@ -78,11 +78,15 @@ export class AventusI18nFile extends AventusBaseFile {
 			}
 		}
 		else {
-			let prefix = this.build.module + "°" + (this.classInfo?.fullName.replace(/\./g, "°") ?? '');
+			const classInfo = this.classInfo;
+			if (!classInfo) {
+				this.exported = result;
+				return;
+			}
+			let prefix = this.build.module + "°" + classInfo.fullName.replace(/\./g, "°");
 			if (prefix) {
 				prefix += '°';
 			}
-			this.build.module
 			for (let key in this.parsedSrc) {
 				for (let locale in this.parsedSrc[key]) {
 					if (!locales.includes(locale)) continue;
@@ -95,6 +99,9 @@ export class AventusI18nFile extends AventusBaseFile {
 	}
 	protected async onValidate(): Promise<Diagnostic[]> {
 		const diags: Diagnostic[] = await AventusI18nLanguageService.getInstance().validate(this);
+		if (!this.isGlobal && !this.classInfo) {
+			diags.push(createErrorI18n(this.file.documentUser, "No matching component class found for this translation file"));
+		}
 		return diags;
 	}
 	protected async onSave(): Promise<void> {
