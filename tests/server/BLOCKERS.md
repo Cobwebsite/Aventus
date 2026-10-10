@@ -2,13 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Fusion lancée depuis le fichier de style
-
-- Source : `server/src/cmds/MergeComponent.ts`, expression `regex` de `run`.
-- Reproduction : composant séparé `Button.wcl.avt`, `Button.wcv.avt`, `Button.wcs.avt` ; lancer la fusion depuis `Button.wcs.avt`.
-- Résultat actuel selon le code : la regex répète `.wcv.avt` et ne reconnaît pas `.wcs.avt`. Les sources ne sont pas retrouvées, la suppression du dossier peut échouer et une sortie au nom erroné peut déjà avoir été écrite.
-- Résultat attendu : fusion identique depuis chacun des trois fichiers, sans sortie partielle.
-
 ## Création dans un dossier voisin du projet
 
 - Source : `server/src/cmds/Create.ts`, `checkIfProject`.
