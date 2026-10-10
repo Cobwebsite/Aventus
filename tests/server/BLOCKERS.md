@@ -2,13 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Création dans un dossier voisin du projet
-
-- Source : `server/src/cmds/Create.ts`, `checkIfProject`.
-- Reproduction automatisée : `command-notification-round10.test.mjs` configure le projet `app` puis lance la création dans `app-extra`.
-- Résultat actuel : `startsWith` classe le dossier voisin dans le projet et l'envoie à `localTemplateManager.createTemplate`.
-- Résultat attendu : comparer les segments des chemins avant de décider du projet parent.
-
 ## Arrêt de surveillance d'un fichier
 
 - Source : `server/src/files/FilesWatcher.ts`, méthode `unwatch`.

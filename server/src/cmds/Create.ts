@@ -1,8 +1,7 @@
 import { uriToPath } from '../tools';
 import { ProjectManager } from '../project/ProjectManager';
 import { GenericServer } from '../GenericServer';
-import { normalize } from 'path';
-import { AventusExtension } from '../definition';
+import { dirname, isAbsolute, normalize, relative, sep } from 'path';
 
 
 export class Create {
@@ -14,7 +13,7 @@ export class Create {
 		}
 		let path = normalize(uriToPath(uri));
 
-		if (Create.checkIfProject(uri)) {
+		if (Create.checkIfProject(path)) {
 			if (!GenericServer.isIDE) {
 				let resultTemp = await GenericServer.SelectFolder("Select where to create", path);
 				if (!resultTemp) {
@@ -31,11 +30,13 @@ export class Create {
 	}
 
 	//#region tools
-	private static checkIfProject(uri: string) {
-		let uris = ProjectManager.getInstance().getAllConfigFiles();
-		let norm = uri.replace(/\\/g, "/");
-		for (let uriTemp of uris) {
-			if (norm.startsWith(uriTemp.replace("/" + AventusExtension.Config, ""))) {
+	private static checkIfProject(path: string) {
+		for (const configUri of ProjectManager.getInstance().getAllConfigFiles()) {
+			const projectPath = dirname(normalize(uriToPath(configUri)));
+			const fromProject = relative(projectPath, path);
+
+			if(fromProject === '') return true;
+			if(fromProject !== '..' && !fromProject.startsWith('..' + sep) && !isAbsolute(fromProject)) {
 				return true;
 			}
 		}
