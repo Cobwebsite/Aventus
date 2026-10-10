@@ -2,13 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Ajout d'une traduction sans effet observable
-
-- Source : `server/src/language-services/i18n/LanguageService.ts`, `addValueToFile`.
-- Reproduction automatisée : `i18n-add-value-round8.test.mjs` ajoute une clé et constate qu'aucune édition n'est renvoyée et que document, version et objet de traductions restent inchangés.
-- Résultat actuel : la méthode construit un objet et un nouveau `TextDocument`, sans appliquer le document au fichier ni le renvoyer.
-- Décision à prendre : définir l'effet attendu de la commande d'ajout de traduction avant un test de bout en bout.
-
 ## Préfixe et capacités des traductions i18n
 
 - `AventusI18nFile.transformForExport` produit `Demo°°hello` lorsque le module est `Demo` et que `classInfo` est absent. Décider si le séparateur vide est voulu, s'il faut produire `Demo°hello`, ou signaler une erreur.
