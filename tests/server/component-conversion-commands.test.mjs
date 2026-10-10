@@ -18,9 +18,10 @@ const { pathToUri } = toolsModule;
 
 async function withFiles(callback) {
     const root = mkdtempSync(join(tmpdir(), 'aventus-component-command-'));
-    const originals = { files: FilesManager.getInstance, notify: GenericServer.sendNotification };
+    const originals = { files: FilesManager.getInstance, notify: GenericServer.sendNotification, error: GenericServer.showErrorMessage };
     const files = new Map();
     const notifications = [];
+    const errors = [];
     const manager = {
         getByUri: uri => files.get(uri),
         onClose: async document => { files.delete(document.uri); },
@@ -28,11 +29,13 @@ async function withFiles(callback) {
     };
     FilesManager.getInstance = () => manager;
     GenericServer.sendNotification = (...args) => { notifications.push(args); };
+    GenericServer.showErrorMessage = message => { errors.push(message); };
     try {
-        await callback({ root, files, notifications });
+        await callback({ root, files, notifications, errors });
     } finally {
         FilesManager.getInstance = originals.files;
         GenericServer.sendNotification = originals.notify;
+        GenericServer.showErrorMessage = originals.error;
         rmSync(root, { recursive: true, force: true });
     }
 }
@@ -75,7 +78,8 @@ test('split component writes three files, updates the registry and reports close
     });
 });
 
-test('merge component writes a single file, removes sources and reports close/open', async () => {
+for (const sourceExtension of ['wcl.avt', 'wcv.avt', 'wcs.avt']) {
+test(`merge component from ${sourceExtension} writes a single file and removes sources`, async () => {
     await withFiles(async ({ root, files, notifications }) => {
         const folder = join(root, 'Button');
         mkdirSync(folder);
@@ -90,7 +94,7 @@ test('merge component writes a single file, removes sources and reports close/op
             files.set(uri, makeFile(TextDocument.create(uri, 'text', version, text)));
         }
 
-        await MergeComponent.run(pathToUri(join(folder, 'Button.wcl.avt')));
+        await MergeComponent.run(pathToUri(join(folder, `Button.${sourceExtension}`)));
 
         const mergedPath = join(root, 'Button.wc.avt');
         const merged = readFileSync(mergedPath, 'utf8');
@@ -102,6 +106,47 @@ test('merge component writes a single file, removes sources and reports close/op
         assert.deepEqual(notifications.map(([channel]) => channel), [
             'aventus/closefile', 'aventus/closefile', 'aventus/closefile', 'aventus/openfile',
         ]);
+    });
+});
+}
+
+test('merge leaves sources and destination untouched when the selected source is missing', async () => {
+    await withFiles(async ({ root, files, notifications }) => {
+        const folder = join(root, 'Button');
+        mkdirSync(folder);
+        const path = join(folder, 'Button.wcl.avt');
+        const uri = pathToUri(path);
+        writeFileSync(path, 'export class Button {}');
+        files.set(uri, makeFile(TextDocument.create(uri, 'text', 1, 'export class Button {}')));
+
+        await MergeComponent.run(pathToUri(join(folder, 'Button.wcs.avt')));
+
+        assert.equal(readFileSync(path, 'utf8'), 'export class Button {}');
+        assert.equal(existsSync(join(root, 'Button.wc.avt')), false);
+        assert.deepEqual(notifications, []);
+    });
+});
+
+test('merge reports other files and leaves sources untouched', async () => {
+    await withFiles(async ({ root, files, notifications, errors }) => {
+        const folder = join(root, 'Button');
+        mkdirSync(folder);
+        const path = join(folder, 'Button.wcl.avt');
+        const uri = pathToUri(path);
+        writeFileSync(path, 'export class Button {}');
+        writeFileSync(join(folder, 'notes.txt'), 'keep');
+        writeFileSync(join(folder, 'data.json'), '{}');
+        files.set(uri, makeFile(TextDocument.create(uri, 'text', 1, 'export class Button {}')));
+
+        await MergeComponent.run(uri);
+
+        assert.equal(existsSync(join(root, 'Button.wc.avt')), false);
+        assert.equal(readFileSync(path, 'utf8'), 'export class Button {}');
+        assert.deepEqual(notifications, []);
+        assert.equal(errors.length, 1);
+        assert.match(errors[0], /Cannot merge component/);
+        assert.match(errors[0], /notes\.txt/);
+        assert.match(errors[0], /data\.json/);
     });
 });
 

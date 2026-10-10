@@ -1,10 +1,11 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { rmdirSync, writeFileSync } from 'fs';
+import { existsSync, readdirSync, rmdirSync, writeFileSync } from 'fs';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { FilesManager } from '../files/FilesManager';
 import { CloseFile } from '../notification/CloseFile';
 import { OpenFile } from '../notification/OpenFile';
 import { unlinkSync, uriToPath } from '../tools';
+import { GenericServer } from '../GenericServer';
 
 export class MergeComponent {
 	static cmd: string = "aventus.component.merge";
@@ -14,8 +15,10 @@ export class MergeComponent {
 		if (!uri) {
 			return;
 		}
-		let regex = new RegExp("(" + AventusExtension.ComponentLogic + ")|(" + AventusExtension.ComponentView + ")|(" + AventusExtension.ComponentView + ")$");
-		let fileUriNoExtension = uri.replace(regex, '');
+		const extensions = [AventusExtension.ComponentLogic, AventusExtension.ComponentView, AventusExtension.ComponentStyle];
+		const extension = extensions.find(value => uri.endsWith(value));
+		if (!extension) return;
+		let fileUriNoExtension = uri.slice(0, -extension.length);
 
 		let splittedUri = fileUriNoExtension.split('/');
 		let filename = splittedUri.pop();
@@ -35,7 +38,18 @@ export class MergeComponent {
 		let htmlDoc = FilesManager.getInstance().getByUri(fileUriNoExtension + AventusExtension.ComponentView);
 		if (htmlDoc && htmlDoc.versionUser > maxVersion) { maxVersion = htmlDoc.versionUser; }
 		let htmlTxt = htmlDoc ? htmlDoc.contentUser : "";
-
+		
+		const sourceDocs = [jsDoc, scssDoc, htmlDoc].filter(doc => doc !== undefined);
+		if (!sourceDocs.some(doc => doc.uri === uri)) return;
+		const folderPath = uriToPath(splittedUri.join('/') + '/' + foldername);
+		const sourceNames = new Set(sourceDocs.map(doc => doc.path.split(/[\\/]/).pop()));
+		if (!existsSync(folderPath)) return;
+		const unexpectedFiles = readdirSync(folderPath).filter(name => !sourceNames.has(name));
+		if (unexpectedFiles.length > 0) {
+			GenericServer.showErrorMessage("Cannot merge component because the folder contains other files: " + unexpectedFiles.join(", "));
+			return;
+		}
+		if (sourceDocs.some(doc => !existsSync(doc.path))) return;
 
 		let mergeTxt =
 			`
@@ -74,7 +88,7 @@ export class MergeComponent {
 			CloseFile.send(htmlDoc.uri);
 		}
 
-		rmdirSync(uriToPath(splittedUri.join('/') + '/' + foldername));
+		rmdirSync(folderPath);
 
 		FilesManager.getInstance().registerFile(compDoc);
 		OpenFile.send(compDoc.uri);
