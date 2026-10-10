@@ -22,16 +22,16 @@ export class StorePublishPackage {
 				detail: builds[0].uri,
 			}
 		}
-		else {
+		else if (builds.length > 1) {
 			for (let build of builds) {
 				items.push({
 					label: build.name,
 					detail: build.uri
 				})
-				result = await GenericServer.Select(items, {
-					title: 'Project to compile'
-				})
 			}
+			result = await GenericServer.Select(items, {
+				title: 'Project to compile'
+			})
 		}
 
 
