@@ -2,10 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
 
-## CodeLens du script de template
-
-- `AventusTemplateLanguageService.onCodeLens` renvoie toujours un tableau vide. Les références et le renommage sont implémentés et testés.
-
 ## Dossier d'installation fourni par un template
 
 - Source : `server/src/files/TemplateManager.ts`, imports locaux et `downloadTemplateFromStore`.
