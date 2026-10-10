@@ -42,6 +42,33 @@ test('client file notifications delegate each URI exactly once and ignore empty 
     }
 });
 
+for (const [command, handler] of [
+    ['created', 'onCreatedUri'], ['updated', 'onUpdatedUri'], ['deleted', 'onDeletedUri'],
+]) {
+    test(`${command} command waits for its handler and forwards failures`, async () => {
+        const previous = FilesManager.getInstance;
+        let release;
+        const gate = new Promise(resolve => { release = resolve; });
+        let finished = false;
+        FilesManager.getInstance = () => ({ [handler]: async () => { await gate; } });
+        try {
+            const running = commands[`aventus.filesystem.${command}`].run('file:///a.wcl.avt').then(() => { finished = true; });
+            await Promise.resolve();
+            assert.equal(finished, false);
+            release();
+            await running;
+            assert.equal(finished, true);
+
+            const failure = new Error(`${command} failed`);
+            FilesManager.getInstance = () => ({ [handler]: async () => { throw failure; } });
+            await assert.rejects(commands[`aventus.filesystem.${command}`].run('file:///a.wcl.avt'), error => error === failure);
+        } finally {
+            release();
+            FilesManager.getInstance = previous;
+        }
+    });
+}
+
 function withStore(run) {
     const previous = {
         settings: Store._settings, publishPackage: Store.publishPackage,
