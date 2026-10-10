@@ -1,13 +1,6 @@
 # Cas serveur en attente de changement de code
 
-Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Aucun changement de `server/src` ne doit être fait pour ces points avant la revue globale avec l'utilisateur.
-
-## Dossier d'installation fourni par un template
-
-- Source : `server/src/files/TemplateManager.ts`, imports locaux et `downloadTemplateFromStore`.
-- Reproduction automatisée : `template-installation-path-round19.test.mjs` importe un template puis un projet local avec `installationFolder: '../outside'`. Les deux écritures arrivent dans un dossier voisin de la racine d'installation configurée.
-- Résultat actuel : `installationFolder` est ajouté à la racine sans vérifier que le chemin final y reste.
-- Décision à prendre : limiter ce champ à un chemin interne à la racine, puis tester également les chemins absolus et les séparateurs mixtes.
+Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
 ## Archive Store invalide conservée dans le dossier temporaire
 

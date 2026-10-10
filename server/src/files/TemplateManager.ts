@@ -1,6 +1,6 @@
 import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'fs';
 import { GenericServer } from '../GenericServer';
-import { dirname, join, normalize, sep } from 'path';
+import { dirname, join, normalize, relative, resolve, sep, win32 } from 'path';
 import { SelectItem } from '../IConnection';
 import { TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
@@ -15,6 +15,19 @@ import { Store } from '../store/Store';
 export type TemplatesByName = { [name: string]: TemplateScript | TemplatesByName }
 
 export class TemplateManager {
+	public static getInstallationPath(root: string, folder: string): string | null {
+		if (!folder || /^[\\/]/.test(folder) || win32.isAbsolute(folder) || /^[A-Za-z]:/.test(folder)) {
+			return null;
+		}
+		const destination = resolve(root, folder.replace(/[\\/]/g, sep));
+		const pathFromRoot = relative(resolve(root), destination);
+		if (!pathFromRoot || pathFromRoot === '..' || pathFromRoot.startsWith('..' + sep)) {
+			return null;
+		}
+		return destination;
+	}
+
+
 	private templatePath: string[] = [];
 	private projectPath: string[] = [];
 	private globalPath: string[] = [];
@@ -238,22 +251,26 @@ export class TemplateManager {
 				title: "Select projects to import",
 			});
 			if (result) {
+				let installed = false;
 				for (let item of result) {
 					let path = this.getSelectItem(quickPicks, item);
 					if (path) {
-						let folderName = scripts[path].installationFolder ?? path.split(sep).pop()!;
-						folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
-						if (!folderName.startsWith(sep)) {
-							folderName = sep + folderName;
+						const folderName = scripts[path].installationFolder ?? path.split(sep).pop()!;
+						const destPath = TemplateManager.getInstallationPath(this.projectPath[0], folderName);
+						if (!destPath) {
+							GenericServer.showErrorMessage("Invalid installation folder");
+							continue;
 						}
-						let destPath = this.projectPath[0] + folderName;
 						if (existsSync(destPath)) {
 							rmSync(destPath, { recursive: true, force: true })
 						}
 						cpSync(path, destPath, { force: true, recursive: true })
+						installed = true;
 					}
 				}
-				GenericServer.showInformationMessage("Projects installed");
+				if (installed) {
+					GenericServer.showInformationMessage("Projects installed");
+				}
 			}
 		}
 		else if (sourceResult.label == "Git") {
@@ -324,24 +341,28 @@ export class TemplateManager {
 			});
 
 			if (result) {
+				let installed = false;
 				for (let item of result) {
 					let path = this.getSelectItem(quickPicks, item);
 
 					if (path) {
-						let folderName = scripts[path].installationFolder ?? path.split(sep).pop()!;
-						folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
-						if (!folderName.startsWith(sep)) {
-							folderName = sep + folderName;
+						const folderName = scripts[path].installationFolder ?? path.split(sep).pop()!;
+						const destPath = TemplateManager.getInstallationPath(this.templatePath[0], folderName);
+						if (!destPath) {
+							GenericServer.showErrorMessage("Invalid installation folder");
+							continue;
 						}
-						let destPath = this.templatePath[0] + folderName;
 						if (existsSync(destPath)) {
 							rmSync(destPath, { recursive: true, force: true })
 						}
 						cpSync(path, destPath, { force: true, recursive: true })
+						installed = true;
 					}
 				}
-				GenericServer.showInformationMessage("Templates installed");
-				await this.reloadTemplates();
+				if (installed) {
+					GenericServer.showInformationMessage("Templates installed");
+					await this.reloadTemplates();
+				}
 			}
 		}
 		else if (sourceResult.label == "Git") {
@@ -404,22 +425,26 @@ export class TemplateManager {
 				title: "Select global templates to import",
 			});
 			if (result) {
+				let installed = false;
 				for (let item of result) {
 					let path = this.getSelectItem(quickPicks, item);
 					if (path) {
-						let folderName = scripts[path].installationFolder ?? path.split(sep).pop()!;
-						folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
-						if (!folderName.startsWith(sep)) {
-							folderName = sep + folderName;
+						const folderName = scripts[path].installationFolder ?? path.split(sep).pop()!;
+						const destPath = TemplateManager.getInstallationPath(this.globalPath[0], folderName);
+						if (!destPath) {
+							GenericServer.showErrorMessage("Invalid installation folder");
+							continue;
 						}
-						let destPath = this.globalPath[0] + folderName;
 						if (existsSync(destPath)) {
 							rmSync(destPath, { recursive: true, force: true })
 						}
 						cpSync(path, destPath, { force: true, recursive: true })
+						installed = true;
 					}
 				}
-				GenericServer.showInformationMessage("Global templates installed");
+				if (installed) {
+					GenericServer.showInformationMessage("Global templates installed");
+				}
 			}
 		}
 		else if (sourceResult.label == "Git") {
@@ -665,12 +690,12 @@ export class TemplateManager {
 
 				const writeBasePath = temp.isGlobal ? this.globalPath[0] : temp.isProject ? this.projectPath[0] : this.templatePath[0];
 
-				let folderName = temp.installationFolder ?? packageName;
-				folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
-				if (!folderName.startsWith(sep)) {
-					folderName = sep + folderName;
+				const folderName = temp.installationFolder ?? packageName;
+				const destPath = TemplateManager.getInstallationPath(writeBasePath, folderName);
+				if (!destPath) {
+					GenericServer.showErrorMessage("Invalid installation folder");
+					return;
 				}
-				let destPath = writeBasePath + folderName;
 				if (!await this.extractZip(downloadPath, destPath)) {
 					GenericServer.showErrorMessage("Error extracting package");
 					return;
