@@ -61,7 +61,7 @@ export class VsCodeConnection implements IConnection {
 		})
 	}
 	public async setSettings(settings: Partial<Settings>, global: boolean): Promise<void> {
-		await SetSettings.send(settings, global);
+		SetSettings.send(settings, global);
 	}
 	public async getSettingsHtml(): Promise<Partial<SettingsHtml>> {
 		return this._connection.workspace.getConfiguration({

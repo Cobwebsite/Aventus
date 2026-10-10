@@ -2,13 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Notification de modification des réglages
-
-- Source : `server/src/notification/SetSettings.ts`, méthode `send`.
-- Reproduction automatisée : `notification-edge-round5.test.mjs` intercepte l'envoi et constate que la promesse de `SetSettings.send` reste pendante.
-- Résultat actuel : la notification est envoyée, mais la promesse créée n'appelle jamais `resolve` et reste en attente indéfiniment.
-- Décision à prendre : préciser si cette méthode doit renvoyer `void` ou une promesse liée à un accusé de réception réel.
-
 ## Fin de la commande de formatage
 
 - Source : `server/src/cmds/Format.ts`, méthode `run`.
