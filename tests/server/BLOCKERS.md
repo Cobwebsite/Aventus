@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Option `autoInit` quotée du décorateur Effect
-
-- Source : `server/src/language-services/ts/parser/decorators/EffectDecorator.ts` et construction des objets littéraux dans le parseur TypeScript.
-- Reproduction automatisée : `ts-reactive-decorators-round19.test.mjs` compare `@Effect({autoInit:false})` à `@Effect({"autoInit":false})`.
-- Résultat actuel : la clé non quotée donne `false`, tandis que la clé quotée conserve la valeur par défaut `true`. Décider si les noms de propriétés quotés doivent être acceptés, puis normaliser leur lecture si oui.
-
 ## Fusion lancée depuis le fichier de style
 
 - Source : `server/src/cmds/MergeComponent.ts`, expression `regex` de `run`.
@@ -241,10 +235,10 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `html-nested-controls-round33.test.mjs` constate que `ParserHtml.parse` renvoie `errors: []` pour `<div :value="{{bad(}}"></div>`.
 - Décision à prendre : vérifier si la validation TypeScript ultérieure doit produire le diagnostic et définir sa plage source. Ce constat ne prouve pas l'absence de diagnostic dans le LSP complet.
 
-## Options d'objet des décorateurs `I18n` et `OverrideView`
+## Valeurs textuelles des options du décorateur `OverrideView`
 
-- Reproduction automatisée : `ts-decorators-options-round33.test.mjs` parse `@I18n({"autoInit":false})` et `@OverrideView({"removeViewVariables":["title","button"]})`. Dans ce parcours, `I18nDecorator.is` conserve `autoInit: true` et `OverrideViewDecorator.is` une liste vide, comme sans argument.
-- Décision à prendre : préciser la syntaxe d'objet acceptée et corriger la conversion ou le décodage des arguments pour que les options explicites prennent effet.
+- Reproduction automatisée : `ts-decorators-options-round33.test.mjs` parse `@OverrideView({"removeViewVariables":["title","button"]})`. La clé quotée est désormais reconnue, mais les éléments de la liste conservent les guillemets dans leurs valeurs (`'"title"'`, `'"button"'`). `@I18n({"autoInit":false})` fonctionne après la normalisation des clés.
+- Décision à prendre : décoder les valeurs textuelles des objets et tableaux produits par le parseur, puis vérifier l'effet de `OverrideView`.
 
 ## Mise à jour partielle de sorties après une erreur d'écriture
 

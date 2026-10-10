@@ -33,6 +33,11 @@ test('TS parser tools serialize nested object and array literals', () => {
     assert.deepEqual(getArg(expression('[1, "a"]')), { type: 'array', value: '[1,"\\"a\\""]' });
 });
 
+test('TS parser tools normalize quoted property names at every object level', () => {
+    const result = JSON.parse(buildJSON(expression('{ "autoInit": false, nested: { "enabled": true }, "items": [{ "count": 2 }] }')));
+    assert.deepEqual(result, { autoInit: false, nested: { enabled: true }, items: [{ count: 2 }] });
+});
+
 test('TS parser tools detect combined flags', () => {
     assert.equal(hasFlag(0b1010, 0b0010), true);
     assert.equal(hasFlag(0b1010, 0b0100), false);

@@ -13,33 +13,34 @@ export function buildJSON(e: ObjectLiteralExpression | ArrayLiteralExpression, o
         }
         for (let prop of e.properties) {
             if (prop.kind == SyntaxKind.PropertyAssignment) {
+                const name = prop.name.kind == SyntaxKind.StringLiteral ? prop.name.text : prop.name.getText();
                 if (prop.initializer.kind == SyntaxKind.StringLiteral) {
-                    obj[prop.name.getText()] = prop.initializer.getText()
+                    obj[name] = prop.initializer.getText()
                 }
                 else if (prop.initializer.kind == SyntaxKind.NoSubstitutionTemplateLiteral) {
-                    obj[prop.name.getText()] = prop.initializer.getText()
+                    obj[name] = prop.initializer.getText()
                 }
                 else if (prop.initializer.kind == SyntaxKind.NumericLiteral) {
-                    obj[prop.name.getText()] = Number(prop.initializer.getText());
+                    obj[name] = Number(prop.initializer.getText());
                 }
                 else if (prop.initializer.kind == SyntaxKind.FalseKeyword) {
-                    obj[prop.name.getText()] = false;
+                    obj[name] = false;
                 }
                 else if (prop.initializer.kind == SyntaxKind.TrueKeyword) {
-                    obj[prop.name.getText()] = true;
+                    obj[name] = true;
                 }
                 else if (prop.initializer.kind == SyntaxKind.Identifier) {
-                    obj[prop.name.getText()] = prop.initializer.getText();
+                    obj[name] = prop.initializer.getText();
                 }
                 else if (prop.initializer.kind == SyntaxKind.ObjectLiteralExpression) {
                     let objTemp = {};
                     buildJSON(prop.initializer as ObjectLiteralExpression, objTemp);
-                    obj[prop.name.getText()] = objTemp;
+                    obj[name] = objTemp;
                 }
                 else if (prop.initializer.kind == SyntaxKind.ArrayLiteralExpression) {
                     let objTemp = [];
                     buildJSON(prop.initializer as ArrayLiteralExpression, objTemp);
-                    obj[prop.name.getText()] = objTemp;
+                    obj[name] = objTemp;
                 }
             }
         }
