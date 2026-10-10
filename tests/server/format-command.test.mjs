@@ -32,7 +32,6 @@ test('format command writes changed content and leaves unchanged files untouched
     const previousFiles = FilesManager.instance;
     const previousServer = GenericServer.instance;
     const messages = [];
-    let actionPromise;
     FilesManager.instance = {
         getUris: () => [changedUri, untouchedUri],
         getByUri: uri => ({ [changedUri]: changed, [untouchedUri]: untouched })[uri],
@@ -41,18 +40,15 @@ test('format command writes changed content and leaves unchanged files untouched
         logLevel: 4,
         connection: { showLoadingMessage: (message, action) => {
             messages.push(message);
-            actionPromise = action();
-            return actionPromise;
+            return action();
         } },
     };
     try {
         await Format.run();
-        await actionPromise;
         assert.deepEqual(messages, ['Formatting 2 files']);
         assert.equal(readFileSync(changedPath, 'utf8'), 'new');
         assert.equal(readFileSync(untouchedPath, 'utf8'), 'same');
         await Format.run(untouchedUri);
-        await actionPromise;
         assert.equal(messages.at(-1), 'Formatting 1 files');
     } finally {
         clearTimeout(changed.delayValidate);
@@ -60,5 +56,30 @@ test('format command writes changed content and leaves unchanged files untouched
         FilesManager.instance = previousFiles;
         GenericServer.instance = previousServer;
         rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('format command waits for the loading action to finish', async () => {
+    const previousFiles = FilesManager.instance;
+    const previousServer = GenericServer.instance;
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    let finished = false;
+    FilesManager.instance = { getUris: () => [] };
+    GenericServer.instance = { connection: { showLoadingMessage: async (_message, action) => {
+        await gate;
+        await action();
+    } } };
+    try {
+        const running = Format.run().then(() => { finished = true; });
+        await Promise.resolve();
+        assert.equal(finished, false);
+        release();
+        await running;
+        assert.equal(finished, true);
+    } finally {
+        release();
+        FilesManager.instance = previousFiles;
+        GenericServer.instance = previousServer;
     }
 });

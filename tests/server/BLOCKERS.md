@@ -2,13 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Fin de la commande de formatage
-
-- Source : `server/src/cmds/Format.ts`, méthode `run`.
-- Reproduction : attendre `Format.run(uri)` avec un `showLoadingMessage` dont l'action de formatage est asynchrone.
-- Résultat actuel : `Format.run` se résout avant la fin de l'action et de l'écriture du fichier, car l'appel à `GenericServer.showLoadingMessage` n'est pas attendu.
-- Décision à prendre : confirmer si l'appelant doit pouvoir attendre la fin du formatage ; dans ce cas, retourner ou attendre cette promesse.
-
 ## Fin des commandes de notification de fichiers
 
 - Source : `server/src/cmds/file-system/FileCreated.ts`, `FileUpdated.ts`, `FileDeleted.ts`.
