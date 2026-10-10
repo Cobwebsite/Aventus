@@ -43,6 +43,7 @@ export class FilesWatcher {
         if (index == -1) return
 
         this.watcheUris.splice(index, 1);
+        this.watcher?.unwatch(uriToPath(uri));
     }
 
     public async onContentChange(path: string) {

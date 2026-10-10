@@ -74,7 +74,8 @@ test('setting a preference delegates the exact patch and scope to the server', (
 test('watcher deduplicates subscriptions, unwatch stops dispatch, and rewatch subscribes again', async () => {
     const watcher = Object.create(FilesWatcher.prototype);
     const adds = [];
-    watcher.watcher = { add: path => adds.push(path) };
+    const removals = [];
+    watcher.watcher = { add: path => adds.push(path), unwatch: async path => { removals.push(path); } };
     watcher.watcheUris = [];
     const path = 'D:/round25/rewatch.wcl.avt';
     const uri = pathToUri(path);
@@ -85,6 +86,7 @@ test('watcher deduplicates subscriptions, unwatch stops dispatch, and rewatch su
     watcher.unwatch(uri);
     watcher.unwatch(uri);
     assert.deepEqual(watcher.watcheUris, []);
+    assert.deepEqual(removals, [uriToPath(uri)]);
     watcher.watch(uri);
     assert.deepEqual(adds, [uriToPath(uri), uriToPath(uri)]);
     assert.deepEqual(watcher.watcheUris, [uri]);

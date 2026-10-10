@@ -2,13 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Arrêt de surveillance d'un fichier
-
-- Source : `server/src/files/FilesWatcher.ts`, méthode `unwatch`.
-- Reproduction : appeler `watch(uri)` puis `unwatch(uri)` avec un watcher actif.
-- Résultat actuel : l'URI quitte la liste interne, mais `watcher.unwatch(path)` n'est jamais appelé.
-- Résultat attendu : le watcher sous-jacent cesse aussi de surveiller le chemin.
-
 ## Notification de modification des réglages
 
 - Source : `server/src/notification/SetSettings.ts`, méthode `send`.
