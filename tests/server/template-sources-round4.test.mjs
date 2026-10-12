@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ TemplateManager }, { TemplateScript }] = await loadServerModules([
-    'files/TemplateManager.ts', 'files/Template.ts',
+const [{ TemplateManager }, { TemplateScript }, { GenericServer }] = await loadServerModules([
+    'files/TemplateManager.ts', 'files/Template.ts', 'GenericServer.ts',
 ]);
 
 test('template registry merges distinct names from installed and configured directories', async () => {
@@ -23,6 +23,7 @@ test('template registry merges distinct names from installed and configured dire
     TemplateScript.create = async path => ({
         name: path === installedScript ? 'Cards.Button' : 'Tables.Data',
         config: path,
+        folderPath: path === installedScript ? installed : custom,
     });
     try {
         const current = Object.create(TemplateManager.prototype);
@@ -36,7 +37,7 @@ test('template registry merges distinct names from installed and configured dire
     }
 });
 
-test('homonymous template winner currently follows completion order, not directory order', async () => {
+test('homonymous templates notify both folders and register only the first loaded', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-priority-'));
     const first = join(root, 'first');
     const second = join(root, 'second');
@@ -47,25 +48,33 @@ test('homonymous template winner currently follows completion order, not directo
     writeFileSync(firstScript, 'placeholder');
     writeFileSync(secondScript, 'placeholder');
     const oldCreate = TemplateScript.create;
+    const oldShowErrorMessage = GenericServer.showErrorMessage;
     try {
         for (const finalPath of [firstScript, secondScript]) {
             const release = new Map();
             const seen = [];
+            const errors = [];
+            GenericServer.showErrorMessage = message => errors.push(message);
             TemplateScript.create = path => new Promise(resolve => {
                 seen.push(path);
-                release.set(path, () => resolve({ name: 'Shared.Card', config: path }));
+                release.set(path, () => resolve({ name: 'Shared.Card', config: path, folderPath: path === firstScript ? first : second }));
             });
             const loading = Object.create(TemplateManager.prototype).readTemplates([first, second]);
             assert.deepEqual(seen, [firstScript, secondScript]);
             const initialPath = finalPath === firstScript ? secondScript : firstScript;
             release.get(initialPath)();
+            await Promise.resolve();
             release.get(finalPath)();
             const result = await loading;
-            assert.equal(result.nb, 2);
-            assert.equal(result.templates.Shared.Card.config, finalPath);
+            assert.equal(result.nb, 1);
+            assert.equal(result.templates.Shared.Card.config, initialPath);
+            assert.equal(errors.length, 1);
+            assert.ok(errors[0].includes(first));
+            assert.ok(errors[0].includes(second));
         }
     } finally {
         TemplateScript.create = oldCreate;
+        GenericServer.showErrorMessage = oldShowErrorMessage;
         rmSync(root, { recursive: true, force: true });
     }
 });
