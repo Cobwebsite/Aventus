@@ -437,7 +437,7 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         let html: AventusHTMLFile | undefined = undefined;
         if (resultTxt.htmlText !== null) {
             let htmlFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.versionUser, resultTxt.htmlText));
-            let html = new AventusHTMLFile(htmlFileTemp, this.build);
+            html = new AventusHTMLFile(htmlFileTemp, this.build);
         }
 
         let scss: AventusWebSCSSFile | undefined = undefined;

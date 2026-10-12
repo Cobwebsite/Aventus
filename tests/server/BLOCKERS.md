@@ -25,12 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Vue absente à l'ouverture d'un composant en fichier unique
-
-- Reproduction automatisée : `component-format-equivalence-round48.test.mjs` ouvre un composant contenant `<template>`, script et style. Les régions extraites compilent comme les fichiers séparés, mais `AventusWebComponentSingleFile.view` reste `undefined` après construction.
-- Source : `server/src/language-services/ts/component/SingleFile.ts`, `getDocuments()` déclare un second `let html` dans le bloc du template et masque la valeur retournée.
-- Décision à prendre : rattacher la vue dès l'ouverture et vérifier l'équivalence complète du cycle du composant.
-
 ## Découverte locale de templates qui remplace le registre général
 
 - Reproduction automatisée : `template-priority-round48.test.mjs` trouve un nom identique dans les dossiers installés et locaux pour les trois familles de templates. La découverte locale remplace l'entrée du registre général et le compteur vaut 2 pour un seul nom accessible.
