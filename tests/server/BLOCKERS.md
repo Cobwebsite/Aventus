@@ -25,18 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Export i18n conservé pendant une erreur JSON
-
-- Reproduction automatisée : `i18n-invalid-export-round57.test.mjs` rend invalide un fichier i18n précédemment valide. Les diagnostics signalent l'erreur, mais `translation.exported` et `keys` conservent les valeurs antérieures jusqu'à la correction du JSON.
-- Décision à prendre : garder explicitement la dernière traduction valide durant l'édition, ou invalider les exports et les clés dès que le document contient une erreur.
-
-## Documentation des packages contenant seulement des fonctions
-
-- Source : `server/src/manifest/ManifestPackage.ts`, `ManifestPackageMd`.
-- Reproduction automatisée : `manifest-package.test.mjs` exporte uniquement une fonction TypeScript documentée.
-- Résultat actuel : `loadFunction` ajoute la fonction aux parties détaillées, mais pas aux aperçus. Le constructeur n'écrit le Markdown que si un aperçu existe ; il renvoie donc une chaîne vide. La même fonction est bien documentée lorsqu'une classe figure aussi dans le package.
-- Résultat attendu à confirmer : produire l'aperçu et la documentation des fonctions même sans classe exportée.
-
 ## Ancre de l'aperçu Markdown pour une classe générique de package
 
 - Reproduction automatisée : `manifest-package-markdown-lifecycle-round74.test.mjs` documente `Demo.Card<T extends string = string>` et vérifie que l'aperçu produit le lien `[Demo.Card](demo.card)` tandis que le titre détaillé contient les paramètres génériques.
