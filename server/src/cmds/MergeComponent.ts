@@ -6,6 +6,8 @@ import { CloseFile } from '../notification/CloseFile';
 import { OpenFile } from '../notification/OpenFile';
 import { unlinkSync, uriToPath } from '../tools';
 import { GenericServer } from '../GenericServer';
+import { ProjectManager } from '../project/ProjectManager';
+import { InternalAventusFile } from '../files/AventusFile';
 
 export class MergeComponent {
 	static cmd: string = "aventus.component.merge";
@@ -50,6 +52,17 @@ export class MergeComponent {
 			return;
 		}
 		if (sourceDocs.some(doc => !existsSync(doc.path))) return;
+
+		const textEditsByUri = await ProjectManager.getInstance().onRename([{
+			oldUri: fileUriNoExtension + AventusExtension.ComponentLogic,
+			newUri: newUri + AventusExtension.Component,
+		}]);
+		for (const editedUri in textEditsByUri) {
+			const file = FilesManager.getInstance().getByUri(editedUri) as InternalAventusFile | undefined;
+			if (!file) continue;
+			await file.applyTextEdits(textEditsByUri[editedUri]);
+			writeFileSync(uriToPath(editedUri), file.contentUser);
+		}
 
 		let mergeTxt =
 			`
