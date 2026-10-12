@@ -88,9 +88,8 @@ export class PhpExport {
 		this.isCompiling = true;
 		Compiling.send(phpProjName, 'compiling');
 		try {
-			let execPath = join(GenericServer.extensionPath, "lib", "bin", "PhpToTypescript", "PhpToTypescript.phar")
 			let phpProj = uriToPath(uri);
-			const { stdout } = await execAsync("php " + execPath + " " + phpProj + " 2>&1", { encoding: 'utf8' });
+			const { stdout } = await execAsync("php-converter " + phpProj + " 2>&1", { encoding: 'utf8' });
 			const result = stdout.toString();
 			if (result.indexOf("Error : ") == -1) {
 				Compiling.send(phpProjName, 'success');
