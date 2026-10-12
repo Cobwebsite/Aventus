@@ -48,7 +48,7 @@ test('response commands resolve cancellation once and ignore late responses', as
     }
 });
 
-test('selection response with a duplicate label resolves to the last matching option', async () => {
+test('selection response with a duplicate label resolves by the offered option ID', async () => {
     const previous = GenericServer.instance;
     const sent = [];
     GenericServer.instance = { connection: { sendNotification: (...args) => sent.push(args) } };
@@ -57,10 +57,14 @@ test('selection response with a duplicate label resolves to the last matching op
         const second = { label: 'Same', detail: 'second' };
         const request = AskSelect.send([first, second]);
         const id = sent[0][1][0];
-        commands['aventus.receiveselect'].run(id, { label: 'Same', detail: 'first' });
-        assert.equal(await request, second);
+        const offered = sent[0][1][1];
+        assert.notEqual(offered[0].id, offered[1].id);
+        assert.equal(first.id, undefined);
+        commands['aventus.receiveselect'].run(id, offered[0]);
+        assert.equal(await request, first);
         assert.equal(AskSelect.waitingResponse[id], undefined);
         assert.equal(AskSelect.waitingOptions[id], undefined);
+        assert.equal(AskSelect.waitingOptionIds[id], undefined);
     } finally {
         GenericServer.instance = previous;
     }
