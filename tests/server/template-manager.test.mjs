@@ -45,11 +45,28 @@ test('template manager finds a workspace and reports missing workspaces', () => 
     }
 });
 
-test('template workspace lookup currently accepts a sibling prefix and favors the first nested root', () => {
+test('template workspace lookup rejects sibling prefixes and chooses the most specific nested root', () => {
     const manager = Object.create(TemplateManager.prototype);
     manager.workspaces = ['D:\\app', 'D:\\app\\feature'];
-    assert.equal(manager.findWorkspace('D:\\apple\\src'), 'D:\\app');
-    assert.equal(manager.findWorkspace('D:\\app\\feature\\src'), 'D:\\app');
+    const messages = [];
+    const previous = GenericServer.instance;
+    GenericServer.instance = { connection: { showErrorMessage: message => messages.push(message) }, logLevel: 4 };
+    try {
+        assert.equal(manager.findWorkspace('D:\\apple\\src'), '');
+        assert.equal(manager.findWorkspace('D:\\app\\feature\\src'), 'D:\\app\\feature');
+        assert.equal(manager.findWorkspace('D:\\app'), 'D:\\app');
+        assert.deepEqual(messages, ["Can't load the workspace"]);
+    } finally {
+        GenericServer.instance = previous;
+    }
+});
+
+test('template workspace lookup handles Linux paths and stops at an exact root', () => {
+    const manager = Object.create(TemplateManager.prototype);
+    manager.workspaces = ['/home/app', '/home/app/feature', '/home/other'];
+    assert.equal(manager.findWorkspace('/home/app/feature/src'), '/home/app/feature');
+    assert.equal(manager.findWorkspace('/home/app/feature'), '/home/app/feature');
+    assert.equal(manager.findWorkspace('/home/app'), '/home/app');
 });
 
 test('template manager discovers nested template scripts and counts successful loads', async () => {

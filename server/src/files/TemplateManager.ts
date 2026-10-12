@@ -1,6 +1,6 @@
 import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'fs';
 import { GenericServer } from '../GenericServer';
-import { dirname, join, normalize, relative, resolve, sep, win32 } from 'path';
+import { dirname, isAbsolute, join, normalize, posix, relative, resolve, sep, win32 } from 'path';
 import { SelectItem } from '../IConnection';
 import { TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
@@ -133,11 +133,21 @@ export class TemplateManager {
 		}
 	}
 	public findWorkspace(currentFolder: string) {
+		const windowsPath = /^[A-Za-z]:[\\/]|^\\\\/.test(currentFolder);
+		const pathTools = windowsPath ? win32 : currentFolder.startsWith("/") ? posix : { resolve, relative, isAbsolute, sep };
+		const folder = pathTools.resolve(currentFolder);
+		let selected = "";
+		let selectedLength = -1;
 		for (let workspace of this.workspaces) {
-			if (currentFolder.startsWith(workspace)) {
-				return workspace;
+			if (/^[A-Za-z]:[\\/]|^\\\\/.test(workspace) !== windowsPath) continue;
+			const root = pathTools.resolve(workspace);
+			const child = pathTools.relative(root, folder);
+			if (child !== ".." && !child.startsWith(".." + pathTools.sep) && !pathTools.isAbsolute(child) && root.length > selectedLength) {
+				selected = workspace;
+				selectedLength = root.length;
 			}
 		}
+		if (selected) return selected;
 		GenericServer.showErrorMessage("Can't load the workspace");
 		return "";
 	}
