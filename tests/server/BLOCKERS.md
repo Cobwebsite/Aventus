@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Import npm par défaut
-
-- Source : `server/src/language-services/ts/parser/ImportInfo.ts`, branche de `ImportInfo.Parse` pour `import Item from "package"`.
-- Résultat actuel selon le code : une méthode statique passe `this.name` à `npmBuilder.register` et indexe `npmImports[this.name]` ; `this` désigne la classe, pas l'identifiant importé.
-- Test à activer après correction : vérifier `libName: 'default'`, `alias: 'Item'` et `npmImports.Item`.
-
 ## Plusieurs tags HTML internes liés au même fichier
 
 - Source : `server/src/language-services/html/LanguageService.ts`, `removeInternalTagUri`.
@@ -611,12 +605,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `i18n-invalid-action-round125.test.mjs` part d'une traduction `Old` sans locale `fr`, puis édite le document en JSON incomplet contenant `Editing`. Pendant cette édition, `Import missing locales` reste proposé et son édition remplace tout le contenu par l'ancienne traduction `Old` plus la valeur vide de `fr`. Après correction du JSON, l'action disparaît.
 - Cause : `AventusI18nFile.onContentChange()` garde `parsedSrc` après une erreur de parsing ; `actionImportMissingLocales()` utilise cet ancien état et construit une édition couvrant le document courant entier.
 - Décision à prendre : masquer les actions fondées sur `parsedSrc` tant que le document courant est invalide, ou produire une correction ciblée qui préserve les modifications de l'utilisateur.
-
-## Import npm par défaut enregistré sous le nom de la classe du parseur
-
-- Reproduction automatisée : `ts-import-forms-round125.test.mjs` parse `import Client from "sample-pkg"`. Le builder reçoit le symbole `default` avec un alias différent de `Client`, et `npmImports.Client` n'existe pas. Les imports nommés et renommés transmettent correctement leurs noms ; les imports de type ne sont pas enregistrés.
-- Cause : la branche d'import par défaut de `ImportInfo.Parse()` utilise `this.name` dans une méthode statique. Cette valeur désigne la classe `ImportInfo`, pas l'identifiant local `node.importClause.name`.
-- Décision à prendre : utiliser l'identifiant local pour l'alias transmis à `npmBuilder.register()` et la clé de `npmImports`, puis vérifier le bundle produit pour les imports par défaut.
 
 ## Import npm combiné perdant la partie par défaut
 

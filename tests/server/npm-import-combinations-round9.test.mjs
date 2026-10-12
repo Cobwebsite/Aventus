@@ -37,6 +37,19 @@ test('npm compilation exposes two named aliases and a namespace for one module',
     assert.equal(exported.value, 42);
 });
 
+test('npm compilation exposes a default import under its local alias', async t => {
+    const builder = fixture(t);
+    writeFileSync(join(builder.build.nodeModulesDir, 'tiny-combo', 'index.js'), 'module.exports = class Client {};\n');
+    builder.register('file:///client.lib.avt', { uri: 'tiny-combo', libName: 'default', alias: 'Client' });
+    const compiled = await builder.compile();
+    assert.deepEqual(compiled.errors, []);
+    const context = vm.createContext({});
+    vm.runInContext(compiled.result, context);
+    const exported = Object.values(context.npmCompilation)[0];
+    assert.equal(typeof exported.Client, 'function');
+    assert.equal(typeof new exported.Client(), 'object');
+});
+
 test('an invalid wildcard registration does not change stored imports', () => {
     const builder = new NpmBuilder({ isBuildAllowed: true });
     const range = { start: { line: 2, character: 4 }, end: { line: 2, character: 31 } };

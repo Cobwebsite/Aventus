@@ -40,16 +40,15 @@ test('les imports npm nommés et renommés gardent leur nom de bibliothèque et 
     assert.deepEqual(model.errors, []);
 });
 
-test('un import npm par défaut perd le nom local dans le builder et le modèle', () => {
+test('un import npm par défaut conserve le nom local dans le builder et le modèle', () => {
     const { uri, model, registered, unregistered } = parse('import Client from "sample-pkg";');
     assert.deepEqual(unregistered, [uri]);
     assert.equal(registered.length, 1);
     assert.equal(registered[0].sourceUri, uri);
     assert.equal(registered[0].uri, 'sample-pkg');
     assert.equal(registered[0].libName, 'default');
-    assert.notEqual(registered[0].alias, 'Client');
-    assert.deepEqual(model.npmImports[registered[0].alias], { uri: 'sample-pkg', nameInsideLib: 'default' });
-    assert.equal(model.npmImports.Client, undefined);
+    assert.equal(registered[0].alias, 'Client');
+    assert.deepEqual(model.npmImports.Client, { uri: 'sample-pkg', nameInsideLib: 'default' });
     assert.deepEqual(model.errors, []);
 });
 
