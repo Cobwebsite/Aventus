@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, rmSync } from "fs";
-import { join, sep } from "path";
+import { join, relative, resolve, sep } from "path";
+import { createHash } from "crypto";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
 import { AventusFile } from '../files/AventusFile';
@@ -125,6 +126,7 @@ export class Build {
     public reloadPage: boolean = false;
     private _outputPathes: string[] = [];
     private pendingOutputs?: Map<string, string>;
+    private pendingDeletions?: Map<string, string>;
 
     public readonly npmBuilder: NpmBuilder;
 
@@ -382,6 +384,7 @@ export class Build {
         this.clearDiagnostics();
         let buildErrors: BuildErrors = []
         this.pendingOutputs = new Map();
+        this.pendingDeletions = new Map();
         try {
             for (let compile of this.buildConfig.compile) {
                 if (compile.i18n) {
@@ -418,6 +421,7 @@ export class Build {
             await this.publishOutputs();
         } finally {
             this.pendingOutputs = undefined;
+            this.pendingDeletions = undefined;
         }
 
         Compiled.send(this.buildConfig.fullname, buildErrors);
@@ -713,6 +717,22 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
      * Write the code inside the npm folders
      */
     public async writeBuildNpm(outputNpm: AventusConfigBuildCompileOutputNpm, result: LocalCodeResult) {
+        const generated = new Map<string, Record<string, string>>();
+        const hash = (content: string) => createHash('sha256').update(content.replace(/\r\n?/g, '\n')).digest('hex');
+        const manifestName = '.aventus-npm-generated.json';
+        const generatedPath = (root: string, file: string) => {
+            const path = relative(resolve(root), resolve(file));
+            if (!path || path === '..' || path.startsWith('..' + sep) || path.split(sep).includes('..')) {
+                throw new Error(`Generated npm output is outside its destination: ${file}`);
+            }
+            return path.replace(/\\/g, '/');
+        };
+        const writeGenerated = async (root: string, file: string, content: string) => {
+            const path = generatedPath(root, file);
+            if (!generated.has(root)) generated.set(root, Object.create(null));
+            generated.get(root)![path] = hash(content);
+            await this.writeFile(file, content);
+        };
         let keys = Object.keys(result.npm);
         if (!keys.includes("")) {
             keys.push("");
@@ -730,13 +750,6 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
         keys.sort((a, b) => (a.match(/\./g) || []).length - (b.match(/\./g) || []).length)
 
         const exportByNamespace: { [namespace: string]: { [uri: string]: string[] } } = {}
-        // // clear path
-        // for (let outputPackage of outputNpm.path) {
-        //     const p = join(outputPackage, "__src");
-        //     if (existsSync(p)) {
-        //         rmSync(p, { recursive: true, force: true });
-        //     }
-        // }
         const manifest = outputNpm.manifest ? new Manifest(outputNpm.manifest, this) : null;
 
         for (let path in result.npmsrc) {
@@ -769,7 +782,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 if (!existsSync(outputDir)) {
                     mkdirSync(outputDir, { recursive: true });
                 }
-                await this.writeFile(outputFile, txt);
+                await writeGenerated(outputPackage, outputFile, txt);
             }
 
             // add into export 
@@ -836,7 +849,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.d.ts");
-                await this.writeFile(indexDTs, txt);
+                await writeGenerated(outputPackage, indexDTs, txt);
             }
         }
 
@@ -871,7 +884,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.js");
-                await this.writeFile(indexDTs, txt);
+                await writeGenerated(outputPackage, indexDTs, txt);
             }
         }
         for (let key of keys) {
@@ -957,6 +970,33 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 }
                 await manifest.write(outputPackage);
             }
+        }
+
+        for (const outputPackage of outputNpm.path) {
+            const manifestPath = join(outputPackage, manifestName);
+            const current = generated.get(outputPackage) ?? Object.create(null);
+            let previous: Record<string, string> = Object.create(null);
+            if (existsSync(manifestPath)) {
+                try {
+                    const parsed = JSON.parse(readFileSync(manifestPath, 'utf8'));
+                    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) previous = parsed;
+                } catch { }
+            }
+            for (const [path, oldHash] of Object.entries(previous)) {
+                if (Object.hasOwn(current, path) || typeof oldHash !== 'string') continue;
+                const file = resolve(outputPackage, path);
+                if (path.startsWith('/') || path.split('/').includes('..') || !existsSync(file)) continue;
+                try {
+                    if (generatedPath(outputPackage, file) !== path) continue;
+                } catch {
+                    continue;
+                }
+                if (hash(readFileSync(file, 'utf8')) === oldHash) {
+                    if (this.pendingDeletions) this.pendingDeletions.set(file, oldHash);
+                    else rmSync(file);
+                }
+            }
+            await this.writeFile(manifestPath, JSON.stringify(current, null, 2));
         }
 
     }
@@ -2464,6 +2504,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 
     private async publishOutputs() {
         const outputs = this.pendingOutputs;
+        const deletions = this.pendingDeletions;
         this.pendingOutputs = undefined;
         if (!outputs) return;
 
@@ -2473,6 +2514,14 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 const previous = existsSync(path) ? readFileSync(path, 'utf8') : undefined;
                 written.push({ path, previous });
                 await this.writeFile(path, content);
+            }
+            for (const [path, expectedHash] of deletions ?? []) {
+                if (!existsSync(path)) continue;
+                const previous = readFileSync(path, 'utf8');
+                const actualHash = createHash('sha256').update(previous.replace(/\r\n?/g, '\n')).digest('hex');
+                if (actualHash !== expectedHash) continue;
+                written.push({ path, previous });
+                rmSync(path);
             }
         } catch (error) {
             for (const { path, previous } of written.reverse()) {

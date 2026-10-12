@@ -85,7 +85,7 @@ test('npm output writes nested source and namespace entry points to every destin
     }
 });
 
-test('npm rebuild keeps a removed source file in the previous output', async t => {
+test('npm rebuild removes a generated source while preserving user files', async t => {
     const { outputs, build } = fixture(t);
     const options = { path: outputs, packageJson: false, manifest: false };
     await build.writeBuildNpm(options, {
@@ -95,10 +95,30 @@ test('npm rebuild keeps a removed source file in the previous output', async t =
             forcedDependencies: [], sourceUri: [],
         } },
     });
+    for (const output of outputs) {
+        writeFileSync(join(output, '__src', 'user.ts'), 'export const user = true;');
+    }
     await build.writeBuildNpm(options, { npm: { '': { content: [], imports: {} } }, npmsrc: {} });
 
     for (const output of outputs) {
-        assert.equal(existsSync(join(output, '__src', 'obsolete.ts')), true);
+        assert.equal(existsSync(join(output, '__src', 'obsolete.ts')), false);
+        assert.equal(readFileSync(join(output, '__src', 'user.ts'), 'utf8'), 'export const user = true;');
         assert.doesNotMatch(readFileSync(join(output, 'index.js'), 'utf8'), /Obsolete/);
     }
+});
+
+test('npm rebuild preserves a generated source changed by the user', async t => {
+    const { outputs, build } = fixture(t);
+    const options = { path: outputs, packageJson: false, manifest: false };
+    await build.writeBuildNpm(options, {
+        npm: {},
+        npmsrc: { 'obsolete.ts': {
+            names: ['Obsolete'], content: ['export class Obsolete {}'], imports: {},
+            forcedDependencies: [], sourceUri: [],
+        } },
+    });
+    writeFileSync(join(outputs[0], '__src', 'obsolete.ts'), 'user revision');
+    await build.writeBuildNpm(options, { npm: {}, npmsrc: {} });
+    assert.equal(readFileSync(join(outputs[0], '__src', 'obsolete.ts'), 'utf8'), 'user revision');
+    assert.equal(existsSync(join(outputs[1], '__src', 'obsolete.ts')), false);
 });
