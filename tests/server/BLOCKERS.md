@@ -25,11 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Import consommateur obsolète après fusion d'un composant
-
-- Reproduction automatisée : `component-command-cycle-round51.test.mjs` sépare `Alpha`, renomme son dossier et met à jour l'import de `Beta`, puis fusionne `Alpha` en `Alpha.wc.avt` à la racine. L'ancien dossier est supprimé, mais `Beta` importe encore `./Renamed/Alpha.wcl.avt`.
-- Décision à prendre : déterminer si la commande de fusion doit réécrire les imports des autres composants du projet ; si oui, vérifier les éditions et la résolution des références après fusion.
-
 ## Définition HTML renvoyée vers le style après suppression de la logique
 
 - Reproduction automatisée : `html-navigation-source-lifecycle-round54.test.mjs` résout `@click="submit"` vers la méthode TypeScript tant que la logique existe. Après suppression de cette source, la même demande de définition retourne le sélecteur SCSS `.card` du composant ; le rattachement de la logique rétablit la définition initiale.

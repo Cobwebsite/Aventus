@@ -17,7 +17,7 @@ const { SettingsManager } = settingsModule;
 const { GenericServer } = serverModule;
 const { pathToUri, uriToPath } = toolsModule;
 
-test('two components complete split, folder rename and merge while retaining the consumer edit', async () => {
+test('split, folder rename and merge update the consumer import', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-component-cycle-'));
     const original = {
         files: FilesManager.getInstance,
@@ -62,7 +62,9 @@ test('two components complete split, folder rename and merge while retaining the
         }
         ProjectManager.getInstance = () => ({ onRename: async changes => {
             changesSeen.push(...changes);
-            return { [pathToUri(betaPath)]: [{ newText: betaSource.replace('./Alpha/Alpha.wcl.avt', './Renamed/Alpha.wcl.avt') }] };
+            const importPath = changes[0].newUri.endsWith('.wc.avt')
+                ? './Alpha.wc.avt' : './Renamed/Alpha.wcl.avt';
+            return { [pathToUri(betaPath)]: [{ newText: betaSource.replace('./Alpha/Alpha.wcl.avt', importPath) }] };
         } });
         await Commands.allCommandes['aventus.rename'].run([{ oldUri: pathToUri(oldFolder), newUri: pathToUri(newFolder) }]);
         await new Promise(resolve => setTimeout(resolve, 600));
@@ -80,7 +82,12 @@ test('two components complete split, folder rename and merge while retaining the
         assert.match(readFileSync(mergedPath, 'utf8'), /<p>Alpha<\/p>/);
         assert.match(readFileSync(mergedPath, 'utf8'), /color: red/);
         assert.equal(readFileSync(betaPath, 'utf8').includes('export class Beta extends Alpha'), true);
-        assert.match(readFileSync(betaPath, 'utf8'), /\.\/Renamed\/Alpha\.wcl\.avt/);
+        assert.match(readFileSync(betaPath, 'utf8'), /\.\/Alpha\.wc\.avt/);
+        assert.doesNotMatch(readFileSync(betaPath, 'utf8'), /\.\/Renamed\/Alpha\.wcl\.avt/);
+        assert.deepEqual(changesSeen.at(-1), {
+            oldUri: pathToUri(join(newFolder, 'Alpha.wcl.avt')),
+            newUri: pathToUri(mergedPath),
+        });
     } finally {
         FilesManager.getInstance = original.files;
         ProjectManager.getInstance = original.project;
