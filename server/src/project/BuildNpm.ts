@@ -139,6 +139,10 @@ export class NpmBuilder {
 				Compiled.part("Compiling node modules");
 				this.lastInfoToCompile = toCompile.buildTxt;
 				this.npmDepBuildTxt = await this.esbuildBuild(this.lastInfoToCompile)
+				if (this.npmDepBuildTxt.errors.length > 0) {
+					this.lastInfo = "";
+					this.lastInfoToCompile = "";
+				}
 				Compiled.part("Compiling node modules done");
 			}
 
