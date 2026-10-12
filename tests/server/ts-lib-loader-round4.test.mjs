@@ -55,10 +55,25 @@ test('npm library loader returns no modules for absent directory or metadata', (
     assert.equal(loadLibrary(join(root, 'absent.d.ts')), undefined);
 }));
 
-test('malformed npm package metadata currently interrupts library discovery', () => sandbox(root => {
+test('malformed npm package metadata is reported without interrupting library discovery', () => sandbox(root => {
     const nodeModules = join(root, 'node_modules');
     const pkg = join(nodeModules, 'broken');
     mkdirSync(pkg, { recursive: true });
     writeFileSync(join(pkg, 'package.json'), '{invalid');
-    assert.throws(() => loadNodeModules(nodeModules), SyntaxError);
+    packageFile(nodeModules, 'healthy', { types: './index.d.ts' }, {
+        'index.d.ts': 'export declare const healthy: true;',
+    });
+    const diagnostics = [];
+    const originalError = console.error;
+    console.error = message => diagnostics.push(message);
+    try {
+        const libraries = loadNodeModules(nodeModules);
+        assert.equal(libraries.length, 1);
+        assert.equal(loadLibrary(libraries[0]), 'export declare const healthy: true;');
+    }
+    finally {
+        console.error = originalError;
+    }
+    assert.equal(diagnostics.length, 1);
+    assert.match(diagnostics[0], /broken[\\/]package\.json/);
 }));

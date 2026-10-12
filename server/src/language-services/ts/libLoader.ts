@@ -63,7 +63,14 @@ export function loadNodeModules(nodeModulesPath: string): string[] {
 		if (!existsSync(packageJsonPath)) {
 			return
 		}
-		const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+		let packageJson;
+		try {
+			packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+		}
+		catch (error) {
+			console.error(`Unable to read npm package metadata at ${packageJsonPath}: ${error}`);
+			return;
+		}
 
 		const exports: string[] = [];
 		let hasTs = false;
