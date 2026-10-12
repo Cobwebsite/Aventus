@@ -5,9 +5,9 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { ManifestPackageMd } = await loadServerModule('manifest/ManifestPackage.ts');
 
-test('package Markdown includes class and function but currently omits exported enum and variable', () => {
+test('package Markdown includes exported class, function, enum, and variable', () => {
     const syntax = ts.createSourceFile('exports.ts',
-        'export function create(): number { return 1; } export enum Mode { Ready } export const VERSION = 2;',
+        'export function create(): number { return 1; } export enum Mode { Ready = 1, Waiting } export const VERSION: number = 2;',
         ts.ScriptTarget.Latest, true);
     const file = {
         name: 'mixed', file: { uri: 'file:///mixed.package.avt' },
@@ -26,8 +26,8 @@ test('package Markdown includes class and function but currently omits exported 
                 propertiesStatic: {}, methods: {}, methodsStatic: {},
             } },
             functions: { create: { fullName: 'create', node: syntax.statements[0] } },
-            enums: { Mode: { fullName: 'Mode', node: syntax.statements[1] } },
-            variables: { VERSION: { fullName: 'VERSION', node: syntax.statements[2] } },
+            enums: { Mode: { fullName: 'Mode', node: syntax.statements[1], documentation: { definitions: ['Available modes'] } } },
+            variables: { VERSION: { fullName: 'VERSION', type: 'const', node: syntax.statements[2].declarationList.declarations[0], documentation: { definitions: ['Package version'] } } },
         },
     };
 
@@ -35,6 +35,36 @@ test('package Markdown includes class and function but currently omits exported 
     assert.match(markdown, /\| \[Demo\.Anchor\]\(demo\.anchor\) \| Class \|/);
     assert.match(markdown, /## create\(\)/);
     assert.match(markdown, /Return : number/);
-    assert.doesNotMatch(markdown, /\bMode\b/);
-    assert.doesNotMatch(markdown, /\bVERSION\b/);
+    assert.match(markdown, /\| \[Mode\]\(mode\) \| Enum \| Available modes \|/);
+    assert.match(markdown, /## Mode/);
+    assert.match(markdown, /\| Ready \| 1 \|/);
+    assert.match(markdown, /\| Waiting \|  \|/);
+    assert.match(markdown, /\| \[VERSION\]\(version\) \| Variable \| Package version \|/);
+    assert.match(markdown, /## VERSION/);
+    assert.match(markdown, /Declaration : const/);
+    assert.match(markdown, /Type : number/);
+    assert.match(markdown, /Initial value : 2/);
+});
+
+test('package Markdown renders an enum and variable without a class export', () => {
+    const syntax = ts.createSourceFile('standalone.ts',
+        'export enum Mode { Ready } export let VERSION = 2;',
+        ts.ScriptTarget.Latest, true);
+    const file = {
+        name: 'standalone', file: { uri: 'file:///standalone.package.avt' },
+        build: { scssLanguageService: { getExternalDefinition: () => ({}) } },
+        srcInfo: { available: [
+            { type: 6, fullName: 'Mode' },
+            { type: 5, fullName: 'VERSION' },
+        ] },
+        fileParsed: {
+            enums: { Mode: { fullName: 'Mode', node: syntax.statements[0] } },
+            variables: { VERSION: { fullName: 'VERSION', type: 'let', node: syntax.statements[1].declarationList.declarations[0] } },
+        },
+    };
+    const markdown = new ManifestPackageMd(file).getContent();
+    assert.match(markdown, /# standalone/);
+    assert.match(markdown, /## Mode/);
+    assert.match(markdown, /## VERSION/);
+    assert.match(markdown, /Declaration : let/);
 });

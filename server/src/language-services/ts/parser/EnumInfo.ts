@@ -6,7 +6,7 @@ import { DocumentationInfo } from './DocumentationInfo';
 
 export class EnumInfo extends BaseInfo {
 
-	private node: EnumDeclaration;
+	public readonly node: EnumDeclaration;
 	constructor(node: EnumDeclaration, namespaces: string[], parserInfo: ParserTs) {
 		super(node, namespaces, parserInfo, false);
 		this.infoType = InfoType.enum;

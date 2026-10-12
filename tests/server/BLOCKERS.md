@@ -25,12 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Enums et variables absents de la documentation des packages
-
-- Source : `server/src/manifest/ManifestPackage.ts`, constructeur de `ManifestPackageMd`.
-- Reproduction automatisée : `manifest-package-exports-round34.test.mjs` fournit une classe, une fonction, un enum et une variable exportés. Le Markdown contient la classe et la fonction, mais pas l'enum `Mode` ni la variable `VERSION`.
-- Les branches `InfoType.enum` et `InfoType.variable` sont commentées. Décision à prendre : définir leur format dans l'aperçu et les sections détaillées, puis activer leur génération.
-
 ## Installation de l'environnement non attendue par son appelant
 
 - Source : `server/src/environment.ts`, `initEnvironnment` appelle `installEnvironment(...)` sans `await` dans son bloc `try`.

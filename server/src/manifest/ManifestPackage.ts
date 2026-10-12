@@ -14,6 +14,7 @@ import { MethodInfo } from '../language-services/ts/parser/MethodInfo';
 import { SCSSDoc } from '../language-services/scss/helper/CSSCustomNode';
 import { TypeInfo } from '../language-services/ts/parser/TypeInfo';
 import { TypeNode } from 'typescript';
+import { DocumentationInfo } from '../language-services/ts/parser/DocumentationInfo';
 
 export class ManifestPackage {
 
@@ -120,13 +121,25 @@ type ManifestClass = ManifestRoot & {
 type ManifestFunction = ManifestRoot & ManifestMethod & {
 }
 
+type ManifestEnum = ManifestRoot & {
+	kind: 'enum',
+	members: { name: string, value: string, description: string }[],
+}
+
+type ManifestVariable = ManifestRoot & {
+	kind: 'variable',
+	declaration: string,
+	type: string,
+	value?: string,
+}
+
 export class ManifestPackageMd {
 	private file: AventusPackageFile;
 
 	private content: string[] = [];
 
 	private overviews: { name: string, type: string, description?: string }[] = []
-	private parts: (ManifestClass | ManifestFunction)[] = []
+	private parts: (ManifestClass | ManifestFunction | ManifestEnum | ManifestVariable)[] = []
 	private scss: SCSSDoc
 
 	public constructor(file: AventusPackageFile) {
@@ -143,12 +156,12 @@ export class ManifestPackageMd {
 					this.loadFunction(info);
 				}
 
-				// else if (info.type == InfoType.enum) {
-				// 	this.loadEnum(info);
-				// }
-				// else if (info.type == InfoType.variable) {
-				// 	this.loadVariable(info);
-				// }
+				else if (info.type == InfoType.enum) {
+					this.loadEnum(info);
+				}
+				else if (info.type == InfoType.variable) {
+					this.loadVariable(info);
+				}
 			}
 		}
 
@@ -218,6 +231,36 @@ export class ManifestPackageMd {
 			isAbstract: false
 		};
 		this.parts.push(temp);
+	}
+
+	private loadEnum(info: AventusPackageTsFileExport): void {
+		const item = this.file.fileParsed!.enums[info.fullName];
+		const part: ManifestEnum = {
+			name: item.fullName,
+			kind: 'enum',
+			description: item.documentation?.definitions.join(EOL) ?? '',
+			members: Array.from(item.node.members, member => ({
+				name: member.name.getText(),
+				value: member.initializer?.getText() ?? '',
+				description: new DocumentationInfo(member).definitions.join(EOL),
+			})),
+		};
+		this.overviews.push({ name: part.name, type: 'Enum', description: part.description });
+		this.parts.push(part);
+	}
+
+	private loadVariable(info: AventusPackageTsFileExport): void {
+		const item = this.file.fileParsed!.variables[info.fullName];
+		const part: ManifestVariable = {
+			name: item.fullName,
+			kind: 'variable',
+			declaration: item.type,
+			type: item.node.type ? this.getType(item.node.type) : 'any',
+			value: item.node.initializer?.getText(),
+			description: item.documentation?.definitions.join(EOL) ?? '',
+		};
+		this.overviews.push({ name: part.name, type: 'Variable', description: part.description });
+		this.parts.push(part);
 	}
 
 	private loadClass(info: AventusPackageTsFileExport) {
@@ -431,6 +474,10 @@ export class ManifestPackageMd {
 				this.writeClass(part)
 			} else if (this.isManifestFunction(part)) {
 				this.writeFunction(part)
+			} else if ('kind' in part && part.kind === 'enum') {
+				this.writeEnum(part)
+			} else if ('kind' in part && part.kind === 'variable') {
+				this.writeVariable(part)
 			}
 
 			if (part.example) {
@@ -512,6 +559,21 @@ export class ManifestPackageMd {
 	}
 	private writeFunction(part: ManifestFunction) {
 		this.add(` - Return : ${part.result}`)
+	}
+	private writeEnum(part: ManifestEnum) {
+		this.add(' - Type : Enum');
+		this.line();
+		this.addColumnsHeader(['Member', 'Value', 'Description']);
+		for (const member of part.members) {
+			this.addColumns([member.name, member.value, member.description]);
+		}
+	}
+	private writeVariable(part: ManifestVariable) {
+		this.add(` - Declaration : ${part.declaration}`);
+		this.add(` - Type : ${part.type}`);
+		if (part.value !== undefined) {
+			this.add(` - Initial value : ${part.value}`);
+		}
 	}
 
 	private writeProps(props: ManifestProp[], withDeco: boolean) {
