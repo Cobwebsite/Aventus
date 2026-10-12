@@ -98,6 +98,7 @@ export class Build {
     private dependencyFullUris: string[] = [];
     // order uri file to parse inside build
     public dependencyUris: string[] = [];
+    public dependencyCycle: string[] | null = null;
     public diagnostics: Map<AventusBaseFile, Diagnostic[]> = new Map();
 
 
@@ -2053,6 +2054,11 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
         Statistics.startSendBuildTime(this.buildConfig.fullname);
         this.allowBuild = false;
         let dependenciesInfo = await DependencyManager.getInstance().loadDependenciesFromBuild(this.buildConfig, this);
+        this.dependencyCycle = dependenciesInfo.cycle ?? null;
+        if (this.dependencyCycle) {
+            await this.project.getConfigFile().validate();
+            return;
+        }
         this.dependencyFullUris = dependenciesInfo.dependencyFullUris;
         this.dependencyNeedUris = dependenciesInfo.dependencyNeedUris;
         this.dependencyUris = dependenciesInfo.dependencyUris;

@@ -1,5 +1,5 @@
 import { join, normalize, sep } from "path";
-import { ASTNode, Diagnostic, getLanguageService, LanguageService } from "vscode-json-languageservice";
+import { ASTNode, Diagnostic, getLanguageService, LanguageService, ObjectASTNode } from "vscode-json-languageservice";
 import { CompletionItem, CompletionList, DiagnosticSeverity, FormattingOptions, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
@@ -116,6 +116,32 @@ export class AventusJSONLanguageService {
             error.severity = DiagnosticSeverity.Error;
         }
         return errors;
+    }
+
+    public getDependencyKeyRange(file: AventusFile, buildName: string | undefined, dependencyName: string): Range | null {
+        const document = file.documentUser;
+        const root = this.languageService.parseJSONDocument(document).root;
+        if (root?.type !== 'object') return null;
+        const property = (node: ObjectASTNode, name: string) => {
+            return node.properties.find(item => item.keyNode.value === name)?.valueNode;
+        }
+        const dependencyKey = (node: ObjectASTNode): Range | null => {
+            const dependencies = property(node, 'dependencies');
+            if (dependencies?.type !== 'object') return null;
+            const key = dependencies.properties.find(item => item.keyNode.value === dependencyName)?.keyNode;
+            return key ? Range.create(document.positionAt(key.offset), document.positionAt(key.offset + key.length)) : null;
+        };
+        const builds = property(root, 'build');
+        if (builds?.type === 'array' && buildName) {
+            for (const item of builds.items) {
+                if (item.type !== 'object') continue;
+                if (property(item, 'name')?.value === buildName) {
+                    const range = dependencyKey(item);
+                    if (range) return range;
+                }
+            }
+        }
+        return dependencyKey(root);
     }
 
     private isKeyOfObject(node: ASTNode | undefined, objectName: string): boolean {

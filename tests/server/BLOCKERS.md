@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Cycle de dépendances
-
-- Source : `server/src/project/DependencyManager.ts`, `orderLoop`.
-- Résultat actuel selon le parcours du code : un cycle `A → B → A` n'est pas détecté comme tel ; la récursion se termine en débordement de pile.
-- Reproduction automatisée : `dependency-cycle-isolation-round60.test.mjs` isole ce graphe dans un processus enfant et observe `RangeError: Maximum call stack size exceeded`. Après retrait de l'arête `B → A`, le même gestionnaire résout les dépendances dans l'ordre attendu.
-- Décision à prendre : définir le diagnostic attendu pour un cycle, puis remplacer la caractérisation du débordement par le test du diagnostic.
-
 ## Section Build générée invalide
 
 - Source : `server/src/cmds/AddConfigSection.ts`.
