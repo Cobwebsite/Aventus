@@ -15,7 +15,7 @@ export enum VariableInfoType {
 export class VariableInfo extends BaseInfo {
 
 	public type: VariableInfoType = VariableInfoType.var;
-	private node: VariableDeclaration;
+	public readonly node: VariableDeclaration;
 	constructor(node: VariableDeclaration, namespaces: string[], parserInfo: ParserTs, statement: VariableStatement) {
 		super(node, namespaces, parserInfo);
 		this.decorators = DecoratorInfo.buildDecorator(statement, this);
