@@ -87,7 +87,7 @@ test('HTML internal tag URIs can be looked up and removed by source', () => {
     assert.equal(html.getInternalTagUri('demo-icon').fullname, 'Demo.Icon');
 });
 
-test('removing a source currently leaves its second internal tag registered', () => {
+test('removing a source removes all of its internal tags', () => {
     const html = service();
     const uri = 'file:///multi.wcl.avt';
     html.addInternalTagUri('demo-card', uri, 'Demo.Card');
@@ -96,7 +96,7 @@ test('removing a source currently leaves its second internal tag registered', ()
 
     html.removeInternalTagUri(uri);
     assert.equal(html.getInternalTagUri('demo-card'), undefined);
-    assert.deepEqual(html.getInternalTagUri('demo-icon'), { uri, fullname: 'Demo.Icon' });
+    assert.equal(html.getInternalTagUri('demo-icon'), undefined);
     assert.equal(html.getInternalTagUri('other-tag').fullname, 'Other.Tag');
 });
 

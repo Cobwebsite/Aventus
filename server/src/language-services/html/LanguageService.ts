@@ -545,7 +545,6 @@ export class AventusHTMLLanguageService {
         for (let tag in this.internalTagUri) {
             if (this.internalTagUri[tag].uri == uri) {
                 delete this.internalTagUri[tag];
-                return;
             }
         }
     }

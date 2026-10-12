@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Plusieurs tags HTML internes liés au même fichier
-
-- Source : `server/src/language-services/html/LanguageService.ts`, `removeInternalTagUri`.
-- Reproduction automatisée : `html-definition-lifecycle.test.mjs` associe deux tags à la même URI, les retire par source et constate que le second reste enregistré. Un tag provenant d'une autre URI est conservé.
-- Décision à prendre : retirer toutes les associations ou garantir qu'un fichier n'enregistre qu'un seul tag.
-
 ## Intégrations encore à compléter après le deuxième passage
 
 - Le processus serveur échange désormais de vraies trames JSON-RPC pour `initialize`, `didOpen`, `didChange`, `didClose` et `hover`. L'initialisation complète d'un espace, la validation du contenu et les diagnostics de service restent à vérifier.
