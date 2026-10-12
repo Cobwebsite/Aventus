@@ -230,6 +230,7 @@ export class ManifestPackageMd {
 			description: _function.documentation?.definitions.join(EOL) ?? "",
 			isAbstract: false
 		};
+		this.overviews.push({ name: _function.fullName, type: 'Function', description: temp.description });
 		this.parts.push(temp);
 	}
 
