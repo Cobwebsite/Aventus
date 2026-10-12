@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Métadonnées Git imbriquées dans une archive publiée au Store
-
-- Source : `server/src/store/Store.ts`, méthode `zip`.
-- Reproduction automatisée : `store-nested-git-archive-round95.test.mjs` place un dossier `.git` à la racine du template et un autre dans un sous-dossier. L'archive exclut le premier, mais contient `nested/.git/config` avec son contenu.
-- Décision à prendre : exclure tout segment `.git` du chemin avant la publication d'un template, y compris dans les dossiers imbriqués.
-
 ## Sortie statique conservée après suppression de la source
 
 - Source : `server/src/project/Static.ts`, méthode `export`.
