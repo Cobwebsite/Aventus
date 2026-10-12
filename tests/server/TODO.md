@@ -299,6 +299,7 @@ Les scénarios qui révèlent actuellement un écart du code source sont détail
 - [x] Analyse et completion d'un `template.avt.ts` ; erreur de template signalée : diagnostic syntaxique après édition, diagnostic sémantique puis correction, completion locale et API héritée après modification du buffer (`template-language-service.test.mjs`, `template-language-edits-round78.test.mjs`).
 - [x] Migrations 1.4.0 et 1.4.1 : transformation attendue et relance sans double modification. Le remplacement textuel de `dependances` dans les clés et les valeurs par la migration 1.4.1 est conservé intentionnellement (`migrations-round10.test.mjs`).
 - [x] Compilation npm : après un échec esbuild, les entrées de cache sont invalidées pour permettre un nouvel essai avec les mêmes imports une fois le module disponible (`npm-retry-round8.test.mjs`).
+- [x] Import npm nommé avec namespace du même module : les alias nommés reçoivent leur export individuel et l'alias `*` conserve le namespace (`npm-import-combinations-round9.test.mjs`).
 
 ## Commandes serveur (`cmds`)
 
