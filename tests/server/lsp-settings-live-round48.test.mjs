@@ -49,7 +49,6 @@ test('configuration events replace live log filtering while preserving startup b
 
         current = { logLevel: 1, watchFiles: true };
         await handlers.onDidChangeConfiguration();
-        await new Promise(resolve => setImmediate(resolve));
         GenericServer.information('visible');
         assert.deepEqual(logged, ['always', 'visible']);
         assert.equal(settings.settings.watchFiles, true);
@@ -57,7 +56,6 @@ test('configuration events replace live log filtering while preserving startup b
 
         current = {};
         await handlers.onDidChangeConfiguration();
-        await new Promise(resolve => setImmediate(resolve));
         GenericServer.information('hidden again');
         assert.deepEqual(logged, ['always', 'visible']);
         assert.equal(settings.settings.watchFiles, true);
@@ -69,7 +67,7 @@ test('configuration events replace live log filtering while preserving startup b
     }
 });
 
-test('configuration notification returns before an asynchronous settings refresh finishes', async () => {
+test('configuration notification waits for settings and HTML data to finish loading', async () => {
     const oldServer = GenericServer.instance;
     const oldSettings = SettingsManager.instance;
     let release;
@@ -87,12 +85,15 @@ test('configuration notification returns before an asynchronous settings refresh
         SettingsManager.instance = settings;
         settings.initSettings({});
         settings.setSettingsHtml({});
-        const result = await handlers.onDidChangeConfiguration();
-        assert.equal(result, undefined);
+        let completed = false;
+        const notification = handlers.onDidChangeConfiguration().then(() => { completed = true; });
+        await new Promise(resolve => setImmediate(resolve));
         assert.equal(requests, 1);
+        assert.equal(completed, false);
         assert.equal(settings.settingsHtml.customData.length, 0);
         release({ logLevel: 1 });
-        await new Promise(resolve => setImmediate(resolve));
+        await notification;
+        assert.equal(completed, true);
         assert.equal(settings.settings.logLevel, 1);
         assert.deepEqual(settings.settingsHtml.customData, ['late.json']);
     } finally {
