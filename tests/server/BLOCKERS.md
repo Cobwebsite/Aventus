@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## README explicitement configuré lors de la publication d'un package
-
-- Source : `server/src/store/Store.ts`, méthode `publishPackage`.
-- Reproduction automatisée : `store.test.mjs` configure un fichier `CUSTOM-README.test.md` présent uniquement dans le projet. Le nom évite le `README.md` de la racine du dépôt, que le code trouve aussi depuis le répertoire courant.
-- Résultat actuel : `finalPath` devient absolu, puis `readFileSync(join(rootPath, finalPath))` recompose un chemin de type `D:\projet\D:\projet\CUSTOM-README.test.md` et lève `ENOENT` avant l'envoi.
-- Résultat attendu : lire le fichier README configuré et l'ajouter au formulaire.
-
 ## Identifiants du store écrits dans la console
 
 - Source : `server/src/cmds/store/Connect.ts`, méthode `run`.

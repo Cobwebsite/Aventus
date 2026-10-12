@@ -36,7 +36,7 @@ Cocher un point seulement lorsqu'un test automatisé vérifie son résultat. Pou
 - [x] Templates : sélection d'espace de travail avec dossier voisin et racines imbriquées (`template-manager.test.mjs`).
 - [x] Concurrence : attente abandonnée par `Mutex.dispose`, appels `release` supplémentaires et surcharge sans clé d'`ActionGuard` (`concurrency.test.mjs`).
 - [x] Initialisation IDE/CLI : chemins de stockage et d'extension transmis, mode sans build par défaut, premier espace et lancement de la vérification de mise à jour (`protocol-routing.test.mjs`).
-- [x] Publication Store : fichier README explicitement configuré, présent dans le projet, avec échec actuel reproduit (`store.test.mjs`).
+- [x] Publication Store : fichier README explicitement configuré, présent dans le projet et ajouté au formulaire depuis son chemin résolu (`store.test.mjs`).
 - [x] Connexion Store : prompts et fuite actuelle des identifiants dans `console.log` reproduite (`store-commands.test.mjs`).
 - [x] Cinquième passage : agrégation projet/build et renommage, import npm, sorties i18n, parsing et service i18n, fusion HTML, buffering des fichiers, validation différée et notifications (`project-aggregation-round5.test.mjs`, `npm-builder-lifecycle-round5.test.mjs`, `build-i18n-output-round5.test.mjs`, `i18n-parser-round5.test.mjs`, `i18n-service-round5.test.mjs`, `html-parser-merge-round5.test.mjs`, `aventus-file-buffering-round5.test.mjs`, `notification-edge-round5.test.mjs`).
 - [x] i18n : doublons de clés de message et de locale avec sévérité et plage des diagnostics (`i18n-duplicates-round6.test.mjs`).
