@@ -9,7 +9,7 @@ import { GenericServer } from '../../GenericServer';
 import { pathToUri } from '../../tools';
 import { version } from 'typescript';
 
-const contents: { [name: string]: string } = {};
+const contents: { [name: string]: { content: string, mtimeMs: number, ctimeMs: number, size: number } } = {};
 
 
 
@@ -203,11 +203,6 @@ export function loadNodeModules(nodeModulesPath: string): string[] {
 }
 
 export function loadLibrary(name: string): string | undefined {
-	let content = contents[name];
-	if (typeof content === 'string') {
-		return content;
-	}
-
 	let libPath;
 	let showError = true;
 	if (name.startsWith("custom://@types")) {
@@ -242,18 +237,23 @@ export function loadLibrary(name: string): string | undefined {
 		libPath = name;
 	}
 
-	if (typeof content !== 'string') {
-		if (typeof libPath == 'string' && existsSync(libPath) && lstatSync(libPath).isFile()) {
-			content = readFileSync(libPath).toString();
-		}
-		else if (showError) {
-			//console.error(`Unable to load library ${name} at ${libPath}`);
-		}
-		if (content !== undefined) {
-			contents[name] = content;
+	if (typeof libPath == 'string' && existsSync(libPath)) {
+		const stat = lstatSync(libPath);
+		if (stat.isFile()) {
+			const cached = contents[name];
+			if (cached && cached.mtimeMs === stat.mtimeMs && cached.ctimeMs === stat.ctimeMs && cached.size === stat.size) {
+				return cached.content;
+			}
+			const content = readFileSync(libPath).toString();
+			contents[name] = { content, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs, size: stat.size };
+			return content;
 		}
 	}
-	return content;
+	delete contents[name];
+	if (showError) {
+		//console.error(`Unable to load library ${name} at ${libPath}`);
+	}
+	return undefined;
 }
 
 

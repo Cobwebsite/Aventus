@@ -19,12 +19,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Le package Aventus est généré, relu et reconstruit dans les tests. Un build multi-fichiers complet avec vues, styles, npm et dépendances reste à vérifier.
 - Le modèle et une compilation simple TypeScript, la complétion et le formatage HTML, ainsi que les liens HTML–SCSS sont testés. Les décorateurs, composants complets, boucles conditionnelles et liens vue/classe restent à couvrir avec une fixture de projet.
 
-## Déclaration npm modifiée non relue
-
-- Source : `server/src/language-services/ts/libLoader.ts`, cache `contents` de `loadLibrary`.
-- Reproduction automatisée : `ts-lib-discovery-cycle-round73.test.mjs` charge une déclaration, modifie son fichier sur disque, puis relance la découverte et le chargement. L'URI est redécouverte, mais `loadLibrary` rend toujours le contenu initial.
-- Décision à prendre : invalider le cache sur les événements disque ou vérifier la modification du fichier avant de renvoyer le contenu mémorisé.
-
 ## Priorité des templates homonymes
 
 - Source : `server/src/files/TemplateManager.ts`, `readTemplates`.

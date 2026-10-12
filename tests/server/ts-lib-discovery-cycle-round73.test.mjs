@@ -92,7 +92,7 @@ test('malformed npm metadata can be repaired and rediscovered with a valid sibli
     ]);
 }));
 
-test('library content cache currently keeps the first declaration after a package update', () => withModules(modules => {
+test('library content cache refreshes a changed declaration and forgets a removed one', () => withModules(modules => {
     const folder = putPackage(modules, 'mutable', JSON.stringify({ types: './index.d.ts' }), {
         'index.d.ts': 'export declare const revision: 1;',
     });
@@ -100,5 +100,9 @@ test('library content cache currently keeps the first declaration after a packag
     assert.equal(loadLibrary(uri), 'export declare const revision: 1;');
     writeFileSync(join(folder, 'index.d.ts'), 'export declare const revision: 2;');
     assert.deepEqual(loadNodeModules(modules), [uri]);
-    assert.equal(loadLibrary(uri), 'export declare const revision: 1;');
+    assert.equal(loadLibrary(uri), 'export declare const revision: 2;');
+    unlinkSync(join(folder, 'index.d.ts'));
+    assert.equal(loadLibrary(uri), undefined);
+    writeFileSync(join(folder, 'index.d.ts'), 'export declare const revision: 3;');
+    assert.equal(loadLibrary(uri), 'export declare const revision: 3;');
 }));
