@@ -11,13 +11,13 @@ const [, { ParserTs }, { GenericServer }] = await loadServerModules([
 GenericServer.instance = { logLevel: 4 };
 
 let sequence = 0;
-function parse(source) {
+function parse(source, registerResult = []) {
     const uri = `file:///D:/test/import-round2-${++sequence}.lib.avt`;
     const document = TextDocument.create(uri, 'typescript', 1, source);
     const registrations = [];
     const file = { uri, versionInternal: 1, documentUser: document, documentInternal: document };
     const build = {
-        npmBuilder: { unregister() {}, register(from, data) { registrations.push({ from, ...data }); } },
+        npmBuilder: { unregister() {}, register(from, data, range) { registrations.push({ from, ...data }); return registerResult.map(error => ({ ...error, range })); } },
         buildConfig: {},
         hasNpmOutput: false,
         project: { resolveAlias: name => name },
@@ -36,6 +36,18 @@ test('TS parser records named and namespace npm imports with aliases', () => {
     ]);
     assert.deepEqual(model.npmImports.A, { uri: 'some-lib', nameInsideLib: 'Alpha' });
     assert.deepEqual(model.npmImports.Tools, { uri: 'tool-kit', nameInsideLib: '*' });
+});
+
+test('TS parser reports npm registration diagnostics on the import range', () => {
+    const { model } = parse('import * as Tools from "tool-kit"; export class User {}', [
+        { message: 'Invalid npm import', severity: 1, source: 'typescript' },
+    ]);
+    assert.equal(model.errors.length, 1);
+    assert.equal(model.errors[0].message, 'Invalid npm import');
+    assert.deepEqual(model.errors[0].range, {
+        start: { line: 0, character: 0 }, end: { line: 0, character: 34 },
+    });
+    assert.equal(model.npmImports.Tools, undefined);
 });
 
 test('TS type-only npm imports do not register runtime dependencies', () => {

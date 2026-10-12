@@ -37,13 +37,18 @@ test('npm compilation exposes two named aliases and a namespace for one module',
     assert.equal(exported.value, 42);
 });
 
-test('an invalid wildcard registration remains stored until its file is removed', () => {
+test('an invalid wildcard registration does not change stored imports', () => {
     const builder = new NpmBuilder({ isBuildAllowed: true });
-    assert.throws(() => builder.register('file:///invalid.lib.avt', { uri: 'tiny-combo', libName: '*' }), /has no alias/);
-    assert.equal(builder.storedInfo['file:///invalid.lib.avt'].length, 1);
-    assert.throws(() => builder.rebuildInfo(), /has no alias/);
-    builder.unregister('file:///invalid.lib.avt');
+    const range = { start: { line: 2, character: 4 }, end: { line: 2, character: 31 } };
+    const errors = builder.register('file:///invalid.lib.avt', { uri: 'tiny-combo', libName: '*' }, range);
+    assert.equal(errors.length, 1);
+    assert.match(errors[0].message, /has no alias/);
+    assert.deepEqual(errors[0].range, range);
+    assert.equal(builder.storedInfo['file:///invalid.lib.avt'], undefined);
+    builder.rebuildInfo();
     assert.deepEqual(builder.writeFileToCompile(), { buildTxt: 'export default {  }', toExport: '' });
+    assert.deepEqual(builder.register('file:///invalid.lib.avt', { uri: 'tiny-combo', libName: '*', alias: 'module' }), []);
+    assert.match(builder.writeFileToCompile().buildTxt, /import \* as .* from "tiny-combo"/);
 });
 
 test('imports registered while building is disabled are picked up when it is enabled', () => {
