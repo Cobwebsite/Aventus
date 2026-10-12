@@ -25,11 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Clés i18n homonymes entre fichiers globaux
-
-- Reproduction automatisée : `i18n-cross-files-round39.test.mjs` enregistre deux fichiers globaux avec la même clé. Les diagnostics restent propres à chaque fichier ; l'export `singleFile` garde la dernière valeur enregistrée pour une locale, tandis que `oneToOne` produit deux sorties distinctes.
-- Décision à prendre : autoriser explicitement la surcharge selon l'ordre d'enregistrement ou signaler le doublon entre fichiers. Un test normatif pourra être ajouté après ce choix.
-
 ## Export i18n conservé pendant une erreur JSON
 
 - Reproduction automatisée : `i18n-invalid-export-round57.test.mjs` rend invalide un fichier i18n précédemment valide. Les diagnostics signalent l'erreur, mais `translation.exported` et `keys` conservent les valeurs antérieures jusqu'à la correction du JSON.

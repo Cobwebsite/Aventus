@@ -46,6 +46,20 @@ export class AventusI18nLanguageService {
 			const locales = file.build.buildConfig.i18n?.locales ?? [];
 
 			for (let key in parsed) {
+				if (file.isGlobal) {
+					const otherFiles = file.build.tsLanguageService?.i18nFiles ?? {};
+					const duplicates = Object.values(otherFiles).filter(other => other !== file && other.isGlobal && other.parsed && Object.hasOwn(other.parsed, key));
+					if (duplicates.length > 0) {
+						errors.push(
+							createErrorI18nPos(
+								document, 
+								`Duplicate translation key ${key} across global files`,
+								parsed[key].keyStart, 
+								parsed[key].keyEnd
+							)
+						);
+					}
+				}
 				for (let locale in parsed[key].locales) {
 					const info = parsed[key].locales[locale];
 					if (!locales.includes(locale)) {

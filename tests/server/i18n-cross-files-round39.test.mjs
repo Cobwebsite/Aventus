@@ -39,7 +39,7 @@ function fixture(t, entries) {
     return { build, directory, written, files };
 }
 
-test('les diagnostics et corrections de locales restent propres à chaque fichier i18n', async t => {
+test('les diagnostics signalent les clés globales en doublon et gardent les corrections locales', async t => {
     const { files } = fixture(t, [
         ['@first', '{"shared":{"en":"First"},"onlyFirst":{"en":"One","fr":"Un"}}'],
         ['@second', '{"shared":{"en":"Second","fr":"Deux"},"onlySecond":{"fr":"Deux"}}'],
@@ -47,16 +47,21 @@ test('les diagnostics et corrections de locales restent propres à chaque fichie
     const [first, second] = files;
     const firstDiagnostics = await first.source.validate(false);
     const secondDiagnostics = await second.source.validate(false);
-    assert.deepEqual(firstDiagnostics.map(item => item.message), ['Missing locales fr']);
-    assert.deepEqual(secondDiagnostics.map(item => item.message), ['Missing locales en']);
-    const firstActions = await first.source.getCodeAction(firstDiagnostics[0].range);
+    assert.deepEqual(firstDiagnostics.map(item => item.message), ['Duplicate translation key shared across global files', 'Missing locales fr']);
+    assert.deepEqual(secondDiagnostics.map(item => item.message), ['Duplicate translation key shared across global files', 'Missing locales en']);
+    assert.equal(first.source.documentUser.getText(firstDiagnostics[0].range), '"shared"');
+    assert.equal(second.source.documentUser.getText(secondDiagnostics[0].range), '"shared"');
+    const firstActions = await first.source.getCodeAction(firstDiagnostics[1].range);
     const edit = firstActions.find(item => item.title === 'Import missing locales')?.edit.changes[first.source.uri][0];
     assert.ok(edit);
     assert.equal(firstActions.some(item => item.edit?.changes?.[second.source.uri]), false);
     await first.change(2, TextDocument.applyEdits(first.source.documentUser, [edit]));
-    assert.deepEqual((await first.source.validate(false)).map(item => item.message), ['Translation not set']);
-    assert.deepEqual((await second.source.validate(false)).map(item => item.message), ['Missing locales en']);
+    assert.deepEqual((await first.source.validate(false)).map(item => item.message), ['Duplicate translation key shared across global files', 'Translation not set']);
+    assert.deepEqual((await second.source.validate(false)).map(item => item.message), ['Duplicate translation key shared across global files', 'Missing locales en']);
     assert.deepEqual(second.translation.exported.en, { shared: 'Second' });
+    await second.change(2, '{"onlySecond":{"en":"Two","fr":"Deux"}}');
+    assert.deepEqual((await first.source.validate(false)).map(item => item.message), ['Translation not set']);
+    assert.deepEqual((await second.source.validate(false)).map(item => item.message), []);
 });
 
 test('un build i18n fusionne les fichiers réels puis suit modification et retrait', async t => {
