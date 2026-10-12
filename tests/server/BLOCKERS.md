@@ -25,17 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Découverte locale de templates qui remplace le registre général
-
-- Reproduction automatisée : `template-priority-round48.test.mjs` trouve un nom identique dans les dossiers installés et locaux pour les trois familles de templates. La découverte locale remplace l'entrée du registre général et le compteur vaut 2 pour un seul nom accessible.
-- Décision à prendre : isoler le registre par workspace et compter les noms uniques, ou conserver explicitement cette priorité et compter les scripts lus.
-
-## Notification LSP de paramètres terminée avant leur chargement
-
-- Reproduction automatisée : `lsp-settings-live-round48.test.mjs` diffère la réponse du client pendant `GenericServer.onDidChangeConfiguration()`. Le gestionnaire rend la main avant l'application des nouveaux paramètres et données HTML.
-- Source : `server/src/GenericServer.ts`, appel à `loadSettings()` sans attendre sa promesse.
-- Décision à prendre : garantir que les requêtes suivantes voient les paramètres rechargés en attendant la fin du chargement, ou documenter ce délai.
-
 ## Import consommateur obsolète après fusion d'un composant
 
 - Reproduction automatisée : `component-command-cycle-round51.test.mjs` sépare `Alpha`, renomme son dossier et met à jour l'import de `Beta`, puis fusionne `Alpha` en `Alpha.wc.avt` à la racine. L'ancien dossier est supprimé, mais `Beta` importe encore `./Renamed/Alpha.wcl.avt`.

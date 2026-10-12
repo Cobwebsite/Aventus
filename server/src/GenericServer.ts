@@ -369,7 +369,7 @@ export class GenericServer {
 		await Commands.execute(params);
 	}
 	protected async onDidChangeConfiguration() {
-		this.loadSettings();
+		await this.loadSettings();
 	}
 
 
