@@ -69,7 +69,7 @@ test('package Markdown renders exported generic function signature and return ty
 test('function-only package produces an overview and detailed Markdown', () => {
     const markdown = new ManifestPackageMd(packageWithFunction(false)).getContent();
     assert.match(markdown, /# helpers/);
-    assert.match(markdown, /\[choose\]\(choose\)/);
+    assert.match(markdown, /\[choose\]\(#pkg-choose\)/);
     assert.match(markdown, /Function/);
     assert.match(markdown, /## choose<T extends string>\(value: T\)/);
     assert.match(markdown, /Returns the selected value/);

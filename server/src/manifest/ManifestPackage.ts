@@ -79,6 +79,7 @@ export class ManifestPackage {
 
 type ManifestRoot = {
 	name: string,
+	anchor: string,
 	example?: string,
 	description?: string,
 }
@@ -138,7 +139,7 @@ export class ManifestPackageMd {
 
 	private content: string[] = [];
 
-	private overviews: { name: string, type: string, description?: string }[] = []
+	private overviews: { name: string, anchor: string, type: string, description?: string }[] = []
 	private parts: (ManifestClass | ManifestFunction | ManifestEnum | ManifestVariable)[] = []
 	private scss: SCSSDoc
 
@@ -176,6 +177,9 @@ export class ManifestPackageMd {
 	}
 	private isManifestFunction(item: ManifestRoot): item is ManifestFunction {
 		return (item as ManifestFunction).result !== undefined;
+	}
+	private anchorFor(name: string): string {
+		return 'pkg-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 	}
 
 	private getType(node: TypeNode | TypeInfo): string {
@@ -226,11 +230,12 @@ export class ManifestPackageMd {
 		// todo load example
 		const temp: ManifestFunction = {
 			name: name,
+			anchor: this.anchorFor(_function.fullName),
 			result: _function.node.type ? this.getType(_function.node.type) : "any",
 			description: _function.documentation?.definitions.join(EOL) ?? "",
 			isAbstract: false
 		};
-		this.overviews.push({ name: _function.fullName, type: 'Function', description: temp.description });
+		this.overviews.push({ name: _function.fullName, anchor: temp.anchor, type: 'Function', description: temp.description });
 		this.parts.push(temp);
 	}
 
@@ -238,6 +243,7 @@ export class ManifestPackageMd {
 		const item = this.file.fileParsed!.enums[info.fullName];
 		const part: ManifestEnum = {
 			name: item.fullName,
+			anchor: this.anchorFor(item.fullName),
 			kind: 'enum',
 			description: item.documentation?.definitions.join(EOL) ?? '',
 			members: Array.from(item.node.members, member => ({
@@ -246,7 +252,7 @@ export class ManifestPackageMd {
 				description: new DocumentationInfo(member).definitions.join(EOL),
 			})),
 		};
-		this.overviews.push({ name: part.name, type: 'Enum', description: part.description });
+		this.overviews.push({ name: part.name, anchor: part.anchor, type: 'Enum', description: part.description });
 		this.parts.push(part);
 	}
 
@@ -254,13 +260,14 @@ export class ManifestPackageMd {
 		const item = this.file.fileParsed!.variables[info.fullName];
 		const part: ManifestVariable = {
 			name: item.fullName,
+			anchor: this.anchorFor(item.fullName),
 			kind: 'variable',
 			declaration: item.type,
 			type: item.node.type ? this.getType(item.node.type) : 'any',
 			value: item.node.initializer?.getText(),
 			description: item.documentation?.definitions.join(EOL) ?? '',
 		};
-		this.overviews.push({ name: part.name, type: 'Variable', description: part.description });
+		this.overviews.push({ name: part.name, anchor: part.anchor, type: 'Variable', description: part.description });
 		this.parts.push(part);
 	}
 
@@ -287,6 +294,7 @@ export class ManifestPackageMd {
 
 		const temp: ManifestClass = {
 			name: name,
+			anchor: this.anchorFor(_class.fullName),
 			isWebComponent: _class.isWebcomponent,
 			tag: info.tagName ? `&lt;${info.tagName}&gt;&lt;/${info.tagName}&gt;` : undefined,
 			type: _class.isInterface ? "Interface" : "Class",
@@ -362,6 +370,7 @@ export class ManifestPackageMd {
 
 		this.overviews.push({
 			name: _class.fullName,
+			anchor: temp.anchor,
 			type: temp.isWebComponent ? temp.type + " (Webcomponent)" : temp.type,
 			description: temp.tag ? temp.description + " (" + temp.tag + ")" : temp.description
 		})
@@ -450,7 +459,7 @@ export class ManifestPackageMd {
 		this.overviews.sort((a, b) => a.name.localeCompare(b.name))
 		for (let overview of this.overviews) {
 			this.addColumns([
-				`[${overview.name}](${overview.name.toLowerCase()})`,
+				`[${overview.name}](#${overview.anchor})`,
 				overview.type,
 				overview.description ?? ''
 			])
@@ -463,6 +472,7 @@ export class ManifestPackageMd {
 
 		for (let part of this.parts) {
 
+			this.add(`<a id="${part.anchor}"></a>`)
 			this.add("## " + part.name)
 			this.line();
 
@@ -603,7 +613,7 @@ export class ManifestPackageMd {
 		}
 
 	}
-	private writeMethods(methods: ManifestFunction[]) {
+	private writeMethods(methods: ManifestMethod[]) {
 		if (methods.length == 0) return;
 
 		this.addColumnsHeader(["Name", "Return", "Description"]);
