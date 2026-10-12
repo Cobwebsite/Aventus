@@ -177,15 +177,15 @@ export class Project {
     public async onConfigSave() {
         await this.onConfigSaveMutex.waitOne();
         await this.loadConfig();
+        for (let _static of this.statics) {
+            _static.destroy();
+        }
+        this.statics = [];
+        for (let build of this.builds) {
+            build.destroy();
+        }
+        this.builds = [];
         if (this.config) {
-
-            for (let build of this.builds) {
-                build.destroy();
-            }
-            for (let _static of this.statics) {
-                _static.destroy();
-            }
-
             for (let build of this.config.build) {
                 if (this.buildsAllowed) {
                     if (!this.buildsAllowed.includes(build.name ?? "")) {

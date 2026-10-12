@@ -84,17 +84,18 @@ test('a saved project config creates builds and static exports, then reloads the
     assert.deepEqual(project.getBuildsName(), ['Demo@third']);
     assert.deepEqual(events, [['init', 'Demo@first'], ['init', 'Demo@second'], ['init', 'Demo@third']]);
     assert.equal(readFileSync(join(root, 'dist', 'media', 'asset.txt'), 'utf8'), 'asset two');
-    // Existing Static instances remain in the collection after configuration reload.
-    assert.deepEqual(project.getStaticsName(), ['images', 'fonts', 'media']);
+    assert.deepEqual(project.getStaticsName(), ['media']);
+    assert.equal(project.getStatic('images'), undefined);
+    assert.equal(readFileSync(join(root, 'dist', 'images', 'asset.txt'), 'utf8'), 'asset one');
     configFile.documentUser = TextDocument.create(uri, 'json', 3, '{ invalid');
     await project.onConfigSave();
     assert.equal(project.getConfig(), null);
     assert.deepEqual(project.getBuildsName(), []);
-    assert.deepEqual(project.getStaticsName(), ['images', 'fonts', 'media']);
+    assert.deepEqual(project.getStaticsName(), []);
     writeFileSync(join(input, 'asset.txt'), 'asset three');
     await project.buildAll();
-    assert.equal(readFileSync(join(root, 'dist', 'images', 'asset.txt'), 'utf8'), 'asset three');
-    assert.equal(readFileSync(join(root, 'dist', 'fonts', 'asset.txt'), 'utf8'), 'asset three');
-    assert.equal(readFileSync(join(root, 'dist', 'media', 'asset.txt'), 'utf8'), 'asset three');
+    assert.equal(readFileSync(join(root, 'dist', 'images', 'asset.txt'), 'utf8'), 'asset one');
+    assert.equal(readFileSync(join(root, 'dist', 'fonts', 'asset.txt'), 'utf8'), 'asset one');
+    assert.equal(readFileSync(join(root, 'dist', 'media', 'asset.txt'), 'utf8'), 'asset two');
     project.destroy();
 });

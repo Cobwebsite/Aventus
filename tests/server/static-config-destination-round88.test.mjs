@@ -12,7 +12,7 @@ const [{ Project }, { Build }, { SettingsManager }, { GenericServer }, { FilesMa
     'project/DependencyManager.ts', 'live-server/HttpServer.ts', 'Mutex.ts',
 ]);
 
-test('changing only a static destination keeps the earlier export active on project rebuild', async t => {
+test('changing only a static destination leaves the earlier files but stops exporting there', async t => {
     const root = mkdtempSync(join(import.meta.dirname, '.static-destination-cycle-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const input = join(root, 'public');
@@ -73,9 +73,9 @@ test('changing only a static destination keeps the earlier export active on proj
     writeFileSync(source, 'second');
     await save(2, './dist/new');
     assert.equal(readFileSync(join(root, 'dist', 'new', 'asset.txt'), 'utf8'), 'second');
-    assert.deepEqual(project.getStaticsName(), ['assets', 'assets']);
+    assert.deepEqual(project.getStaticsName(), ['assets']);
     writeFileSync(source, 'third');
     await project.buildAll();
-    assert.equal(readFileSync(join(root, 'dist', 'old', 'asset.txt'), 'utf8'), 'third');
+    assert.equal(readFileSync(join(root, 'dist', 'old', 'asset.txt'), 'utf8'), 'first');
     assert.equal(readFileSync(join(root, 'dist', 'new', 'asset.txt'), 'utf8'), 'third');
 });

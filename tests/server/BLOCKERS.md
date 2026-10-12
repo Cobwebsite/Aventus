@@ -25,15 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Sorties statiques conservées après rechargement d'un projet
-
-- Source : `server/src/project/Project.ts`, `loadConfig` et `onConfigSave`.
-- Reproduction automatisée : `project-config-build-static-round33.test.mjs` charge deux builds et deux sorties statiques. Après une configuration qui les remplace par un build et une sortie, `getBuildsName()` ne contient que le nouveau build, mais `getStaticsName()` contient encore les deux anciennes sorties. Une configuration invalide supprime les builds et laisse les trois sorties statiques.
-- `project-config-filters-round55.test.mjs` confirme qu'une sortie statique précédemment autorisée reste aussi exportée par `buildAll()` après changement de `staticsAllowed`, puis subsiste après configuration invalide.
-- `static-config-destination-round88.test.mjs` confirme qu'un simple changement de destination avec le même nom crée un second export actif : `buildAll()` met ensuite à jour l'ancienne et la nouvelle destination.
-- `project-manager-build-lists-round75.test.mjs` confirme que l'agrégation de deux projets garde les URI correctes pour les builds, Storybook et npm, mais retourne deux fois la sortie `assets` du projet rechargé tandis que l'autre projet conserve sa propre sortie.
-- Les anciens objets `Static` restent accessibles à `getStatic` et `buildAll` même après `destroy()` ; le test vérifie que `buildAll()` réexporte les trois anciennes sorties après invalidation. Décision à prendre : vider la collection au rechargement et à l'invalidation, puis préciser le sort des fichiers déjà produits.
-
 ## Condition HTML externe perdue avec une boucle interne
 
 - Reproduction automatisée : `html-nested-controls-round33.test.mjs` parse `if (ready) { for (const item of items) { <li>{{item}}</li> } }`. Le code compilé contient le contrôle externe, mais `ifs[0].conditions` est vide. Dans l'ordre inverse, la condition interne `item.active` est conservée.
@@ -131,12 +122,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `template-script-navigation-round46.test.mjs` obtient la définition d'un membre de `AventusTemplate.d.ts`, mais reçoit `null` pour une propriété déclarée dans le `template.avt.ts` ouvert.
 - Source : `server/src/language-services/ts/template/LanguageService.ts`, `findDefinition()` demande `loadLibrary(d.fileName)` et écarte la définition locale lorsque ce chargement échoue.
 - Décision à prendre : préciser si la navigation vers les déclarations du script courant doit être prise en charge ; si oui, retourner la position dans le document ouvert.
-
-## Builds dupliqués après sauvegarde d'une configuration identique
-
-- Reproduction automatisée : `project-config-subscriptions-round47.test.mjs` crée deux builds, charge une autre configuration à deux builds, puis la sauvegarde de nouveau sans changement. `getBuildsName()` contient alors chaque build deux fois et les sorties statiques s'accumulent ; lors de l'invalidation suivante, les anciens identifiants d'abonnement sont retirés une seconde fois.
-- Cause probable : `Project.loadConfig()` revient tôt pour une configuration identique, tandis que `onConfigSave()` ajoute des objets sans vider `this.builds`.
-- Décision à prendre : conserver les objets et abonnements sur une sauvegarde identique, ou reconstruire la collection sans doublons. Vérifier ensuite noms, identités et abonnements.
 
 ## Vue absente à l'ouverture d'un composant en fichier unique
 
@@ -773,12 +758,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `template-uninstall-response-round137.test.mjs` présente un seul template installé, puis simule une réponse de sélection contenant le chemin d'un autre dossier temporaire. `selectTemplateToUninstall()` supprime cet autre dossier, conserve le template installé et annonce quand même la suppression.
 - Cause : la commande utilise directement `item.detail` renvoyé par `SelectMultiple()` pour calculer le dossier à supprimer, sans retrouver l'élément parmi les choix proposés ni vérifier que le chemin appartient à un registre de templates.
 - Décision à prendre : résoudre la sélection vers les entrées proposées et limiter la suppression aux dossiers enregistrés et autorisés ; prévoir le comportement pour une réponse périmée ou altérée.
-
-## Builds dupliqués après une sauvegarde de configuration inchangée
-
-- Reproduction automatisée : `project-unchanged-save-round137.test.mjs` charge un projet avec un build, puis sauvegarde à nouveau le même contenu. `Project.onConfigSave()` détruit l'instance initiale mais la conserve dans `builds` et ajoute une seconde instance du même nom. La liste expose deux builds homonymes ; une configuration invalide ultérieure détruit les deux.
-- Cause : `loadConfig()` retourne tôt lorsque la configuration est identique, tandis que `onConfigSave()` poursuit la destruction et la création des builds sans vider le tableau.
-- Décision à prendre : ignorer la sauvegarde inchangée ou remplacer proprement les instances, puis vérifier les listes et le routage des commandes après plusieurs sauvegardes successives.
 
 ## Clé i18n JSON non échappée dans la déclaration TypeScript générée
 
