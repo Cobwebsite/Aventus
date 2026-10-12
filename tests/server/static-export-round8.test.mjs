@@ -55,7 +55,7 @@ test('an invalid stylesheet does not prevent unrelated assets from exporting or 
     target.destroy();
 });
 
-test('removing a source currently leaves its previous static output while other files refresh', async t => {
+test('removing a source removes its previous static output while other files refresh', async t => {
     const { input, output, target } = setup(t);
     writeFileSync(join(input, 'removed.txt'), 'old');
     writeFileSync(join(input, 'retained.txt'), 'first');
@@ -63,8 +63,28 @@ test('removing a source currently leaves its previous static output while other 
     unlinkSync(join(input, 'removed.txt'));
     writeFileSync(join(input, 'retained.txt'), 'second');
     await target.export();
-    assert.equal(readFileSync(join(output, 'removed.txt'), 'utf8'), 'old');
+    assert.equal(existsSync(join(output, 'removed.txt')), false);
     assert.equal(readFileSync(join(output, 'retained.txt'), 'utf8'), 'second');
+    target.destroy();
+});
+
+test('static cleanup preserves unrelated and externally replaced output files', async t => {
+    const { input, output, target } = setup(t);
+    mkdirSync(output);
+    writeFileSync(join(output, 'preexisting.txt'), 'from another build');
+    writeFileSync(join(input, 'preexisting.txt'), 'from static');
+    writeFileSync(join(input, 'shared.txt'), 'from static');
+    await target.export();
+    writeFileSync(join(output, 'shared.txt'), 'from another build');
+    writeFileSync(join(output, 'unrelated.txt'), 'keep');
+    unlinkSync(join(input, 'shared.txt'));
+    unlinkSync(join(input, 'preexisting.txt'));
+
+    await target.export();
+
+    assert.equal(readFileSync(join(output, 'shared.txt'), 'utf8'), 'from another build');
+    assert.equal(readFileSync(join(output, 'preexisting.txt'), 'utf8'), 'from static');
+    assert.equal(readFileSync(join(output, 'unrelated.txt'), 'utf8'), 'keep');
     target.destroy();
 });
 

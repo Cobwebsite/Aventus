@@ -186,6 +186,13 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			await this.export();
 		}
 	}
+	public removeOutPath(path: string) {
+		for (const registeredPath of Object.keys(this.staticNamebyOutPath)) {
+			if (normalize(registeredPath) === normalize(path)) {
+				delete this.staticNamebyOutPath[registeredPath];
+			}
+		}
+	}
 
 	private async export() {
 		for (let outPath in this.staticNamebyOutPath) {
