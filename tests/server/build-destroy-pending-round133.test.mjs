@@ -6,7 +6,7 @@ const [{ Build }, { GenericServer }, { FilesManager }] = await loadServerModules
     'project/Build.ts', 'GenericServer.ts', 'files/FilesManager.ts',
 ]);
 
-test('destroying a build leaves an already scheduled compilation running', async t => {
+test('destroying a build cancels an already scheduled compilation', async t => {
     const previousServer = GenericServer.instance;
     const previousFiles = FilesManager.instance;
     const notifications = [];
@@ -38,6 +38,6 @@ test('destroying a build leaves an already scheduled compilation running', async
     assert.equal(compilations, 0);
     build.destroy();
     await new Promise(resolve => setTimeout(resolve, 70));
-    assert.equal(compilations, 1);
+    assert.equal(compilations, 0);
     assert.ok(notifications.some(([name]) => name === 'aventus/unregisterBuild'));
 });

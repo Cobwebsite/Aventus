@@ -57,7 +57,7 @@ test('IDE build gate follows settings while CLI build gate follows explicit enab
     assert.equal(build.isBuildAllowed, true);
 });
 
-test('scheduled compilation currently still runs after build destruction', async t => {
+test('scheduled compilation is cancelled after build destruction', async t => {
     const calls = [];
     const build = Object.create(Build.prototype);
     build.initDone = true;
@@ -84,5 +84,5 @@ test('scheduled compilation currently still runs after build destruction', async
     await build.build();
     build.destroy();
     await new Promise(resolve => setTimeout(resolve, 40));
-    assert.deepEqual(calls, ['unregistered', 'announced', 'compiled']);
+    assert.deepEqual(calls, ['unregistered', 'announced']);
 });

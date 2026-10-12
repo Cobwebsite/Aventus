@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Compilation différée après destruction du build
-
-- Source : `server/src/project/Build.ts`, méthodes `build` et `destroy`.
-- Reproduction automatisée : `build-resource-lifecycle.test.mjs` planifie une compilation, détruit le build puis observe un appel à `_build()` après la notification de retrait. `destroy` n'annule pas `timerBuild`.
-- `project-destroy-round38.test.mjs` confirme le même comportement dans un vrai projet contenant un build et un export statique ; les abonnements et le watcher statique sont bien libérés, mais le timer du build se déclenche encore.
-- Résultat attendu : annuler la compilation différée et empêcher une écriture ou des diagnostics après destruction.
-
 ## Suppression sur disque non attendue par le gestionnaire
 
 - Source : `server/src/files/FilesManager.ts`, `onUpdatedUri` et `onClose`.
@@ -819,12 +812,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `files-shutdown-inflight-round132.test.mjs` suspend un callback `onContentChange`, appelle `FilesManager.onShutdown()`, puis observe la suppression du fichier en cache et du watcher avant la fin du callback. Une fois libéré, ce callback continue à s'exécuter après l'arrêt.
 - Cause : `onShutdown()` attend les callbacks de suppression via `triggerDelete()`, mais `InternalAventusFile` ne suit ni n'attend les callbacks de modification déjà engagés.
 - Décision à prendre : préciser si l'arrêt doit attendre ces callbacks ou les annuler. Si l'exécution après arrêt est permise, garantir qu'elle ne modifie pas des projets ou ressources déjà détruits.
-
-## Compilation différée encore active après destruction du build
-
-- Reproduction automatisée : `build-destroy-pending-round133.test.mjs` programme un build avec délai, appelle `Build.destroy()` avant l'expiration, puis observe `_build()` appelé après la notification de retrait.
-- Cause : `destroy()` libère les abonnements aux fichiers mais ne vide pas `timerBuild`. Le callback différé ne vérifie pas si le build existe encore.
-- Décision à prendre : préciser si `destroy()` doit annuler les compilations en attente et empêcher leur notification ou écriture après la destruction. Si oui, libérer le timer et invalider les callbacks déjà engagés.
 
 ## Imports npm enregistrés pendant un build désactivé
 

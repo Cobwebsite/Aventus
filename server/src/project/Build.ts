@@ -233,6 +233,7 @@ export class Build {
     }
     //#region build
     private timerBuild: NodeJS.Timeout | undefined = undefined;
+    private destroyed = false;
     public insideRebuildAll: boolean = false;
     public async rebuildAll(isInit: boolean = false) {
         this.allowBuild = false;
@@ -320,6 +321,7 @@ export class Build {
         }
     }
     public async build() {
+        if (this.destroyed) return;
         if (!this.initDone) {
             return;
         }
@@ -333,6 +335,8 @@ export class Build {
                 clearTimeout(this.timerBuild);
             }
             this.timerBuild = setTimeout(async () => {
+                this.timerBuild = undefined;
+                if (this.destroyed) return;
                 await this._build();
             }, delay)
         }
@@ -370,7 +374,7 @@ export class Build {
         }
     }
     private async _build() {
-        if (!this.allowBuild) {
+        if (this.destroyed || !this.allowBuild) {
             return
         }
         GenericServer.debug("building " + this.buildConfig.fullname);
@@ -2413,6 +2417,12 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
     }
 
     public destroy() {
+        if (this.destroyed) return;
+        this.destroyed = true;
+        if (this.timerBuild) {
+            clearTimeout(this.timerBuild);
+            this.timerBuild = undefined;
+        }
         FilesManager.getInstance().removeOnNewFile(this.onNewFileUUID);
         for (let uri in this.scssFiles) {
             this.scssFiles[uri].removeEvents();
