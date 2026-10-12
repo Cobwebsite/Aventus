@@ -50,6 +50,22 @@ test('npm compilation exposes a default import under its local alias', async t =
     assert.equal(typeof new exported.Client(), 'object');
 });
 
+test('npm compilation exposes default and named imports from one declaration', async t => {
+    const builder = fixture(t);
+    const packageDir = join(builder.build.nodeModulesDir, 'tiny-combo');
+    writeFileSync(join(packageDir, 'package.json'), JSON.stringify({ name: 'tiny-combo', version: '1.0.0', type: 'module', main: 'index.js' }));
+    writeFileSync(join(packageDir, 'index.js'), 'export default class Client {}; export const Helper = 42;\n');
+    builder.register('file:///client.lib.avt', { uri: 'tiny-combo', libName: 'default', alias: 'Client' });
+    builder.register('file:///client.lib.avt', { uri: 'tiny-combo', libName: 'Helper', alias: 'LocalHelper' });
+    const compiled = await builder.compile();
+    assert.deepEqual(compiled.errors, []);
+    const context = vm.createContext({});
+    vm.runInContext(compiled.result, context);
+    const exported = Object.values(context.npmCompilation)[0];
+    assert.equal(typeof exported.Client, 'function');
+    assert.equal(exported.LocalHelper, 42);
+});
+
 test('an invalid wildcard registration does not change stored imports', () => {
     const builder = new NpmBuilder({ isBuildAllowed: true });
     const range = { start: { line: 2, character: 4 }, end: { line: 2, character: 31 } };

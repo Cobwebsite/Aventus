@@ -33,6 +33,35 @@ export class ImportInfo {
 
 	public static Parse(node: ImportDeclaration, file: AventusFile, parserInfo: ParserTs) {
 		if (node.importClause) {
+			if (node.importClause.name) {
+				let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
+				moduleName = parserInfo.build.project.resolveAlias(moduleName, file);
+
+				if (moduleName.startsWith(".")) {
+					const opts: ImportInfoCst1 = {
+						parserInfo: parserInfo,
+						moduleName: moduleName,
+						identifier: node.importClause.name,
+						isTypeImport: !!node.importClause.phaseModifier
+					}
+					let info = new ImportInfo(opts);
+					parserInfo.importsLocal[info.alias ?? info.name] = info;
+				}
+				else if (!node.importClause.phaseModifier) {
+					const name = node.importClause.name.text;
+					const registered = this.registerNpmImport(node, parserInfo, {
+						libName: 'default',
+						uri: moduleName,
+						alias: name
+					})
+					if (registered) {
+						parserInfo.npmImports[name] = {
+							uri: moduleName,
+							nameInsideLib: 'default'
+						};
+					}
+				}
+			}
 			if (node.importClause.namedBindings) {
 				if (node.importClause.namedBindings.kind == SyntaxKind.NamespaceImport) {
 					let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
@@ -142,37 +171,6 @@ export class ImportInfo {
 								}
 							}
 
-						}
-					}
-				}
-			}
-			else if (node.importClause.name) {
-				let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
-				moduleName = parserInfo.build.project.resolveAlias(moduleName, file);
-
-				if (moduleName.startsWith(".")) {
-					const opts: ImportInfoCst1 = {
-						parserInfo: parserInfo,
-						moduleName: moduleName,
-						identifier: node.importClause.name,
-						isTypeImport: !!node.importClause.phaseModifier
-					}
-					let info = new ImportInfo(opts);
-					parserInfo.importsLocal[info.alias ?? info.name] = info;
-				}
-				else {
-					if (!node.importClause.phaseModifier) {
-						const name = node.importClause.name.text;
-						const registered = this.registerNpmImport(node, parserInfo, {
-							libName: 'default',
-							uri: moduleName,
-							alias: name
-						})
-						if (registered) {
-							parserInfo.npmImports[name] = {
-								uri: moduleName,
-								nameInsideLib: 'default'
-							};
 						}
 					}
 				}

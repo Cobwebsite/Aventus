@@ -59,10 +59,28 @@ test('les imports namespace npm conservent leur alias et les imports de type res
     assert.deepEqual(model.errors, []);
 });
 
-test('un import npm combinant défaut et noms enregistre les noms mais perd le défaut', () => {
-    const { uri, model, registered } = parse('import Client, { Helper as LocalHelper } from "sample-pkg";');
-    assert.deepEqual(registered, [{ sourceUri: uri, uri: 'sample-pkg', libName: 'Helper', alias: 'LocalHelper' }]);
-    assert.deepEqual(model.npmImports, { LocalHelper: { uri: 'sample-pkg', nameInsideLib: 'Helper' } });
-    assert.equal(model.npmImports.Client, undefined);
+test('un import npm combinant défaut et noms enregistre les deux parties', () => {
+    const { uri, model, registered } = parse('import Client, { Helper as LocalHelper, type Schema } from "sample-pkg";');
+    assert.deepEqual(registered, [
+        { sourceUri: uri, uri: 'sample-pkg', libName: 'default', alias: 'Client' },
+        { sourceUri: uri, uri: 'sample-pkg', libName: 'Helper', alias: 'LocalHelper' },
+    ]);
+    assert.deepEqual(model.npmImports, {
+        Client: { uri: 'sample-pkg', nameInsideLib: 'default' },
+        LocalHelper: { uri: 'sample-pkg', nameInsideLib: 'Helper' },
+    });
+    assert.deepEqual(model.errors, []);
+});
+
+test('un import npm combinant défaut et namespace enregistre les deux parties', () => {
+    const { uri, model, registered } = parse('import Client, * as Widgets from "sample-pkg";');
+    assert.deepEqual(registered, [
+        { sourceUri: uri, uri: 'sample-pkg', libName: 'default', alias: 'Client' },
+        { sourceUri: uri, uri: 'sample-pkg', libName: '*', alias: 'Widgets' },
+    ]);
+    assert.deepEqual(model.npmImports, {
+        Client: { uri: 'sample-pkg', nameInsideLib: 'default' },
+        Widgets: { uri: 'sample-pkg', nameInsideLib: '*' },
+    });
     assert.deepEqual(model.errors, []);
 });
