@@ -25,12 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Extraction des propriétés CSS de `:host` après un préfixe blanc
-
-- Source : `server/src/language-services/scss/LanguageService.ts`, `AventusSCSSLanguageService.getCustomProperty`.
-- Reproduction : `scss-component-boundaries-round24.test.mjs` extrait `--accent` de `:host { --internal-accent: var(--accent, red); }`, mais renvoie une liste vide si la feuille commence par `\n  `.
-- Cause possible à confirmer : le parcours démarre avec `getNodePath(doc, 0)`, hors de la règle après les blancs. Décider si la racine SCSS doit être parcourue indépendamment de l'offset initial, puis exiger l'extraction dans les deux cas.
-
 ## Types des valeurs de traduction i18n
 
 - Source : `server/src/language-services/i18n/schema.ts` et `LanguageService.ts`.
