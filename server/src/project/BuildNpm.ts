@@ -5,6 +5,8 @@ import { EOL, md5 } from '../tools';
 import { build } from 'esbuild';
 import { dirname, join, resolve } from 'path';
 import { existsSync } from 'fs';
+import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
+import { AventusLanguageId } from '../definition';
 
 // TODO : check what to do with the package exported and how imported it back
 export interface NpmBuilderInfo {
@@ -56,12 +58,21 @@ export class NpmBuilder {
 		return newValue;
 	}
 
-	public register(uriFrom: string, info: NpmBuilderInfo) {
+	public register(uriFrom: string, info: NpmBuilderInfo, range?: Range): Diagnostic[] {
+		if (info.libName == "*" && !info.alias) {
+			return [{
+				range: range ?? Range.create(0, 0, 0, 0),
+				severity: DiagnosticSeverity.Error,
+				source: AventusLanguageId.TypeScript,
+				message: `The lib ${info.uri} inside the file ${uriFrom} has no alias => impossible`,
+			}];
+		}
 		if (!this.storedInfo[uriFrom]) {
 			this.storedInfo[uriFrom] = [];
 		}
 		this.storedInfo[uriFrom].push(info);
 		this.rebuildInfo();
+		return [];
 	}
 	public unregister(uriFrom: string) {
 		if (this.storedInfo[uriFrom]) {

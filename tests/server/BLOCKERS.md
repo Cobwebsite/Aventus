@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Import npm wildcard invalide conservé
-
-- Source : `server/src/project/BuildNpm.ts`, `NpmBuilder.register` et `rebuildInfo`.
-- Reproduction automatisée : `npm-import-combinations-round9.test.mjs` enregistre `libName: '*'` sans alias. `register` lève, mais garde l'entrée dans `storedInfo` ; `rebuildInfo` échoue encore jusqu'au retrait du fichier.
-- Décider de valider avant l'enregistrement ou d'annuler l'entrée lors de l'exception.
-
 ## Cycle de dépendances
 
 - Source : `server/src/project/DependencyManager.ts`, `orderLoop`.

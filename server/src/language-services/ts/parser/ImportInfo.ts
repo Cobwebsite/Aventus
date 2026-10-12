@@ -9,6 +9,7 @@ import { FilesManager } from '../../../files/FilesManager';
 import { existsSync, readFileSync } from 'fs';
 import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import type { NpmBuilderInfo } from '../../../project/BuildNpm';
 
 type ImportInfoCst1 = {
 	parserInfo: ParserTs,
@@ -23,6 +24,12 @@ type ImportInfoCst2 = {
 	moduleUri: string,
 }
 export class ImportInfo {
+	private static registerNpmImport(node: ImportDeclaration, parserInfo: ParserTs, info: NpmBuilderInfo): boolean {
+		const range = Range.create(parserInfo.document.positionAt(node.getStart()), parserInfo.document.positionAt(node.getEnd()));
+		const errors = parserInfo.build.npmBuilder.register(parserInfo.document.uri, info, range) ?? [];
+		parserInfo.errors.push(...errors);
+		return errors.length === 0;
+	}
 
 	public static Parse(node: ImportDeclaration, file: AventusFile, parserInfo: ParserTs) {
 		if (node.importClause) {
@@ -40,16 +47,18 @@ export class ImportInfo {
 					}
 					else {
 						let name = node.importClause.namedBindings.name.getText();
-						if (!node.importClause.isTypeOnly) {
-							parserInfo.build.npmBuilder.register(parserInfo.document.uri, {
+						if (!node.importClause.phaseModifier) {
+							const registered = this.registerNpmImport(node, parserInfo, {
 								libName: "*",
 								uri: moduleName,
 								alias: name
 							})
-							parserInfo.npmImports[name] = {
-								uri: moduleName,
-								nameInsideLib: "*"
-							};
+							if (registered) {
+								parserInfo.npmImports[name] = {
+									uri: moduleName,
+									nameInsideLib: "*"
+								};
+							}
 						}
 					}
 				}
@@ -69,13 +78,12 @@ export class ImportInfo {
 							// 	})
 							// }
 							// else {
-							let isTypeOnly = element.isTypeOnly || node.importClause.isTypeOnly;
 							const opts: ImportInfoCst1 = {
 								parserInfo: parserInfo,
 								moduleName: moduleName,
 								identifier: element.propertyName ? element.propertyName : element.name,
 								alias: element.propertyName ? element.name.getText() : undefined,
-								isTypeImport: isTypeOnly
+								isTypeImport:  element.isTypeOnly || !!node.importClause.phaseModifier
 							}
 							let info = new ImportInfo(opts);
 							parserInfo.importsLocal[info.alias ?? info.name] = info;
@@ -120,16 +128,18 @@ export class ImportInfo {
 							if (element.propertyName) {
 								nameInsideLib = element.propertyName.getText();
 							}
-							if (!node.importClause.isTypeOnly && !element.isTypeOnly) {
-								parserInfo.build.npmBuilder.register(parserInfo.document.uri, {
+							if (!node.importClause.phaseModifier && !element.isTypeOnly) {
+								const registered = this.registerNpmImport(node, parserInfo, {
 									libName: nameInsideLib,
 									uri: moduleName,
 									alias: name
 								})
-								parserInfo.npmImports[name] = {
-									uri: moduleName,
-									nameInsideLib: nameInsideLib
-								};
+								if (registered) {
+									parserInfo.npmImports[name] = {
+										uri: moduleName,
+										nameInsideLib: nameInsideLib
+									};
+								}
 							}
 
 						}
@@ -145,23 +155,25 @@ export class ImportInfo {
 						parserInfo: parserInfo,
 						moduleName: moduleName,
 						identifier: node.importClause.name,
-						isTypeImport: node.importClause.isTypeOnly
+						isTypeImport: !!node.importClause.phaseModifier
 					}
 					let info = new ImportInfo(opts);
 					parserInfo.importsLocal[info.alias ?? info.name] = info;
 				}
 				else {
-					if (!node.importClause.isTypeOnly) {
+					if (!node.importClause.phaseModifier) {
 						// TODO check if only here but it should be a default import
-						parserInfo.build.npmBuilder.register(parserInfo.document.uri, {
+						const registered = this.registerNpmImport(node, parserInfo, {
 							libName: 'default',
 							uri: moduleName,
 							alias: this.name
 						})
-						parserInfo.npmImports[this.name] = {
-							uri: moduleName,
-							nameInsideLib: 'default'
-						};
+						if (registered) {
+							parserInfo.npmImports[this.name] = {
+								uri: moduleName,
+								nameInsideLib: 'default'
+							};
+						}
 					}
 				}
 			}
