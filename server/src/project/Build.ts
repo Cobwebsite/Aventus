@@ -806,7 +806,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
             let namespaceNbDots = _namespace == "" ? 0 : _namespace.split(".").length;
             let imported: string[] = [];
             for (let key of keys) {
-                if (key.startsWith(_namespace) && key != _namespace) {
+                if (key.startsWith(_namespace ? _namespace + "." : "") && key != _namespace) {
                     let splittedKeys = key.split(".");
                     let keyNbDots = splittedKeys.length;
                     if (keyNbDots == namespaceNbDots + 1) {
@@ -845,7 +845,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
             let txtEnd = "";
             let namespaceNbDots = _namespace == "" ? 0 : _namespace.split(".").length;
             for (let key of keys) {
-                if (key.startsWith(_namespace) && key != _namespace) {
+                if (key.startsWith(_namespace ? _namespace + "." : "") && key != _namespace) {
                     let splittedKeys = key.split(".");
                     let keyNbDots = splittedKeys.length;
                     if (keyNbDots == namespaceNbDots + 1) {

@@ -7,7 +7,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { Build } = await loadServerModule('project/Build.ts');
 
-test('npm namespace entry points reveal a sibling whose name shares a prefix', async t => {
+test('npm namespace entry points include children without importing prefix-sharing siblings', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-prefix-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'package');
@@ -32,7 +32,9 @@ test('npm namespace entry points reveal a sibling whose name shares a prefix', a
     const uiJs = readFileSync(join(output, 'Catalog', 'UI', 'index.js'), 'utf8');
     const uiTypes = readFileSync(join(output, 'Catalog', 'UI', 'index.d.ts'), 'utf8');
     const siblingJs = readFileSync(join(output, 'Catalog', 'UIExtra', 'index.js'), 'utf8');
-    assert.match(uiJs, /import \* as Widget from "\.\/Widget\/index\.js"/);
-    assert.match(uiTypes, /import \* as Widget from "\.\/Widget"/);
+    assert.doesNotMatch(uiJs, /Widget/);
+    assert.doesNotMatch(uiTypes, /Widget/);
     assert.match(siblingJs, /import \* as Widget from "\.\/Widget\/index\.js"/);
+    const siblingTypes = readFileSync(join(output, 'Catalog', 'UIExtra', 'index.d.ts'), 'utf8');
+    assert.match(siblingTypes, /import \* as Widget from "\.\/Widget"/);
 });
