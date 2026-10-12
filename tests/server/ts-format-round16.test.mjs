@@ -59,3 +59,28 @@ test('TypeScript formatting does not edit text beyond the requested range', asyn
     assert.equal(result.split('\n')[1], 'const second={x:3,y:4}');
     assert.match(result.split('\n')[0], /a: 1/);
 });
+
+test('TypeScript formatting a full first line preserves the next line and its indentation', async () => {
+    const source = 'const first={a:1,b:2}\n    const second={x:3,y:4}\n';
+    const { service, entries } = fixture({ boundary: source });
+    const { boundary } = entries;
+    const range = { start: { line: 0, character: 0 }, end: { line: 1, character: 0 } };
+    const edits = await service.format(boundary.file, range, options);
+    const result = TextDocument.applyEdits(boundary.document, edits);
+    assert.match(result.split('\n')[0], /a: 1/);
+    assert.equal(result.split('\n')[1], '    const second={x:3,y:4}');
+    assert.ok(edits.every(edit => boundary.document.offsetAt(edit.range.end) <= source.indexOf('\n') + 1));
+});
+
+test('TypeScript formatting honors the semicolon option within the requested range', async () => {
+    const source = 'const first={a:1,b:2}\nconst second={x:3,y:4}\n';
+    const { service, entries } = fixture({ semicolons: source });
+    const { semicolons } = entries;
+    const range = { start: { line: 0, character: 0 }, end: { line: 0, character: source.indexOf('\n') } };
+    const withSemicolon = TextDocument.applyEdits(semicolons.document, await service.format(semicolons.file, range, options, true));
+    const withoutSemicolon = TextDocument.applyEdits(semicolons.document, await service.format(semicolons.file, range, options, false));
+    assert.match(withSemicolon.split('\n')[0], /;$/);
+    assert.doesNotMatch(withoutSemicolon.split('\n')[0], /;$/);
+    assert.equal(withSemicolon.split('\n')[1], source.split('\n')[1]);
+    assert.equal(withoutSemicolon.split('\n')[1], source.split('\n')[1]);
+});

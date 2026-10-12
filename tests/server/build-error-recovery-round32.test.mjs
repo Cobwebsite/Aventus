@@ -32,20 +32,29 @@ function fixture(t) {
     build._allowBuild = true;
     build.buildConfig = { fullname: 'Demo@multi', module: 'Demo', compile: configurations };
     build.diagnostics = new Map();
-    build.npmBuilder = { compile: async () => ({ result: '', errors: [] }) };
+    build.npmBuilder = {};
     build.writeBuildDocumentation = async () => {};
     let revision = 'Initial';
     let dependencyError = false;
     let failedPath = null;
+    let compilationFailure = null;
+    let npmFailure = null;
+    build.npmBuilder.compile = async () => {
+        if (npmFailure) throw new Error(npmFailure);
+        return { result: '', errors: [] };
+    };
     build.buildOrderCompilationInfo = async config => ({
         toCompile: [config.id], libSrc: [],
         errors: config.id === 1 && dependencyError ? [{ message: 'dependency unavailable' }] : [],
     });
-    build.buildLocalCode = async files => ({
-        codeNoNamespaceBefore: [], code: [`class ${revision}${files[0]} {}`],
-        classesName: {}, codeNoNamespaceAfter: [], stylesheets: {}, useDecorator: false,
-        codeRenderInJs: [], codeNotRenderInJs: [],
-    });
+    build.buildLocalCode = async files => {
+        if (compilationFailure && files[0] === 1) throw new Error(compilationFailure);
+        return {
+            codeNoNamespaceBefore: [], code: [`class ${revision}${files[0]} {}`],
+            classesName: {}, codeNoNamespaceAfter: [], stylesheets: {}, useDecorator: false,
+            codeRenderInJs: [], codeNotRenderInJs: [],
+        };
+    };
     build.writeFile = async (path, content) => {
         if (path === failedPath) throw new Error('output unavailable');
         mkdirSync(dirname(path), { recursive: true });
@@ -56,6 +65,8 @@ function fixture(t) {
         setRevision: value => { revision = value; },
         setDependencyError: value => { dependencyError = value; },
         setFailedPath: value => { failedPath = value; },
+        setCompilationFailure: value => { compilationFailure = value; },
+        setNpmFailure: value => { npmFailure = value; },
     };
 }
 
@@ -96,4 +107,38 @@ test('a failed second output preserves the first output and the next build recov
     assert.match(readFileSync(paths[1], 'utf8'), /Recovered1/);
     assert.deepEqual(notifications.filter(([name]) => name === 'aventus/compiled')
         .map(([, args]) => args[1]), [[], []]);
+});
+
+test('a thrown local compilation error reaches the caller and a later build refreshes every output', async t => {
+    const state = fixture(t);
+    const { build, paths, notifications } = state;
+    await build.build();
+    state.setRevision('Broken');
+    state.setCompilationFailure('compiler unavailable');
+    await assert.rejects(build.build(), /compiler unavailable/);
+    assert.match(readFileSync(paths[0], 'utf8'), /Broken0/);
+    assert.match(readFileSync(paths[1], 'utf8'), /Initial1/);
+    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 1);
+
+    state.setCompilationFailure(null);
+    state.setRevision('Recovered');
+    await build.build();
+    assert.match(readFileSync(paths[0], 'utf8'), /Recovered0/);
+    assert.match(readFileSync(paths[1], 'utf8'), /Recovered1/);
+    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 2);
+});
+
+test('a rejected npm compilation reaches the caller and does not prevent the next build', async t => {
+    const state = fixture(t);
+    const { build, paths, notifications } = state;
+    state.setNpmFailure('npm compiler unavailable');
+    await assert.rejects(build.build(), /npm compiler unavailable/);
+    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 0);
+
+    state.setNpmFailure(null);
+    state.setRevision('Recovered');
+    await build.build();
+    assert.match(readFileSync(paths[0], 'utf8'), /Recovered0/);
+    assert.match(readFileSync(paths[1], 'utf8'), /Recovered1/);
+    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 1);
 });

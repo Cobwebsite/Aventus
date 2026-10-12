@@ -24,7 +24,7 @@ async function until(predicate) {
     assert.fail('validation did not start');
 }
 
-test('deleting a file during delayed validation clears and then republishes its stale diagnostic', async () => {
+test('deleting a file during validation clears diagnostics without republishing a stale result', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-diagnostic-deletion-'));
     const path = join(root, 'entry.wcl.avt');
     const uri = pathToUri(path);
@@ -35,7 +35,6 @@ test('deleting a file during delayed validation clears and then republishes its 
     const sent = [];
     let releaseValidation;
     const validationGate = new Promise(resolve => { releaseValidation = resolve; });
-    let validating = false;
     GenericServer.instance = { logLevel: 99, isIDE: true, connection: { sendDiagnostics: params => sent.push(params) } };
     SettingsManager.instance = { settings: { errorByBuild: false } };
     FilesWatcher.instance = { unwatch() {} };
@@ -45,19 +44,18 @@ test('deleting a file during delayed validation clears and then republishes its 
         await current.registerFile(doc(1, 'first'));
         const file = current.getByUri(uri);
         file.onValidate(async () => {
-            validating = true;
             await validationGate;
             return [{ message: 'stale', range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } } }];
         });
         await current.onContentChange(doc(2, 'changed'));
-        await until(() => validating);
+        const pendingValidation = file.validate();
         unlinkSync(path);
         await current.onDeletedUri(uri);
         assert.equal(current.getByUri(uri), undefined);
         assert.deepEqual(sent, [{ uri, diagnostics: [] }]);
         releaseValidation();
-        await until(() => sent.length === 2);
-        assert.equal(sent[1].diagnostics[0].message, 'stale');
+        assert.deepEqual(await pendingValidation, []);
+        assert.deepEqual(sent, [{ uri, diagnostics: [] }]);
     } finally {
         releaseValidation();
         for (const file of Object.values(current.files)) clearTimeout(file.delayValidate);

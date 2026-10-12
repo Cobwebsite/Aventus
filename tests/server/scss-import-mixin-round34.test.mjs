@@ -76,4 +76,22 @@ test('Sass compilation errors reach diagnostics and clear after a valid edit', a
     assert.ok(diagnostics.some(event => event.params.uri === broken.file.uri && event.params.diagnostics.length === 0));
 });
 
+test('SCSS file with multiple imports leaves a later import unresolved after inlining an earlier one', async t => {
+    const { files, build, diagnostics } = fixture(t, {
+        'first.wcs.avt': '$first: red;',
+        'second.wcs.avt': '$second: blue;',
+        'panel.wcs.avt': '// @import "missing";\n@import "first";\n/* @import "also-missing"; */\n@import "second";\n.panel { border-color: $first; color: $second; }',
+    });
+    const panel = new AventusWebSCSSFile(files['panel.wcs.avt'], build);
+    build.scssFiles[panel.file.uri] = panel;
+    await panel.init();
+    assert.equal(panel.compileResult, '');
+    assert.ok(diagnostics.some(event => event.params.uri === panel.file.uri &&
+        event.params.diagnostics.some(item => /Can't find stylesheet to import/.test(item.message))));
+
+    files['second.wcs.avt']._documentUser = TextDocument.create(files['second.wcs.avt'].uri, 'scss', 2, '$second: green;');
+    await panel.triggerSave();
+    assert.equal(panel.compileResult, '');
+});
+
 

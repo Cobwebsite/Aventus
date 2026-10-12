@@ -10,16 +10,19 @@ const [, { ParserTs }, { GenericServer }] = await loadServerModules([
 ]);
 GenericServer.instance = { logLevel: 4 };
 
-function parse(source, version = 1, uri = 'file:///D:/test/model.lib.avt') {
-    const document = TextDocument.create(uri, 'typescript', version, source);
-    const file = { uri, versionInternal: version, documentUser: document, documentInternal: document };
-    const build = {
+function createBuild() {
+    return {
         npmBuilder: { unregister() {} },
         buildConfig: {},
         hasNpmOutput: false,
         getNamespaceForUri: () => '',
         getNpmReplacementName: () => '',
     };
+}
+
+function parse(source, version = 1, uri = 'file:///D:/test/model.lib.avt', build = createBuild()) {
+    const document = TextDocument.create(uri, 'typescript', version, source);
+    const file = { uri, versionInternal: version, documentUser: document, documentInternal: document };
     return ParserTs.parse(file, false, build);
 }
 
@@ -35,14 +38,16 @@ test('TypeScript parser indexes declarations and namespaces', () => {
     assert.equal(model.getBaseInfo('Missing'), null);
 });
 
-test('TypeScript parser caches by file version and refreshes on change', () => {
+test('TypeScript parser caches by build and file version and refreshes on change', () => {
     const uri = 'file:///D:/test/cached.lib.avt';
-    const first = parse('export class First {}', 1, uri);
-    assert.equal(parse('export class Ignored {}', 1, uri), first);
-    const second = parse('export class Second {}', 2, uri);
+    const build = createBuild();
+    const first = parse('export class First {}', 1, uri, build);
+    assert.equal(parse('export class Ignored {}', 1, uri, build), first);
+    const second = parse('export class Second {}', 2, uri, build);
     assert.notEqual(second, first);
     assert.ok(second.internalObjects.Second);
     assert.equal(second.internalObjects.First, undefined);
+    assert.notEqual(parse('export class OtherBuild {}', 2, uri, createBuild()), second);
 });
 
 test('TypeScript parser reports module syntax that must be a namespace', () => {
@@ -53,7 +58,8 @@ test('TypeScript parser reports module syntax that must be a namespace', () => {
 
 test('TypeScript parser resolves declaration names and registers npm imports once', () => {
     const model = parse('export class Thing {}', 1, 'file:///D:/test/names.lib.avt');
-    assert.equal(model.getBaseInfoFullName('Any.Thing'), model.classes.Thing);
+    assert.equal(model.getBaseInfoFullName('Thing'), model.classes.Thing);
+    assert.equal(model.getBaseInfoFullName('Any.Thing'), null);
     assert.equal(model.getBaseInfoFullName('Any.Missing'), null);
     model.build.hasNpmOutput = true;
     model.registerGeneratedImport({ uri: 'package-a', name: 'Thing', alias: 'ThingAlias', compiled: true, forced: false });

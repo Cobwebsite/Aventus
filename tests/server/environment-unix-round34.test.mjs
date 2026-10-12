@@ -117,3 +117,49 @@ test('Unix installer uses the POSIX profile for an unrecognized shell', async t 
     assert.equal(existsSync(join(root, '.bashrc')), false);
     assert.equal(existsSync(join(root, '.zshrc')), false);
 });
+
+test('Unix installer can change extension path without duplicating its shell loader', async t => {
+    const root = mkdtempSync(join(process.cwd(), 'aventus-unix-env-update-'));
+    const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    const originalHome = process.env.HOME;
+    const originalShell = process.env.SHELL;
+    t.after(() => {
+        Object.defineProperty(process, 'platform', originalPlatform);
+        if (originalHome === undefined) delete process.env.HOME;
+        else process.env.HOME = originalHome;
+        if (originalShell === undefined) delete process.env.SHELL;
+        else process.env.SHELL = originalShell;
+        rmSync(root, { recursive: true, force: true });
+    });
+    Object.defineProperty(process, 'platform', { ...originalPlatform, value: 'linux' });
+    process.env.HOME = root;
+    process.env.SHELL = '/bin/bash';
+    const first = join(root, 'first-extension');
+    const second = join(root, 'second-extension');
+    await initEnvironnment(first);
+    const bashrc = join(root, '.bashrc');
+    await waitForFile(bashrc, '# <<< Aventus environment <<<');
+    writeFileSync(bashrc, readFileSync(bashrc, 'utf8').replace(
+        '# <<< Aventus environment <<<',
+        'stale loader\n# <<< Aventus environment <<<',
+    ));
+    await initEnvironnment(second);
+    const environmentFile = join(root, '.aventus-env');
+    for (let attempt = 0; attempt < 100 && !readFileSync(environmentFile, 'utf8').includes(resolve(second, 'lib', 'bin')); attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    const environment = readFileSync(environmentFile, 'utf8');
+    for (let attempt = 0; attempt < 300; attempt++) {
+        const current = readFileSync(bashrc, 'utf8');
+        if (!current.includes('stale loader')
+            && current.includes('# >>> Aventus environment >>>')
+            && current.includes('# <<< Aventus environment <<<')) break;
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    const shellConfig = readFileSync(bashrc, 'utf8');
+    assert.ok(environment.includes(resolve(second, 'lib', 'bin')));
+    assert.ok(!environment.includes(resolve(first, 'lib', 'bin')));
+    assert.equal(shellConfig.match(/# >>> Aventus environment >>>/g)?.length, 1);
+    assert.equal(shellConfig.match(/# <<< Aventus environment <<</g)?.length, 1);
+    assert.doesNotMatch(shellConfig, /stale loader/);
+});

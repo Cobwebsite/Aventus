@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
@@ -16,7 +17,7 @@ function git(...args) {
 
 for (const kind of ['template', 'project', 'global']) {
     test(`${kind} Git import reloads its registry and uninstall removes the cloned directory`, async () => {
-        const root = mkdtempSync(join(process.cwd(), `aventus-git-${kind}-`));
+        const root = mkdtempSync(join(tmpdir(), `aventus-git-${kind}-`));
         const source = join(root, 'fixture.git');
         const destination = join(root, 'installed');
         const clone = join(destination, 'fixture');
