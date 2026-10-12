@@ -176,7 +176,7 @@ export class NpmBuilder {
 				}
 				for (let libName in info.part) {
 					for (let alias of info.part[libName].externalAlias) {
-						exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _.default['${info.all.internalAlias}'];` + EOL;
+						exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _.default['${info.all.internalAlias}'][${JSON.stringify(libName)}];` + EOL;
 					}
 				}
 			}

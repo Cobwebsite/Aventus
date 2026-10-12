@@ -33,9 +33,8 @@ test('npm compilation exposes two named aliases and a namespace for one module',
     const exported = Object.values(context.npmCompilation)[0];
     assert.deepEqual(Object.keys(exported).sort(), ['meaning', 'module', 'value']);
     assert.equal(exported.module.answer, 42);
-    // This reproduces the current mapping of named imports to the namespace object.
-    assert.equal(exported.meaning, exported.module);
-    assert.equal(exported.value, exported.module);
+    assert.equal(exported.meaning, 42);
+    assert.equal(exported.value, 42);
 });
 
 test('an invalid wildcard registration remains stored until its file is removed', () => {
