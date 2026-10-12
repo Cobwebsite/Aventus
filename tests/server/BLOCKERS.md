@@ -25,12 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Définition locale dans un script de template
-
-- Reproduction automatisée : `template-script-navigation-round46.test.mjs` obtient la définition d'un membre de `AventusTemplate.d.ts`, mais reçoit `null` pour une propriété déclarée dans le `template.avt.ts` ouvert.
-- Source : `server/src/language-services/ts/template/LanguageService.ts`, `findDefinition()` demande `loadLibrary(d.fileName)` et écarte la définition locale lorsque ce chargement échoue.
-- Décision à prendre : préciser si la navigation vers les déclarations du script courant doit être prise en charge ; si oui, retourner la position dans le document ouvert.
-
 ## Vue absente à l'ouverture d'un composant en fichier unique
 
 - Reproduction automatisée : `component-format-equivalence-round48.test.mjs` ouvre un composant contenant `<template>`, script et style. Les régions extraites compilent comme les fichiers séparés, mais `AventusWebComponentSingleFile.view` reste `undefined` après construction.

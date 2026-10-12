@@ -311,6 +311,13 @@ export class AventusTemplateLanguageService {
 			let definition = this.languageService.getDefinitionAtPosition(file.uri, file.documentInternal.offsetAt(position));
 			if (definition && definition.length > 0) {
 				let d = definition[0];
+				const localFile = this.templateFiles[d.fileName];
+				if (localFile) {
+					return [{
+						uri: localFile.uri,
+						range: convertRange(localFile.documentInternal, d.textSpan)
+					}];
+				}
 
 				let content = loadLibrary(d.fileName);
 				if (content) {

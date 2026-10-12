@@ -35,13 +35,17 @@ test('template script resolves an inherited API definition to the template decla
     }
 });
 
-test('template script local symbol navigation currently has no location despite a valid declaration', async () => {
+test('template script local symbol navigation returns the declaration in the open document', async () => {
     const service = new AventusTemplateLanguageService();
     const file = script('export class Demo { value = 1; run() { return this.value; } }');
     service.addFile(file);
     try {
         assert.deepEqual(service.doValidation(file), []);
-        assert.equal(await service.findDefinition(file, at(file, 'value', 1)), null);
+        const definitions = await service.findDefinition(file, at(file, 'value', 1));
+        assert.equal(definitions?.length, 1);
+        assert.equal(definitions[0].uri, file.uri);
+        assert.equal(file.documentInternal.getText(definitions[0].range), 'value');
+        assert.deepEqual(definitions[0].range.start, file.documentInternal.positionAt(file.contentInternal.indexOf('value')));
     } finally {
         service.removeFile(file);
     }
