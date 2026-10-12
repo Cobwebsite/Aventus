@@ -77,13 +77,16 @@ test('npm package metadata uses the default scoped name and updates version acro
     }
 });
 
-test('npm rebuild removes a retired namespace from current entry points but leaves its old directory', async t => {
+test('npm rebuild removes a retired namespace entry point but preserves user files', async t => {
     const { build, outputs } = fixture(t);
     const options = { path: outputs, packageJson: false, manifest: false };
     await build.writeBuildNpm(options, {
         npm: { 'Catalog.Legacy': { content: [], imports: {} } },
         npmsrc: { 'entry.js': source('Catalog.Legacy.Item', '1') },
     });
+    for (const output of outputs) {
+        writeFileSync(join(output, 'Catalog', 'Legacy', 'notes.txt'), 'keep this');
+    }
     await build.writeBuildNpm(options, {
         npm: { 'Catalog.Current': { content: [], imports: {} } },
         npmsrc: { 'entry.js': source('Catalog.Current.Item', '2') },
@@ -92,7 +95,9 @@ test('npm rebuild removes a retired namespace from current entry points but leav
         const parent = readFileSync(join(output, 'Catalog', 'index.js'), 'utf8');
         assert.match(parent, /Current/);
         assert.doesNotMatch(parent, /Legacy/);
-        assert.equal(existsSync(join(output, 'Catalog', 'Legacy', 'index.js')), true);
+        assert.equal(existsSync(join(output, 'Catalog', 'Legacy', 'index.js')), false);
+        assert.equal(existsSync(join(output, 'Catalog', 'Legacy', 'index.d.ts')), false);
+        assert.equal(readFileSync(join(output, 'Catalog', 'Legacy', 'notes.txt'), 'utf8'), 'keep this');
         assert.match(readFileSync(join(output, 'Catalog', 'Current', 'index.js'), 'utf8'), /Item/);
     }
 });

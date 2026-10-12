@@ -25,13 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Sources npm obsolètes après reconstruction
-
-- Reproduction automatisée : `build-npm-package-round26.test.mjs` écrit un package avec `__src/obsolete.ts`, puis reconstruit les mêmes sorties sans cette source. `index.js` est actualisé, mais `__src/obsolete.ts` reste présent dans chaque destination.
-- Reproduction complémentaire : `npm-entry-rebuild-round69.test.mjs` remplace le namespace `Catalog.Legacy` par `Catalog.Current`. Le point d'entrée parent retire bien `Legacy`, mais `Catalog/Legacy/index.js` reste sur disque dans chaque destination.
-- Source : `server/src/project/Build.ts`, `writeBuildNpm`. La suppression préalable de `__src` est commentée.
-- Décision à prendre : préciser si la reconstruction doit supprimer les sources et anciens points d'entrée générés devenus obsolètes tout en préservant d'éventuels fichiers utilisateur. Après correction, exiger leur absence dans toutes les destinations.
-
 ## Recherche de texte adjacente à une position contenant des espaces
 
 - Source : `server/src/tools.ts`, `checkTxtBefore` et `checkTxtAfter`.
