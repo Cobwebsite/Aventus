@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { loadServerModule } from './helpers/load-ts.mjs';
+import ts from 'typescript';
+import { loadServerModules } from './helpers/load-ts.mjs';
 
-const { ParserHtml } = await loadServerModule('language-services/html/parser/ParserHtml.ts');
+const [{ ParserHtml }, { AventusWebComponentLogicalFile }] = await loadServerModules([
+    'language-services/html/parser/ParserHtml.ts',
+    'language-services/ts/component/File.ts',
+]);
 let nextId = 0;
 
 function parse(source) {
@@ -64,4 +68,48 @@ test('a corrected closing tag clears the parser diagnostic on a new document', (
     const corrected = parse('<div><span></span></div>');
     assert.ok(invalid.errors.length > 0);
     assert.deepEqual(corrected.errors, []);
+});
+
+test('TypeScript syntax errors in an HTML injection map back to the expression', () => {
+    const source = '<div :value="{{bad(}}"></div>';
+    const parsed = parse(source);
+    assert.deepEqual(parsed.errors, []);
+    const injection = parsed.injections[0];
+    assert.ok(injection);
+
+    const generated = `class Card { private value() { return ${injection.injectTsTxt}\n} }`;
+    const tsSource = ts.createSourceFile('card.ts', generated, ts.ScriptTarget.Latest, true);
+    const syntaxError = tsSource.parseDiagnostics.find(item => item.start >= generated.indexOf(injection.injectTsTxt));
+    assert.ok(syntaxError);
+
+    const generatedDoc = TextDocument.create('file:///D:/test/card.ts', 'typescript', 1, generated);
+    const htmlDoc = TextDocument.create('file:///D:/test/card.html.avt', 'Aventus HTML', 1, source);
+    const helperStart = generated.indexOf(injection.injectTsTxt);
+    const logic = Object.create(AventusWebComponentLogicalFile.prototype);
+    Object.defineProperty(logic, 'file', { value: { documentInternal: generatedDoc, contentUser: 'class Card {}' } });
+    Object.defineProperty(logic, 'HTMLFile', { value: { file: { documentInternal: htmlDoc } } });
+    logic.viewValidationStart = -1;
+    logic.viewValidationEnd = -1;
+    logic.viewMethodsInfo = [{
+        fullStart: 0,
+        start: helperStart,
+        end: generated.indexOf('\n}', helperStart) + 1,
+        offsetBefore: 1,
+        offsetAfter: 1,
+        fct: { txt: injection.injectTsTxt, positions: [{ start: injection.start, end: injection.end }] },
+        kind: 'fct',
+        transform: () => 0,
+    }];
+    logic.diagnostics = [{
+        message: ts.flattenDiagnosticMessageText(syntaxError.messageText, '\n'),
+        range: {
+            start: generatedDoc.positionAt(syntaxError.start),
+            end: generatedDoc.positionAt(syntaxError.start + syntaxError.length),
+        },
+    }];
+    logic.transformDiagnosticForView();
+    assert.equal(logic.htmlDiagnostics.length, 1);
+    const range = logic.htmlDiagnostics[0].range;
+    assert.ok(htmlDoc.offsetAt(range.start) >= source.indexOf('"{{bad(') + 1);
+    assert.ok(htmlDoc.offsetAt(range.end) <= source.indexOf('}}"') + 2);
 });
