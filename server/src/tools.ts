@@ -338,6 +338,44 @@ export function setValueToObject(path: string, obj: any, value: any) {
     }
 
 }
+export function getValueFromObject(path: string, obj: any) {
+    if(path === undefined) {
+        path = '';
+    }
+    // Convert bracket notation to dot notation
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+
+    // If path is empty, return the entire object
+    if(path == "") {
+        return obj;
+    }
+
+    const val = (key: string) => {
+        if(obj instanceof Map) {
+            return obj.get(key);
+        }
+        return obj[key];
+    };
+
+    // Split the path into individual keys
+    let splitted = path.split(".");
+
+    // Traverse the object along the path
+    for(let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        let value = val(split);
+        // If the current segment of the path does not exist in the object or is not an object, return undefined
+        if(!value || typeof value !== 'object') {
+            return undefined;
+        }
+        obj = value;
+    }
+    if(!obj || typeof obj !== 'object') {
+        return undefined;
+    }
+    // Return the value at the last segment of the path
+    return val(splitted[splitted.length - 1]);
+}
 
 export function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));

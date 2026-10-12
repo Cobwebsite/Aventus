@@ -4,7 +4,7 @@ import { dirname, isAbsolute, join, normalize, posix, relative, resolve, sep, wi
 import { SelectItem } from '../IConnection';
 import { TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
-import { execAsync, setValueToObject, unlinkSync, uriToPath } from '../tools';
+import { execAsync, getValueFromObject, setValueToObject, unlinkSync, uriToPath } from '../tools';
 import { AventusExtension } from '../definition';
 import { get } from 'http';
 import { get as gets } from 'https';
@@ -162,6 +162,12 @@ export class TemplateManager {
 					promises.push(new Promise(async (resolve) => {
 						let template = await TemplateScript.create(configPathScript);
 						if (template) {
+							const alreadyExisting = getValueFromObject(template.name, templates) as TemplateScript | undefined;
+							if (alreadyExisting != undefined && alreadyExisting.folderPath != template.folderPath) {
+								GenericServer.showErrorMessage("You have 2 templates with the same names : " + alreadyExisting?.folderPath + " and " + template.folderPath);
+								resolve();
+								return;
+							}
 							setValueToObject(template.name, templates, template);
 							nb++;
 						}

@@ -19,12 +19,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Le package Aventus est généré, relu et reconstruit dans les tests. Un build multi-fichiers complet avec vues, styles, npm et dépendances reste à vérifier.
 - Le modèle et une compilation simple TypeScript, la complétion et le formatage HTML, ainsi que les liens HTML–SCSS sont testés. Les décorateurs, composants complets, boucles conditionnelles et liens vue/classe restent à couvrir avec une fixture de projet.
 
-## Priorité des templates homonymes
-
-- Source : `server/src/files/TemplateManager.ts`, `readTemplates`.
-- Reproduction automatisée : `template-sources-round4.test.mjs` contrôle l'ordre de fin de deux `TemplateScript.create` de même nom, puis l'inverse. Le dernier terminé remplace l'autre, quel que soit l'ordre des répertoires. Le compteur `nb` vaut deux alors que le registre ne contient qu'un template.
-- Décision à prendre : définir la priorité des répertoires et si `nb` doit compter les scripts valides ou les noms disponibles.
-
 ## Espaces de travail imbriqués
 
 - Source : `server/src/files/FilesManager.ts`, `loadAllAventusConfigFiles` et `loadAllAventusFiles`.
