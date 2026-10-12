@@ -351,6 +351,7 @@ Les scénarios qui révèlent actuellement un écart du code source sont détail
 - [x] Conversion chemin/URI, encodage des caractères spéciaux et comportement Windows/Unix.
 - [x] Choix du langage à partir de l'extension et construction des diagnostics/ranges.
 - [x] Construction et envoi de chaque notification avec canal et paramètres attendus (`notifications.test.mjs`, `notification-channels.test.mjs`, `notification-edge-round5.test.mjs`, `statistics.test.mjs`, `statistics-round10.test.mjs`).
+- [x] Sélections simples à libellés homonymes : identifiant d'option unique par demande, retour de l'objet d'origine et compatibilité des réponses anciennes non ambiguës (`command-notification-round10.test.mjs`, `notification-replies-round39.test.mjs`).
 - [x] Sélection du mode IDE/CLI depuis les paramètres d'initialisation, vérification de mise à jour réservée à l'IDE, chemins de sauvegarde et des ressources intégrées (`environment-resources-round77.test.mjs`, `environment-ide-init-round92.test.mjs`).
 - [x] Initialisation CLI avec chemin d'extension absent ou explicite, absence de vérification de mise à jour, options de build et chemins des définitions intégrées TypeScript/Aventus (`environment-resources-round77.test.mjs`).
 - [x] Cent-douzième passage (fichiers) : échec d'un callback de nouveau fichier pendant l'enregistrement, entrée conservée en mémoire et nouvel essai transformé en simple changement de contenu (`files-registration-failure-round112.test.mjs`). Le chemin de reprise est consigné dans `BLOCKERS.md`.

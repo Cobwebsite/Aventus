@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Sélection avec libellés homonymes
-
-- Source : `server/src/notification/AskSelect.ts`, méthode `resolve`.
-- Reproduction automatisée : `command-notification-round10.test.mjs` répond avec la première de deux options ayant le même `label`.
-- Résultat actuel : la réponse est remplacée par la dernière option portant ce libellé. Décider comment conserver un identifiant ou un index stable pour les options homonymes.
-
 ## Migration 1.4.1 dans les valeurs JSON
 
 - Source : `server/src/updates/1.4.1.ts`.

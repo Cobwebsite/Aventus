@@ -36,6 +36,7 @@ test('stale command replies do not consume the next request with the same prompt
 
             const second = kind.start();
             const secondId = sent.at(-1)[1][0];
+            const originalSelection = kind.command === 'aventus.receiveselect' ? AskSelect.waitingOptions[secondId][0] : null;
             assert.notEqual(secondId, firstId);
             commands[kind.command].run(firstId, kind.answer);
             assert.equal(kind.pending.waitingResponse[firstId], undefined);
@@ -43,7 +44,7 @@ test('stale command replies do not consume the next request with the same prompt
             commands[kind.command].run(secondId, kind.answer);
             const resolved = await second;
             if (kind.command === 'aventus.receiveselect') {
-                assert.equal(resolved, sent.at(-1)[1][1][0]);
+                assert.equal(resolved, originalSelection);
             } else {
                 assert.deepEqual(resolved, kind.answer);
             }
@@ -52,20 +53,22 @@ test('stale command replies do not consume the next request with the same prompt
     });
 });
 
-test('same-label selections correlate by request ID while duplicate labels map to the final option', async () => {
+test('same-label selections correlate by request and option IDs', async () => {
     await withNotifications(async sent => {
         const firstOptions = [{ label: 'Shared', detail: 'first A' }, { label: 'Shared', detail: 'first B' }];
         const secondOptions = [{ label: 'Shared', detail: 'second A' }, { label: 'Shared', detail: 'second B' }];
         const first = AskSelect.send(firstOptions, { title: 'Same title' });
         const firstId = sent.at(-1)[1][0];
+        const firstOffered = sent.at(-1)[1][1];
         const second = AskSelect.send(secondOptions, { title: 'Same title' });
         const secondId = sent.at(-1)[1][0];
+        const secondOffered = sent.at(-1)[1][1];
         assert.notEqual(firstId, secondId);
 
-        commands['aventus.receiveselect'].run(secondId, { label: 'Shared', detail: 'second A' });
-        commands['aventus.receiveselect'].run(firstId, { label: 'Shared', detail: 'first A' });
-        assert.equal(await first, firstOptions[1]);
-        assert.equal(await second, secondOptions[1]);
+        commands['aventus.receiveselect'].run(secondId, secondOffered[0]);
+        commands['aventus.receiveselect'].run(firstId, firstOffered[0]);
+        assert.equal(await first, firstOptions[0]);
+        assert.equal(await second, secondOptions[0]);
         assert.equal(AskSelect.waitingOptions[firstId], undefined);
         assert.equal(AskSelect.waitingOptions[secondId], undefined);
     });
