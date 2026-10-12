@@ -179,8 +179,9 @@ export function checkTxtBefore(file: AventusFile, position: Position, textToSear
     let offset = file.documentUser.offsetAt(position) - 1;
     let currentLetterPosition = textToSearch.length - 1;
     let currentLetter = textToSearch[currentLetterPosition];
-    while (offset > 0) {
+    while (offset >= 0) {
         if (file.contentUser[offset] == " ") {
+            offset--;
             continue;
         }
         if (file.contentUser[offset] == currentLetter) {
@@ -203,8 +204,9 @@ export function checkTxtAfter(file: AventusFile, position: Position, textToSearc
     let maxOffset = file.documentUser.getText().length;
     let currentLetterPosition = 0;
     let currentLetter = textToSearch[currentLetterPosition];
-    while (offset <= maxOffset) {
+    while (offset < maxOffset) {
         if (file.contentUser[offset] == " ") {
+            offset++;
             continue;
         }
         if (file.contentUser[offset] == currentLetter) {

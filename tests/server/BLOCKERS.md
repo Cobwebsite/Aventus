@@ -25,12 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Recherche de texte adjacente à une position contenant des espaces
-
-- Source : `server/src/tools.ts`, `checkTxtBefore` et `checkTxtAfter`.
-- Reproduction automatisée : `tools-adjacent-whitespace-round29.test.mjs` lance chaque recherche dans un worker isolé et constate qu'elle ne revient pas après avoir atteint un espace. Les deux boucles exécutent `continue` sans modifier `offset`.
-- Décision à prendre : avancer ou reculer l'offset sur les espaces, puis remplacer le test de caractérisation par des assertions sur les résultats et les positions.
-
 ## Extraction des propriétés CSS de `:host` après un préfixe blanc
 
 - Source : `server/src/language-services/scss/LanguageService.ts`, `AventusSCSSLanguageService.getCustomProperty`.
