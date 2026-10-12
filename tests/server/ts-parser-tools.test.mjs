@@ -24,13 +24,13 @@ test('TS parser tools serialize nested object and array literals', () => {
     const source = '{ title: "hi", enabled: true, count: 2, nested: { code: "x" }, items: [1, false, { ok: true }] }';
     const result = JSON.parse(buildJSON(expression(source)));
     assert.deepEqual(result, {
-        title: '"hi"',
+        title: 'hi',
         enabled: true,
         count: 2,
-        nested: { code: '"x"' },
+        nested: { code: 'x' },
         items: [1, false, { ok: true }],
     });
-    assert.deepEqual(getArg(expression('[1, "a"]')), { type: 'array', value: '[1,"\\"a\\""]' });
+    assert.deepEqual(getArg(expression('[1, "a"]')), { type: 'array', value: '[1,"a"]' });
 });
 
 test('TS parser tools normalize quoted property names at every object level', () => {

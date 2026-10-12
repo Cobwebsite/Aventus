@@ -1,4 +1,4 @@
-import { ArrayLiteralExpression, Expression, NodeFlags, ObjectLiteralExpression, SyntaxKind } from "typescript";
+import { ArrayLiteralExpression, Expression, NodeFlags, ObjectLiteralExpression, StringLiteral, SyntaxKind } from "typescript";
 
 
 
@@ -15,10 +15,10 @@ export function buildJSON(e: ObjectLiteralExpression | ArrayLiteralExpression, o
             if (prop.kind == SyntaxKind.PropertyAssignment) {
                 const name = prop.name.kind == SyntaxKind.StringLiteral ? prop.name.text : prop.name.getText();
                 if (prop.initializer.kind == SyntaxKind.StringLiteral) {
-                    obj[name] = prop.initializer.getText()
+                    obj[name] = (prop.initializer as StringLiteral).text
                 }
                 else if (prop.initializer.kind == SyntaxKind.NoSubstitutionTemplateLiteral) {
-                    obj[name] = prop.initializer.getText()
+                    obj[name] = (prop.initializer as StringLiteral).text
                 }
                 else if (prop.initializer.kind == SyntaxKind.NumericLiteral) {
                     obj[name] = Number(prop.initializer.getText());
@@ -51,10 +51,10 @@ export function buildJSON(e: ObjectLiteralExpression | ArrayLiteralExpression, o
         }
         for (let element of e.elements) {
             if (element.kind == SyntaxKind.StringLiteral) {
-                obj.push(element.getText());
+                obj.push((element as StringLiteral).text);
             }
             else if (element.kind == SyntaxKind.NoSubstitutionTemplateLiteral) {
-                obj.push(element.getText());
+                obj.push((element as StringLiteral).text);
             }
             else if (element.kind == SyntaxKind.NumericLiteral) {
                 obj.push(Number(element.getText()));
