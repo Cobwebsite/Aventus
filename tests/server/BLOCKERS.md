@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Correspondance d'espace de travail par préfixe brut
-
-- Source : `server/src/files/TemplateManager.ts`, `findWorkspace`.
-- Reproduction automatisée : `template-manager.test.mjs` cherche `D:\\apple\\src` avec `D:\\app` dans les espaces de travail, puis cherche un chemin enfant lorsque les racines sont `D:\\app` et `D:\\app\\feature`.
-- Résultat actuel : la méthode choisit le préfixe `D:\\app` dans les deux cas. Celui-ci n'est pas parent du dossier voisin, et la racine imbriquée plus précise n'est pas retenue.
-- Résultat attendu : comparer les segments des chemins normalisés et choisir le parent le plus précis.
-
 ## Import npm par défaut
 
 - Source : `server/src/language-services/ts/parser/ImportInfo.ts`, branche de `ImportInfo.Parse` pour `import Item from "package"`.

@@ -33,7 +33,7 @@ Cocher un point seulement lorsqu'un test automatisé vérifie son résultat. Pou
 - [x] Événements disque : mise à jour, puis suppression asynchrone d'un fichier absent avec ordre des callbacks vérifié (`files-disk-events.test.mjs`).
 - [x] Templates homonymes : sélection selon l'ordre de fin de chargement et compteur des scripts lus (`template-sources-round4.test.mjs`).
 - [x] Définitions HTML : retrait par URI avec plusieurs tags enregistrés pour une même source (`html-definition-lifecycle.test.mjs`).
-- [x] Templates : sélection d'espace de travail avec dossier voisin et racines imbriquées (`template-manager.test.mjs`).
+- [x] Templates : dossier voisin rejeté et racine imbriquée la plus précise sélectionnée (`template-manager.test.mjs`).
 - [x] Concurrence : attente abandonnée par `Mutex.dispose`, appels `release` supplémentaires et surcharge sans clé d'`ActionGuard` (`concurrency.test.mjs`).
 - [x] Initialisation IDE/CLI : chemins de stockage et d'extension transmis, mode sans build par défaut, premier espace et lancement de la vérification de mise à jour (`protocol-routing.test.mjs`).
 - [x] Publication Store : fichier README explicitement configuré, présent dans le projet et ajouté au formulaire depuis son chemin résolu (`store.test.mjs`).
