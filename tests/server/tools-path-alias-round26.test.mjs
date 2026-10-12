@@ -25,11 +25,17 @@ test('nested value helper accepts bracket notation and existing intermediate obj
     assert.deepEqual(target, { translations: { en: { existing: 'kept', welcome: 'Hello' } } });
 });
 
-test('nested value helper currently stores a missing Map branch as a property outside the Map', () => {
+test('nested value helper stores missing and existing Map branches inside the Map', () => {
     const target = new Map();
     setValueToObject('parent.child', target, 42);
-    assert.equal(target.get('parent'), undefined);
-    assert.deepEqual(target.parent, { child: 42 });
+    assert.deepEqual(target.get('parent'), { child: 42 });
+    assert.equal(target.parent, undefined);
+    setValueToObject('parent.sibling', target, 43);
+    assert.deepEqual(target.get('parent'), { child: 42, sibling: 43 });
+    const nested = new Map();
+    target.set('nested', nested);
+    setValueToObject('nested.child', target, 44);
+    assert.equal(nested.get('child'), 44);
     setValueToObject('single', target, 7);
     assert.equal(target.get('single'), 7);
 });

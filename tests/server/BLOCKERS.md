@@ -25,12 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Branche imbriquée absente dans un `Map`
-
-- Source : `server/src/tools.ts`, `setValueToObject`.
-- Reproduction automatisée : `tools-path-alias-round26.test.mjs` appelle `setValueToObject('parent.child', map, 42)` sur un `Map` vide. La branche est créée comme propriété `map.parent`, tandis que `map.get('parent')` reste `undefined`. Une clé simple est correctement ajoutée au `Map`.
-- Décision à prendre : déterminer si la fonction doit accepter un `Map` comme conteneur racine pour un chemin imbriqué ; si oui, créer les branches avec `Map.set` et adapter le test au résultat attendu.
-
 ## Observation du contenu et des callbacks dans le cycle LSP
 
 - `jsonrpc-document-cycle-round30.test.mjs` traverse un vrai processus LSP : `didOpen`, deux `didChange`, `didSave`, suppression et `didClose`. Les diagnostics successifs prouvent indirectement l'application des contenus et leur effacement final.
