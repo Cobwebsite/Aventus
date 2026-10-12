@@ -220,7 +220,7 @@ test('store package publication requires a built package and submits optional RE
     }
 });
 
-test('store package publication currently rejects a configured README present in the project', async () => {
+test('store package publication includes a configured README from the project', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-store-configured-readme-'));
     const output = join(root, 'output');
     const local = join(output, '@locals');
@@ -230,9 +230,9 @@ test('store package publication currently rejects a configured README present in
     writeFileSync(join(root, readmeName), '# Demo');
     const oldDependencies = DependencyManager.getInstance;
     const oldPost = Store.postWithErrors;
-    let submissions = 0;
+    const submissions = [];
     DependencyManager.getInstance = () => ({ getPath: () => output });
-    Store.postWithErrors = async () => { submissions++; return true; };
+    Store.postWithErrors = async (uri, form) => { submissions.push([uri, form]); return true; };
     try {
         const build = {
             buildConfig: { fullname: 'Demo', version: '1.0.0', tags: [], readme: readmeName },
@@ -240,9 +240,14 @@ test('store package publication currently rejects a configured README present in
         };
         for (const configuredPath of [readmeName, `./${readmeName}`]) {
             build.buildConfig.readme = configuredPath;
-            await assert.rejects(Store.publishPackage(build), { code: 'ENOENT' });
+            assert.equal(await Store.publishPackage(build), true);
         }
-        assert.equal(submissions, 0);
+        assert.equal(submissions.length, 2);
+        for (const [uri, form] of submissions) {
+            assert.equal(uri, '/package/publish');
+            assert.equal(form.get('readMe').name, 'README.md');
+            assert.equal(await form.get('readMe').text(), '# Demo');
+        }
     } finally {
         DependencyManager.getInstance = oldDependencies;
         Store.postWithErrors = oldPost;

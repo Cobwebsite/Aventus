@@ -108,7 +108,7 @@ export class Store {
 					}
 				}
 			}
-			let packageFile: Blob | undefined = new Blob([readFileSync(join(rootPath, finalPath))], { type: "text/plain" });
+			let packageFile: Blob | undefined = new Blob([readFileSync(finalPath)], { type: "text/plain" });
 			form.append("readMe", packageFile, "README.md");
 		}
 		else {
