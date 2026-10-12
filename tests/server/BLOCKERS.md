@@ -25,12 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Namespace npm voisin ajouté comme enfant du mauvais point d'entrée
-
-- Reproduction automatisée : `npm-namespace-prefix-round97.test.mjs` génère `Catalog.UI` et `Catalog.UIExtra.Widget`. Les `index.js` et `index.d.ts` de `Catalog/UI` importent alors `./Widget`, qui n'existe que sous `Catalog/UIExtra/Widget` ; le point d'entrée UI est invalide.
-- Source : `server/src/project/Build.ts`, `writeBuildNpm()`, fonctions `createFileDef` et `createFileJs`. Le filtre `key.startsWith(_namespace)` compare un préfixe de chaîne sans frontière `.`.
-- Décision à prendre : limiter la recherche des enfants aux clés qui commencent par le namespace suivi d'un point, puis vérifier les sorties JavaScript et de types.
-
 ## Sources npm obsolètes après reconstruction
 
 - Reproduction automatisée : `build-npm-package-round26.test.mjs` écrit un package avec `__src/obsolete.ts`, puis reconstruit les mêmes sorties sans cette source. `index.js` est actualisé, mais `__src/obsolete.ts` reste présent dans chaque destination.
