@@ -39,39 +39,39 @@ export class AventusI18nLanguageService {
 		let document = file.file.documentUser;
 		let jsonDoc = this.languageService.parseJSONDocument(document);
 		let errors = await this.languageService.doValidation(document, jsonDoc);
-		if (errors.length == 0) {
-			let configTxt = this.removeComments(document.getText());
-			try {
-				JSON.parse(configTxt);
-				const parsed = file.parsed ?? {};
-				const locales = file.build.buildConfig.i18n?.locales ?? [];
+		let configTxt = this.removeComments(document.getText());
+		try {
+			JSON.parse(configTxt);
+			const parsed = file.parsed ?? {};
+			const locales = file.build.buildConfig.i18n?.locales ?? [];
 
-				for (let key in parsed) {
-					for (let locale in parsed[key].locales) {
-						const info = parsed[key].locales[locale];
-						if (!locales.includes(locale)) {
-							errors.push(createWarningI18nPos(file.file.documentUser, "Locale not needed", info.localeStart, info.localeEnd));
-						}
-
-						if (info.value == AventusI18nLanguageService.empty) {
-							errors.push(createWarningI18nPos(file.file.documentUser, "Translation not set", info.valueStart, info.valueEnd));
-						}
+			for (let key in parsed) {
+				for (let locale in parsed[key].locales) {
+					const info = parsed[key].locales[locale];
+					if (!locales.includes(locale)) {
+						errors.push(createWarningI18nPos(file.file.documentUser, "Locale not needed", info.localeStart, info.localeEnd));
 					}
 
-					const missing: string[] = [];
-					for (let locale of locales) {
-						if (parsed[key].locales[locale] === undefined) {
-							missing.push(locale);
-						}
-					}
-					if (missing.length > 0) {
-						errors.push(createErrorI18nPos(file.file.documentUser, "Missing locales " + missing.join(", "), parsed[key].keyStart, parsed[key].keyEnd));
+					if (info.value == AventusI18nLanguageService.empty) {
+						errors.push(createWarningI18nPos(file.file.documentUser, "Translation not set", info.valueStart, info.valueEnd));
 					}
 				}
 
-				return errors;
+				const missing: string[] = [];
+				for (let locale of locales) {
+				if (parsed[key].locales[locale] === undefined) {
+					missing.push(locale);
+					}
+				}
+				if (missing.length > 0) {
+					errors.push(createErrorI18nPos(file.file.documentUser, "Missing locales " + missing.join(", "), parsed[key].keyStart, parsed[key].keyEnd));
+				}
 			}
-			catch (e) {
+
+			return errors;
+		}
+		catch (e) {
+			if (errors.length == 0) {
 				errors.push(createErrorI18n(document, "Can't parse the json"))
 			}
 		}
