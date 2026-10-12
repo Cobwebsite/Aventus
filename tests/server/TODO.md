@@ -349,7 +349,9 @@ Les scénarios qui révèlent actuellement un écart du code source sont détail
 - [x] Color picker : fonctions CSS valides `hwb`, `lab`, `lch` et `color-mix` absentes des informations de couleur, avec contrôles adjacents reconnus et mots internes à `color-mix` renvoyés séparément (`color-picker-missing-functions-round130.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Plages et propositions pour deux couleurs sur une ligne, édition supprimant une couleur, plage vide et alpha `#RGBA` opaque (`color-picker-ranges-round70.test.mjs`) ; décision sur la conservation de l'alpha explicite dans `BLOCKERS.md`.
 
-## Utilitaires et garanties transversales (`Mutex.ts`, `tools.ts`, `environment.ts`, `notification`)
+## Utilitaires et garanties transversales (`Mutex.ts`, `tools.ts`, `notification`)
+
+Les mentions historiques des tests `environment-install-round28.test.mjs` et `environment-unix-round34.test.mjs` décrivent les anciens passages ; ces tests ont été retirés avec le module d'installation d'environnement inutilisé.
 
 - [x] `Mutex` : attente et attribution du verrou dans l'ordre d'arrivée.
 - [x] `ActionGuard` : partage d'une action en cours, clés distinctes, erreur propagée et nouvel essai.
