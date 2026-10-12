@@ -25,11 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Expression HTML invalide sans erreur du parseur isolé
-
-- Reproduction automatisée : `html-nested-controls-round33.test.mjs` constate que `ParserHtml.parse` renvoie `errors: []` pour `<div :value="{{bad(}}"></div>`.
-- Décision à prendre : vérifier si la validation TypeScript ultérieure doit produire le diagnostic et définir sa plage source. Ce constat ne prouve pas l'absence de diagnostic dans le LSP complet.
-
 ## Valeurs textuelles des options du décorateur `OverrideView`
 
 - Reproduction automatisée : `ts-decorators-options-round33.test.mjs` parse `@OverrideView({"removeViewVariables":["title","button"]})`. La clé quotée est désormais reconnue, mais les éléments de la liste conservent les guillemets dans leurs valeurs (`'"title"'`, `'"button"'`). `@I18n({"autoInit":false})` fonctionne après la normalisation des clés.
