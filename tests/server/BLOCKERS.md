@@ -12,15 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Sortie statique conservée après suppression de la source
-
-- Source : `server/src/project/Static.ts`, méthode `export`.
-- Reproduction automatisée : `static-export-round8.test.mjs` exporte deux fichiers, supprime une source, puis rappelle `export()` en vérifiant que l'autre sortie est actualisée.
-- Résultat actuel : `output/data.txt` reste présent. Décider si la sortie doit être synchronisée avec les sources, en protégeant les fichiers d'autres builds.
-- `static-removal-categories-round43.test.mjs` confirme ce résultat sur deux destinations aussi pour une copie binaire, le CSS issu d'un SCSS et le CSS d'un style global ; les autres ressources sont bien actualisées.
-- `static-directory-recreation-round88.test.mjs` retire ensuite un sous-dossier source complet puis le recrée avec un nouveau fichier : les deux destinations reçoivent le nouveau fichier mais conservent aussi l'ancien.
-- Les sous-dossiers, contrairement à une hypothèse précédente, sont correctement exportés ; un test actif le confirme.
-
 ## Compilation différée après destruction du build
 
 - Source : `server/src/project/Build.ts`, méthodes `build` et `destroy`.

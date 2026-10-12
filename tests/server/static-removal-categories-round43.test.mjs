@@ -10,7 +10,7 @@ const [{ Static }, { SettingsManager }, { HttpServer }, { GenericServer }, { Fil
         'GenericServer.ts', 'files/FilesManager.ts',
     ]);
 
-test('static reexport refreshes surviving resources but retains removed binary, SCSS and global-style outputs', async t => {
+test('static reexport refreshes surviving resources and removes deleted binary, SCSS and global-style outputs', async t => {
     const root = mkdtempSync(join(import.meta.dirname, '.static-removal-categories-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const input = join(root, 'input');
@@ -22,6 +22,7 @@ test('static reexport refreshes surviving resources but retains removed binary, 
     HttpServer.getInstance = () => ({ reload() { reloads++; } });
     const project = { scssFiles: {} };
     const pathsAdded = [];
+    const pathsRemoved = [];
     FilesManager.instance = {
         async registerFile(doc) {
             project.scssFiles[doc.uri] = {
@@ -29,6 +30,7 @@ test('static reexport refreshes surviving resources but retains removed binary, 
                     pathsAdded.push([path, name]);
                     writeFileSync(path, 'global-css');
                 },
+                removeOutPath(path) { pathsRemoved.push(path); },
             };
         },
     };
@@ -51,14 +53,15 @@ test('static reexport refreshes surviving resources but retains removed binary, 
     await target.export();
 
     for (const output of outputs) {
-        assert.deepEqual(readFileSync(join(output, removed[0])), Buffer.from([0, 255, 7]));
-        assert.equal(readFileSync(join(output, 'nested', 'theme.css'), 'utf8'), '.theme{color:red}');
-        assert.equal(readFileSync(join(output, 'nested', 'palette.css'), 'utf8'), 'global-css');
+        assert.equal(existsSync(join(output, removed[0])), false);
+        assert.equal(existsSync(join(output, 'nested', 'theme.css')), false);
+        assert.equal(existsSync(join(output, 'nested', 'palette.css')), false);
         assert.equal(readFileSync(join(output, 'nested', 'retained.txt'), 'utf8'), 'second');
         assert.equal(existsSync(join(output, removed[1])), false);
         assert.equal(existsSync(join(output, removed[2])), false);
     }
     assert.equal(pathsAdded.length, 2);
     assert.deepEqual(pathsAdded.map(([path]) => path), outputs.map(output => join(output, 'nested', 'palette.css').replace(/\\/g, '/')));
+    assert.deepEqual(pathsRemoved.map(path => path.replace(/\\/g, '/')), pathsAdded.map(([path]) => path));
     assert.equal(reloads, 2);
 });

@@ -36,7 +36,7 @@ test('static export refreshes a recreated source at the same path in every desti
 
     unlinkSync(source);
     await target.export();
-    for (const output of outputs) assert.deepEqual(readFileSync(copied(output)), firstBytes);
+    for (const output of outputs) assert.equal(existsSync(copied(output)), false);
 
     writeFileSync(source, secondBytes);
     await target.export();
@@ -71,7 +71,7 @@ test('static SCSS export recompiles a recreated entry file after an absent inter
     assert.equal(readFileSync(compiled, 'utf8'), '.theme{color:red}');
     unlinkSync(source);
     await target.export();
-    assert.equal(readFileSync(compiled, 'utf8'), '.theme{color:red}');
+    assert.equal(existsSync(compiled), false);
     writeFileSync(source, '.theme { color: blue; }');
     await target.export();
     assert.equal(readFileSync(compiled, 'utf8'), '.theme{color:blue}');

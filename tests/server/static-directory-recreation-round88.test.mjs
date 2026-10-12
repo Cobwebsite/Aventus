@@ -9,7 +9,7 @@ const [{ Static }, { SettingsManager }, { HttpServer }, { GenericServer }] = awa
     'project/Static.ts', 'settings/Settings.ts', 'live-server/HttpServer.ts', 'GenericServer.ts',
 ]);
 
-test('static export follows a removed and recreated nested directory while retaining its old output', async t => {
+test('static export removes output from a deleted directory before exporting its replacement', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-static-directory-cycle-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const input = join(root, 'public');
@@ -35,7 +35,7 @@ test('static export follows a removed and recreated nested directory while retai
     rmSync(nested, { recursive: true });
     await target.export();
     for (const output of outputs) {
-        assert.equal(existsSync(join(output, 'icons', 'old.svg')), true);
+        assert.equal(existsSync(join(output, 'icons', 'old.svg')), false);
     }
 
     mkdirSync(nested);
@@ -43,7 +43,7 @@ test('static export follows a removed and recreated nested directory while retai
     await target.export();
     for (const output of outputs) {
         assert.equal(readFileSync(join(output, 'icons', 'new.svg'), 'utf8'), '<svg id="new"/>');
-        assert.equal(readFileSync(join(output, 'icons', 'old.svg'), 'utf8'), '<svg id="old"/>');
+        assert.equal(existsSync(join(output, 'icons', 'old.svg')), false);
     }
     assert.equal(reloads, 3);
 });

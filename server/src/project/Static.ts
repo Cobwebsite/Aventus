@@ -2,7 +2,7 @@ import { AventusConfigStatic } from "../language-services/json/definition";
 import { Project } from "./Project";
 import { FSWatcher, watch } from "chokidar";
 import { normalize, sep } from "path";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync } from "fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync } from "fs";
 import { compile } from 'sass';
 import { HttpServer } from '../live-server/HttpServer';
 import { AventusExtension } from '../definition';
@@ -19,6 +19,7 @@ export class Static {
     private watcher: FSWatcher | undefined;
     private isReady: boolean = false;
     private project: Project;
+    private exportedBySource = new Map<string, Map<string, { size: number, mtimeMs: number, canDelete: boolean }>>();
 
     public get name() {
         return this.staticConfig.name;
@@ -59,7 +60,7 @@ export class Static {
                 return result;
             }
 
-            const copyFile = async (pathFile, pathOut) => {
+            const copyFile = async (pathFile, pathOut): Promise<string | null> => {
                 try {
                     pathOut = normalize(pathOut);
                     let splitted = pathOut.split(sep);
@@ -74,20 +75,27 @@ export class Static {
                             let style = compile(pathFile, {
                                 style: 'compressed',
                             }).css.toString().trim();
-                            await writeFile(pathOut.replace(".scss", ".css"), style, "static", this.name);
+                            const cssPath = pathOut.replace(".scss", ".css");
+                            await writeFile(cssPath, style, "static", this.name);
+                            return cssPath;
                         }
                     }
                     else {
                         copyFileSync(pathFile, pathOut);
                         Statistics.sendFileSize(pathOut, undefined, "static", this.name);
+                        return pathOut;
                     }
                 } catch (e) {
                     GenericServer.error(e);
                 }
+                return null;
             }
             let staticFiles = foundAll(this.staticConfig.inputPathFolder);
+            const currentSources = new Set(staticFiles.map(path => path.replace(/\\/g, '/')));
             for (let filePath of staticFiles) {
                 filePath = filePath.replace(/\\/g, '/');
+                const previousOutputs = this.exportedBySource.get(filePath);
+                const currentOutputs = new Map<string, { size: number, mtimeMs: number, canDelete: boolean }>();
                 for (let outputPathFolder of this.staticConfig.outputPathFolder) {
                     let resultPath = filePath.replace(this.staticConfig.inputPathFolder, outputPathFolder);
                     if (filePath.endsWith(AventusExtension.Base)) {
@@ -99,17 +107,53 @@ export class Static {
                                 await FilesManager.getInstance().registerFile(doc);
                                 cssFile = this.project.scssFiles[pathToUri(filePath)];
                             }
+                            const outputPath = normalize(resultPath);
+                            const existedBefore = existsSync(outputPath);
                             await cssFile.addOutPath(resultPath, this.name);
+                            this.rememberOutput(currentOutputs, previousOutputs, outputPath, existedBefore);
                         }
                     }
                     else {
-                        await copyFile(filePath, resultPath);
+                        const outputPath = normalize(resultPath.endsWith('.scss') ? resultPath.replace('.scss', '.css') : resultPath);
+                        const existedBefore = existsSync(outputPath);
+                        const writtenPath = await copyFile(filePath, resultPath);
+                        if (writtenPath) this.rememberOutput(currentOutputs, previousOutputs, writtenPath, existedBefore);
                     }
                 }
+                if (previousOutputs || currentOutputs.size > 0) {
+                    this.exportedBySource.set(filePath, new Map([...(previousOutputs ?? []), ...currentOutputs]));
+                }
+            }
+            for (const [source, outputs] of this.exportedBySource) {
+                if (currentSources.has(source)) continue;
+                for (const [path, recorded] of outputs) {
+                    if (source.endsWith(AventusExtension.GlobalStyle)) {
+                        this.project.scssFiles[pathToUri(source)]?.removeOutPath?.(path);
+                    }
+                    try {
+                        if (!recorded.canDelete || !existsSync(path)) continue;
+                        const current = statSync(path);
+                        if (current.size === recorded.size && current.mtimeMs === recorded.mtimeMs) {
+                            unlinkSync(path);
+                        }
+                    } catch (e) {
+                        GenericServer.error(e);
+                    }
+                }
+                this.exportedBySource.delete(source);
             }
             HttpServer.getInstance().reload();
             Statistics.sendStaticTime(this.name);
         }
+    }
+    private rememberOutput(current: Map<string, { size: number, mtimeMs: number, canDelete: boolean }>, previous: Map<string, { size: number, mtimeMs: number, canDelete: boolean }> | undefined, path: string, existedBefore: boolean) {
+        if (!existsSync(path)) return;
+        const stats = statSync(path);
+        current.set(path, {
+            size: stats.size,
+            mtimeMs: stats.mtimeMs,
+            canDelete: previous?.get(path)?.canDelete ?? !existedBefore,
+        });
     }
     public registerWatcher() {
         if (!SettingsManager.getInstance().settings.watchFiles) return;
