@@ -71,7 +71,19 @@ test('malformed npm metadata can be repaired and rediscovered with a valid sibli
     const broken = putPackage(modules, 'broken', '{', {
         'index.d.ts': 'export declare const repaired: true;',
     });
-    assert.throws(() => loadNodeModules(modules), SyntaxError);
+    const originalError = console.error;
+    const diagnostics = [];
+    console.error = message => diagnostics.push(message);
+    try {
+        const paths = loadNodeModules(modules);
+        assert.equal(paths.length, 1);
+        assert.equal(loadLibrary(paths[0]), 'export declare const healthy: true;');
+    }
+    finally {
+        console.error = originalError;
+    }
+    assert.equal(diagnostics.length, 1);
+    assert.match(diagnostics[0], /broken[\\/]package\.json/);
     writeFileSync(join(broken, 'package.json'), JSON.stringify({ types: './index.d.ts' }));
     const paths = loadNodeModules(modules);
     assert.equal(paths.length, 2);

@@ -19,14 +19,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Le package Aventus est généré, relu et reconstruit dans les tests. Un build multi-fichiers complet avec vues, styles, npm et dépendances reste à vérifier.
 - Le modèle et une compilation simple TypeScript, la complétion et le formatage HTML, ainsi que les liens HTML–SCSS sont testés. Les décorateurs, composants complets, boucles conditionnelles et liens vue/classe restent à couvrir avec une fixture de projet.
 
-## Métadonnées npm mal formées
-
-- Source : `server/src/language-services/ts/libLoader.ts`, `loadNodeModules`.
-- Reproduction automatisée : `ts-lib-loader-round4.test.mjs` crée un paquet avec un `package.json` invalide.
-- Résultat actuel : `JSON.parse` lève `SyntaxError` et interrompt la découverte, y compris pour les autres paquets valides.
-- Décision à prendre : ignorer le paquet invalide avec un diagnostic ou interrompre explicitement le chargement.
-- `ts-lib-discovery-cycle-round73.test.mjs` confirme qu'un manifeste corrigé est redécouvert avec les paquets voisins lors de l'appel suivant ; le premier appel reste interrompu pour tous les paquets.
-
 ## Déclaration npm modifiée non relue
 
 - Source : `server/src/language-services/ts/libLoader.ts`, cache `contents` de `loadLibrary`.
