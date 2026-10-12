@@ -30,7 +30,7 @@ for (const kind of ['projects', 'templates']) {
             logLevel: 99,
             connection: {
                 Select: async items => { selections.push(items.map(item => item.label)); return { label: 'Local' }; },
-                SelectMultiple: async items => { selections.push(items.map(item => item.label)); return [{ label: 'Sample' }]; },
+                SelectMultiple: async items => { selections.push(items.map(item => item.label)); return [items[0]]; },
                 showInformationMessage: message => messages.push(message),
             },
         };

@@ -11,7 +11,7 @@ GenericServer.instance = { logLevel: 4, _extensionPath: process.cwd() };
 
 test('TypeScript missing interface member action edits its class and clears the diagnostic', async () => {
     const uri = 'file:///D:/test/round32-code-action.lib.avt';
-    let source = 'interface Named { name(): string; }\nclass Card implements Named {\n}\n';
+    let source = 'interface Named { name(): string; id(): number; }\nclass Card implements Named {\n}\n';
     let version = 1;
     const document = () => TextDocument.create(uri, 'typescript', version, source);
     const file = { uri, documentInternal: document(), documentUser: document(), contentInternal: source, versionInternal: version };
@@ -53,6 +53,7 @@ test('TypeScript missing interface member action edits its class and clears the 
     assert.ok(edits.every(edit => file.documentUser.offsetAt(edit.range.end) <= source.lastIndexOf('}')));
     const updated = TextDocument.applyEdits(file.documentUser, edits);
     assert.match(updated, /name\(\): string/);
+    assert.match(updated, /id\(\): number/);
     assert.match(updated, /class Card implements Named/);
 
     source = updated;

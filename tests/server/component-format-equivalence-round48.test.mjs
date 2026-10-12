@@ -34,13 +34,17 @@ function compileParts(parts, revision) {
     const fileParsed = ParserTs.parse(file, false, build);
     fileParsed.classes.Card.implements.push('Aventus.DefaultComponent');
     const logical = { file, fileParsed, build, viewMethodName: '__view', resetViewClassInfoDep() {} };
-    const viewDocument = TextDocument.create(viewUri, 'Aventus HTML', revision, parts.htmlText);
-    const view = { file: { uri: viewUri, versionUser: revision, documentUser: viewDocument }, tsFile: null, scssFile: null };
-    build.htmlFiles[viewUri] = {
-        fileParsed: ParserHtml.parse(view, { getAvoidParsingTags: () => [], htmlLanguageService: { getClassByTag: () => null } }),
-        compiledVersion: revision, slotsInfo: {},
-    };
-    build.scssFiles[styleUri] = { compileResult: parts.cssText, compiledVersion: revision };
+    if (parts.htmlText !== null) {
+        const viewDocument = TextDocument.create(viewUri, 'Aventus HTML', revision, parts.htmlText);
+        const view = { file: { uri: viewUri, versionUser: revision, documentUser: viewDocument }, tsFile: null, scssFile: null };
+        build.htmlFiles[viewUri] = {
+            fileParsed: ParserHtml.parse(view, { getAvoidParsingTags: () => [], htmlLanguageService: { getClassByTag: () => null } }),
+            compiledVersion: revision, slotsInfo: {},
+        };
+    }
+    if (parts.cssText !== null) {
+        build.scssFiles[styleUri] = { compileResult: parts.cssText, compiledVersion: revision };
+    }
     return new AventusWebcomponentCompiler(logical, build).compile().result.map(item => item.compiled).join('\n');
 }
 
@@ -70,6 +74,34 @@ test('single-file regions and separated files produce equal compiler output acro
     assert.match(outputs[1], /Second view/);
     assert.match(outputs[1], /color:blue/);
     assert.doesNotMatch(outputs[1], /First view|color:red/);
+});
+
+test('single and separated components compile equally through script edits and missing-region recovery', () => {
+    const script = title => `@TagName("demo-card") export class Card { title = "${title}"; }`;
+    const snapshots = [
+        { scriptText: script('Alpha'), htmlText: '<p>Stable view</p>', cssText: '.card{color:red}' },
+        { scriptText: script('Beta'), htmlText: '<p>Stable view</p>', cssText: '.card{color:red}' },
+        { scriptText: script('Beta'), htmlText: null, cssText: null },
+        { scriptText: script('Gamma'), htmlText: '<p>Restored view</p>', cssText: '.card{color:blue}' },
+    ];
+    const outputs = snapshots.map((parts, index) => {
+        const source = `<script>${parts.scriptText}</script>` +
+            (parts.htmlText === null ? '' : `<template>${parts.htmlText}</template>`) +
+            (parts.cssText === null ? '' : `<style>${parts.cssText}</style>`);
+        const extracted = AventusWebComponentSingleFile.getRegion({ contentInternal: source });
+        assert.deepEqual(extracted, parts);
+        const fromSingle = compileParts(extracted, index + 10);
+        assert.equal(fromSingle, compileParts(parts, index + 10));
+        return fromSingle;
+    });
+    assert.match(outputs[0], /Alpha/);
+    assert.match(outputs[1], /Beta/);
+    assert.doesNotMatch(outputs[1], /Alpha/);
+    assert.doesNotMatch(outputs[2], /Stable view|color:red/);
+    assert.match(outputs[3], /Gamma/);
+    assert.match(outputs[3], /Restored view/);
+    assert.match(outputs[3], /color:blue/);
+    assert.doesNotMatch(outputs[3], /Stable view|color:red/);
 });
 
 test('single-file initial registration exposes script/style but leaves template unattached', () => {

@@ -88,3 +88,18 @@ test('i18n key lookup resolves positions within a key and excludes values', () =
     assert.equal(file.getKeyFromLocation([{ line: 0, character: 2 }, { line: 0, character: 6 }]), 'hello');
     assert.equal(file.getKeyFromLocation([{ line: 0, character: 16 }, { line: 0, character: 20 }]), null);
 });
+
+test('i18n key lookup tracks multiline escaped keys without confusing locale or value ranges', () => {
+    const content = '{\n  "say\\\"hello": {\n    "en": "Hello",\n    "fr": "Bonjour"\n  },\n  "bye": {"en": "Bye"}\n}';
+    const file = fixture(content);
+    const key = file.parsed['say"hello'];
+    const locale = key.locales.en;
+    const document = file.file.documentUser;
+    const positionRange = (start, end) => [document.positionAt(start), document.positionAt(end)];
+
+    assert.equal(file.getKeyFromLocation(positionRange(key.keyStart + 1, key.keyEnd - 1)), 'say"hello');
+    assert.equal(file.getKeyFromLocation(positionRange(locale.localeStart, locale.localeEnd)), null);
+    assert.equal(file.getKeyFromLocation(positionRange(locale.valueStart, locale.valueEnd)), null);
+    const second = file.parsed.bye;
+    assert.equal(file.getKeyFromLocation(positionRange(second.keyStart + 1, second.keyEnd - 1)), 'bye');
+});

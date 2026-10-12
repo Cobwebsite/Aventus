@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
@@ -37,7 +37,10 @@ test('settings notification reloads all three registries and discovery uses the 
     };
     SettingsManager.instance = { settings, onSettingsChange(callback) { notify = callback; } };
     GenericServer.instance = { _savePath: save, logLevel: 99, isIDE: false };
-    TemplateScript.create = async config => ({ name: `entry${config.includes('2') ? '2' : '1'}`, config });
+    TemplateScript.create = async config => ({
+        name: `entry${basename(dirname(dirname(config))).endsWith('2') ? '2' : '1'}`,
+        config,
+    });
     try {
         const manager = new TemplateManager([]);
         await manager.init();
@@ -48,7 +51,12 @@ test('settings notification reloads all three registries and discovery uses the 
         for (const kind of ['template', 'project', 'global']) settings[`${kind}Path`] = [join(root, `${kind}2`)];
         notify();
         // The callback intentionally does not return the loading promise.
-        for (let i = 0; i < 50 && !manager.getGeneralGlobal().entry2; i++) await new Promise(r => setTimeout(r, 5));
+        const allRegistriesReloaded = () => manager.getGeneralTemplates().entry2
+            && manager.getGeneralProjects().entry2 && manager.getGeneralGlobal().entry2;
+        for (let i = 0; i < 200 && !allRegistriesReloaded(); i++) {
+            await new Promise(r => setTimeout(r, 10));
+        }
+        assert.ok(allRegistriesReloaded(), 'template registries did not reload');
         assert.equal(manager.getGeneralTemplates().entry2.config, paths.template2);
         assert.equal(manager.getGeneralProjects().entry2.config, paths.project2);
         assert.equal(manager.getGeneralGlobal().entry2.config, paths.global2);

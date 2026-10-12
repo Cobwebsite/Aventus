@@ -126,3 +126,83 @@ test('PHP export uses composer project name and recovers after a failed conversi
         assert.match(events.find(e => e[0] === 'error')[1], /conversion failed/);
     });
 });
+
+test('PHP converter error output publishes the debug file and error state for its composer project', async () => {
+    await fixture(async ({ root, events, results }) => {
+        available.add('php'); available.add('php-converter');
+        const config = join(root, 'aventus.php.avt');
+        writeFileSync(config, '{}');
+        writeFileSync(join(root, 'composer.json'), JSON.stringify({ name: 'vendor/demo' }));
+        results([{ stdout: 'Error : invalid declaration', stderr: '' }]);
+        const previousClear = console.clear;
+        const previousError = GenericServer.error;
+        console.clear = () => {};
+        GenericServer.error = () => {};
+        try {
+            await commands['aventus.php.export'].run(uri(config));
+        } finally {
+            console.clear = previousClear;
+            GenericServer.error = previousError;
+        }
+        assert.deepEqual(events.filter(e => e[0] === 'notification').map(e => [e[1], e[2]]), [
+            ['aventus/sharp/compiling', ['vendor/demo', 'compiling', undefined]],
+            ['aventus/addDebugFile', ['php_errors', 'Error : invalid declaration']],
+            ['aventus/sharp/compiling', ['vendor/demo', 'error', [{ title: 'PHP error', file: 'php_errors' }]]],
+        ]);
+    });
+});
+
+test('converter process failure releases the Sharp compilation guard for a later retry', async () => {
+    await fixture(async ({ root, events, results }) => {
+        available.add('dotnet'); available.add('csharp-converter');
+        const config = join(root, 'aventus.sharp.avt');
+        writeFileSync(config, JSON.stringify({ csProj: 'Demo.csproj' }));
+        results([new Error('process exited 1'), { stdout: 'OK', stderr: '' }]);
+        await commands['aventus.sharp.export'].run(uri(config));
+        await commands['aventus.sharp.export'].run(uri(config));
+        assert.equal(executions.length, 2);
+        assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2]), [
+            ['Demo.csproj', 'compiling', undefined],
+            ['Demo.csproj', 'compiling', undefined],
+            ['Demo.csproj', 'success', undefined],
+        ]);
+        assert.match(events.find(e => e[0] === 'error')[1], /process exited 1/);
+    });
+});
+
+test('converter commands receive the exact config and phar paths, including spaces', async () => {
+    await fixture(async ({ root }) => {
+        available.add('dotnet'); available.add('csharp-converter');
+        available.add('php'); available.add('php-converter');
+        const configRoot = join(root, 'space in directory');
+        mkdirSync(configRoot);
+        const sharpConfig = join(configRoot, 'aventus.sharp.avt');
+        const phpConfig = join(configRoot, 'aventus.php.avt');
+        writeFileSync(sharpConfig, '{}');
+        writeFileSync(phpConfig, '{}');
+        await commands['aventus.sharp.export'].run(uri(sharpConfig));
+        await commands['aventus.php.export'].run(uri(phpConfig));
+        assert.equal(executions.length, 2);
+        assert.equal(executions[0][0], `csharp-converter ${sharpConfig.replaceAll('\\', '/')}`);
+        assert.equal(executions[1][0], `php ${join(root, 'lib', 'bin', 'PhpToTypescript', 'PhpToTypescript.phar')} ${phpConfig.replaceAll('\\', '/')} 2>&1`);
+    });
+});
+
+test('tool update process rejection stops later tools and a later invocation can retry', async () => {
+    await fixture(async ({ events, results }) => {
+        available.add('dotnet'); available.add('csharp-converter'); available.add('db-query');
+        results([new Error('update process exited 1')]);
+        await assert.rejects(commands['aventus.sharp.update_tools'].run(), /update process exited 1/);
+        assert.deepEqual(executions.map(e => e[0]), ['dotnet tool update --global AventusSharp.Converter']);
+        assert.deepEqual(events.filter(e => e[0] === 'info' || e[0] === 'error'), []);
+        results([{ stdout: 'updated converter', stderr: '' }, { stdout: 'updated db', stderr: '' }]);
+        await commands['aventus.sharp.update_tools'].run();
+        assert.deepEqual(executions.slice(1).map(e => e[0]), [
+            'dotnet tool update --global AventusSharp.Converter',
+            'dotnet tool update --global AventusSharp.DatabaseQuery',
+        ]);
+        assert.deepEqual(events.filter(e => e[0] === 'info').map(e => e[1]), [
+            'Update done for : csharp-converter, db-query',
+        ]);
+    });
+});

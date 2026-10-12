@@ -14,6 +14,7 @@ test('watcher forwards disk changes and removals only for registered URIs', asyn
     const uri = pathToUri(path);
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [uri];
+    watcher.pendingEvents = new Map();
     FilesManager.instance = {
         onUpdatedUri: current => calls.push(['update', current]),
         onDeletedUri: current => calls.push(['delete', current]),
@@ -49,6 +50,7 @@ test('watcher callbacks wait for file processing and preserve event order per UR
     const path = 'D:/project/source.wcl.avt';
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [pathToUri(path)];
+    watcher.pendingEvents = new Map();
     const calls = [];
     let releaseUpdate;
     let releaseDelete;
@@ -90,6 +92,7 @@ test('watcher propagates processing errors and continues with the next event', a
     const path = 'D:/project/source.wcl.avt';
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [pathToUri(path)];
+    watcher.pendingEvents = new Map();
     const calls = [];
     FilesManager.instance = {
         onUpdatedUri: async () => { calls.push('update'); throw new Error('update failed'); },

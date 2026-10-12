@@ -61,7 +61,7 @@ test('watching the same URI twice subscribes once and can subscribe again after 
     const watcher = Object.create(FilesWatcher.prototype);
     const added = [];
     watcher.watcheUris = [];
-    watcher.watcher = { add: path => added.push(path) };
+    watcher.watcher = { add: path => added.push(path), unwatch() {} };
     const path = 'D:/project/entry.wcl.avt';
     const uri = pathToUri(path);
     watcher.watch(uri);
