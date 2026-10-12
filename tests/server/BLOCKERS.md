@@ -25,12 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Installation de l'environnement non attendue par son appelant
-
-- Source : `server/src/environment.ts`, `initEnvironnment` appelle `installEnvironment(...)` sans `await` dans son bloc `try`.
-- `environment-unix-round34.test.mjs` couvre l'écriture du profil Bash dans un dossier temporaire isolé. Un second test exécute l'initialiseur dans un processus enfant sans `HOME` : le rejet non intercepté termine le processus avec le code 1, ce qui confirme qu'il échappe au `catch`.
-- Décision à prendre : attendre l'installation pour garantir sa fin et la remontée des erreurs, puis tester une erreur de fichier ou de profil sans toucher au profil utilisateur réel.
-
 ## Sorties statiques conservées après rechargement d'un projet
 
 - Source : `server/src/project/Project.ts`, `loadConfig` et `onConfigSave`.

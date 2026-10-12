@@ -23,7 +23,6 @@ import { InitStep } from './notification/InitStep';
 import { execAsync } from './tools';
 import { LogLevel } from './settings/LogLevel';
 import { ManifestPackage } from './manifest/ManifestPackage';
-import { initEnvironnment } from './environment';
 
 
 export class GenericServer {
@@ -280,7 +279,6 @@ export class GenericServer {
 		}
 		if (this.isIDE)
 			this.runUpdate();
-		// initEnvironnment(params.extensionPath);
 		GenericServer.debug(params)
 	}
 	protected async onInitialized() {
