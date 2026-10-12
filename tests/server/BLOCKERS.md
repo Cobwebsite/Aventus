@@ -2,11 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Capacités des traductions i18n
-
-- Les fichiers i18n renvoient actuellement une complétion vide et `null` pour hover, définition et renommage. Préciser si ces capacités du TODO sont attendues avant de figer les assertions.
-- `i18n-boundaries-round14.test.mjs` précise les limites de plage et la sélection multi-build ; les attentes positives de navigation restent à définir.
-
 ## Mise à jour des manifestes
 
 - Les générateurs Custom Elements, HTML Custom Data, Emmet Custom Data et Web Types disposent de `register` mais d'aucune opération `unregister` ni remise à zéro publique. Un nouvel enregistrement peut donc ajouter une entrée en double ou laisser une entrée périmée.
