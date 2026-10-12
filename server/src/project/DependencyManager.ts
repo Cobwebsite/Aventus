@@ -71,8 +71,8 @@ export class DependencyManager {
 		}
 		return result;
 	}
-	public async loadDependenciesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependencyNeedUris: string[], dependencyFullUris: string[], dependencyUris: string[] }> {
-		let result: { files: AventusPackageFile[], dependencyNeedUris: string[], dependencyFullUris: string[], dependencyUris: string[] } = {
+	public async loadDependenciesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependencyNeedUris: string[], dependencyFullUris: string[], dependencyUris: string[], cycle?: string[] }> {
+		let result: { files: AventusPackageFile[], dependencyNeedUris: string[], dependencyFullUris: string[], dependencyUris: string[], cycle?: string[] } = {
 			files: [],
 			dependencyNeedUris: [],
 			dependencyFullUris: [],
@@ -115,6 +115,12 @@ export class DependencyManager {
 		}
 
 
+		const cycle = this.findCycle(loopResult);
+		if (cycle) {
+			result.cycle = cycle;
+			return result;
+		}
+
 		let orderedName: string[] = [];
 		for (let name in loopResult) {
 			let current = loopResult[name];
@@ -137,6 +143,31 @@ export class DependencyManager {
 
 		}
 		return result;
+	}
+
+	private findCycle(allInfo: DependencyLoop): string[] | null {
+		const visited = new Set<string>();
+		const path: string[] = [];
+		const visit = (name: string): string[] | null => {
+			const cycleStart = path.indexOf(name);
+			if (cycleStart >= 0) return [...path.slice(cycleStart), name];
+			if (visited.has(name)) return null;
+			visited.add(name);
+			path.push(name);
+			for (const dependency of allInfo[name].dependencies) {
+				if (allInfo[dependency.name]) {
+					const cycle = visit(dependency.name);
+					if (cycle) return cycle;
+				}
+			}
+			path.pop();
+			return null;
+		};
+		for (const name of Object.keys(allInfo)) {
+			const cycle = visit(name);
+			if (cycle) return cycle;
+		}
+		return null;
 	}
 
 	private orderLoop(name: string, dep: DependencyLoopPart, allInfo: DependencyLoop, orderedName: string[]) {

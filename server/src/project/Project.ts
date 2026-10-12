@@ -1,5 +1,5 @@
 import { normalize, sep } from 'path';
-import { CompletionItem, CompletionList, FormattingOptions, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
+import { CompletionItem, CompletionList, Diagnostic, DiagnosticSeverity, FormattingOptions, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
 import { AventusExtension } from '../definition';
 import { AventusFile } from '../files/AventusFile';
 import { AventusConfig } from "../language-services/json/definition";
@@ -128,7 +128,23 @@ export class Project {
         await this.onConfigSave();
     }
     public async onValidate() {
-        return await AventusJSONLanguageService.getInstance().validate(this.configFile);
+        const service = AventusJSONLanguageService.getInstance();
+        const diagnostics: Diagnostic[] = await service.validate(this.configFile);
+        for (const build of this.builds) {
+            const cycle = build.dependencyCycle;
+            if (!cycle) continue;
+            const dependency = cycle.find(name => service.getDependencyKeyRange(this.configFile, build.buildConfig.name, name));
+            const range = dependency ? service.getDependencyKeyRange(this.configFile, build.buildConfig.name, dependency) : null;
+            if (range) {
+                diagnostics.push({
+                    range,
+                    severity: DiagnosticSeverity.Error,
+                    source: 'Aventus',
+                    message: `Cycle de dépendances : ${cycle.join(' → ')}`,
+                });
+            }
+        }
+        return diagnostics;
     }
 
     //#region config
