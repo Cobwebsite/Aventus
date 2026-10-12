@@ -1,15 +1,12 @@
 declare global {
     type ConstructorConstraint<T> = Function & { prototype: T; };
 
-    type AvClassDecorator = <Class extends Function & { prototype: any; }>(
+    type AvClassDecorator<T = any> = <Class extends ConstructorConstraint<T>>(
         value: Class,
         context: ClassDecoratorContext<Class>
     ) => Class | void;
 
-    type AvClassComponentDecorator = <Class extends ConstructorConstraint<Aventus.WebComponent>>(
-        value: Class,
-        context: ClassDecoratorContext<Class>
-    ) => Class | void;
+    type AvClassComponentDecorator = AvClassDecorator<Aventus.WebComponent>;
 
     type AvGetterDecorator = <This, Return>(
         value: (this: This) => Return,
