@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Suppression sur disque non attendue par le gestionnaire
-
-- Source : `server/src/files/FilesManager.ts`, `onUpdatedUri` et `onClose`.
-- Reproduction automatisée : `files-disk-events.test.mjs` utilise un callback de suppression retenu par une promesse contrôlée, puis attend `onUpdatedUri(uri)`.
-- Résultat actuel : la méthode appelle `onDeletedUri(uri)` sans `await` ; sa promesse se termine alors que le fichier reste dans le cache et que les callbacks de suppression n'ont pas fini.
-- Résultat attendu : clarifier si la promesse doit couvrir la suppression complète ; dans ce cas, l'attendre.
-
 ## Correspondance d'espace de travail par préfixe brut
 
 - Source : `server/src/files/TemplateManager.ts`, `findWorkspace`.
@@ -583,12 +576,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `npm-concurrent-compile-round122.test.mjs` lance deux appels à `NpmBuilder.compile()` avec les mêmes imports avant la fin d'esbuild. Le second renvoie `{ result: '', errors: [] }` ; le premier renvoie ensuite le bundle attendu.
 - Cause : `compile()` enregistre `lastInfo` avant d'attendre `esbuildBuild()`. L'appel concurrent voit les imports inchangés et renvoie `npmBuildTxt`, encore vide.
 - Décision à prendre : partager la promesse de compilation en cours avec les appels concurrents, puis publier le même résultat une fois le bundle terminé.
-
-## Suppression de fichier non attendue lors d'une mise à jour ou fermeture
-
-- Reproduction automatisée : `files-deletion-await-round123.test.mjs` simule un fichier absent du disque et un callback `triggerDelete()` différé. `FilesManager.onUpdatedUri()` et `onClose()` retournent alors que le fichier reste en cache et surveillé ; le nettoyage ne se termine que plus tard.
-- Cause : les deux méthodes appellent `this.onDeletedUri(uri)` sans `await` ni retour de sa promesse.
-- Décision à prendre : attendre la suppression dans ces deux parcours pour que la fin de la notification garantisse le retrait du cache et du watcher, et propager ou traiter explicitement un échec du callback.
 
 ## Réponse de configuration ancienne appliquée après une notification plus récente
 

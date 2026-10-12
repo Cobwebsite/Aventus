@@ -13,7 +13,7 @@ for (const [label, invoke] of [
     ['disk update', (manager, uri) => manager.onUpdatedUri(uri)],
     ['document close', (manager, uri) => manager.onClose(TextDocument.create(uri, 'typescript', 1, 'old'))],
 ]) {
-    test(`${label} of a missing file resolves before deferred deletion completes`, async () => {
+    test(`${label} of a missing file waits for deferred deletion`, async () => {
         const uri = pathToUri(join(tmpdir(), `aventus-round123-missing-${label.replace(' ', '-')}.wcl.avt`));
         const manager = Object.create(FilesManager.prototype);
         const oldWatcher = FilesWatcher.instance;
@@ -23,15 +23,12 @@ for (const [label, invoke] of [
         const events = [];
         let releaseDelete;
         const deleteGate = new Promise(resolve => { releaseDelete = resolve; });
-        let deletionFinished;
-        const deletionDone = new Promise(resolve => { deletionFinished = resolve; });
         manager.files = {
             [uri]: {
                 triggerDelete: async () => {
                     events.push('delete-start');
                     await deleteGate;
                     events.push('delete-end');
-                    deletionFinished();
                 },
             },
         };
@@ -41,12 +38,14 @@ for (const [label, invoke] of [
         SettingsManager.instance = { settings: { errorByBuild: false } };
         FilesWatcher.instance = { unwatch: () => events.push('unwatch') };
         try {
-            await invoke(manager, uri);
-            assert.deepEqual(events, ['diagnostics', 'delete-start']);
-            assert.ok(manager.getByUri(uri), 'the cache still contains the file after the caller returns');
-            releaseDelete();
-            await deletionDone;
+            let operationFinished = false;
+            const operation = invoke(manager, uri).then(() => { operationFinished = true; });
             await new Promise(resolve => setImmediate(resolve));
+            assert.deepEqual(events, ['diagnostics', 'delete-start']);
+            assert.ok(manager.getByUri(uri), 'the cache retains the file while deletion is pending');
+            assert.equal(operationFinished, false);
+            releaseDelete();
+            await operation;
             assert.deepEqual(events, ['diagnostics', 'delete-start', 'delete-end', 'unwatch']);
             assert.equal(manager.getByUri(uri), undefined);
         } finally {

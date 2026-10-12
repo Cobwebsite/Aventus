@@ -57,7 +57,7 @@ test('disk update creates an unknown Aventus file, then refreshes its cached con
     }
 });
 
-test('missing disk file update currently resolves before its asynchronous deletion finishes', async () => {
+test('missing disk file update waits for its asynchronous deletion', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-missing-disk-'));
     const uri = pathToUri(join(root, 'removed.wcl.avt'));
     const oldServer = GenericServer.instance;
@@ -81,11 +81,14 @@ test('missing disk file update currently resolves before its asynchronous deleti
         },
     };
     try {
-        await instance.onUpdatedUri(uri);
+        let updateFinished = false;
+        const update = instance.onUpdatedUri(uri).then(() => { updateFinished = true; });
+        await new Promise(resolve => setImmediate(resolve));
         assert.deepEqual(events, ['diagnostics', 'delete-start']);
         assert.ok(instance.getByUri(uri));
+        assert.equal(updateFinished, false);
         finishDelete();
-        await new Promise(resolve => setImmediate(resolve));
+        await update;
         assert.deepEqual(events, ['diagnostics', 'delete-start', 'delete-end', 'unwatch']);
         assert.equal(instance.getByUri(uri), undefined);
     } finally {
