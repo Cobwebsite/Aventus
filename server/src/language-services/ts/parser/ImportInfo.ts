@@ -162,14 +162,14 @@ export class ImportInfo {
 				}
 				else {
 					if (!node.importClause.phaseModifier) {
-						// TODO check if only here but it should be a default import
+						const name = node.importClause.name.text;
 						const registered = this.registerNpmImport(node, parserInfo, {
 							libName: 'default',
 							uri: moduleName,
-							alias: this.name
+							alias: name
 						})
 						if (registered) {
-							parserInfo.npmImports[this.name] = {
+							parserInfo.npmImports[name] = {
 								uri: moduleName,
 								nameInsideLib: 'default'
 							};
