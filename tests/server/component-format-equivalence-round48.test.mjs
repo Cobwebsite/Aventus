@@ -104,7 +104,7 @@ test('single and separated components compile equally through script edits and m
     assert.doesNotMatch(outputs[3], /Stable view|color:red/);
 });
 
-test('single-file initial registration exposes script/style but leaves template unattached', () => {
+test('single-file initial registration attaches script, style and template', () => {
     const uri = 'file:///D:/test/component-format-initial.wc.avt';
     const text = '<script>@TagName("demo-card") export class Card {}</script><template><p>Visible</p></template><style>.card{color:red}</style>';
     const file = new InternalAventusFile(TextDocument.create(uri, 'Aventus WebComponent', 1, text));
@@ -120,5 +120,6 @@ test('single-file initial registration exposes script/style but leaves template 
     build.wcFiles[uri] = single;
     assert.equal(single.logic.file.uri, uri);
     assert.ok(single.style);
-    assert.equal(single.view, undefined);
+    assert.ok(single.view);
+    assert.equal(single.view.file.contentUser, '<p>Visible</p>');
 });
