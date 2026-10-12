@@ -15,7 +15,7 @@ function manager() {
     return instance;
 }
 
-test('saving an uncached document registers it, then a later save invokes its save callbacks', async () => {
+test('saving an uncached document registers it and invokes its save callbacks immediately', async () => {
     const current = manager();
     const uri = 'file:///round27-uncached.wcl.avt';
     const document = TextDocument.create(uri, 'typescript', 1, 'class Entry {}');
@@ -31,9 +31,9 @@ test('saving an uncached document registers it, then a later save invokes its sa
     try {
         await current.onSave(document);
         assert.equal(current.getByUri(uri).contentUser, 'class Entry {}');
-        assert.deepEqual(events, [['new', uri]]);
-        await current.onSave(document);
         assert.deepEqual(events, [['new', uri], ['save', uri]]);
+        await current.onSave(document);
+        assert.deepEqual(events, [['new', uri], ['save', uri], ['save', uri]]);
     } finally {
         for (const file of Object.values(current.files)) clearTimeout(file.delayValidate);
         GenericServer.instance = previousServer;

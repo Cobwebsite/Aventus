@@ -25,18 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Observation du contenu et des callbacks dans le cycle LSP
-
-- `jsonrpc-document-cycle-round30.test.mjs` traverse un vrai processus LSP : `didOpen`, deux `didChange`, `didSave`, suppression et `didClose`. Les diagnostics successifs prouvent indirectement l'application des contenus et leur effacement final.
-- Le protocole ne renvoie ni version/contenu du cache ni accusé de traitement de `didSave` ; ce test ne peut donc pas attester directement le callback de sauvegarde. Les tests unitaires de `FilesManager` couvrent ce chemin séparément.
-- Décision éventuelle : exposer un état ou une commande de diagnostic uniquement si la vérification bout en bout de ce callback est exigée. Aucun changement n'est requis par les assertions actuelles.
-
-## Première sauvegarde d'un document absent du cache
-
-- Source : `server/src/files/FilesManager.ts`, méthode `onSave`.
-- Reproduction : `files-protocol-audit-round27.test.mjs` enregistre un callback `onSave` lors de `onNewFile`, puis sauvegarde un document absent du cache. Le fichier est créé, mais le callback de sauvegarde ne s'exécute qu'au second `onSave`.
-- Décision à prendre : déterminer si le premier `didSave` doit également lancer les traitements de sauvegarde après l'enregistrement du fichier.
-
 ## Namespace npm voisin ajouté comme enfant du mauvais point d'entrée
 
 - Reproduction automatisée : `npm-namespace-prefix-round97.test.mjs` génère `Catalog.UI` et `Catalog.UIExtra.Widget`. Les `index.js` et `index.d.ts` de `Catalog/UI` importent alors `./Widget`, qui n'existe que sous `Catalog/UIExtra/Widget` ; le point d'entrée UI est invalide.
