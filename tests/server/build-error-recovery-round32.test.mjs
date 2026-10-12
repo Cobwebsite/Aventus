@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { loadServerModules } from './helpers/load-ts.mjs';
@@ -55,8 +55,10 @@ function fixture(t) {
             codeRenderInJs: [], codeNotRenderInJs: [],
         };
     };
+    const writeFile = build.writeFile.bind(build);
     build.writeFile = async (path, content) => {
-        if (path === failedPath) throw new Error('output unavailable');
+        if (!build.pendingOutputs && path === failedPath) throw new Error('output unavailable');
+        if (build.pendingOutputs) return writeFile(path, content);
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, content);
     };
@@ -89,14 +91,14 @@ test('a dependency error in the second configuration is reported and clears on r
         .map(([, args]) => args[1]), [[{ message: 'dependency unavailable' }], []]);
 });
 
-test('a failed second output preserves the first output and the next build recovers both', async t => {
+test('a failed second output rolls back the first output and the next build recovers both', async t => {
     const fixtureState = fixture(t);
     const { build, paths, notifications } = fixtureState;
     await build.build();
     fixtureState.setRevision('Interrupted');
     fixtureState.setFailedPath(paths[1]);
     await assert.rejects(build.build(), /output unavailable/);
-    assert.match(readFileSync(paths[0], 'utf8'), /Interrupted0/);
+    assert.match(readFileSync(paths[0], 'utf8'), /Initial0/);
     assert.match(readFileSync(paths[1], 'utf8'), /Initial1/);
     assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 1);
 
@@ -109,6 +111,15 @@ test('a failed second output preserves the first output and the next build recov
         .map(([, args]) => args[1]), [[], []]);
 });
 
+test('a failed first build removes any output created before the failure', async t => {
+    const state = fixture(t);
+    state.setFailedPath(state.paths[1]);
+    await assert.rejects(state.build.build(), /output unavailable/);
+    assert.equal(existsSync(state.paths[0]), false);
+    assert.equal(existsSync(state.paths[1]), false);
+    assert.equal(state.notifications.filter(([name]) => name === 'aventus/compiled').length, 0);
+});
+
 test('a thrown local compilation error reaches the caller and a later build refreshes every output', async t => {
     const state = fixture(t);
     const { build, paths, notifications } = state;
@@ -116,7 +127,7 @@ test('a thrown local compilation error reaches the caller and a later build refr
     state.setRevision('Broken');
     state.setCompilationFailure('compiler unavailable');
     await assert.rejects(build.build(), /compiler unavailable/);
-    assert.match(readFileSync(paths[0], 'utf8'), /Broken0/);
+    assert.match(readFileSync(paths[0], 'utf8'), /Initial0/);
     assert.match(readFileSync(paths[1], 'utf8'), /Initial1/);
     assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 1);
 

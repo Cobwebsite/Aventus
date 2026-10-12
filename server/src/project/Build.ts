@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "fs";
 import { join, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
@@ -124,6 +124,7 @@ export class Build {
 
     public reloadPage: boolean = false;
     private _outputPathes: string[] = [];
+    private pendingOutputs?: Map<string, string>;
 
     public readonly npmBuilder: NpmBuilder;
 
@@ -380,37 +381,43 @@ export class Build {
         GenericServer.debug("building " + this.buildConfig.fullname);
         this.clearDiagnostics();
         let buildErrors: BuildErrors = []
+        this.pendingOutputs = new Map();
+        try {
+            for (let compile of this.buildConfig.compile) {
+                if (compile.i18n) {
+                    await this.writeBuildI18n(compile.i18n);
+                }
+                let compilationInfo = await this.buildOrderCompilationInfo(compile);
+                let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
 
-        for (let compile of this.buildConfig.compile) {
-            if (compile.i18n) {
-                await this.writeBuildI18n(compile.i18n);
-            }
-            let compilationInfo = await this.buildOrderCompilationInfo(compile);
-            let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
+                const outputErrors = await this.writeBuildCode(result, compilationInfo.libSrc, compile.output, compile.compressed);
+                buildErrors.push(...outputErrors, ...compilationInfo.errors);
 
-            const outputErrors = await this.writeBuildCode(result, compilationInfo.libSrc, compile.output, compile.compressed);
-            buildErrors.push(...outputErrors, ...compilationInfo.errors);
+                let srcInfo = {
+                    namespace: this.buildConfig.module,
+                    available: result.codeRenderInJs,
+                    existing: result.codeNotRenderInJs
+                }
+                await this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm);
 
-            let srcInfo = {
-                namespace: this.buildConfig.module,
-                available: result.codeRenderInJs,
-                existing: result.codeNotRenderInJs
+                if (compile.outputNpm.live) {
+                    await this.writeBuildNpm(compile.outputNpm, result);
+                }
+                if (this.buildConfig.stories && this.buildConfig.stories.live) {
+                    await this.stories.check();
+                    await this.writeBuildNpm({
+                        path: [join(this.buildConfig.stories.output, "generated")],
+                        packageJson: false,
+                        npmName: '',
+                        live: false
+                    }, result);
+                    await this.stories.write(this.tsFiles);
+                }
             }
-            await this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm);
 
-            if (compile.outputNpm.live) {
-                await this.writeBuildNpm(compile.outputNpm, result);
-            }
-            if (this.buildConfig.stories && this.buildConfig.stories.live) {
-                await this.stories.check();
-                await this.writeBuildNpm({
-                    path: [join(this.buildConfig.stories.output, "generated")],
-                    packageJson: false,
-                    npmName: '',
-                    live: false
-                }, result);
-                await this.stories.write(this.tsFiles);
-            }
+            await this.publishOutputs();
+        } finally {
+            this.pendingOutputs = undefined;
         }
 
         Compiled.send(this.buildConfig.fullname, buildErrors);
@@ -2448,7 +2455,38 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
     }
 
     public async writeFile(output: string, content: string) {
+        if (this.pendingOutputs) {
+            this.pendingOutputs.set(output, content);
+            return;
+        }
         await writeFile(output, content, "build", this.buildConfig.fullname);
+    }
+
+    private async publishOutputs() {
+        const outputs = this.pendingOutputs;
+        this.pendingOutputs = undefined;
+        if (!outputs) return;
+
+        const written: { path: string, previous?: string }[] = [];
+        try {
+            for (const [path, content] of outputs) {
+                const previous = existsSync(path) ? readFileSync(path, 'utf8') : undefined;
+                written.push({ path, previous });
+                await this.writeFile(path, content);
+            }
+        } catch (error) {
+            for (const { path, previous } of written.reverse()) {
+                try {
+                    if (previous === undefined) rmSync(path, { force: true });
+                    else if (!existsSync(path) || readFileSync(path, 'utf8') !== previous) {
+                        await this.writeFile(path, previous);
+                    }
+                } catch (rollbackError) {
+                    GenericServer.error(rollbackError);
+                }
+            }
+            throw error;
+        }
     }
 }
 
