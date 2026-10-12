@@ -15,6 +15,7 @@ export class CustomElements {
 
 	private manifest: Manifest;
 	private _package: Package;
+	private modulesByUri = new Map<string, Module>();
 	public constructor(manifest: Manifest) {
 		this.manifest = manifest;
 		this._package = {
@@ -28,6 +29,7 @@ export class CustomElements {
 	}
 
 	public register(file: AventusTsFile, info: ManifestInfo) {
+		this.unregister(file.file.uri);
 		if (!file.fileParsed) return;
 		if (!(file instanceof AventusWebComponentLogicalFile)) return
 		const _class = info.class;
@@ -308,7 +310,13 @@ export class CustomElements {
 		if (_module.exports?.length == 0) {
 			delete _module.exports;
 		}
-		this._package.modules.push(_module);
+		this.modulesByUri.set(file.file.uri, _module);
+		this._package.modules = Array.from(this.modulesByUri.values());
+	}
+
+	public unregister(uri: string) {
+		this.modulesByUri.delete(uri);
+		this._package.modules = Array.from(this.modulesByUri.values());
 	}
 
 	private getSourceUri(uri: string) {

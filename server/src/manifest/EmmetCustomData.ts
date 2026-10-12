@@ -10,6 +10,7 @@ export class EmmetCustomData {
 
 	private manifest: Manifest;
 	private _package: EmmetCustomDataSchema;
+	private tagsByUri = new Map<string, string>();
 	public constructor(manifest: Manifest) {
 		this.manifest = manifest;
 		this._package = {
@@ -24,6 +25,7 @@ export class EmmetCustomData {
 	}
 
 	public register(file: AventusTsFile, info: ManifestInfo) {
+		this.unregister(file.file.uri);
 		if (!file.fileParsed) return;
 		if (!(file instanceof AventusWebComponentLogicalFile)) return
 		const _class = info.class;
@@ -32,7 +34,20 @@ export class EmmetCustomData {
 		if (!compilationResult) return;
 		if (!compilationResult.tagName) return;
 		const tag = compilationResult.tagName;
-		this._package.html.snippets[tag] = `<${tag}>\${1}</${tag}>`;
+		this.tagsByUri.set(file.file.uri, tag);
+		this.rebuildSnippets();
+	}
+
+	public unregister(uri: string) {
+		this.tagsByUri.delete(uri);
+		this.rebuildSnippets();
+	}
+
+	private rebuildSnippets() {
+		this._package.html.snippets = {};
+		for (const tag of this.tagsByUri.values()) {
+			this._package.html.snippets[tag] = `<${tag}>\${1}</${tag}>`;
+		}
 	}
 
 }

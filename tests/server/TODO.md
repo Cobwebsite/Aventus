@@ -320,7 +320,7 @@ Les scénarios qui révèlent actuellement un écart du code source sont détail
 
 - [ ] Génération de Custom Elements, Web Types, HTML Custom Data et Emmet Custom Data depuis un composant.
 - [ ] Schémas valides, attributs/propriétés/méthodes/événements et documentation correcte.
-- [ ] Suppression ou renommage d'un composant répercuté dans chaque manifeste.
+- [x] Suppression ou renommage d'un composant répercuté dans chaque manifeste : reconstruction à chaque build et remplacement ou retrait des contributions par URI (`manifest-removal-survivor-round90.test.mjs`, `manifest-lifecycle-round10.test.mjs`, `manifest-same-tag-reregistration-round63.test.mjs`).
 - [ ] Génération du manifeste package et de sa documentation Markdown.
 - [ ] Fichiers Storybook, stories et MDX générés à partir des décorateurs et valeurs déclarées. Matrice des classes, alias, énumérations, fonctions et variables avec titres, documentation, métadonnées et syntaxe TS vérifiée (`storybook-declaration-matrix-round83.test.mjs`). Les options `noLive` et `noDefaultStory` sont vérifiées sur un composant analysé et recompilé après plusieurs éditions (`storybook-parsed-options-round138.test.mjs`) ; il reste à prouver exhaustivement les autres décorateurs et valeurs issus du parseur sur des sources réelles.
 

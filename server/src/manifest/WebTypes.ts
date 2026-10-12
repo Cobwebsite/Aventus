@@ -11,6 +11,7 @@ export class WebTypes {
 
 	private manifest: Manifest;
 	private _package: JSONSchemaForWebTypes;
+	private elementsByUri = new Map<string, HtmlElement>();
 	public constructor(manifest: Manifest) {
 		this.manifest = manifest;
 		this._package = {
@@ -31,6 +32,7 @@ export class WebTypes {
 	}
 
 	public register(file: AventusWebComponentLogicalFile, info: ManifestInfo) {
+		this.unregister(file.file.uri);
 		if (!this._package.contributions?.html?.elements) return;
 
 		const compilationResult = file.compileResult.find(p => p.classScript.split('.').pop() == file.componentClassName)!;
@@ -131,7 +133,15 @@ export class WebTypes {
 		// events		
 		
 
-		this._package.contributions.html.elements.push(element);
+		this.elementsByUri.set(file.file.uri, element);
+		this._package.contributions.html.elements = Array.from(this.elementsByUri.values());
+	}
+
+	public unregister(uri: string) {
+		this.elementsByUri.delete(uri);
+		if (this._package.contributions?.html?.elements) {
+			this._package.contributions.html.elements = Array.from(this.elementsByUri.values());
+		}
 	}
 
 

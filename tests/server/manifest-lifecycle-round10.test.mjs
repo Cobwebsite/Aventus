@@ -49,18 +49,29 @@ test('multiple components retain their own paths and tags in every manifest form
     assert.deepEqual(manifest.webTypes._package.contributions.html.elements.map(item => item.name), ['demo-card', 'demo-panel']);
 });
 
-test('re-registering a changed component retains stale entries in list-based manifests', () => {
+test('re-registering a changed component replaces its old tag in every manifest', () => {
     const manifest = fixture();
     const card = component('Card', 'demo-card');
     registerAll(manifest, card);
     card.file._compileResult = [{ classScript: 'Demo.Card', tagName: 'demo-card-new' }];
     registerAll(manifest, card);
-    assert.deepEqual(manifest.customElements._package.modules.map(item => item.declarations[0].tagName), [
-        'demo-card', 'demo-card-new',
-    ]);
-    assert.deepEqual(manifest.htmlCustomData._package.tags.map(item => item.name), ['demo-card', 'demo-card-new']);
-    assert.deepEqual(manifest.webTypes._package.contributions.html.elements.map(item => item.name), [
-        'demo-card', 'demo-card-new',
-    ]);
-    assert.deepEqual(Object.keys(manifest.emmetCustomData._package.html.snippets), ['demo-card', 'demo-card-new']);
+    assert.deepEqual(manifest.customElements._package.modules.map(item => item.declarations[0].tagName), ['demo-card-new']);
+    assert.deepEqual(manifest.htmlCustomData._package.tags.map(item => item.name), ['demo-card-new']);
+    assert.deepEqual(manifest.webTypes._package.contributions.html.elements.map(item => item.name), ['demo-card-new']);
+    assert.deepEqual(Object.keys(manifest.emmetCustomData._package.html.snippets), ['demo-card-new']);
+});
+
+test('unregistering a component removes only its entries', () => {
+    const manifest = fixture();
+    const card = component('Card', 'demo-card');
+    const panel = component('Panel', 'demo-panel');
+    registerAll(manifest, card);
+    registerAll(manifest, panel);
+
+    manifest.unregister(card.file.file.uri);
+
+    assert.deepEqual(manifest.customElements._package.modules.map(item => item.declarations[0].tagName), ['demo-panel']);
+    assert.deepEqual(manifest.htmlCustomData._package.tags.map(item => item.name), ['demo-panel']);
+    assert.deepEqual(manifest.webTypes._package.contributions.html.elements.map(item => item.name), ['demo-panel']);
+    assert.deepEqual(Object.keys(manifest.emmetCustomData._package.html.snippets), ['demo-panel']);
 });
