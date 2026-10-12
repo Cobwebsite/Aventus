@@ -25,11 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Définition HTML renvoyée vers le style après suppression de la logique
-
-- Reproduction automatisée : `html-navigation-source-lifecycle-round54.test.mjs` résout `@click="submit"` vers la méthode TypeScript tant que la logique existe. Après suppression de cette source, la même demande de définition retourne le sélecteur SCSS `.card` du composant ; le rattachement de la logique rétablit la définition initiale.
-- Décision à prendre : lorsqu'une méthode d'événement n'a plus de source logique, ne renvoyer aucune définition ou un diagnostic adapté, plutôt qu'une position dans la feuille de style.
-
 ## Cache de package conservé après suppression du fichier
 
 - Reproduction automatisée : `file-type-recreation-round55.test.mjs` charge un fichier `.package`, le supprime via `triggerDelete()`, puis constate que `DependencyManager.loadedPackages['Demo@web']` référence encore l'ancien objet. Un nouveau chargement remplace l'entrée.

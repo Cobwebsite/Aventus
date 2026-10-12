@@ -90,7 +90,7 @@ test('view navigation and rename follow companion removal and restoration withou
     assert.equal(await view.onRename(view.file, methodPosition, 'send'), expectedEdit);
 
     delete build.tsFiles[logicUri];
-    assert.equal((await view.onDefinition(view.file, methodPosition))?.[0]?.uri, styleUri);
+    assert.deepEqual(await view.onDefinition(view.file, methodPosition), []);
     assert.equal(await view.onRename(view.file, methodPosition, 'send'), null);
     assert.equal(renameCalls, 1);
     assert.equal((await view.onDefinition(view.file, classPosition))?.[0]?.uri, styleUri);
