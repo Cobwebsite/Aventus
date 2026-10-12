@@ -35,13 +35,16 @@ test('store commands prompt for credentials, connect and disconnect', async () =
     try {
         await Commands.allCommandes['aventus.store.connect'].run();
         assert.deepEqual(connected, [['dev', 'secret']]);
-        assert.deepEqual(logged, ['dev', 'secret']);
+        assert.deepEqual(logged, []);
         assert.deepEqual(prompts.map(item => item.title), ['Username', 'Password']);
         assert.equal(prompts[1].password, true);
         assert.equal(messages[0], 'Connection successful');
         await Commands.allCommandes['aventus.store.disconnect'].run();
         assert.equal(messages[1], 'You are disconnected');
         assert.equal(Store.isConnected, false);
+        await Commands.allCommandes['aventus.store.connect'].run('explicit', 'provided');
+        assert.deepEqual(connected[1], ['explicit', 'provided']);
+        assert.deepEqual(logged, []);
     } finally {
         console.log = previousLog;
         Store._settings = previousSettings;

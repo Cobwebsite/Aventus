@@ -18,9 +18,6 @@ export class StoreConnect {
 			password = await GenericServer.Input({ title: "Password", password: true });
 			if (!password) return;
 		}
-		console.log(username)
-		console.log(password)
-
 		const result = await Store.connect(username, password);
 		if (result) {
 			await GenericServer.showInformationMessage("Connection successful");

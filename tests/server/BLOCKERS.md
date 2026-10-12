@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Identifiants du store écrits dans la console
-
-- Source : `server/src/cmds/store/Connect.ts`, méthode `run`.
-- Reproduction automatisée : `store-commands.test.mjs` intercepte `console.log` et reçoit l'identifiant et le mot de passe de test après la saisie, avant `Store.connect`.
-- Résultat attendu : ne pas écrire le mot de passe ni l'identifiant dans les journaux du serveur.
-
 ## Métadonnées Git imbriquées dans une archive publiée au Store
 
 - Source : `server/src/store/Store.ts`, méthode `zip`.
