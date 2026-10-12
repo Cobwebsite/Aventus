@@ -86,8 +86,7 @@ test('aggregate build, Storybook, npm and static choices retain project URIs acr
     assert.deepEqual(manager.getAllBuilds(), expected);
     assert.deepEqual(manager.getAllBuildsWithStory(), [expected[1]]);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [expected[1]]);
-    // Static entries from earlier saves remain, including a duplicate for the reloaded project.
-    assert.deepEqual(manager.getAllStatics(), [entries[0], entries[1], entries[1]].map(({ file }) =>
+    assert.deepEqual(manager.getAllStatics(), [entries[1]].map(({ file }) =>
         ({ name: 'assets', uri: file.uri })));
 
     entries[0].file.documentUser = TextDocument.create(entries[0].file.uri, 'json', 3, '{ invalid');
@@ -95,14 +94,14 @@ test('aggregate build, Storybook, npm and static choices retain project URIs acr
     assert.deepEqual(manager.getAllBuilds(), [expected[1]]);
     assert.deepEqual(manager.getAllBuildsWithStory(), [expected[1]]);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [expected[1]]);
-    assert.deepEqual(manager.getAllStatics(), [entries[0], entries[1], entries[1]].map(({ file }) =>
+    assert.deepEqual(manager.getAllStatics(), [entries[1]].map(({ file }) =>
         ({ name: 'assets', uri: file.uri })));
 
     delete manager.projects[entries[1].file.uri];
     assert.deepEqual(manager.getAllBuilds(), []);
     assert.deepEqual(manager.getAllBuildsWithStory(), []);
     assert.deepEqual(manager.getAllBuildsWithNpm(), []);
-    assert.deepEqual(manager.getAllStatics(), [{ name: 'assets', uri: entries[0].file.uri }]);
+    assert.deepEqual(manager.getAllStatics(), []);
 
     for (const { project } of entries) project.destroy();
 });

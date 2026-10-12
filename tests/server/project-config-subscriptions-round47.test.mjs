@@ -77,7 +77,7 @@ test('config saves release old build file subscriptions while replacing several 
 
     await save(2, ['gamma', 'delta'], ['media', 'docs']);
     assert.deepEqual(project.getBuildsName(), ['Demo@gamma', 'Demo@delta']);
-    assert.deepEqual(project.getStaticsName(), ['images', 'fonts', 'media', 'docs']);
+    assert.deepEqual(project.getStaticsName(), ['media', 'docs']);
     assert.deepEqual([...subscriptions], ['file-3', 'file-4']);
     assert.deepEqual(removed, ['file-1', 'file-2']);
     assert.ok(firstBuilds.every(build => !project.getBuilds().includes(build)));
@@ -85,12 +85,8 @@ test('config saves release old build file subscriptions while replacing several 
     // A repeated save still rebuilds objects, but must not retain subscriptions
     // belonging to the previous pair of builds.
     await save(3, ['gamma', 'delta'], ['media', 'docs']);
-    assert.deepEqual(project.getBuildsName(), [
-        'Demo@gamma', 'Demo@delta', 'Demo@gamma', 'Demo@delta',
-    ]);
-    assert.deepEqual(project.getStaticsName(), [
-        'images', 'fonts', 'media', 'docs', 'media', 'docs',
-    ]);
+    assert.deepEqual(project.getBuildsName(), ['Demo@gamma', 'Demo@delta']);
+    assert.deepEqual(project.getStaticsName(), ['media', 'docs']);
     assert.deepEqual([...subscriptions], ['file-5', 'file-6']);
     assert.deepEqual(removed, ['file-1', 'file-2', 'file-3', 'file-4']);
 
@@ -98,9 +94,8 @@ test('config saves release old build file subscriptions while replacing several 
     await project.onConfigSave();
     assert.equal(project.getConfig(), null);
     assert.deepEqual(project.getBuildsName(), []);
-    assert.equal(project.getStaticsName().length, 6);
+    assert.deepEqual(project.getStaticsName(), []);
     assert.deepEqual([...subscriptions], []);
-    assert.deepEqual(removed, ['file-1', 'file-2', 'file-3', 'file-4',
-        'file-3', 'file-4', 'file-5', 'file-6']);
+    assert.deepEqual(removed, ['file-1', 'file-2', 'file-3', 'file-4', 'file-5', 'file-6']);
     project.destroy();
 });

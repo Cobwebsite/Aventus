@@ -12,7 +12,7 @@ const [{ Project }, { Build }, { SettingsManager }, { GenericServer },
     'files/FilesManager.ts', 'project/DependencyManager.ts', 'live-server/HttpServer.ts', 'Mutex.ts',
 ]);
 
-test('config reload with changed build/static filters retains prior static exports and allows them in buildAll', async t => {
+test('config reload with changed build/static filters keeps only current static exports active', async t => {
     const root = mkdtempSync(join(import.meta.dirname, '.config-filters-round55-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     mkdirSync(join(root, 'public'));
@@ -84,19 +84,19 @@ test('config reload with changed build/static filters retains prior static expor
     writeFileSync(source, 'second');
     await save(2, ['alpha', 'beta', 'gamma']);
     assert.deepEqual(project.getBuildsName(), ['Demo@beta']);
-    assert.deepEqual(project.getStaticsName(), ['images', 'fonts']);
+    assert.deepEqual(project.getStaticsName(), ['fonts']);
     assert.equal(readFileSync(join(root, 'dist', 'fonts', 'asset.txt'), 'utf8'), 'second');
     assert.equal(subscriptions.size, 1);
 
     writeFileSync(source, 'third');
     await project.buildAll();
-    assert.equal(readFileSync(join(root, 'dist', 'images', 'asset.txt'), 'utf8'), 'third');
+    assert.equal(readFileSync(join(root, 'dist', 'images', 'asset.txt'), 'utf8'), 'first');
     assert.equal(readFileSync(join(root, 'dist', 'fonts', 'asset.txt'), 'utf8'), 'third');
 
     configFile.documentUser = TextDocument.create(uri, 'json', 3, '{ invalid');
     await project.onConfigSave();
     assert.deepEqual(project.getBuildsName(), []);
-    assert.deepEqual(project.getStaticsName(), ['images', 'fonts']);
+    assert.deepEqual(project.getStaticsName(), []);
     assert.equal(subscriptions.size, 0);
     project.destroy();
 });

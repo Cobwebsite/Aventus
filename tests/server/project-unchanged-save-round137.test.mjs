@@ -9,7 +9,7 @@ const [{ Project }, { Build }, { SettingsManager }, { GenericServer }, { FilesMa
     'GenericServer.ts', 'files/FilesManager.ts', 'project/DependencyManager.ts', 'Mutex.ts',
 ]);
 
-test('saving unchanged project configuration retains destroyed builds beside replacement builds', async t => {
+test('saving unchanged project configuration replaces the old build without duplicates', async t => {
     const previous = {
         settings: SettingsManager.instance,
         server: GenericServer.instance,
@@ -55,9 +55,8 @@ test('saving unchanged project configuration retains destroyed builds beside rep
     configFile.documentUser = TextDocument.create(uri, 'json', 2, content);
     await project.onConfigSave();
     assert.equal(project.getConfig().module, 'Demo');
-    assert.deepEqual(project.getBuildsName(), ['Demo@web', 'Demo@web']);
-    assert.equal(project.getBuilds()[0], first);
-    assert.notEqual(project.getBuilds()[1], first);
+    assert.deepEqual(project.getBuildsName(), ['Demo@web']);
+    assert.notEqual(project.getBuilds()[0], first);
     assert.deepEqual(events, [
         ['init', 'Demo@web'], ['destroy', 'Demo@web'], ['init', 'Demo@web'],
     ]);
@@ -66,5 +65,5 @@ test('saving unchanged project configuration retains destroyed builds beside rep
     await project.onConfigSave();
     assert.equal(project.getConfig(), null);
     assert.deepEqual(project.getBuildsName(), []);
-    assert.deepEqual(events.slice(3), [['destroy', 'Demo@web'], ['destroy', 'Demo@web']]);
+    assert.deepEqual(events.slice(3), [['destroy', 'Demo@web']]);
 });
