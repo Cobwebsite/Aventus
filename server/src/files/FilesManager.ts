@@ -274,12 +274,15 @@ export class FilesManager {
     }
     public async loadAllAventusConfigFiles(workspaces: string[]): Promise<AventusFile[]> {
         let configFiles: AventusFile[] = [];
+        const seenUris = new Set<string>();
 
         for (let i = 0; i < workspaces.length; i++) {
             await this.parseWorkspace(workspaces[i], async (file, currentPath) => {
                 let uri = pathToUri(currentPath)
                 let extension = getLanguageIdByUri(uri);
                 if (file == AventusExtension.Config) {
+                    if (seenUris.has(uri)) return;
+                    seenUris.add(uri);
                     configFiles.push(new InternalAventusFile(TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'))));
                 }
             })
@@ -289,6 +292,7 @@ export class FilesManager {
     public async loadAllAventusFiles(workspaces: string[]): Promise<void> {
         this.loadingInProgress = true;
         let configFiles: TextDocument[] = [];
+        const seenUris = new Set<string>();
         InitStep.send("$(loading~spin) Aventus : Loading files")
 
         for (let i = 0; i < workspaces.length; i++) {
@@ -296,9 +300,13 @@ export class FilesManager {
                 let uri = pathToUri(currentPath)
                 let extension = getLanguageIdByUri(uri);
                 if (file == AventusExtension.Config) {
+                    if (seenUris.has(uri)) return;
+                    seenUris.add(uri);
                     configFiles.push(TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8')));
                 }
                 else if (file.endsWith(AventusExtension.Base)) {
+                    if (seenUris.has(uri)) return;
+                    seenUris.add(uri);
                     let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
                     await this.registerFile(textDoc);
                 }

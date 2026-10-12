@@ -42,7 +42,7 @@ test('workspace discovery keeps separate configurations and ignores Git and npm 
     }
 });
 
-test('nested workspace roots currently discover the child configuration twice', async () => {
+test('nested workspace roots discover the child configuration once', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-nested-roots-'));
     const oldSettings = SettingsManager.instance;
     SettingsManager.instance = { settings: { readDirs: [] } };
@@ -52,15 +52,14 @@ test('nested workspace roots currently discover the child configuration twice', 
         const config = join(child, 'aventus.conf.avt');
         writeFileSync(config, '{"module":"Child"}');
         const found = await manager().loadAllAventusConfigFiles([pathToUri(root), pathToUri(child)]);
-        assert.deepEqual(found.map(file => file.uri), [pathToUri(config), pathToUri(config)]);
-        assert.notEqual(found[0], found[1]);
+        assert.deepEqual(found.map(file => file.uri), [pathToUri(config)]);
     } finally {
         SettingsManager.instance = oldSettings;
         rmSync(root, { recursive: true, force: true });
     }
 });
 
-test('nested roots currently attempt to register each child Aventus file twice', async () => {
+test('nested roots register each child Aventus file once', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-nested-registration-'));
     const oldSettings = SettingsManager.instance;
     const oldServer = GenericServer.instance;
@@ -78,7 +77,7 @@ test('nested roots currently attempt to register each child Aventus file twice',
         current.registerFile = async document => registrations.push(document.uri);
         await current.loadAllAventusFiles([pathToUri(root), pathToUri(child)]);
         assert.deepEqual(registrations, [
-            pathToUri(logic), pathToUri(logic), pathToUri(config), pathToUri(config),
+            pathToUri(logic), pathToUri(config),
         ]);
         assert.equal(current.loadingInProgress, false);
     } finally {
@@ -88,7 +87,7 @@ test('nested roots currently attempt to register each child Aventus file twice',
     }
 });
 
-test('real file cache turns the second nested-root registration into a content-change event', async () => {
+test('real file cache does not emit a content-change event for a second root', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-nested-cache-'));
     const oldSettings = SettingsManager.instance;
     const oldServer = GenericServer.instance;
@@ -111,7 +110,6 @@ test('real file cache turns the second nested-root registration into a content-c
         await current.loadAllAventusFiles([pathToUri(root), pathToUri(child)]);
         assert.deepEqual(events, [
             ['create', pathToUri(logic)],
-            ['change', pathToUri(logic)],
         ]);
         assert.deepEqual(current.getUris(), [pathToUri(logic)]);
     } finally {
