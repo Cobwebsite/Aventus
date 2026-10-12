@@ -41,7 +41,7 @@ test('npm compilation updates the exported alias without recompiling an unchange
     assert.equal(notifications.filter(([name]) => name === 'aventus/compiled/part').length, 2);
 });
 
-test('npm builder currently retains a failed bundle after the missing module becomes available', async t => {
+test('npm builder retries a failed bundle after the missing module becomes available', async t => {
     const { nodeModulesDir, build, notifications } = fixture(t);
     const builder = new NpmBuilder(build);
     builder.register('file:///missing.lib.avt', { uri: 'tiny-later', libName: 'answer' });
@@ -52,10 +52,11 @@ test('npm builder currently retains a failed bundle after the missing module bec
     writeFileSync(join(packageDir, 'package.json'), JSON.stringify({ name: 'tiny-later', version: '1.0.0', main: 'index.js' }));
     writeFileSync(join(packageDir, 'index.js'), 'exports.answer = 42;\n');
     const second = await builder.compile();
-    assert.deepEqual(second, first);
-    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled/part').length, 2);
+    assert.deepEqual(second.errors, []);
+    assert.match(second.result, /answer/);
+    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled/part').length, 4);
     builder.unregister('file:///missing.lib.avt');
     builder.register('file:///missing.lib.avt', { uri: 'tiny-later', libName: 'answer' });
     const third = await builder.compile();
-    assert.deepEqual(third, first);
+    assert.deepEqual(third, second);
 });

@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Migration 1.4.1 dans les valeurs JSON
-
-- Source : `server/src/updates/1.4.1.ts`.
-- Reproduction automatisée : `migrations-round10.test.mjs` contient le mot `dependances` dans une description JSON.
-- Résultat actuel : la migration remplace aussi ce mot dans la valeur. Décider si la transformation doit cibler seulement les clés de dépendances.
-
 ## Scénarios d'intégration encore ouverts
 
 - Le protocole est testé au niveau des handlers et de l'adaptateur VS Code simulé. Un échange JSON-RPC réel avec `server.ts` reste à vérifier dans un processus isolé.
@@ -17,13 +11,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - La génération Storybook est testée au niveau des titres et contenus MDX/stories. La copie complète des ressources depuis l'extension et la mise à jour après suppression demandent une fixture intégrée.
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
-
-## Nouvel essai de compilation npm après erreur
-
-- Source : `server/src/project/BuildNpm.ts`, méthode `compile`.
-- Reproduction automatisée : `npm-retry-round8.test.mjs` compile avec un module absent, installe le module, puis recompile avec les mêmes imports. La même erreur est renvoyée, même après `unregister()` et `register()` identiques.
-- Résultat actuel : les informations de compilation sont mises en cache avant le résultat d'esbuild ; `lastInfo` et `lastInfoToCompile` restent égaux au texte généré après l'échec.
-- Décision à prendre : relancer systématiquement après un échec ou invalider le cache lors de l'apparition du module.
 
 ## Import npm nommé avec namespace du même module
 

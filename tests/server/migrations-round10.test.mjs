@@ -15,7 +15,7 @@ test('migration registry exposes the two historical versions in upgrade order', 
     assert.equal(typeof updatesScripts['1.4.1'], 'function');
 });
 
-test('1.4.1 migration currently replaces dependency spelling in string values as well as keys', () => {
+test('1.4.1 migration replaces dependency spelling in string values as well as keys', () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-migrate-'));
     const packages = join(root, 'packages');
     mkdirSync(packages);
