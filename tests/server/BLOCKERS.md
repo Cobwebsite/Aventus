@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
-## Section Build générée invalide
-
-- Source : `server/src/cmds/AddConfigSection.ts`.
-- Résultat actuel : la commande écrit `compile` comme objet, alors que le schéma et le type `AventusConfigBuild` attendent un tableau. Le fichier généré ne peut donc plus être chargé comme configuration valide.
-- Test à activer après correction : valider sans diagnostic la configuration écrite par la commande.
-
 ## README explicitement configuré lors de la publication d'un package
 
 - Source : `server/src/store/Store.ts`, méthode `publishPackage`.
