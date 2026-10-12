@@ -39,7 +39,10 @@ function packageFile(className = 'Card', functionName = 'select') {
 test('package Markdown keeps generic class and method signatures, escaped unions, imports and overview links', () => {
     const markdown = new ManifestPackageMd(packageFile()).getContent();
     assert.match(markdown, /^# widgets/m);
-    assert.match(markdown, /\| \[Demo\.Card\]\(demo\.card\) \| Class \|/);
+    assert.match(markdown, /\| \[Demo\.Card\]\(#pkg-demo-card\) \| Class \|/);
+    assert.match(markdown, /<a id="pkg-demo-card"><\/a>\s*## Demo\.Card<T extends string = string>/);
+    assert.match(markdown, /\[select\]\(#pkg-select\)/);
+    assert.match(markdown, /<a id="pkg-select"><\/a>\s*## select\(value: string\)/);
     assert.match(markdown, /## Demo\.Card<T extends string = string>/);
     assert.match(markdown, /Import : import \{ Card \} from "widgets:Demo\.package\.avt"/);
     assert.match(markdown, /\| choose<U extends number = number>\(value: U\) \| T &vert; U \| Chooses a value \|/);

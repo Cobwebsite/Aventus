@@ -25,12 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Ancre de l'aperçu Markdown pour une classe générique de package
-
-- Reproduction automatisée : `manifest-package-markdown-lifecycle-round74.test.mjs` documente `Demo.Card<T extends string = string>` et vérifie que l'aperçu produit le lien `[Demo.Card](demo.card)` tandis que le titre détaillé contient les paramètres génériques.
-- Résultat actuel : l'ancre calculée depuis le titre Markdown inclut aussi les paramètres génériques ; le lien de l'aperçu omet ces paramètres et ne pointe donc pas vers le titre dans les moteurs Markdown qui dérivent les ancres des titres complets.
-- Décision à prendre : générer une ancre explicite stable pour chaque déclaration, ou construire le lien depuis le titre effectivement émis, en tenant compte des règles du moteur Markdown visé.
-
 ## Définition locale dans un script de template
 
 - Reproduction automatisée : `template-script-navigation-round46.test.mjs` obtient la définition d'un membre de `AventusTemplate.d.ts`, mais reçoit `null` pour une propriété déclarée dans le `template.avt.ts` ouvert.
