@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const { Open } = require('unzipper');
 const [{ Store }] = await loadServerModules(['store/Store.ts']);
 
-test('Store archive filters root Git metadata but currently includes nested Git metadata', async t => {
+test('Store archive excludes Git metadata at every depth', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-store-nested-git-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const source = join(root, 'template');
@@ -19,14 +19,13 @@ test('Store archive filters root Git metadata but currently includes nested Git 
     writeFileSync(join(source, 'template.avt.ts'), 'export class Template {}');
     writeFileSync(join(source, '.git', 'config'), 'root private metadata');
     writeFileSync(join(source, 'nested', '.git', 'config'), 'nested private metadata');
+    writeFileSync(join(source, 'nested', 'content.txt'), 'template content');
 
     const archivePath = join(root, 'template.zip');
     await Store.zip(source, archivePath);
     const archive = await Open.file(archivePath);
     const names = archive.files.map(file => file.path);
     assert.ok(names.includes('template.avt.ts'));
-    assert.ok(names.every(name => !name.startsWith('.git/')));
-    assert.ok(names.includes('nested/.git/config'));
-    const nestedConfig = archive.files.find(file => file.path === 'nested/.git/config');
-    assert.equal((await nestedConfig.buffer()).toString(), 'nested private metadata');
+    assert.ok(names.includes('nested/content.txt'));
+    assert.ok(names.every(name => !name.split('/').includes('.git')));
 });

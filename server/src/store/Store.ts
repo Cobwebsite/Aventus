@@ -238,7 +238,7 @@ export class Store {
 
 			archive.pipe(outputStream);
 			archive.directory(dir, false, (entry) => {
-				if (entry.name.startsWith(".git/") || entry.name === ".git") {
+				if (entry.name.split(/[\\/]/).includes(".git")) {
 					return false;
 				}
 				return entry;
