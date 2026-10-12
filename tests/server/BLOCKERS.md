@@ -25,11 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Condition HTML externe perdue avec une boucle interne
-
-- Reproduction automatisée : `html-nested-controls-round33.test.mjs` parse `if (ready) { for (const item of items) { <li>{{item}}</li> } }`. Le code compilé contient le contrôle externe, mais `ifs[0].conditions` est vide. Dans l'ordre inverse, la condition interne `item.active` est conservée.
-- Source à examiner : `server/src/language-services/html/parser/ParserHtml.ts`. Décider comment préserver les conditions des contrôles parents dans les structures imbriquées.
-
 ## Expression HTML invalide sans erreur du parseur isolé
 
 - Reproduction automatisée : `html-nested-controls-round33.test.mjs` constate que `ParserHtml.parse` renvoie `errors: []` pour `<div :value="{{bad(}}"></div>`.

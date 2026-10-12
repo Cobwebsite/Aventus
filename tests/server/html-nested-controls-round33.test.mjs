@@ -23,6 +23,23 @@ test('a loop containing a conditional keeps the loop variable and nested conditi
     assert.match(parsed.compiledTxt, /^<l id="0">.*<if id="1">.*<li>.*<\/if>.*<\/l>$/);
 });
 
+test('a conditional containing a loop keeps the outer condition', () => {
+    const parsed = parse('if (ready) { for (const item of items) { <li>{{item}}</li> } }');
+    assert.equal(parsed.ifs.length, 1);
+    assert.deepEqual(parsed.ifs[0].conditions.map(condition => condition.txt), ['ready']);
+    assert.equal(parsed.loops.length, 1);
+    assert.match(parsed.compiledTxt, /^<if id="0">.*<l id="1">.*<li>.*<\/l>.*<\/if>$/);
+});
+
+test('nested conditional, loop, and conditional keep both conditions', () => {
+    const parsed = parse('if (ready) { for (const item of items) { if (item.active) { <li>{{item.name}}</li> } } }');
+    assert.deepEqual(parsed.ifs.map(item => item.conditions.map(condition => condition.txt)), [
+        ['ready'], ['item.active'],
+    ]);
+    assert.equal(parsed.loops.length, 1);
+    assert.match(parsed.compiledTxt, /^<if id="0">.*<l id="1">.*<if id="2">.*<li>.*<\/if>.*<\/l>.*<\/if>$/);
+});
+
 test('a destructured for-of binding and its collection survive parsing', () => {
     const parsed = parse('for (const {name, id} of items) { <li>{{name}}: {{id}}</li> }');
     assert.equal(parsed.loops.length, 1);
