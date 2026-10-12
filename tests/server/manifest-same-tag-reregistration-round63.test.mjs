@@ -29,7 +29,7 @@ function registerAll(manifest, file, member) {
     manifest.webTypes.register(file, info);
 }
 
-test('re-registering the same tag after member change accumulates old and new manifest entries', () => {
+test('re-registering the same tag after member change replaces old manifest entries', () => {
     const manifest = fixture();
     const file = Object.create(AventusWebComponentLogicalFile.prototype);
     file._file = { uri: 'file:///project/Card.wcl.avt' };
@@ -41,10 +41,10 @@ test('re-registering the same tag after member change accumulates old and new ma
     registerAll(manifest, file, 'newMember');
 
     assert.deepEqual(manifest.customElements._package.modules.map(module =>
-        module.declarations[0].members.map(member => member.name)), [['oldMember'], ['newMember']]);
-    assert.deepEqual(manifest.htmlCustomData._package.tags.map(tag => tag.name), ['demo-card', 'demo-card']);
+        module.declarations[0].members.map(member => member.name)), [['newMember']]);
+    assert.deepEqual(manifest.htmlCustomData._package.tags.map(tag => tag.name), ['demo-card']);
     assert.deepEqual(manifest.webTypes._package.contributions.html.elements.map(element =>
-        element.js.properties.map(property => property.name)), [['oldMember'], ['newMember']]);
+        element.js.properties.map(property => property.name)), [['newMember']]);
     assert.deepEqual(Object.keys(manifest.emmetCustomData._package.html.snippets), ['demo-card']);
 });
 

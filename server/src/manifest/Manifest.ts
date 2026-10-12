@@ -51,7 +51,10 @@ export class Manifest {
 	public register(file: AventusTsFile) {
 		if (file instanceof AventusWebComponentLogicalFile && file.fileParsed) {
 			const _class = file.fileParsed.classes[file.componentClassName];
-			if (!_class) return;
+			if (!_class) {
+				this.unregister(file.file.uri);
+				return;
+			}
 			const attributes: (PropertyInfo & { local: boolean })[] = [];
 			const props: (PropertyInfo & { local: boolean })[] = [];
 			const propsStatic: (PropertyInfo & { local: boolean })[] = [];
@@ -147,6 +150,16 @@ export class Manifest {
 			this.emmetCustomData.register(file, info);
 			this.webTypes.register(file, info);
 		}
+		else {
+			this.unregister(file.file.uri);
+		}
+	}
+
+	public unregister(uri: string) {
+		this.customElements.unregister(uri);
+		this.htmlCustomData.unregister(uri);
+		this.emmetCustomData.unregister(uri);
+		this.webTypes.unregister(uri);
 	}
 
 	public async write(dir: string) {

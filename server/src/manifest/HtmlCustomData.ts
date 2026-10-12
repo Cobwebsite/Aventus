@@ -14,6 +14,7 @@ export class HtmlCustomData {
 
 	private manifest: Manifest;
 	private _package: VSCodeHTMLCustomDataFormat;
+	private tagsByUri = new Map<string, Tag>();
 	public constructor(manifest: Manifest) {
 		this.manifest = manifest;
 		this._package = {
@@ -27,6 +28,7 @@ export class HtmlCustomData {
 	}
 
 	public register(file: AventusTsFile, info: ManifestInfo) {
+		this.unregister(file.file.uri);
 		if (!file.fileParsed) return;
 		if (!(file instanceof AventusWebComponentLogicalFile)) return
 		const _class = info.class;
@@ -97,7 +99,13 @@ export class HtmlCustomData {
 		const description = this.manifest.generateDescription(info);
 		if (description) tag.description = description;
 
-		this._package.tags.push(tag);
+		this.tagsByUri.set(file.file.uri, tag);
+		this._package.tags = Array.from(this.tagsByUri.values());
+	}
+
+	public unregister(uri: string) {
+		this.tagsByUri.delete(uri);
+		this._package.tags = Array.from(this.tagsByUri.values());
 	}
 
 

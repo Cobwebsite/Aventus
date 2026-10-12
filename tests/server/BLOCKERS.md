@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Mise à jour des manifestes
-
-- Les générateurs Custom Elements, HTML Custom Data, Emmet Custom Data et Web Types disposent de `register` mais d'aucune opération `unregister` ni remise à zéro publique. Un nouvel enregistrement peut donc ajouter une entrée en double ou laisser une entrée périmée.
-- Reproduction automatisée : `manifest-lifecycle-round10.test.mjs` change le tag d'un composant après un premier enregistrement ; les quatre formats conservent l'ancienne entrée en plus de la nouvelle. `manifest-same-tag-reregistration-round63.test.mjs` réenregistre le même tag avec une propriété modifiée : Custom Elements, HTML Custom Data et Web Types conservent deux versions du composant, tandis qu'Emmet n'a qu'une entrée grâce à sa clé de tag.
-- Décision à prendre : reconstruire les manifestes lors de la modification, du renommage ou de la suppression d'un composant, ou exposer un mécanisme de retrait.
-
 ## Sélection avec libellés homonymes
 
 - Source : `server/src/notification/AskSelect.ts`, méthode `resolve`.
