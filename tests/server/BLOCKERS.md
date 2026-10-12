@@ -606,12 +606,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Cause : `AventusI18nFile.onContentChange()` garde `parsedSrc` après une erreur de parsing ; `actionImportMissingLocales()` utilise cet ancien état et construit une édition couvrant le document courant entier.
 - Décision à prendre : masquer les actions fondées sur `parsedSrc` tant que le document courant est invalide, ou produire une correction ciblée qui préserve les modifications de l'utilisateur.
 
-## Import npm combiné perdant la partie par défaut
-
-- Reproduction automatisée : `ts-import-forms-round125.test.mjs` parse `import Client, { Helper as LocalHelper } from "sample-pkg"`. Le builder et `npmImports` contiennent `LocalHelper`, mais aucune entrée pour `Client`. Un import namespace seul conserve son alias et un import namespace de type reste correctement absent du builder.
-- Cause : `ImportInfo.Parse()` traite `namedBindings` en priorité et n'examine `importClause.name` que dans la branche `else` sans bindings.
-- Décision à prendre : traiter séparément l'identifiant par défaut et les bindings nommés ou namespace d'une même déclaration, puis vérifier que les deux symboles sont présents dans le bundle.
-
 ## Injection JavaScript par l'en-tête Host dans le script du serveur HTTP
 
 - Reproduction automatisée : `http-injected-host-round125.test.mjs` interroge le serveur HTTP réel avec `Host: localhost';globalThis.injectedHostMarker=true;//`. La réponse de `/?get_injected_code` contient `var address = 'ws://localhost';globalThis.injectedHostMarker=true;///ws';` : la valeur fournie par le client sort de la chaîne JavaScript.
