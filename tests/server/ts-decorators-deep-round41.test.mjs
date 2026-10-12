@@ -33,7 +33,7 @@ test('Storybook reads nested slots, export selection and presentation flags from
     assert.equal(story.group, 'Forms');
     assert.equal(story.noLive, true);
     assert.equal(story.noDefaultStory, true);
-    assert.deepEqual(story.slots, { values: { title: '"Example"' }, inject: ['"slotA"', '"slotB"'] });
+    assert.deepEqual(story.slots, { values: { title: 'Example' }, inject: ['slotA', 'slotB'] });
 });
 
 test('I18n and OverrideView accept their typed option values through parser decorators', () => {

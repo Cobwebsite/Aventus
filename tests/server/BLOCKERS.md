@@ -25,11 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Valeurs textuelles des options du décorateur `OverrideView`
-
-- Reproduction automatisée : `ts-decorators-options-round33.test.mjs` parse `@OverrideView({"removeViewVariables":["title","button"]})`. La clé quotée est désormais reconnue, mais les éléments de la liste conservent les guillemets dans leurs valeurs (`'"title"'`, `'"button"'`). `@I18n({"autoInit":false})` fonctionne après la normalisation des clés.
-- Décision à prendre : décoder les valeurs textuelles des objets et tableaux produits par le parseur, puis vérifier l'effet de `OverrideView`.
-
 ## Mise à jour partielle de sorties après une erreur d'écriture
 
 - Reproduction automatisée : `build-error-recovery-round32.test.mjs` échoue sur l'écriture de la seconde configuration. La première sortie contient déjà la nouvelle révision, la seconde conserve l'ancienne, et aucune notification `aventus/compiled` n'annonce ce passage. Le build suivant réécrit correctement les deux sorties.
