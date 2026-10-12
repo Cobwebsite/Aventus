@@ -25,12 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Types des valeurs de traduction i18n
-
-- Source : `server/src/language-services/i18n/schema.ts` et `LanguageService.ts`.
-- Reproduction automatisée : `i18n-schema-round23.test.mjs` constate qu'une traduction numérique (`23`) ne produit aucun diagnostic et qu'une valeur booléenne (`false`) n'est pas signalée ; seul le manque de la locale `fr` est rapporté dans le second cas.
-- Décision à prendre : préciser si les traductions doivent obligatoirement être des chaînes. Si oui, compléter le schéma et vérifier les diagnostics à la plage de la valeur fautive.
-
 ## Clés i18n homonymes entre fichiers globaux
 
 - Reproduction automatisée : `i18n-cross-files-round39.test.mjs` enregistre deux fichiers globaux avec la même clé. Les diagnostics restent propres à chaque fichier ; l'export `singleFile` garde la dernière valeur enregistrée pour une locale, tandis que `oneToOne` produit deux sorties distinctes.
