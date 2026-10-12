@@ -9,7 +9,7 @@ const [{ FilesManager }, { SettingsManager }, { InitStep }, { pathToUri }] = awa
     'files/FilesManager.ts', 'settings/Settings.ts', 'notification/InitStep.ts', 'tools.ts',
 ]);
 
-test('overlapping workspace roots discover the same configuration and source twice', async () => {
+test('overlapping workspace roots discover each configuration and source once', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-overlap-roots-'));
     const nested = join(root, 'nested');
     const config = join(nested, 'aventus.conf.avt');
@@ -28,13 +28,14 @@ test('overlapping workspace roots discover the same configuration and source twi
         manager.loadingInProgress = false;
         const registered = [];
         manager.registerFile = async document => registered.push(document.uri);
-        const workspaces = [pathToUri(root), pathToUri(nested)];
+        for (const workspaces of [[pathToUri(root), pathToUri(nested)], [pathToUri(nested), pathToUri(root)]]) {
+            registered.length = 0;
+            const configs = await manager.loadAllAventusConfigFiles(workspaces);
+            assert.deepEqual(configs.map(file => file.uri), [pathToUri(config)]);
 
-        const configs = await manager.loadAllAventusConfigFiles(workspaces);
-        assert.deepEqual(configs.map(file => file.uri), [pathToUri(config), pathToUri(config)]);
-
-        await manager.loadAllAventusFiles(workspaces);
-        assert.deepEqual(registered, [pathToUri(source), pathToUri(source), pathToUri(config), pathToUri(config)]);
+            await manager.loadAllAventusFiles(workspaces);
+            assert.deepEqual(registered, [pathToUri(source), pathToUri(config)]);
+        }
     } finally {
         SettingsManager.instance = previousSettings;
         InitStep.send = previousSend;

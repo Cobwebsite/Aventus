@@ -19,12 +19,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Le package Aventus est généré, relu et reconstruit dans les tests. Un build multi-fichiers complet avec vues, styles, npm et dépendances reste à vérifier.
 - Le modèle et une compilation simple TypeScript, la complétion et le formatage HTML, ainsi que les liens HTML–SCSS sont testés. Les décorateurs, composants complets, boucles conditionnelles et liens vue/classe restent à couvrir avec une fixture de projet.
 
-## Espaces de travail imbriqués
-
-- Source : `server/src/files/FilesManager.ts`, `loadAllAventusConfigFiles` et `loadAllAventusFiles`.
-- Reproduction automatisée : `files-multiworkspace-round4.test.mjs` fournit des racines parent et enfant et récupère deux objets distincts pour la même URI de configuration.
-- Un second test observe deux tentatives d'enregistrement pour chaque fichier enfant, configuration comprise, dans `loadAllAventusFiles`. Avec le cache réel, un troisième test confirme qu'un fichier logique déclenche une création puis un callback de changement de contenu sans changement réel. Définir si les racines ou les URI découvertes doivent être dédupliquées.
-
 ## Découverte avec `readDirs` dans le répertoire temporaire du sandbox Windows
 
 - Source à examiner si nécessaire : `server/src/files/FilesManager.ts`, méthode `parseWorkspace`.
@@ -198,11 +192,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 - Reproduction automatisée : `static-partial-destination-recovery-round59.test.mjs` copie un binaire vers deux destinations dont une est bloquée par un fichier. L'autre copie réussit, mais l'export global envoie tout de même `reload` et `staticTime`. Après déblocage, un nouvel export écrit les deux sorties.
 - Décision à prendre : signaler l'échec partiel au client et ne publier une fin réussie que lorsque toutes les destinations demandées ont été écrites, ou documenter explicitement une réussite partielle.
-
-## Découverte dupliquée dans des espaces de travail imbriqués
-
-- Reproduction automatisée : `files-overlapping-workspaces-round61.test.mjs` charge un espace parent et son sous-dossier comme deux racines. La même configuration est découverte deux fois et chaque fichier est soumis deux fois à l'enregistrement.
-- Décision à prendre : dédupliquer les URI pendant la découverte entre racines recouvrantes, ou définir les événements multiples comme comportement attendu ; vérifier ensuite l'absence de traitements et diagnostics dupliqués.
 
 ## Positions des expressions HTML décalées dans les attributs
 
