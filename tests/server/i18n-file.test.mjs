@@ -103,3 +103,14 @@ test('i18n key lookup tracks multiline escaped keys without confusing locale or 
     const second = file.parsed.bye;
     assert.equal(file.getKeyFromLocation(positionRange(second.keyStart + 1, second.keyEnd - 1)), 'bye');
 });
+
+test('i18n file does not offer completion, hover, definition or rename', async () => {
+    const file = fixture('{"hello":{"en":"Hello"}}');
+    const document = file.file;
+    const position = { line: 0, character: 3 };
+
+    assert.deepEqual(await file.onCompletion(document, position), { isIncomplete: false, items: [] });
+    assert.equal(await file.onHover(document, position), null);
+    assert.equal(await file.onDefinition(document, position), null);
+    assert.equal(await file.onRename(document, position, 'welcome'), null);
+});
