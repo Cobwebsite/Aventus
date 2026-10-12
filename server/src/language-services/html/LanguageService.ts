@@ -365,6 +365,10 @@ export class AventusHTMLLanguageService {
         }
         else {
             this.currentFile = undefined;
+            let offset = file.file.documentUser.offsetAt(position);
+            if (file.fileParsed?.interestPoints.some(point => point.type != "tag" && offset >= point.start && offset <= point.end)) {
+                return [];
+            }
             return this.build.htmlLanguageService.getLinkToStyle(file, position)
         }
     }
