@@ -3,14 +3,16 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import test from 'node:test';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [commandsModule, projectModule, serverModule] = await loadServerModules([
-    'cmds/index.ts', 'project/ProjectManager.ts', 'GenericServer.ts',
+const [commandsModule, projectModule, serverModule, jsonModule] = await loadServerModules([
+    'cmds/index.ts', 'project/ProjectManager.ts', 'GenericServer.ts', 'language-services/json/LanguageService.ts',
 ]);
 const AddConfigSection = commandsModule.Commands.allCommandes['aventus.addConfigSection'];
 const { ProjectManager } = projectModule;
 const { GenericServer } = serverModule;
+const { AventusJSONLanguageService } = jsonModule;
 
 test('add config section appends build and static entries to a selected configuration', async t => {
     const root = mkdtempSync(join(import.meta.dirname, '.config-command-'));
@@ -38,8 +40,10 @@ test('add config section appends build and static entries to a selected configur
         await AddConfigSection.run();
         await AddConfigSection.run(uri);
         const config = JSON.parse(readFileSync(configPath, 'utf8'));
-        assert.deepEqual(config.build, [{ name: 'Web App', src: [], compile: { output: './dist/Web-App.js' } }]);
+        assert.deepEqual(config.build, [{ name: 'Web_App', src: [], compile: [{ output: './dist/Web-App.js' }] }]);
         assert.deepEqual(config.static, [{ name: 'Assets', input: '', output: '' }]);
+        const documentUser = TextDocument.create(uri, 'json', 1, readFileSync(configPath, 'utf8'));
+        assert.deepEqual(await AventusJSONLanguageService.getInstance().validate({ documentUser }), []);
         assert.deepEqual(prompts, ['Section type', 'Section type']);
         assert.equal(notifications.length, 2);
     } finally {

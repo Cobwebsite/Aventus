@@ -48,14 +48,16 @@ export class AddConfigSection {
 				});
 				if (!name) return;
 
-				let nameFile: string = name.replace(/ /g, "-");
+				let nameFile: string = name.trim().replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+				let buildName: string = name.trim().replace(/[^a-zA-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
+				if (!buildName) return;
 
 				let newBuild: any = {
-					"name": name,
+					"name": buildName,
 					"src": [],
-					"compile": {
+					"compile": [{
 						"output": "./dist/" + nameFile + ".js",
-					}
+					}]
 				}
 
 				config.build.push(newBuild);
