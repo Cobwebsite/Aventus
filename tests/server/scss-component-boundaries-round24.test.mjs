@@ -40,8 +40,8 @@ test('nested SCSS selector requires a matching ancestor and returns the child so
     assert.equal(nestedRule[0](entry), true);
 });
 
-test('host custom property extraction currently skips a stylesheet with leading whitespace', () => {
+test('host custom property extraction includes stylesheets with leading whitespace', () => {
     const source = ':host { --internal-accent: var(--accent, red); }';
     assert.deepEqual(AventusSCSSLanguageService.getCustomProperty(source).map(item => item.name), ['--accent']);
-    assert.deepEqual(AventusSCSSLanguageService.getCustomProperty(`\n  ${source}`).map(item => item.name), []);
+    assert.deepEqual(AventusSCSSLanguageService.getCustomProperty(`\n  ${source}`).map(item => item.name), ['--accent']);
 });

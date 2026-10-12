@@ -521,10 +521,7 @@ export class AventusSCSSLanguageService {
         }
 
         let doc = getSCSSLanguageService().parseStylesheet(document);
-        let path = getNodePath(doc as Node, 0);
-        for (let pathTemp of path) {
-            _loadCustomProperty(pathTemp);
-        }
+        _loadCustomProperty(doc as Node);
         return Object.values(result);
     }
 
