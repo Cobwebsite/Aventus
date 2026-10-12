@@ -66,7 +66,7 @@ export class FilesManager {
             content = readFileSync(currentPath, 'utf8');
         }
         else {
-            this.onDeletedUri(uri);
+            await this.onDeletedUri(uri);
             return;
         }
         if (!this.files[uri]) {
@@ -377,7 +377,7 @@ export class FilesManager {
     }
     public async onClose(document: TextDocument) {
         if (!existsSync(uriToPath(document.uri))) {
-            this.onDeletedUri(document.uri);
+            await this.onDeletedUri(document.uri);
         }
     }
 
