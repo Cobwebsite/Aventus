@@ -379,9 +379,7 @@ export class FilesManager {
         if (!this.files[document.uri]) {
             await this.triggerOnNewFile(document);
         }
-        else {
-            await this.files[document.uri].triggerSave();
-        }
+        await this.files[document.uri]?.triggerSave();
     }
     public async onClose(document: TextDocument) {
         if (!existsSync(uriToPath(document.uri))) {
