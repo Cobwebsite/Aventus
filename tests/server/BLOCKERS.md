@@ -25,11 +25,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Mise à jour partielle de sorties après une erreur d'écriture
-
-- Reproduction automatisée : `build-error-recovery-round32.test.mjs` échoue sur l'écriture de la seconde configuration. La première sortie contient déjà la nouvelle révision, la seconde conserve l'ancienne, et aucune notification `aventus/compiled` n'annonce ce passage. Le build suivant réécrit correctement les deux sorties.
-- Décision à prendre : préciser si cet état partiel doit être signalé explicitement ou si les sorties doivent être publiées ensemble après toutes les écritures réussies.
-
 ## Branche imbriquée absente dans un `Map`
 
 - Source : `server/src/tools.ts`, `setValueToObject`.
