@@ -28,7 +28,7 @@ Cocher un point seulement lorsqu'un test automatisé vérifie son résultat. Pou
 - [x] Passage approfondi : commandes de notifications fichiers, store, i18n, Sharp et PHP avec annulation et erreurs simulées (`command-boundaries-next.test.mjs`, `i18n-command-next.test.mjs`, `converter-edge-next.test.mjs`).
 - [x] Assemblage du manifeste : membres locaux/hérités, attributs, variables CSS, slots, ordre, classe absente et exclusion de namespace (`manifest-register.test.mjs`).
 - [x] Documentation de package : signature générique, type de retour et comportement d'un package contenant seulement une fonction (`manifest-package.test.mjs`).
-- [x] Cycle de vie du build : compilation différée observée après destruction, avec anomalie reproduite et consignée (`build-resource-lifecycle.test.mjs`).
+- [x] Cycle de vie du build : compilation différée annulée lors de la destruction (`build-resource-lifecycle.test.mjs`, `project-destroy-round38.test.mjs`).
 - [x] Espaces de travail imbriqués : découverte doublée de la configuration enfant et callback de changement superflu avec le cache réel (`files-multiworkspace-round4.test.mjs`).
 - [x] Événements disque : mise à jour, puis suppression asynchrone d'un fichier absent avec ordre des callbacks vérifié (`files-disk-events.test.mjs`).
 - [x] Templates homonymes : sélection selon l'ordre de fin de chargement et compteur des scripts lus (`template-sources-round4.test.mjs`).
@@ -249,7 +249,7 @@ Les scénarios qui révèlent actuellement un écart du code source sont détail
 - [x] Échec d'une validation pendant `Build.rebuildAll()` : les services de définition et le build restent désactivés jusqu'à une nouvelle tentative réussie (`build-rebuild-validation-recovery-round128.test.mjs`, décision dans `BLOCKERS.md`).
 - [ ] Destruction d'un build/projet : abonnements, timers et ressources libérés.
 - [x] Export statique après destruction de l'instance : un appel ultérieur copie encore les modifications et déclenche le rechargement HTTP (`static-destroy-export-round132.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Destruction d'un build avec compilation différée : le timer déjà programmé exécute encore `_build()` après la notification de retrait (`build-destroy-pending-round133.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Destruction d'un build avec compilation différée : le timer programmé est annulé et aucun `_build()` ne démarre après la notification de retrait (`build-destroy-pending-round133.test.mjs`).
 
 ## Services TypeScript Aventus (`language-services/ts`)
 

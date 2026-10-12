@@ -14,7 +14,7 @@ const [{ Project }, { Build }, { SettingsManager }, { GenericServer }, { FilesMa
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-test('destroyed project releases config/file subscriptions and static watcher, but a queued build still fires', async t => {
+test('destroyed project releases config/file subscriptions, static watcher and queued build', async t => {
     const root = mkdtempSync(join(import.meta.dirname, '.project-destroy-round38-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const input = join(root, 'public');
@@ -97,6 +97,6 @@ test('destroyed project releases config/file subscriptions and static watcher, b
     writeFileSync(asset, 'after destroy');
     await delay(300);
     assert.equal(readFileSync(output, 'utf8'), 'initial');
-    assert.equal(compiled, 1);
+    assert.equal(compiled, 0);
     clearTimeout(build.timerBuild);
 });
