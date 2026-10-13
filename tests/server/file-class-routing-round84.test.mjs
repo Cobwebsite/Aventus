@@ -27,7 +27,7 @@ function build() {
     return result;
 }
 
-test('the build chooses distinct file classes for all eight source extensions and excludes package and template files', async () => {
+test('the build chooses file classes by extension and excludes package, template, and unknown files', async () => {
     const previous = GenericServer.instance;
     GenericServer.instance = { logLevel: 99, isIDE: true, connection: { sendDiagnostics() {} } };
     const current = build();
@@ -50,17 +50,34 @@ test('the build chooses distinct file classes for all eight source extensions an
             assert.equal(current[cache][file.uri]?.constructor.name.endsWith(className), true, extension);
             assert.equal(current.onFileDeleteUUIDs[file.uri] !== undefined, true, extension);
         }
-        for (const name of ['same.package.avt', 'template.avt.ts', 'same.wcl.avt.bak', 'same.wc.avt.bak']) {
+        for (const [name, className, cache] of [
+            ['same.wcs.avt', 'AventusWebSCSSFile', 'scssFiles'],
+            ['same.wcv.avt', 'AventusHTMLFile', 'htmlFiles'],
+            ['same.i18n.avt', 'AventusI18nFile', 'i18nComponentsFiles'],
+            ['@global.i18n.avt', 'AventusI18nFile', null],
+        ]) {
+            const file = source(name, '{}');
+            files.push(file);
+            await current.registerFile(file, true);
+            const selected = cache ? current[cache][file.uri] : current.tsLanguageService.i18nFiles[file.uri];
+            assert.equal(selected?.constructor.name.endsWith(className), true, name);
+            assert.equal(current.onFileDeleteUUIDs[file.uri] !== undefined, true, name);
+        }
+        for (const name of ['same.package.avt', 'template.avt.ts', 'same.wcl.avt.bak', 'same.wc.avt.bak', 'same.unknown']) {
             const file = source(name);
             await current.registerFile(file, true);
             assert.equal(current.tsFiles[file.uri], undefined, name);
             assert.equal(current.wcFiles[file.uri], undefined, name);
+            assert.equal(current.htmlFiles[file.uri], undefined, name);
+            assert.equal(current.scssFiles[file.uri], undefined, name);
             assert.equal(current.onFileDeleteUUIDs[file.uri], undefined, name);
         }
         assert.equal(Object.keys(current.tsFiles).length, 8);
         assert.equal(Object.keys(current.wcFiles).length, 1);
+        assert.equal(Object.keys(current.htmlFiles).length, 1);
+        assert.equal(Object.keys(current.scssFiles).length, 1);
     } finally {
-        for (const file of files) await file.triggerDelete();
+        for (const file of files.toReversed()) await file.triggerDelete();
         GenericServer.instance = previous;
     }
 });

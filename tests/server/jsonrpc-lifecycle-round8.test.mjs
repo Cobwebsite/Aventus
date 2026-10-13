@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -189,6 +189,42 @@ test('real LSP process publishes JSON diagnostics for an invalid workspace confi
         const shutdown = lsp.next(message => message.id === 11);
         lsp.send({ id: 11, method: 'shutdown', params: null });
         assert.equal((await shutdown).result, null);
+    } finally {
+        await lsp.close();
+    }
+});
+
+test('real LSP workspace discovers a configured TypeScript source and writes its build output', { timeout: 30_000 }, async () => {
+    const lsp = await startServer();
+    try {
+        mkdirSync(join(lsp.dir, 'src'));
+        const configPath = join(lsp.dir, 'aventus.conf.avt');
+        const sourcePath = join(lsp.dir, 'src', 'greeter.lib.avt');
+        const outputPath = join(lsp.dir, 'dist', 'app.js');
+        writeFileSync(configPath, JSON.stringify({
+            module: 'Demo', build: [{ name: 'web', src: ['./src'],
+                compile: [{ output: './dist/app.js' }] }],
+        }));
+        writeFileSync(sourcePath, 'export class Greeter {}');
+        const initialized = lsp.next(message => message.id === 20);
+        lsp.send({ id: 20, method: 'initialize', params: {
+            processId: process.pid, rootUri: pathToFileURL(lsp.dir).href,
+            workspaceFolders: [{ uri: pathToFileURL(lsp.dir).href, name: 'fixture' }],
+            capabilities: { workspace: { configuration: true } },
+            initializationOptions: { savePath: lsp.dir, extensionPath: root },
+        } });
+        assert.equal((await initialized).error, undefined);
+        lsp.send({ method: 'initialized', params: {} });
+        const settings = await lsp.next(message => message.method === 'workspace/configuration');
+        lsp.send({ id: settings.id, result: [{
+            loadFiles: true, watchFiles: false, useTemplates: false, useCompilators: true,
+        }] });
+        const html = await lsp.next(message => message.method === 'workspace/configuration');
+        lsp.send({ id: html.id, result: [{ customData: [] }] });
+        const compiled = await lsp.next(message => message.method === 'aventus/compiled'
+            && message.params?.[0]?.[0] === 'Demo@web');
+        assert.ok(compiled);
+        assert.match(readFileSync(outputPath, 'utf8'), /Greeter/);
     } finally {
         await lsp.close();
     }
