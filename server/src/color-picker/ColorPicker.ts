@@ -4,7 +4,7 @@ import { Color, ColorInformation, ColorPresentation, Position, Range } from 'vsc
 import { color as colorParser } from '@csstools/css-color-parser';
 import { parseComponentValue } from '@csstools/css-parser-algorithms';
 import { tokenize } from '@csstools/css-tokenizer';
-import { colorData_to_XYZ_D50, toPrecision, XYZ_D50_to_sRGB_Gamut } from './ColorData';
+import { ColorNotation, colorData_to_XYZ_D50, toPrecision, XYZ_D50_to_sRGB_Gamut } from './ColorData';
 import { GenericServer } from '../GenericServer';
 
 
@@ -31,7 +31,10 @@ export class ColorPicker {
 			if (colorData === false) {
 				return null;
 			}
-			const srgb = XYZ_D50_to_sRGB_Gamut(colorData_to_XYZ_D50(colorData).channels);
+			let srgb = colorData.channels;
+			if(colorData.colorNotation !== ColorNotation.RGB) {
+				srgb = XYZ_D50_to_sRGB_Gamut(colorData_to_XYZ_D50(colorData).channels);
+			}
 			const r = Math.min(255, Math.max(0, Math.round(toPrecision(srgb[0]) * 255)));
 			const g = Math.min(255, Math.max(0, Math.round(toPrecision(srgb[1]) * 255)));
 			const b = Math.min(255, Math.max(0, Math.round(toPrecision(srgb[2]) * 255)));

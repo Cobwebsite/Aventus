@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Conversion des canaux RGB CSS hors limites
-
-- Source : `server/src/color-picker/ColorPicker.ts`, `parseColorString()` convertit la couleur via XYZ D50 puis `XYZ_D50_to_sRGB_Gamut()` avant de limiter les canaux affichés.
-- Reproduction automatisée : `color-picker-channel-limits-round140.test.mjs` reçoit `rgb(300 -10 20 / 25%)` comme `(255, 107, 93, 0.25)` et `rgb(-20 280 0 / 125%)` comme `(178, 255, 172, 1)`. Les canaux valides changent avec les canaux hors limites.
-- Décision à prendre : définir si les notations RGB doivent limiter chaque canal indépendamment avant la conversion, ou conserver cette conversion de gamut qui modifie également les autres canaux.
-
 ## Scénarios d'intégration encore ouverts
 
 - Le protocole est testé au niveau des handlers et de l'adaptateur VS Code simulé. Un échange JSON-RPC réel avec `server.ts` reste à vérifier dans un processus isolé.
