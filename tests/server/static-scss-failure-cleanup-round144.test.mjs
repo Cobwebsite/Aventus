@@ -58,5 +58,5 @@ test('static SCSS failure keeps its last output while other files update, then c
     writeFileSync(source, '.theme { color: blue; }');
     await target.export();
     assert.equal(readFileSync(css, 'utf8'), '.theme{color:blue}');
-    assert.equal(reloads, 4);
+    assert.equal(reloads, 3);
 });

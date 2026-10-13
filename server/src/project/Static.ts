@@ -35,6 +35,7 @@ export class Static {
     public async export() {
         if (this.isReady) {
             Statistics.startSendStaticTime(this.name);
+            let success = true;
             // TODO Improve by moving only changed file
             const foundAll = (dir) => {
                 var result: string[] = [];
@@ -86,6 +87,7 @@ export class Static {
                         return pathOut;
                     }
                 } catch (e) {
+                    success = false;
                     GenericServer.error(e);
                 }
                 return null;
@@ -142,6 +144,7 @@ export class Static {
                 }
                 this.exportedBySource.delete(source);
             }
+            if (!success) return;
             HttpServer.getInstance().reload();
             Statistics.sendStaticTime(this.name);
         }

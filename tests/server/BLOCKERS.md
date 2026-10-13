@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Export statique annoncé terminé après échec partiel
-
-- Reproduction automatisée : `static-partial-destination-recovery-round59.test.mjs` copie un binaire vers deux destinations dont une est bloquée par un fichier. L'autre copie réussit, mais l'export global envoie tout de même `reload` et `staticTime`. Après déblocage, un nouvel export écrit les deux sorties.
-- Décision à prendre : signaler l'échec partiel au client et ne publier une fin réussie que lorsque toutes les destinations demandées ont été écrites, ou documenter explicitement une réussite partielle.
-
 ## Positions des expressions HTML décalées dans les attributs
 
 - Reproduction automatisée : `html-expression-identity-round62.test.mjs` relève les positions de `{{value}}` dans des attributs simples et répétés. Chaque plage retournée par `ParserHtml.fcts` commence et finit un caractère avant l'expression réelle ; l'écart persiste après une édition du document. Les tests vérifient l'identité des actions et caractérisent le décalage actuel.
