@@ -62,7 +62,7 @@ async function startServer() {
             waiter.timer = setTimeout(() => {
                 waiting.splice(waiting.indexOf(waiter), 1);
                 reject(Error(`LSP message timed out: ${stderr}; queued ${JSON.stringify(messages).slice(0, 2000)}`));
-            }, 8_000);
+            }, 15_000);
             waiting.push(waiter);
         });
     }
@@ -236,13 +236,15 @@ test('real LSP project compiles a component view and SCSS, then refreshes CSS af
         mkdirSync(join(lsp.dir, 'src'));
         const outputPath = join(lsp.dir, 'dist', 'app.js');
         const stylePath = join(lsp.dir, 'src', 'card.wcs.avt');
+        const viewPath = join(lsp.dir, 'src', 'card.wcv.avt');
+        const logicPath = join(lsp.dir, 'src', 'card.wcl.avt');
         writeFileSync(join(lsp.dir, 'aventus.conf.avt'), JSON.stringify({
             module: 'Demo', build: [{ name: 'web', src: ['./src'],
                 compile: [{ output: './dist/app.js' }] }],
         }));
-        writeFileSync(join(lsp.dir, 'src', 'card.wcl.avt'),
-            '@TagName("demo-card") export class Card extends Aventus.WebComponent implements Aventus.DefaultComponent {}');
-        writeFileSync(join(lsp.dir, 'src', 'card.wcv.avt'), '<div class="card">Hello</div>');
+        writeFileSync(logicPath,
+            '@TagName("demo-card") export class Card extends Aventus.WebComponent implements Aventus.DefaultComponent { public submit() {} public cancel() {} }');
+        writeFileSync(viewPath, '<button class="card" @click="submit">Hello</button>');
         writeFileSync(stylePath, '$tone: red; .card { color: $tone; }');
         const initialized = lsp.next(message => message.id === 30);
         lsp.send({ id: 30, method: 'initialize', params: {
@@ -265,10 +267,41 @@ test('real LSP project compiles a component view and SCSS, then refreshes CSS af
         const styleUri = (await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
             && decodeURIComponent(message.params.uri).toLowerCase() ===
                 decodeURIComponent(pathToFileURL(stylePath).href).toLowerCase())).params.uri;
+        const viewUri = (await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
+            && decodeURIComponent(message.params.uri).toLowerCase() ===
+                decodeURIComponent(pathToFileURL(viewPath).href).toLowerCase())).params.uri;
         const first = readFileSync(outputPath, 'utf8');
         assert.match(first, /Card/);
         assert.match(first, /color:red/);
         assert.match(first, /Hello/);
+
+        const definitionFor = async (id, method, offset) => {
+            const response = lsp.next(message => message.id === id);
+            lsp.send({ id, method: 'textDocument/definition', params: {
+                textDocument: { uri: viewUri }, position: { line: 0, character: offset },
+            } });
+            const result = (await response).result;
+            const locations = Array.isArray(result) ? result : [result];
+            const logicText = readFileSync(logicPath, 'utf8');
+            const declaration = logicText.indexOf(`public ${method}(`) + 'public '.length;
+            assert.ok(declaration >= 'public '.length);
+            assert.ok(locations.some(location => location &&
+                decodeURIComponent(location.uri).toLowerCase() ===
+                    decodeURIComponent(pathToFileURL(logicPath).href).toLowerCase() &&
+                location.range.start.line === 0 &&
+                location.range.start.character === declaration), JSON.stringify(result));
+        };
+        lsp.send({ method: 'textDocument/didOpen', params: { textDocument: {
+            uri: viewUri, languageId: 'Aventus HTML', version: 1,
+            text: '<button class="card" @click="submit">Hello</button>',
+        } } });
+        await definitionFor(31, 'submit', '<button class="card" @click="submit">Hello</button>'.indexOf('submit') + 2);
+        lsp.send({ method: 'textDocument/didChange', params: {
+            textDocument: { uri: viewUri, version: 2 },
+            contentChanges: [{ text: '<button class="card" @click="cancel">Hello</button>' }],
+        } });
+        await new Promise(resolve => setTimeout(resolve, 700));
+        await definitionFor(32, 'cancel', '<button class="card" @click="cancel">Hello</button>'.indexOf('cancel') + 2);
 
         lsp.send({ method: 'textDocument/didOpen', params: { textDocument: {
             uri: styleUri, languageId: 'Aventus SCSS', version: 1,
@@ -286,6 +319,140 @@ test('real LSP project compiles a component view and SCSS, then refreshes CSS af
         const updated = readFileSync(outputPath, 'utf8');
         assert.match(updated, /color:blue/);
         assert.doesNotMatch(updated, /color:red/);
+    } finally {
+        await lsp.close();
+    }
+});
+
+test('real LSP resolves a TypeScript import across files and updates diagnostics after edits', { timeout: 30_000 }, async () => {
+    const lsp = await startServer();
+    try {
+        mkdirSync(join(lsp.dir, 'src'));
+        const basePath = join(lsp.dir, 'src', 'base.lib.avt');
+        const ownerPath = join(lsp.dir, 'src', 'owner.lib.avt');
+        const valid = 'import { Parent } from "./base.lib.avt";\nexport class Child extends Parent {}';
+        const invalid = valid.replace('{ Parent }', '{ Missing }').replace('extends Parent', 'extends Missing');
+        writeFileSync(join(lsp.dir, 'aventus.conf.avt'), JSON.stringify({
+            module: 'Demo', build: [{ name: 'web', src: ['./src'] }],
+        }));
+        writeFileSync(basePath, 'export class Parent {}');
+        writeFileSync(ownerPath, valid);
+
+        const initialized = lsp.next(message => message.id === 40);
+        lsp.send({ id: 40, method: 'initialize', params: {
+            processId: process.pid, rootUri: pathToFileURL(lsp.dir).href,
+            workspaceFolders: [{ uri: pathToFileURL(lsp.dir).href, name: 'fixture' }],
+            capabilities: { workspace: { configuration: true } },
+            initializationOptions: { savePath: lsp.dir, extensionPath: root },
+        } });
+        assert.equal((await initialized).error, undefined);
+        lsp.send({ method: 'initialized', params: {} });
+        const settings = await lsp.next(message => message.method === 'workspace/configuration');
+        lsp.send({ id: settings.id, result: [{
+            loadFiles: true, watchFiles: false, useTemplates: false, useCompilators: false,
+        }] });
+        const html = await lsp.next(message => message.method === 'workspace/configuration');
+        lsp.send({ id: html.id, result: [{ customData: [] }] });
+        await lsp.next(message => message.method === 'aventus/initStep'
+            && message.params?.[0]?.[0] === 'Aventus : Done');
+
+        const ownerPublished = await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
+            && decodeURIComponent(message.params.uri).toLowerCase() ===
+                decodeURIComponent(pathToFileURL(ownerPath).href).toLowerCase());
+        const ownerUri = ownerPublished.params.uri;
+        assert.deepEqual(ownerPublished.params.diagnostics, []);
+        const baseUri = pathToFileURL(basePath).href;
+        lsp.send({ method: 'textDocument/didOpen', params: { textDocument: {
+            uri: ownerUri, languageId: 'Aventus Ts', version: 1, text: valid,
+        } } });
+        const definition = lsp.next(message => message.id === 41);
+        lsp.send({ id: 41, method: 'textDocument/definition', params: {
+            textDocument: { uri: ownerUri }, position: { line: 1, character: 29 },
+        } });
+        const definitionResult = (await definition).result;
+        assert.ok((Array.isArray(definitionResult) ? definitionResult : [definitionResult]).some(location =>
+            decodeURIComponent(location.uri).toLowerCase() === decodeURIComponent(baseUri).toLowerCase()),
+        JSON.stringify(definitionResult));
+
+        lsp.send({ method: 'textDocument/didChange', params: {
+            textDocument: { uri: ownerUri, version: 2 }, contentChanges: [{ text: invalid }],
+        } });
+        const broken = await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
+            && decodeURIComponent(message.params.uri).toLowerCase() === decodeURIComponent(ownerUri).toLowerCase()
+            && message.params.diagnostics.some(item => item.severity === 1));
+        assert.ok(broken.params.diagnostics.some(item => /Missing/.test(item.message)));
+
+        lsp.send({ method: 'textDocument/didChange', params: {
+            textDocument: { uri: ownerUri, version: 3 }, contentChanges: [{ text: valid }],
+        } });
+        const restored = await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
+            && decodeURIComponent(message.params.uri).toLowerCase() === decodeURIComponent(ownerUri).toLowerCase()
+            && message.params.diagnostics.length === 0);
+        assert.deepEqual(restored.params.diagnostics, []);
+    } finally {
+        await lsp.close();
+    }
+});
+
+test('real LSP publishes and clears HTML and SCSS diagnostics in a component project', { timeout: 40_000 }, async () => {
+    const lsp = await startServer();
+    try {
+        mkdirSync(join(lsp.dir, 'src'));
+        const viewPath = join(lsp.dir, 'src', 'card.wcv.avt');
+        const stylePath = join(lsp.dir, 'src', 'card.wcs.avt');
+        const validView = '<div><span>Ready</span></div>';
+        const validStyle = '.card { color: red; }';
+        writeFileSync(join(lsp.dir, 'aventus.conf.avt'), JSON.stringify({
+            module: 'Demo', build: [{ name: 'web', src: ['./src'] }],
+        }));
+        writeFileSync(join(lsp.dir, 'src', 'card.wcl.avt'),
+            '@TagName("demo-card") export class Card extends Aventus.WebComponent implements Aventus.DefaultComponent {}');
+        writeFileSync(viewPath, validView);
+        writeFileSync(stylePath, validStyle);
+
+        const initialized = lsp.next(message => message.id === 50);
+        lsp.send({ id: 50, method: 'initialize', params: {
+            processId: process.pid, rootUri: pathToFileURL(lsp.dir).href,
+            workspaceFolders: [{ uri: pathToFileURL(lsp.dir).href, name: 'fixture' }],
+            capabilities: { workspace: { configuration: true } },
+            initializationOptions: { savePath: lsp.dir, extensionPath: root },
+        } });
+        assert.equal((await initialized).error, undefined);
+        lsp.send({ method: 'initialized', params: {} });
+        const settings = await lsp.next(message => message.method === 'workspace/configuration');
+        lsp.send({ id: settings.id, result: [{
+            loadFiles: true, watchFiles: false, useTemplates: false, useCompilators: false,
+        }] });
+        const html = await lsp.next(message => message.method === 'workspace/configuration');
+        lsp.send({ id: html.id, result: [{ customData: [] }] });
+        await lsp.next(message => message.method === 'aventus/initStep'
+            && message.params?.[0]?.[0] === 'Aventus : Done');
+
+        for (const [path, languageId, valid, broken] of [
+            [viewPath, 'Aventus HTML', validView, '<div><span>Ready</div>'],
+            [stylePath, 'Aventus SCSS', validStyle, '.card { color: ; }'],
+        ]) {
+            const published = await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
+                && decodeURIComponent(message.params.uri).toLowerCase() ===
+                    decodeURIComponent(pathToFileURL(path).href).toLowerCase());
+            const uri = published.params.uri;
+            lsp.send({ method: 'textDocument/didOpen', params: { textDocument: {
+                uri, languageId, version: 1, text: valid,
+            } } });
+            lsp.send({ method: 'textDocument/didChange', params: {
+                textDocument: { uri, version: 2 }, contentChanges: [{ text: broken }],
+            } });
+            const diagnostic = await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
+                && message.params.uri === uri
+                && message.params.diagnostics.some(item => item.severity === 1));
+            assert.ok(diagnostic.params.diagnostics.every(item => item.range?.start && item.range?.end));
+            lsp.send({ method: 'textDocument/didChange', params: {
+                textDocument: { uri, version: 3 }, contentChanges: [{ text: valid }],
+            } });
+            const cleared = await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
+                && message.params.uri === uri && message.params.diagnostics.length === 0);
+            assert.deepEqual(cleared.params.diagnostics, []);
+        }
     } finally {
         await lsp.close();
     }

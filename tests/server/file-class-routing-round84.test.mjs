@@ -3,9 +3,10 @@ import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Build }, { DependencyManager }, { InternalAventusFile }, { GenericServer }, { TemplateFileManager }, { SettingsManager }] = await loadServerModules([
+const [{ Build }, { DependencyManager }, { InternalAventusFile }, { GenericServer }, { TemplateFileManager }, { SettingsManager }, { FilesManager }, { AventusTsFileSelector }] = await loadServerModules([
     'project/Build.ts', 'project/DependencyManager.ts', 'files/AventusFile.ts', 'GenericServer.ts',
-    'language-services/ts/template/TemplateFileManager.ts', 'settings/Settings.ts',
+    'language-services/ts/template/TemplateFileManager.ts', 'settings/Settings.ts', 'files/FilesManager.ts',
+    'language-services/ts/FileSelector.ts',
 ]);
 
 function source(name, content = '') {
@@ -79,6 +80,33 @@ test('the build chooses file classes by extension and excludes package, template
     } finally {
         for (const file of files.toReversed()) await file.triggerDelete();
         GenericServer.instance = previous;
+    }
+});
+
+test('template file is registered through FilesManager and handled outside the build', async () => {
+    const previous = [GenericServer.instance, SettingsManager.instance, FilesManager.instance, TemplateFileManager.instance];
+    const manager = Object.create(FilesManager.prototype);
+    manager.files = {};
+    manager.onNewFileCb = {};
+    manager.loadingInProgress = false;
+    FilesManager.instance = manager;
+    TemplateFileManager.instance = undefined;
+    GenericServer.instance = { _extensionPath: process.cwd(), logLevel: 99, isIDE: true,
+        connection: { sendDiagnostics() {} } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
+    const uri = 'file:///D:/routing/template.avt.ts';
+    try {
+        TemplateFileManager.getInstance();
+        await manager.triggerOnNewFile(TextDocument.create(uri, 'Aventus Ts', 1,
+            'export default class Demo {}'));
+        const file = manager.getByUri(uri);
+        assert.ok(file);
+        assert.equal(Object.keys(file.onGetBuildCb).length, 1);
+        assert.equal(file.getBuild(), null);
+        assert.equal(AventusTsFileSelector(file, build()), null);
+    } finally {
+        await manager.getByUri(uri)?.triggerDelete();
+        [GenericServer.instance, SettingsManager.instance, FilesManager.instance, TemplateFileManager.instance] = previous;
     }
 });
 

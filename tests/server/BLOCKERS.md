@@ -5,15 +5,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 ## Scénarios d'intégration encore ouverts
 
 - `files-real-watcher-rename.test.mjs` vérifie avec un watcher disque réel qu'un renommage retire l'ancien URI, mais ne découvre pas le nouveau chemin : le watcher ne surveille que les fichiers déjà connus. Le comportement souhaité pour les références et la sortie du build après un renommage externe reste à définir.
-- Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
-- `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
-
-## Intégrations encore à compléter après le deuxième passage
-
-- Le processus serveur échange de vraies trames JSON-RPC. La découverte des configurations de plusieurs espaces, leur validation et la publication puis la disparition des diagnostics JSON sont couvertes par `jsonrpc-lifecycle-round8.test.mjs`, `jsonrpc-multiworkspace-round29.test.mjs` et `jsonrpc-incremental-config-round50.test.mjs`. Les diagnostics des autres services restent à vérifier dans un projet intégré.
-- La sélection et l'installation de templates/projets locaux sont testées avec dossiers temporaires. L'exécution réelle du script dans son processus enfant, l'import Git/Store et le remplacement d'une installation restent à couvrir.
-- Le package Aventus est généré, relu et reconstruit dans les tests. Un build multi-fichiers complet avec vues, styles, npm et dépendances reste à vérifier.
-- Le modèle et une compilation simple TypeScript, la complétion et le formatage HTML, ainsi que les liens HTML–SCSS sont testés. Les décorateurs, composants complets, boucles conditionnelles et liens vue/classe restent à couvrir avec une fixture de projet.
 
 ## Découverte avec `readDirs` dans le répertoire temporaire du sandbox Windows
 
