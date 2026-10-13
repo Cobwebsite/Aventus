@@ -4,8 +4,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Scénarios d'intégration encore ouverts
 
-- Le protocole est testé au niveau des handlers et de l'adaptateur VS Code simulé. Un échange JSON-RPC réel avec `server.ts` reste à vérifier dans un processus isolé.
-- Le renommage détecté sur disque, la sélection de tous les services par extension et les projets complets demandent encore des fixtures intégrées. La fenêtre de deux secondes de `FilesManager.preventUpdateUri` est testée fonctionnellement sans horloge simulée pour sa durée exacte.
+- `files-real-watcher-rename.test.mjs` vérifie avec un watcher disque réel qu'un renommage retire l'ancien URI, mais ne découvre pas le nouveau chemin : le watcher ne surveille que les fichiers déjà connus. Le comportement souhaité pour les références et la sortie du build après un renommage externe reste à définir. La sélection de tous les services par extension et les projets complets demandent encore des fixtures intégrées. La fenêtre de deux secondes de `FilesManager.preventUpdateUri` est testée fonctionnellement sans horloge simulée pour sa durée exacte.
 - La compilation SCSS complète, les liens vue/classe/style, les composants HTML enregistrés dynamiquement et leurs interactions avec les builds demandent des fixtures de projet intégrées. Le chargement isolé du service HTML en bundle CommonJS échoue sur une dépendance circulaire ; cela ne démontre pas un défaut à l'exécution du serveur.
 - Le test HTTP de traversée de chemin confirme l'absence de divulgation ; le middleware journalise toutefois `ForbiddenError` sur stderr. Décider si ce journal est acceptable.
 - La génération Storybook est testée au niveau des titres et contenus MDX/stories. La copie complète des ressources depuis l'extension et la mise à jour après suppression demandent une fixture intégrée.
@@ -14,7 +13,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Intégrations encore à compléter après le deuxième passage
 
-- Le processus serveur échange désormais de vraies trames JSON-RPC pour `initialize`, `didOpen`, `didChange`, `didClose` et `hover`. L'initialisation complète d'un espace, la validation du contenu et les diagnostics de service restent à vérifier.
+- Le processus serveur échange de vraies trames JSON-RPC. La découverte des configurations de plusieurs espaces, leur validation et la publication puis la disparition des diagnostics JSON sont couvertes par `jsonrpc-lifecycle-round8.test.mjs`, `jsonrpc-multiworkspace-round29.test.mjs` et `jsonrpc-incremental-config-round50.test.mjs`. Les diagnostics des autres services restent à vérifier dans un projet intégré.
 - La sélection et l'installation de templates/projets locaux sont testées avec dossiers temporaires. L'exécution réelle du script dans son processus enfant, l'import Git/Store et le remplacement d'une installation restent à couvrir.
 - Le package Aventus est généré, relu et reconstruit dans les tests. Un build multi-fichiers complet avec vues, styles, npm et dépendances reste à vérifier.
 - Le modèle et une compilation simple TypeScript, la complétion et le formatage HTML, ainsi que les liens HTML–SCSS sont testés. Les décorateurs, composants complets, boucles conditionnelles et liens vue/classe restent à couvrir avec une fixture de projet.

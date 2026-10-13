@@ -169,7 +169,7 @@ test('real LSP process publishes JSON diagnostics for an invalid workspace confi
         const html = await lsp.next(message => message.method === 'workspace/configuration');
         lsp.send({ id: html.id, result: [{ customData: [] }] });
         const diagnostic = await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
-            && decodeURIComponent(message.params.uri).toLowerCase() === configUri.toLowerCase()
+            && decodeURIComponent(message.params.uri).toLowerCase() === decodeURIComponent(configUri).toLowerCase()
             && message.params.diagnostics.length > 0);
         assert.ok(diagnostic.params.diagnostics.some(item => item.severity === 1));
         assert.ok(diagnostic.params.diagnostics.every(item => item.range?.start && item.range?.end));
