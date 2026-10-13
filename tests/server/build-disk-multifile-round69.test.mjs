@@ -91,7 +91,6 @@ test('disk changes to one of two sources preserve the other source in build outp
     await manager.onDeletedUri(firstUri);
     assert.equal(manager.getByUri(firstUri), undefined);
     assert.ok(manager.getByUri(secondUri));
-    await build.build();
     const afterDelete = readFileSync(output, 'utf8');
     assert.doesNotMatch(afterDelete, /class First|class Updated/);
     assert.match(afterDelete, /class Second/);
@@ -102,5 +101,5 @@ test('disk changes to one of two sources preserve the other source in build outp
     assert.match(recreated, /class Recreated/);
     assert.match(recreated, /class Second/);
     assert.doesNotMatch(recreated, /class First|class Updated/);
-    assert.equal(compiled.filter(([name]) => name === 'aventus/compiled').length, 6);
+    assert.equal(compiled.filter(([name]) => name === 'aventus/compiled').length, 5);
 });
