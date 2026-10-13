@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Positions des expressions HTML décalées dans les attributs
-
-- Reproduction automatisée : `html-expression-identity-round62.test.mjs` relève les positions de `{{value}}` dans des attributs simples et répétés. Chaque plage retournée par `ParserHtml.fcts` commence et finit un caractère avant l'expression réelle ; l'écart persiste après une édition du document. Les tests vérifient l'identité des actions et caractérisent le décalage actuel.
-- Décision à prendre : corriger l'origine du décalage dans le calcul de `valueStart` ou formaliser que ces plages utilisent un autre repère ; vérifier ensuite les diagnostics et la navigation qui les consomment.
-
 ## Sortie de build conservée après suppression d'une source disque
 
 - Reproduction automatisée : `build-disk-lifecycle-round62.test.mjs` crée puis modifie un fichier logique sur disque ; la sortie est reconstruite à chaque sauvegarde. Sa suppression déclenche une reconstruction mais celle-ci lit encore la source dans le cache de `FilesManager`. Le fichier disparaît ensuite du cache ; un build manuel supplémentaire retire enfin son code de la sortie.
