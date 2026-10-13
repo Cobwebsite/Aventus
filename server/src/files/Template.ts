@@ -403,7 +403,7 @@ export class TemplateScript {
 			}
 			unlinkSync(scriptPath);
 			const cbs = [...TemplateScript.preparing[name]];
-			TemplateScript.preparing[name] = [];
+			delete TemplateScript.preparing[name];
 			for (let cb of cbs) {
 				cb(values)
 			}

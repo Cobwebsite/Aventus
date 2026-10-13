@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Seconde préparation d'un même template bloquée
-
-- Reproduction automatisée : `template-failure-recovery-round58.test.mjs` prépare un template, l'exécute, puis appelle de nouveau `prepareScript()` sur le même fichier. La seconde promesse reste en attente.
-- Source : `server/src/files/Template.ts`, `TemplateScript.preparing[name]` reste défini comme tableau vide après la première préparation. L'appel suivant ajoute un callback à ce tableau sans démarrer de nouvelle préparation.
-- Décision à prendre : supprimer l'entrée après la préparation ou retourner une valeur déjà prête selon la durée de vie voulue du cache ; vérifier ensuite la reprise après correction ou modification du template.
-
 ## Export statique annoncé terminé après échec partiel
 
 - Reproduction automatisée : `static-partial-destination-recovery-round59.test.mjs` copie un binaire vers deux destinations dont une est bloquée par un fichier. L'autre copie réussit, mais l'export global envoie tout de même `reload` et `staticTime`. Après déblocage, un nouvel export écrit les deux sorties.
@@ -621,12 +615,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `i18n-generated-type-escape-round138.test.mjs` crée un fichier i18n global avec une clé contenant un saut de ligne JSON échappé. La validation i18n ne signale aucune erreur et l'export conserve la clé ; la déclaration `AventusI18n` générée contient le saut de ligne littéral entre guillemets et le parseur TypeScript remonte une erreur. Une clé contenant les deux caractères antislash et `t` produit un type TypeScript syntaxiquement valide, mais dont le nom de propriété contient une tabulation. Renommer les clés par édition rétablit les déclarations attendues.
 - Cause : `AventusI18nFile.onContentChange()` n'échappe que les guillemets lorsqu'il insère les clés dans les littéraux de la déclaration TypeScript.
 - Décision à prendre : échapper toutes les clés pour un littéral TypeScript valide, ou refuser explicitement celles qui ne peuvent pas être représentées ; vérifier aussi les retours chariot et antislashs.
-
-## Rafraîchissement du cache des métadonnées d'un template
-
-- Reproduction automatisée : `template-concurrent-metadata-round140.test.mjs` charge simultanément quatre fois un template réel, puis modifie son nom et avance l'horodatage. La nouvelle demande `TemplateScript.create()` reste en attente et le cache conserve l'ancien nom.
-- Cause : `TemplateScript.prepareScript()` laisse une entrée vide dans `TemplateScript.preparing[name]` après le premier chargement. Lors du rafraîchissement, la nouvelle demande s'inscrit comme attente de cette entrée, sans lancer de préparation qui puisse la résoudre.
-- Décision à prendre : supprimer l'entrée de préparation après résolution des demandes simultanées et confirmer que le rafraîchissement après modification produit une nouvelle instance contenant les métadonnées actualisées.
 
 ## Fin prématurée des commandes build, npm et Storybook
 

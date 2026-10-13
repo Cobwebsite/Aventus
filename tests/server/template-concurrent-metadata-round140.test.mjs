@@ -10,7 +10,7 @@ const [{ TemplateScript }, { GenericServer }] = await loadServerModules([
     'files/Template.ts', 'GenericServer.ts',
 ]);
 
-test('concurrent metadata requests resolve, but a later refresh remains pending', { timeout: 10_000 }, async () => {
+test('concurrent metadata requests resolve and a later refresh reads the updated template', { timeout: 10_000 }, async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-concurrent-'));
     const config = join(root, 'template.avt.ts');
     const base = pathToFileURL(resolve('lib/templateScript/AventusTemplate.ts')).href;
@@ -42,13 +42,10 @@ test('concurrent metadata requests resolve, but a later refresh remains pending'
         writeFileSync(config, source('Second'));
         const newer = new Date(originalTime.getTime() + 60_000);
         utimesSync(config, newer, newer);
-        const refreshed = TemplateScript.create(config);
-        const outcome = await Promise.race([
-            refreshed.then(() => 'resolved', () => 'rejected'),
-            new Promise(resolve => setTimeout(() => resolve('pending'), 150)),
-        ]);
-        assert.equal(outcome, 'pending');
-        assert.equal(TemplateScript.memory[config].name, 'First');
+        const refreshed = await TemplateScript.create(config);
+        assert.equal(refreshed?.name, 'Second');
+        assert.equal(refreshed?.description, 'Second description');
+        assert.equal(TemplateScript.memory[config], refreshed);
         assert.deepEqual(errors, []);
     } finally {
         GenericServer.instance = previousServer;
