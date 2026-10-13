@@ -32,14 +32,14 @@ test('package Markdown includes exported class, function, enum, and variable', (
     };
 
     const markdown = new ManifestPackageMd(file).getContent();
-    assert.match(markdown, /\| \[Demo\.Anchor\]\(demo\.anchor\) \| Class \|/);
+    assert.match(markdown, /\| \[Demo\.Anchor\]\(#pkg-demo-anchor\) \| Class \|/);
     assert.match(markdown, /## create\(\)/);
     assert.match(markdown, /Return : number/);
-    assert.match(markdown, /\| \[Mode\]\(mode\) \| Enum \| Available modes \|/);
+    assert.match(markdown, /\| \[Mode\]\(#pkg-mode\) \| Enum \| Available modes \|/);
     assert.match(markdown, /## Mode/);
     assert.match(markdown, /\| Ready \| 1 \|/);
     assert.match(markdown, /\| Waiting \|  \|/);
-    assert.match(markdown, /\| \[VERSION\]\(version\) \| Variable \| Package version \|/);
+    assert.match(markdown, /\| \[VERSION\]\(#pkg-version\) \| Variable \| Package version \|/);
     assert.match(markdown, /## VERSION/);
     assert.match(markdown, /Declaration : const/);
     assert.match(markdown, /Type : number/);

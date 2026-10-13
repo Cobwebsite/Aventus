@@ -31,7 +31,7 @@ test('les doublons de clés et de locales sont localisés puis disparaissent apr
     const diagnostics = await service.validate(duplicate);
     const repeated = diagnostics.filter(item => /duplicate/i.test(item.message));
     assert.deepEqual(repeated.map(item => duplicate.file.documentUser.getText(item.range)), ['"en"', '"en"', '"first"', '"first"']);
-    assert.ok(repeated.every(item => item.severity === 1));
+    assert.ok(repeated.every(item => item.severity === 2));
 
     const fixed = fixture('{"first":{"en":"One","fr":"Un","de":"Ein"},"second":{"en":"Two","fr":"Deux","de":"Zwei"}}');
     assert.deepEqual(await service.validate(fixed), []);

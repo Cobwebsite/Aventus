@@ -6,26 +6,33 @@ import { join } from 'node:path';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Commands }, { FilesManager }, { GenericServer }, { pathToUri, uriToPath }] = await loadServerModules([
-    'cmds/index.ts', 'files/FilesManager.ts', 'GenericServer.ts', 'tools.ts',
+const [{ Commands }, { FilesManager }, { GenericServer }, { pathToUri, uriToPath }, { ProjectManager }] = await loadServerModules([
+    'cmds/index.ts', 'files/FilesManager.ts', 'GenericServer.ts', 'tools.ts', 'project/ProjectManager.ts',
 ]);
 
 async function fixture(run) {
     const root = mkdtempSync(join(tmpdir(), 'aventus-component-partial-'));
     const oldFiles = FilesManager.getInstance;
+    const oldProjects = ProjectManager.getInstance;
     const oldNotification = GenericServer.sendNotification;
     const files = new Map();
     const events = [];
+    const renames = [];
     FilesManager.getInstance = () => ({
         getByUri: uri => files.get(uri),
         onClose: document => { files.delete(document.uri); },
         registerFile: document => { files.set(document.uri, file(document)); },
     });
+    ProjectManager.getInstance = () => ({ onRename: async changes => {
+        renames.push(...changes);
+        return {};
+    } });
     GenericServer.sendNotification = (...event) => events.push(event);
     try {
-        await run({ root, files, events });
+        await run({ root, files, events, renames });
     } finally {
         FilesManager.getInstance = oldFiles;
+        ProjectManager.getInstance = oldProjects;
         GenericServer.sendNotification = oldNotification;
         rmSync(root, { recursive: true, force: true });
     }
@@ -61,7 +68,7 @@ test('split creates empty HTML and CSS siblings when the component contains only
 });
 
 test('merge tolerates missing style sibling and preserves the highest remaining version', async () => {
-    await fixture(async ({ root, files, events }) => {
+    await fixture(async ({ root, files, events, renames }) => {
         const folder = join(root, 'Partial');
         mkdirSync(folder);
         for (const [extension, content, version] of [
@@ -79,7 +86,12 @@ test('merge tolerates missing style sibling and preserves the highest remaining 
         assert.equal(existsSync(folder), false);
         assert.match(readFileSync(merged, 'utf8'), /export class Partial/);
         assert.match(readFileSync(merged, 'utf8'), /<p>Partial<\/p>/);
+        assert.match(readFileSync(merged, 'utf8'), /<style>\s*<\/style>/);
         assert.equal(files.get(pathToUri(merged)).versionUser, 10);
+        assert.deepEqual(renames, [{
+            oldUri: pathToUri(join(folder, 'Partial.wcl.avt')),
+            newUri: pathToUri(merged),
+        }]);
         assert.deepEqual(events.map(([channel]) => channel), [
             'aventus/closefile', 'aventus/closefile', 'aventus/openfile',
         ]);

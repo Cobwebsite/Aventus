@@ -45,7 +45,7 @@ test('add config section recovers after JSON correction and preserves existing s
         await AddConfigSection.run(uri);
         const result = JSON.parse(readFileSync(configPath, 'utf8'));
         assert.deepEqual(result.build, [originalBuild, {
-            name: 'Later Build', src: [], compile: { output: './dist/Later-Build.js' },
+            name: 'Later_Build', src: [], compile: [{ output: './dist/Later-Build.js' }],
         }]);
         assert.deepEqual(result.static, [originalStatic]);
         assert.equal(notifications.length, 1);

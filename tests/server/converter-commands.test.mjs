@@ -106,7 +106,7 @@ test('PHP export honors a selected config and reports conversion success', async
         await commands['aventus.php.export'].run();
         assert.equal(selects.length, 1);
         assert.deepEqual(selects[0][0].map(item => item.label), [first, second]);
-        assert.match(executions[0][0], /php .*PhpToTypescript\.phar .*aventus\.php\.avt 2>&1/);
+        assert.match(executions[0][0], /php-converter .*aventus\.php\.avt 2>&1/);
         assert.deepEqual(events.filter(item => item[0] === 'notification').map(item => item[2]), [
             ['', 'compiling', undefined], ['', 'success', undefined],
         ]);

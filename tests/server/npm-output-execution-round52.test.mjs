@@ -56,7 +56,7 @@ test('npm entries in both destinations execute after rebuilding without a remove
         const exported = readFileSync(join(destination, 'Demo', 'index.js'), 'utf8');
         assert.doesNotMatch(exported, /One/);
         assert.match(exported, /Two/);
-        assert.equal(existsSync(join(destination, '__src', 'one.js')), true);
+        assert.equal(existsSync(join(destination, '__src', 'one.js')), false);
         assert.deepEqual(executeEntry(destination), { names: ['Two'], two: 22 });
     }
 });

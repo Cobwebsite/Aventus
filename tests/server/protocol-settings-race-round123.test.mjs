@@ -33,12 +33,12 @@ test('older configuration response can overwrite a newer notification when clien
         setSettingsHtml: () => {},
     };
 
-    await handlers.onDidChangeConfiguration();
-    await handlers.onDidChangeConfiguration();
+    const firstRequest = handlers.onDidChangeConfiguration();
+    const secondRequest = handlers.onDidChangeConfiguration();
     assert.equal(pending.length, 2);
     pending[1]({ logLevel: 1 });
     await new Promise(resolve => setImmediate(resolve));
     pending[0]({ logLevel: 4 });
-    await new Promise(resolve => setImmediate(resolve));
+    await Promise.all([firstRequest, secondRequest]);
     assert.deepEqual(applied, [1, 4]);
 });

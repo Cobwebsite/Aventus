@@ -27,7 +27,7 @@ function packageWithDescriptions() {
 
 test('package Markdown keeps ordered class documentation and flattens multiline table cells', () => {
     const markdown = new ManifestPackageMd(packageWithDescriptions()).getContent();
-    assert.match(markdown, /\| \[Demo\.Card\]\(demo\.card\) \| Class \| First lineSecond line \|/);
+    assert.match(markdown, /\| \[Demo\.Card\]\(#pkg-demo-card\) \| Class \| First lineSecond line \|/);
     assert.match(markdown, /## Demo\.Card\r?\n\r?\nFirst line\r?\nSecond line/);
     assert.match(markdown, /\| title \| string \| Shown in the overview \| and detailswith more text \|/);
 });

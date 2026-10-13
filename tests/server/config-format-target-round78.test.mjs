@@ -41,7 +41,7 @@ test('add config section formats only the selected configuration and sends its U
     try {
         await AddConfigSection.run();
         const expected = JSON.parse(original);
-        expected.build.push({ name: 'Main App', src: [], compile: { output: './dist/Main-App.js' } });
+        expected.build.push({ name: 'Main_App', src: [], compile: [{ output: './dist/Main-App.js' }] });
         assert.equal(readFileSync(selectedPath, 'utf8'), JSON.stringify(expected, null, 4));
         assert.equal(readFileSync(otherPath, 'utf8'), original);
         assert.deepEqual(notifications, [['aventus/openfile', [selectedUri]]]);

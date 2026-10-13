@@ -27,9 +27,9 @@ test('package Markdown sorts exported classes and functions regardless of declar
     };
 
     const markdown = new ManifestPackageMd(file).getContent();
-    assert.match(markdown, /\| \[Alpha\]\(alpha\) \| Class \|/);
-    assert.match(markdown, /\| \[Zulu\]\(zulu\) \| Class \|/);
-    assert.ok(markdown.indexOf('| [Alpha](alpha)') < markdown.indexOf('| [Zulu](zulu)'));
+    assert.match(markdown, /\| \[Alpha\]\(#pkg-alpha\) \| Class \|/);
+    assert.match(markdown, /\| \[Zulu\]\(#pkg-zulu\) \| Class \|/);
+    assert.ok(markdown.indexOf('| [Alpha](#pkg-alpha)') < markdown.indexOf('| [Zulu](#pkg-zulu)'));
     assert.ok(markdown.indexOf('## Alpha') < markdown.indexOf('## Zulu'));
     assert.ok(markdown.indexOf('## Alpha') < markdown.indexOf('## middle(value: string)'));
     assert.ok(markdown.indexOf('## middle(value: string)') < markdown.indexOf('## Zulu'));
