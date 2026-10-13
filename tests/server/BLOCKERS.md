@@ -5,7 +5,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 ## Scénarios d'intégration encore ouverts
 
 - `files-real-watcher-rename.test.mjs` vérifie avec un watcher disque réel qu'un renommage retire l'ancien URI, mais ne découvre pas le nouveau chemin : le watcher ne surveille que les fichiers déjà connus. Le comportement souhaité pour les références et la sortie du build après un renommage externe reste à définir.
-- La génération Storybook est testée au niveau des titres et contenus MDX/stories. La copie complète des ressources depuis l'extension et la mise à jour après suppression demandent une fixture intégrée.
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
 - `AventusTsFileSelector` renvoie `null` pour `.wc`, `.package` et `.template`. Déterminer si leur routage relève d'autres gestionnaires (probable) ou de ce sélecteur, puis le vérifier avec des fixtures ciblées.
 
