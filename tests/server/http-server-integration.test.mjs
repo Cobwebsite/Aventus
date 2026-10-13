@@ -142,10 +142,19 @@ test('HTTP server does not expose a file above its configured root', async () =>
     const secretName = `${basename(fixture.root)}-secret.txt`;
     const secretPath = join(fixture.root, '..', secretName);
     writeFileSync(secretPath, 'PRIVATE_SENTINEL');
+    const previousStderrWrite = process.stderr.write;
+    let stderr = '';
+    process.stderr.write = function (chunk, ...args) {
+        stderr += String(chunk);
+        return true;
+    };
     try {
         const response = await fetch(`http://127.0.0.1:${fixture.port}/..%2F${secretName}`);
+        assert.equal(response.status, 403);
         assert.ok(!((await response.text()).includes('PRIVATE_SENTINEL')));
+        assert.doesNotMatch(stderr, /ForbiddenError/);
     } finally {
+        process.stderr.write = previousStderrWrite;
         rmSync(secretPath, { force: true });
         fixture.cleanup();
     }
