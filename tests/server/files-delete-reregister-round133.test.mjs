@@ -19,7 +19,7 @@ function createManager() {
     return manager;
 }
 
-test('a replacement registered while deletion is pending is routed to the deleted file and then lost', async t => {
+test('a replacement registered while deletion is pending stays registered', async t => {
     const previous = [FilesWatcher.instance, GenericServer.instance, SettingsManager.instance, GenericServer.sendDiagnostics];
     const manager = createManager();
     const uri = 'file:///round133/recreated.wcl.avt';
@@ -51,18 +51,19 @@ test('a replacement registered while deletion is pending is routed to the delete
     assert.equal(oldFile.isDeleted, true);
 
     const replacement = await manager.registerFile(doc(2, 'replacement'));
-    assert.equal(replacement, oldFile);
-    assert.equal(manager.getByUri(uri), oldFile);
+    assert.notEqual(replacement, oldFile);
+    assert.equal(manager.getByUri(uri), replacement);
     assert.equal(oldFile.contentUser, 'old');
-    assert.deepEqual(events, [['new', 'old']]);
+    assert.deepEqual(events, [['new', 'old'], ['new', 'replacement']]);
 
     release.resolve();
     await deletion;
-    assert.equal(manager.getByUri(uri), undefined);
-    assert.deepEqual(events, [['new', 'old'], ['unwatch', uri]]);
+    assert.equal(manager.getByUri(uri), replacement);
+    assert.deepEqual(events, [['new', 'old'], ['new', 'replacement']]);
     const retry = await manager.registerFile(doc(3, 'retry'));
-    assert.notEqual(retry, oldFile);
-    assert.deepEqual(events.slice(2), [['new', 'retry']]);
+    assert.equal(retry, replacement);
+    assert.equal(retry.contentUser, 'retry');
+    assert.deepEqual(events, [['new', 'old'], ['new', 'replacement']]);
 });
 
 test('a save can run against a deleted file while shutdown waits for its delete callback', async t => {

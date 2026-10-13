@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Sortie de build conservée après suppression d'une source disque
-
-- Reproduction automatisée : `build-disk-lifecycle-round62.test.mjs` crée puis modifie un fichier logique sur disque ; la sortie est reconstruite à chaque sauvegarde. Sa suppression déclenche une reconstruction mais celle-ci lit encore la source dans le cache de `FilesManager`. Le fichier disparaît ensuite du cache ; un build manuel supplémentaire retire enfin son code de la sortie.
-- Cause probable : `FilesManager.onDeletedUri()` attend `triggerDelete()` et retire ensuite le fichier de `this.files`, alors que `Build.onFileDelete()` reconstruit pendant `triggerDelete()`.
-- Décision à prendre : retirer la source du cache avant de lancer la reconstruction déclenchée par sa suppression, ou garantir que le build exclut les fichiers en cours de suppression ; vérifier la sortie après un seul événement de suppression.
-
 ## Téléchargement Store accepté malgré une réponse HTTP 404
 
 - Reproduction automatisée : `template-store-archive-errors-round63.test.mjs` sert une archive ZIP valide avec le statut HTTP 404. `TemplateManager.downloadTemplateFromStore()` l'installe, recharge le registre et annonce une installation réussie.
@@ -557,12 +551,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `npm-disabled-registration-round133.test.mjs` enregistre un import dans `NpmBuilder` après `Build.disableBuild()`, puis appelle `Build.enableBuild()`. L'import reste stocké, mais `compile()` renvoie une sortie vide jusqu'à un appel manuel à `rebuildInfo()`.
 - Cause : `register()` appelle `rebuildInfo()`, qui retourne immédiatement lorsque `isBuildAllowed` est faux ; `enableBuild()` rétablit seulement le booléen et ne reconstruit pas l'index npm.
 - Décision à prendre : définir si `enableBuild()` doit reconstruire les imports npm enregistrés durant la pause. C'est notamment pertinent pour les transitions de fichiers de composant qui utilisent `disableBuild()` et `enableBuild()`.
-
-## Réinscription perdue pendant une suppression différée
-
-- Reproduction automatisée : `files-delete-reregister-round133.test.mjs` suspend le callback de suppression d'un fichier, puis réinscrit le même URI avec un nouveau contenu. `registerFile()` retourne l'ancienne instance marquée supprimée, dont le contenu ne change pas. Quand le callback se termine, le cache perd cet URI ; une troisième inscription crée enfin une nouvelle instance.
-- Cause : `onDeletedUri()` conserve l'ancienne entrée jusqu'à la fin de `triggerDelete()`, tandis que `registerFile()` la traite comme un fichier existant. `InternalAventusFile.triggerContentChange()` ignore les changements après `deleted = true`.
-- Décision à prendre : définir la priorité entre suppression et réapparition du fichier et garantir qu'une réinscription réussie reste dans le cache et le watcher.
 
 ## Sauvegarde acceptée sur un fichier déjà supprimé pendant l'arrêt
 

@@ -42,7 +42,7 @@ for (const [label, invoke] of [
             const operation = invoke(manager, uri).then(() => { operationFinished = true; });
             await new Promise(resolve => setImmediate(resolve));
             assert.deepEqual(events, ['diagnostics', 'delete-start']);
-            assert.ok(manager.getByUri(uri), 'the cache retains the file while deletion is pending');
+            assert.equal(manager.getByUri(uri), undefined, 'the cache releases the file before deletion callbacks finish');
             assert.equal(operationFinished, false);
             releaseDelete();
             await operation;

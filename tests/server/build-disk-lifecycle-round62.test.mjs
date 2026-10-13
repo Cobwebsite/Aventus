@@ -10,7 +10,7 @@ const [{ Build }, { FilesManager }, { GenericServer }, { FilesWatcher }, { Setti
     'settings/Settings.ts', 'project/DependencyManager.ts', 'tools.ts',
 ]);
 
-test('disk create and edit replace output; deletion rebuilds before cache removal', async t => {
+test('disk create and edit replace output; deletion removes the source in one rebuild', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-build-disk-round62-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const source = join(root, 'widget.lib.avt');
@@ -86,8 +86,6 @@ test('disk create and edit replace output; deletion rebuilds before cache remova
     assert.equal(manager.getByUri(sourceUri), undefined);
     assert.equal(build.tsFiles[sourceUri], undefined);
     assert.equal(build.onFileDeleteUUIDs[sourceUri], undefined);
-    assert.match(readFileSync(output, 'utf8'), /class Second/, 'delete rebuild still sees the cached source');
-    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 3);
-    await build.build();
     assert.doesNotMatch(readFileSync(output, 'utf8'), /class First|class Second/);
+    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 3);
 });

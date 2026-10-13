@@ -83,9 +83,10 @@ export class FilesManager {
     }
 
     public async onDeletedUri(uri: string) {
-        if (this.files[uri]) {
+        const file = this.files[uri];
+        if (file) {
             if (SettingsManager.getInstance().settings.errorByBuild) {
-                const builds = this.files[uri].getBuild();
+                const builds = file.getBuild();
                 if (builds === null) {
                     GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] })
                 }
@@ -98,9 +99,11 @@ export class FilesManager {
             else {
                 GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] })
             }
-            await this.files[uri].triggerDelete();
             delete this.files[uri];
-            FilesWatcher.getInstance().unwatch(uri);
+            await file.triggerDelete();
+            if (!this.files[uri]) {
+                FilesWatcher.getInstance().unwatch(uri);
+            }
         }
     }
 
