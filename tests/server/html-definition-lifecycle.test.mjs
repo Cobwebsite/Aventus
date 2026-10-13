@@ -4,8 +4,9 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getLanguageService } from 'vscode-html-languageservice';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [, { AventusHTMLLanguageService }] = await loadServerModules([
+const [, { AventusHTMLLanguageService }, { Build }] = await loadServerModules([
     'language-services/ts/FileSelector.ts', 'language-services/html/LanguageService.ts',
+    'project/Build.ts',
 ]);
 
 function service() {
@@ -59,6 +60,46 @@ test('HTML definition rebuild can be deferred while several files change', () =>
     assert.equal(html.getClassByTag('demo-card'), null);
     html.allowRebuildDefinition(true);
     assert.equal(html.getClassByTag('demo-card'), 'Card');
+});
+
+test('a component registered after build initialization remains available through a rebuild', async () => {
+    const html = service();
+    const build = Object.create(Build.prototype);
+    const rebuilds = [];
+    Object.assign(build, {
+        scssLanguageService: { allowRebuildDefinition() {} },
+        htmlLanguageService: html,
+        tsLanguageService: { i18nFiles: {} },
+        i18nComponentsFiles: {}, wcFiles: {}, scssFiles: {}, htmlFiles: {}, tsFiles: {},
+        npmBuilder: { rebuildInfo() {} }, initDone: false,
+    });
+    build._build = async () => rebuilds.push('build');
+    build.build = async () => rebuilds.push('build');
+    await build.rebuildAll(true);
+    assert.equal(html.getClassByTag('demo-late'), null);
+
+    const uri = 'file:///project/src/late.wcl.avt';
+    const file = { uri };
+    build.tsFiles[uri] = {
+        validate: async () => {
+            html.addInternalTagUri('demo-late', uri, 'Demo.Late');
+            html.addInternalDefinition(uri, doc('demo-late', 'Late'), file);
+        },
+        triggerSave: async () => {},
+    };
+    build.initDone = true;
+    await build.rebuildAll();
+    assert.equal(html.getClassByTag('demo-late'), 'Late');
+    assert.equal(html.getInternalDefinition('demo-late'), file);
+    assert.deepEqual(html.getInternalTagUri('demo-late'), { uri, fullname: 'Demo.Late' });
+    const document = TextDocument.create('file:///project/src/consumer.wcv.avt', 'Aventus HTML', 1, '<demo-');
+    const complete = () => html.doComplete({ file: { documentUser: document }, fileParsed: null }, document.positionAt(6));
+    assert.ok((await complete()).items.some(item => item.label === 'demo-late'));
+
+    await build.rebuildAll();
+    assert.equal(html.getClassByTag('demo-late'), 'Late');
+    assert.ok((await complete()).items.some(item => item.label === 'demo-late'));
+    assert.deepEqual(rebuilds, ['build', 'build', 'build']);
 });
 
 test('HTML style link resolves the SCSS source range and ignores unrelated positions', () => {
