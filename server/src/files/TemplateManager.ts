@@ -8,6 +8,7 @@ import { execAsync, getValueFromObject, setValueToObject, unlinkSync, uriToPath 
 import { AventusExtension } from '../definition';
 import { get } from 'http';
 import { get as gets } from 'https';
+import { pipeline } from 'stream';
 import { Open } from 'unzipper'
 import { Store } from '../store/Store';
 
@@ -745,26 +746,21 @@ export class TemplateManager {
 
 	private downloadFile(fileUri: string, httpUri: string): Promise<boolean> {
 		return new Promise<boolean>((resolve) => {
-			const file = createWriteStream(fileUri);
 			try {
 				let fct = httpUri.startsWith("https") ? gets : get
-				fct(httpUri, function (response) {
-					response.pipe(file);
-
-					// after download completed close filestream
-					file.on("finish", () => {
-						file.close();
-						resolve(true);
-					});
-					file.on("error", () => {
-						file.close();
-						unlinkSync(fileUri);
+				const request = fct(httpUri, (response) => {
+					if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) {
+						response.resume();
 						resolve(false);
-					})
+						return;
+					}
+					pipeline(response, createWriteStream(fileUri), (error) => {
+						if (error && existsSync(fileUri)) unlinkSync(fileUri);
+						resolve(!error);
+					});
 				});
+				request.on('error', () => resolve(false));
 			} catch (e) {
-				file.close();
-				unlinkSync(fileUri);
 				resolve(false);
 			}
 

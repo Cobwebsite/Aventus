@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Téléchargement Store accepté malgré une réponse HTTP 404
-
-- Reproduction automatisée : `template-store-archive-errors-round63.test.mjs` sert une archive ZIP valide avec le statut HTTP 404. `TemplateManager.downloadTemplateFromStore()` l'installe, recharge le registre et annonce une installation réussie.
-- Source : `server/src/files/TemplateManager.ts`, `downloadFile()` copie le corps de la réponse sans contrôler `response.statusCode`.
-- Décision à prendre : refuser les réponses HTTP d'erreur avant l'extraction, puis distinguer l'erreur de téléchargement de l'erreur d'archive. Le même test vérifie également qu'une archive ZIP sans `template.avt.ts` est refusée et qu'un nouvel essai valide fonctionne.
-
 ## Nom de variable CSS commençant par une minuscule tronqué
 
 - Reproduction observée pendant `webcomponent-cancel-round64.test.mjs` : la commande `aventus.wc.create.cssvar` transforme `primaryColor` en `--_button-color: var(--button-color);`, alors que `PrimaryColor` donne `--_button-primary-color: var(--button-primary-color);`.

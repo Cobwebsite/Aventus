@@ -84,11 +84,12 @@ test('Store download rejects an archive without template manifest then installs 
     assert.deepEqual(messages, ['error:template.avt.ts not found', 'info:Template sample installed']);
 });
 
-test('Store download currently accepts a valid ZIP body even when HTTP status is 404', async t => {
+test('Store download rejects a 404 ZIP body and installs a valid retry', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-store-http-status-'));
     const body = await makeZip({ 'template.avt.ts': 'fixture', 'content.txt': 'from 404' });
+    let requests = 0;
     const server = createServer((_request, response) => {
-        response.writeHead(404, { 'content-type': 'application/zip' });
+        response.writeHead(requests++ === 0 ? 404 : 200, { 'content-type': 'application/zip' });
         response.end(body);
     });
     await new Promise((resolve, reject) => {
@@ -120,7 +121,11 @@ test('Store download currently accepts a valid ZIP body even when HTTP status is
         rmSync(root, { recursive: true, force: true });
     });
     await manager.downloadTemplateFromStore(`${Store.url}/template/download/sample/1.2.3`);
+    assert.equal(existsSync(join(root, 'templates', 'sample')), false);
+    assert.equal(reloads, 0);
+    assert.deepEqual(messages, ['error:Error downloading package']);
+    await manager.downloadTemplateFromStore(`${Store.url}/template/download/sample/1.2.3`);
     assert.equal(readFileSync(join(root, 'templates', 'sample', 'content.txt'), 'utf8'), 'from 404');
     assert.equal(reloads, 1);
-    assert.deepEqual(messages, ['info:Template sample installed']);
+    assert.deepEqual(messages, ['error:Error downloading package', 'info:Template sample installed']);
 });
