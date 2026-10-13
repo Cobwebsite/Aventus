@@ -65,12 +65,9 @@ test('template child failure after writing derived variables cleans its generate
         assert.deepEqual(answers, []);
         assert.equal(existsSync(join(destination, 'template.avt.ts')), false);
 
-        const secondPreparation = first.prepareScript();
-        const result = await Promise.race([
-            secondPreparation.then(() => 'resolved'),
-            new Promise(resolve => setTimeout(() => resolve('pending'), 100)),
-        ]);
-        assert.equal(result, 'pending');
+        const secondPreparation = await first.prepareScript();
+        assert.equal(secondPreparation.name, 'Recovery fixture');
+        assert.deepEqual(readdirSync(join(root, 'temp')), []);
     } finally {
         GenericServer.instance = oldServer;
         TemplateScript.memory = oldMemory;
