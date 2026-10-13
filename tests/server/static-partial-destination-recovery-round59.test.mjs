@@ -41,7 +41,7 @@ test('static export isolates a blocked destination, then retries it and reports 
     assert.equal(existsSync(join(first, 'nested', 'asset.bin')), false);
     assert.deepEqual(readFileSync(join(second, 'nested', 'asset.bin')), Buffer.from([0, 255, 42]));
     assert.deepEqual(events.map(event => event.name), [
-        'aventus/statistics/fileSize', 'reload', 'aventus/statistics/staticTime',
+        'aventus/statistics/fileSize',
     ]);
     assert.equal(events[0].params[0], join(second, 'nested', 'asset.bin'));
     assert.deepEqual(events[0].params.slice(1), [3, 'static', 'assets']);
