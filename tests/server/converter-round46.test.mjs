@@ -184,7 +184,7 @@ test('converter commands receive the exact config and phar paths, including spac
         await commands['aventus.php.export'].run(uri(phpConfig));
         assert.equal(executions.length, 2);
         assert.equal(executions[0][0], `csharp-converter ${sharpConfig.replaceAll('\\', '/')}`);
-        assert.equal(executions[1][0], `php ${join(root, 'lib', 'bin', 'PhpToTypescript', 'PhpToTypescript.phar')} ${phpConfig.replaceAll('\\', '/')} 2>&1`);
+        assert.equal(executions[1][0], `php-converter ${phpConfig.replaceAll('\\', '/')} 2>&1`);
     });
 });
 

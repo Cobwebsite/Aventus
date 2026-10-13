@@ -33,7 +33,7 @@ function register(manifest, { file, info }) {
     manifest.webTypes.register(file, info);
 }
 
-test('renaming one component retains its previous tag in the written manifest files', async () => {
+test('renaming one component replaces its previous tag in the written manifest files', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-manifest-lifecycle-'));
     const previous = SettingsManager.instance;
     SettingsManager.instance = { settings: { useStats: false } };
@@ -58,14 +58,14 @@ test('renaming one component retains its previous tag in the written manifest fi
         const html = JSON.parse(readFileSync(join(root, 'vscode.html-custom-data.json'), 'utf8'));
         const emmet = JSON.parse(readFileSync(join(root, 'emmet', 'snippets.json'), 'utf8'));
         assert.deepEqual(custom.modules.map(module => module.declarations[0].tagName),
-            ['demo-card', 'demo-panel', 'demo-card-new']);
+            ['demo-panel', 'demo-card-new']);
         assert.deepEqual(html.tags.map(tag => tag.name),
-            ['demo-card', 'demo-panel', 'demo-card-new']);
+            ['demo-panel', 'demo-card-new']);
         assert.deepEqual(Object.keys(emmet.html.snippets),
-            ['demo-card', 'demo-panel', 'demo-card-new']);
+            ['demo-panel', 'demo-card-new']);
         const webTypes = JSON.parse(readFileSync(join(root, 'web-types.json'), 'utf8'));
         assert.deepEqual(webTypes.contributions.html.elements.map(element => element.name),
-            ['demo-card', 'demo-panel', 'demo-card-new']);
+            ['demo-panel', 'demo-card-new']);
     } finally {
         SettingsManager.instance = previous;
         rmSync(root, { recursive: true, force: true });

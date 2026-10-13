@@ -6,19 +6,20 @@ import { join } from 'node:path';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [commandsModule, filesModule, serverModule, toolsModule] = await loadServerModules([
+const [commandsModule, filesModule, serverModule, toolsModule, projectModule] = await loadServerModules([
     'cmds/index.ts', 'files/FilesManager.ts',
-    'GenericServer.ts', 'tools.ts',
+    'GenericServer.ts', 'tools.ts', 'project/ProjectManager.ts',
 ]);
 const SplitComponent = commandsModule.Commands.allCommandes['aventus.component.split'];
 const MergeComponent = commandsModule.Commands.allCommandes['aventus.component.merge'];
 const { FilesManager } = filesModule;
 const { GenericServer } = serverModule;
+const { ProjectManager } = projectModule;
 const { pathToUri } = toolsModule;
 
 async function withFiles(callback) {
     const root = mkdtempSync(join(tmpdir(), 'aventus-component-command-'));
-    const originals = { files: FilesManager.getInstance, notify: GenericServer.sendNotification, error: GenericServer.showErrorMessage };
+    const originals = { files: FilesManager.getInstance, projects: ProjectManager.getInstance, notify: GenericServer.sendNotification, error: GenericServer.showErrorMessage };
     const files = new Map();
     const notifications = [];
     const errors = [];
@@ -28,12 +29,14 @@ async function withFiles(callback) {
         registerFile: async document => { files.set(document.uri, makeFile(document)); },
     };
     FilesManager.getInstance = () => manager;
+    ProjectManager.getInstance = () => ({ onRename: async () => ({}) });
     GenericServer.sendNotification = (...args) => { notifications.push(args); };
     GenericServer.showErrorMessage = message => { errors.push(message); };
     try {
         await callback({ root, files, notifications, errors });
     } finally {
         FilesManager.getInstance = originals.files;
+        ProjectManager.getInstance = originals.projects;
         GenericServer.sendNotification = originals.notify;
         GenericServer.showErrorMessage = originals.error;
         rmSync(root, { recursive: true, force: true });

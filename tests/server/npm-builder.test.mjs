@@ -26,7 +26,10 @@ test('npm builder deduplicates imports and aliases shared by several files', () 
     assert.doesNotMatch(builder.writeFileToCompile().toExport, /\['Second'\]/);
 });
 
-test('npm builder requires a namespace alias for a wildcard import', () => {
+test('npm builder reports a missing namespace alias without registering the wildcard import', () => {
     const builder = new NpmBuilder({ isBuildAllowed: true });
-    assert.throws(() => builder.register('file-a', { uri: 'library', libName: '*' }), /has no alias/);
+    const diagnostics = builder.register('file-a', { uri: 'library', libName: '*' });
+    assert.equal(diagnostics.length, 1);
+    assert.match(diagnostics[0].message, /has no alias/);
+    assert.equal(builder.storedInfo['file-a'], undefined);
 });

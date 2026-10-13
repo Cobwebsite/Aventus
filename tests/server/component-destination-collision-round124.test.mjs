@@ -6,12 +6,13 @@ import { join } from 'node:path';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [commandsModule, filesModule, serverModule, toolsModule] = await loadServerModules([
-    'cmds/index.ts', 'files/FilesManager.ts', 'GenericServer.ts', 'tools.ts',
+const [commandsModule, filesModule, serverModule, toolsModule, projectModule] = await loadServerModules([
+    'cmds/index.ts', 'files/FilesManager.ts', 'GenericServer.ts', 'tools.ts', 'project/ProjectManager.ts',
 ]);
 const commands = commandsModule.Commands.allCommandes;
 const { FilesManager } = filesModule;
 const { GenericServer } = serverModule;
+const { ProjectManager } = projectModule;
 const { pathToUri, uriToPath } = toolsModule;
 
 function file(uri, text) {
@@ -22,6 +23,7 @@ function file(uri, text) {
 async function withFiles(callback) {
     const root = mkdtempSync(join(tmpdir(), 'aventus-conversion-collision-'));
     const previousFiles = FilesManager.getInstance;
+    const previousProjects = ProjectManager.getInstance;
     const previousNotify = GenericServer.sendNotification;
     const previousError = GenericServer.showErrorMessage;
     const files = new Map();
@@ -32,11 +34,13 @@ async function withFiles(callback) {
         onClose: document => { files.delete(document.uri); },
         registerFile: document => { files.set(document.uri, file(document.uri, document.getText())); },
     });
+    ProjectManager.getInstance = () => ({ onRename: async () => ({}) });
     GenericServer.sendNotification = (...args) => notifications.push(args);
     GenericServer.showErrorMessage = message => errors.push(message);
     try { await callback({ root, files, notifications, errors }); }
     finally {
         FilesManager.getInstance = previousFiles;
+        ProjectManager.getInstance = previousProjects;
         GenericServer.sendNotification = previousNotify;
         GenericServer.showErrorMessage = previousError;
         rmSync(root, { recursive: true, force: true });

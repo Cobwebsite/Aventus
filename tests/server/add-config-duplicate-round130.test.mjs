@@ -30,8 +30,8 @@ test('adding two build sections with the same name creates duplicate destination
 
     const config = JSON.parse(readFileSync(path, 'utf8'));
     assert.equal(config.build.length, 2);
-    assert.deepEqual(config.build.map(build => build.name), ['Shared App', 'Shared App']);
-    assert.deepEqual(config.build.map(build => build.compile.output), [
+    assert.deepEqual(config.build.map(build => build.name), ['Shared_App', 'Shared_App']);
+    assert.deepEqual(config.build.map(build => build.compile[0].output), [
         './dist/Shared-App.js', './dist/Shared-App.js',
     ]);
     assert.deepEqual(notifications, [

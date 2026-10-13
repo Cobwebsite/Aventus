@@ -43,7 +43,7 @@ test('registering two package sources updates one Emmet file with both tags', as
     assert.equal(snippets['demo-panel'], '<demo-panel>${1}</demo-panel>');
 });
 
-test('Markdown for mixed real declarations documents the function while omitting enum and variable', () => {
+test('Markdown for mixed real declarations documents function, enum, and variable', () => {
     const source = ts.createSourceFile('exports.ts', `
         export class Anchor {}
         export function select<T extends string>(value: T): T | undefined { return value; }
@@ -69,11 +69,15 @@ test('Markdown for mixed real declarations documents the function while omitting
             } },
             functions: { select: { fullName: 'select', node: functionNode } },
             enums: { Mode: { fullName: 'Mode', node: enumNode } },
-            variables: { VERSION: { fullName: 'VERSION', node: variableNode } },
+            variables: { VERSION: { fullName: 'VERSION', type: 'const', node: variableNode.declarationList.declarations[0] } },
         },
     };
     const markdown = new ManifestPackageMd(file).getContent();
     assert.match(markdown, /## select<T extends string>\(value: T\)/);
     assert.match(markdown, /Return : T &vert; undefined/);
-    assert.doesNotMatch(markdown, /\bMode\b|\bVERSION\b/);
+    assert.match(markdown, /\| \[Mode\]\(#pkg-mode\) \| Enum \|/);
+    assert.match(markdown, /\| Ready \|/);
+    assert.match(markdown, /\| \[VERSION\]\(#pkg-version\) \| Variable \|/);
+    assert.match(markdown, /Declaration : const/);
+    assert.match(markdown, /Initial value : 2/);
 });

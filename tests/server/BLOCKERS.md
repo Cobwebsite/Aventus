@@ -2,6 +2,12 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
+## Conversion des canaux RGB CSS hors limites
+
+- Source : `server/src/color-picker/ColorPicker.ts`, `parseColorString()` convertit la couleur via XYZ D50 puis `XYZ_D50_to_sRGB_Gamut()` avant de limiter les canaux affichés.
+- Reproduction automatisée : `color-picker-channel-limits-round140.test.mjs` reçoit `rgb(300 -10 20 / 25%)` comme `(255, 107, 93, 0.25)` et `rgb(-20 280 0 / 125%)` comme `(178, 255, 172, 1)`. Les canaux valides changent avec les canaux hors limites.
+- Décision à prendre : définir si les notations RGB doivent limiter chaque canal indépendamment avant la conversion, ou conserver cette conversion de gamut qui modifie également les autres canaux.
+
 ## Scénarios d'intégration encore ouverts
 
 - Le protocole est testé au niveau des handlers et de l'adaptateur VS Code simulé. Un échange JSON-RPC réel avec `server.ts` reste à vérifier dans un processus isolé.
@@ -639,3 +645,48 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `i18n-generated-type-escape-round138.test.mjs` crée un fichier i18n global avec une clé contenant un saut de ligne JSON échappé. La validation i18n ne signale aucune erreur et l'export conserve la clé ; la déclaration `AventusI18n` générée contient le saut de ligne littéral entre guillemets et le parseur TypeScript remonte une erreur. Une clé contenant les deux caractères antislash et `t` produit un type TypeScript syntaxiquement valide, mais dont le nom de propriété contient une tabulation. Renommer les clés par édition rétablit les déclarations attendues.
 - Cause : `AventusI18nFile.onContentChange()` n'échappe que les guillemets lorsqu'il insère les clés dans les littéraux de la déclaration TypeScript.
 - Décision à prendre : échapper toutes les clés pour un littéral TypeScript valide, ou refuser explicitement celles qui ne peuvent pas être représentées ; vérifier aussi les retours chariot et antislashs.
+
+## Rafraîchissement du cache des métadonnées d'un template
+
+- Reproduction automatisée : `template-concurrent-metadata-round140.test.mjs` charge simultanément quatre fois un template réel, puis modifie son nom et avance l'horodatage. La nouvelle demande `TemplateScript.create()` reste en attente et le cache conserve l'ancien nom.
+- Cause : `TemplateScript.prepareScript()` laisse une entrée vide dans `TemplateScript.preparing[name]` après le premier chargement. Lors du rafraîchissement, la nouvelle demande s'inscrit comme attente de cette entrée, sans lancer de préparation qui puisse la résoudre.
+- Décision à prendre : supprimer l'entrée de préparation après résolution des demandes simultanées et confirmer que le rafraîchissement après modification produit une nouvelle instance contenant les métadonnées actualisées.
+
+## Fin prématurée des commandes build, npm et Storybook
+
+- Reproduction automatisée : `build-command-completion-round147.test.mjs` lance successivement les commandes de build de projet, de package npm et de Storybook avec une tâche asynchrone suspendue. Chacune termine sa promesse alors que sa tâche est encore en cours. La commande d'export statique attend, elle, la fin de l'export sélectionné.
+- Cause : `BuildProject.run()`, `NpmBuild.run()` et `StorybookBuild.run()` appellent leur méthode de build sans `await` ni `return`.
+- Décision à prendre : déterminer si la promesse de commande doit représenter la fin du build et transmettre son échec au client ; si oui, attendre le build sélectionné comme le fait `StaticExport.run()`.
+
+## Export i18n périmé pendant une édition JSON invalide
+
+- Reproduction automatisée : `i18n-invalid-export-round148.test.mjs` part d'une traduction `old` valide, édite le fichier en JSON incomplet contenant une nouvelle clé, puis vérifie que `keys` et `exported` conservent l'ancienne traduction pendant que la validation signale une erreur. Une correction valide remplace enfin l'export. Le consommateur du build peut donc lire des traductions périmées pendant une édition invalide. Décision attendue : conserver volontairement le dernier export valide ou vider les exports en cas d'erreur de parsing.
+
+## Réexports TypeScript absents du modèle Aventus
+
+- Reproduction automatisée : `ts-reexports-round148.test.mjs` parse un réexport nommé avec alias et un réexport wildcard, puis remplace le premier par un autre fichier. Dans les deux versions, le modèle ne contient ni objet exporté ni import local pour le symbole exposé, sans diagnostic ; une déclaration directe du même nom est bien indexée. `ParserTs.loadRoot()` ne traite pas les `ExportDeclaration`.
+- Décision à prendre : déterminer si les réexports doivent être pris en charge par le modèle Aventus et, dans ce cas, préciser la résolution des alias, des réexports wildcard et des cycles entre fichiers.
+
+## Deux alias directs vers le même package : inclusion dépendante de l'ordre
+
+- Reproduction automatisée : `dependency-duplicate-direct-aliases-round149.test.mjs` configure deux clés directes pointant vers le même fichier package, une avec `include: full`, l'autre avec `include: need`. Le résultat contient une seule instance du package, mais son type d'inclusion est celui de la dernière clé. Inverser l'ordre des propriétés inverse le résultat.
+- Cause : `loadDependenciesFromBuild()` stocke l'inclusion par le nom déclaré dans le package et écrase cette valeur à chaque dépendance directe chargée.
+- Décision à prendre : définir la priorité attendue quand deux noms de configuration résolvent le même package : refuser le doublon, conserver le premier, choisir l'inclusion la plus forte ou garder la dernière valeur.
+
+## Échec d'initialisation d'un projet : entrée conservée sans reprise
+
+- Reproduction automatisée : `project-discovery-concurrent-round151.test.mjs` fait échouer `Project.init()` après la création de l'entrée dans `ProjectManager`. Le projet reste dans le registre, son callback de suppression n'est pas enregistré et une nouvelle notification de découverte ne relance pas l'initialisation.
+- Cause : `ProjectManager.onNewFile()` ajoute le projet avant `await init()` et n'annule pas cet ajout quand la promesse rejette. L'enregistrement de `onDelete` se situe après cette attente.
+- Décision à prendre : retirer et détruire le projet lors d'un échec d'initialisation, ou conserver une instance réessayable avec un état explicite ; vérifier ensuite la reprise et la suppression.
+
+## Collision de tag entre deux composants dans les manifestes
+
+- Reproduction automatisée : `manifest-tag-collision-round152.test.mjs` enregistre deux composants distincts sous `demo-card`. Custom Elements, HTML Custom Data et Web Types contiennent chacun deux entrées portant le même tag ; Emmet conserve une seule clé. Retirer l'un des composants laisse correctement l'autre enregistré.
+- Cause : les générateurs conservent leurs contributions par URI et ne résolvent pas les collisions sur le nom du tag avant sérialisation.
+- Décision à prendre : définir si un tag doit être unique par build et, en cas de conflit, choisir le composant prioritaire ou produire un diagnostic au lieu de publier deux définitions ambiguës.
+
+## Création rapide : deux templates avec le même nom sélectionnent toujours le dernier
+
+- Reproduction automatisée : `quick-template-name-collision-round153.test.mjs` configure deux templates locaux de nom `Duplicate`, chacun avec un chemin et une description distincts. La sélection du premier élément affiché exécute le second template.
+- Cause : `QuickTemplate.run()` indexe les chemins par `template.name`, ce qui remplace le chemin du premier élément lorsque le second porte le même nom.
+- Décision à prendre : identifier les choix par chemin ou par identifiant unique afin que chaque sélection exécute le template affiché ; préciser si les noms identiques doivent être désambiguïsés dans la liste.

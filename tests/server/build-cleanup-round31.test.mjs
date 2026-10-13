@@ -56,9 +56,8 @@ test('static re-export after removing nested assets and SCSS refreshes survivors
     for (const output of outputs) {
         assert.equal(readFileSync(join(output, 'assets', 'retained.json'), 'utf8'), '{"version":2}');
         assert.equal(readFileSync(join(output, 'styles', 'retained.css'), 'utf8'), '.retained{color:blue}');
-        // Characterize the already documented absence of obsolete-output cleanup.
-        assert.equal(existsSync(join(output, 'assets', 'removed.svg')), true);
-        assert.equal(existsSync(join(output, 'styles', 'removed.css')), true);
+        assert.equal(existsSync(join(output, 'assets', 'removed.svg')), false);
+        assert.equal(existsSync(join(output, 'styles', 'removed.css')), false);
     }
     assert.equal(reloads, 2);
 });

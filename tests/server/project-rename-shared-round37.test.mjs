@@ -94,3 +94,40 @@ for (const kind of ['file', 'folder']) test(`two projects with shared TS sources
         /from "\.\/moved\.lib\.avt"/ : /from "\.\/modern\/base\.lib\.avt"/);
     assert.equal(readFileSync(newPath, 'utf8'), 'export class Base {}');
 });
+
+test('a project aggregates rename edits from builds with disjoint TypeScript consumers', async t => {
+    const root = mkdtempSync(join(process.cwd(), 'aventus-project-rename-disjoint-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+    const oldPath = join(root, 'shared.lib.avt');
+    const newPath = join(root, 'renamed.lib.avt');
+    const oldUri = pathToFileURL(oldPath).href;
+    const newUri = pathToFileURL(newPath).href;
+    const previousFiles = FilesManager.getInstance;
+    const previousServer = GenericServer.instance;
+    const allFiles = {};
+    FilesManager.getInstance = () => ({ getByUri: uri => allFiles[uri] });
+    GenericServer.instance = { logLevel: 4, _extensionPath: process.cwd() };
+    t.after(() => { FilesManager.getInstance = previousFiles; GenericServer.instance = previousServer; });
+
+    const project = Object.create(Project.prototype);
+    project.builds = [];
+    for (const name of ['first', 'second']) {
+        const consumerUri = pathToFileURL(join(root, name, 'consumer.lib.avt')).href;
+        const target = sourceFile(oldUri, 'export class Shared {}');
+        const consumer = sourceFile(consumerUri,
+            'import { Shared } from "../shared.lib.avt";\nexport class Consumer extends Shared {}');
+        allFiles[consumerUri] = consumer;
+        const build = Object.create(Build.prototype);
+        build.tsLanguageService = serviceFor({ [oldUri]: target, [consumerUri]: consumer });
+        project.builds.push(build);
+    }
+    const manager = Object.create(ProjectManager.prototype);
+    manager.projects = { only: project };
+    const edits = await manager.onRename([{ oldUri, newUri }]);
+    assert.equal(Object.keys(edits).length, 2);
+    for (const [uri, file] of Object.entries(allFiles)) {
+        assert.equal(edits[uri].length, 1);
+        assert.equal(applyEdits(file.contentUser, file.documentInternal, edits[uri]),
+            'import { Shared } from "../renamed.lib.avt";\nexport class Consumer extends Shared {}');
+    }
+});

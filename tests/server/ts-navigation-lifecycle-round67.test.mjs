@@ -128,3 +128,20 @@ test('navigation TS: completion, hover et renommage suivent plusieurs usages apr
         assert.ok(Object.values(edits.changes).flat().every(edit => edit.newText === 'dispatch'));
     } finally { f.dispose(); }
 });
+
+test('navigation TS: le renommage inter-fichiers suit le remplacement d’un symbole local homonyme', async () => {
+    const f = fixture();
+    try {
+        const thirdUri = f.ownerUri.replace('owner.lib.avt', 'third.lib.avt');
+        f.refresh(thirdUri, 'function use(Shared: { send(): string }) { return Shared.send(); }');
+        f.service.filesNeeded.push(thirdUri);
+        const first = await f.service.onRename(f.files[f.consumerUri].file, f.position(), 'dispatch');
+        assert.deepEqual(new Set(Object.keys(first?.changes ?? {})), new Set([f.ownerUri, f.consumerUri]));
+        f.refresh(thirdUri, 'Shared.send("third");');
+        const third = f.files[thirdUri].file.documentInternal;
+        const second = await f.service.onRename(f.files[f.consumerUri].file, f.position(), 'dispatch');
+        assert.deepEqual(new Set(Object.keys(second?.changes ?? {})), new Set([f.ownerUri, f.consumerUri, thirdUri]));
+        assert.deepEqual(second.changes[thirdUri].map(edit => third.getText(edit.range)), ['send']);
+        assert.ok(Object.values(second.changes).flat().every(edit => edit.newText === 'dispatch'));
+    } finally { f.dispose(); }
+});
