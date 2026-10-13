@@ -5,7 +5,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 ## Scénarios d'intégration encore ouverts
 
 - `files-real-watcher-rename.test.mjs` vérifie avec un watcher disque réel qu'un renommage retire l'ancien URI, mais ne découvre pas le nouveau chemin : le watcher ne surveille que les fichiers déjà connus. Le comportement souhaité pour les références et la sortie du build après un renommage externe reste à définir.
-- Les composants HTML enregistrés dynamiquement et leurs interactions avec les builds restent à couvrir. Le chargement isolé du service HTML en bundle CommonJS échoue sur une dépendance circulaire ; cela ne démontre pas un défaut à l'exécution du serveur.
 - Le test HTTP de traversée de chemin confirme l'absence de divulgation ; le middleware journalise toutefois `ForbiddenError` sur stderr. Décider si ce journal est acceptable.
 - La génération Storybook est testée au niveau des titres et contenus MDX/stories. La copie complète des ressources depuis l'extension et la mise à jour après suppression demandent une fixture intégrée.
 - Les scénarios TypeScript avec plusieurs vrais fichiers et le service LSP complet restent à couvrir avec un banc d'intégration. Le chargement direct de `ParserTs.ts` en bundle CommonJS échoue sur l'ordre d'une dépendance circulaire ; le chargement conjoint de `FileSelector.ts` et `ParserTs.ts` fonctionne et sert déjà aux tests du modèle.
