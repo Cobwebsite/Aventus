@@ -251,6 +251,11 @@ export class HttpServer {
 
 			function error(err) {
 				if (err.status === 404) return next();
+				if (err.status === 403) {
+					res.statusCode = 403;
+					res.end('Forbidden');
+					return;
+				}
 				next(err);
 			}
 
