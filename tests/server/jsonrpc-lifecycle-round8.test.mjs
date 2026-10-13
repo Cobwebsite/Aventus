@@ -230,6 +230,67 @@ test('real LSP workspace discovers a configured TypeScript source and writes its
     }
 });
 
+test('real LSP project compiles a component view and SCSS, then refreshes CSS after an edit', { timeout: 30_000 }, async () => {
+    const lsp = await startServer();
+    try {
+        mkdirSync(join(lsp.dir, 'src'));
+        const outputPath = join(lsp.dir, 'dist', 'app.js');
+        const stylePath = join(lsp.dir, 'src', 'card.wcs.avt');
+        writeFileSync(join(lsp.dir, 'aventus.conf.avt'), JSON.stringify({
+            module: 'Demo', build: [{ name: 'web', src: ['./src'],
+                compile: [{ output: './dist/app.js' }] }],
+        }));
+        writeFileSync(join(lsp.dir, 'src', 'card.wcl.avt'),
+            '@TagName("demo-card") export class Card extends Aventus.WebComponent implements Aventus.DefaultComponent {}');
+        writeFileSync(join(lsp.dir, 'src', 'card.wcv.avt'), '<div class="card">Hello</div>');
+        writeFileSync(stylePath, '$tone: red; .card { color: $tone; }');
+        const initialized = lsp.next(message => message.id === 30);
+        lsp.send({ id: 30, method: 'initialize', params: {
+            processId: process.pid, rootUri: pathToFileURL(lsp.dir).href,
+            workspaceFolders: [{ uri: pathToFileURL(lsp.dir).href, name: 'fixture' }],
+            capabilities: { workspace: { configuration: true } },
+            initializationOptions: { savePath: lsp.dir, extensionPath: root },
+        } });
+        assert.equal((await initialized).error, undefined);
+        lsp.send({ method: 'initialized', params: {} });
+        const settings = await lsp.next(message => message.method === 'workspace/configuration');
+        lsp.send({ id: settings.id, result: [{
+            loadFiles: true, watchFiles: false, useTemplates: false, useCompilators: true,
+        }] });
+        const html = await lsp.next(message => message.method === 'workspace/configuration');
+        lsp.send({ id: html.id, result: [{ customData: [] }] });
+        await lsp.next(message => message.method === 'aventus/compiled'
+            && message.params?.[0]?.[0] === 'Demo@web');
+        // Use the URI registered during workspace discovery for later document notifications.
+        const styleUri = (await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
+            && decodeURIComponent(message.params.uri).toLowerCase() ===
+                decodeURIComponent(pathToFileURL(stylePath).href).toLowerCase())).params.uri;
+        const first = readFileSync(outputPath, 'utf8');
+        assert.match(first, /Card/);
+        assert.match(first, /color:red/);
+        assert.match(first, /Hello/);
+
+        lsp.send({ method: 'textDocument/didOpen', params: { textDocument: {
+            uri: styleUri, languageId: 'Aventus SCSS', version: 1,
+            text: '$tone: red; .card { color: $tone; }',
+        } } });
+        lsp.send({ method: 'textDocument/didChange', params: {
+            textDocument: { uri: styleUri, version: 2 },
+            contentChanges: [{ text: '$tone: blue; .card { color: $tone; }' }],
+        } });
+        await new Promise(resolve => setTimeout(resolve, 700));
+        const compiled = lsp.next(message => message.method === 'aventus/compiled'
+            && message.params?.[0]?.[0] === 'Demo@web');
+        lsp.send({ method: 'textDocument/didSave', params: { textDocument: { uri: styleUri } } });
+        await compiled;
+        const updated = readFileSync(outputPath, 'utf8');
+        assert.match(updated, /color:blue/);
+        assert.doesNotMatch(updated, /color:red/);
+    } finally {
+        await lsp.close();
+    }
+});
+
 test('real LSP process answers every advertised document request for a missing file', { timeout: 30_000 }, async () => {
     const lsp = await startServer();
     try {
