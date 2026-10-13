@@ -259,8 +259,8 @@ export class TagInfo {
 			newChanges[newKey] = this.changes[key];
 		}
 		this.changes = newChanges;
-		
-		if(this.ifInfo) {
+
+		if (this.ifInfo) {
 			this.ifInfo._id = this.ifInfo._id.replace(this.idBase, newIdBase);
 		}
 
@@ -579,7 +579,8 @@ export class AttributeInfo {
 
 		}
 		else {
-			let result = parseTxt(value, this.valueStart, this.tag.tagName, this.name);
+			const expressionStart = ParserHtml.fromCompiledToRaw(valueStart + (value.startsWith('"') ? 1 : 0));
+			let result = parseTxt(value, expressionStart, this.tag.tagName, this.name);
 			this.changes = result.changes;
 			if (result.changes.length > 0) {
 				this.tag.addChanges(this.name, result.txt, result.once);

@@ -35,7 +35,7 @@ test('identical HTML expressions on distinct attributes retain their own typed a
             assert.equal(action.txt, 'value');
             assert.equal(action.tagName, 'demo-card');
             assert.equal(action.positions.length, 1);
-            assert.equal(source.slice(action.positions[0].start + 1, action.positions[0].end + 1), '{{value}}');
+            assert.equal(source.slice(action.positions[0].start, action.positions[0].end), '{{value}}');
         }
     }
 });
@@ -45,6 +45,6 @@ test('repeated expression on the same HTML attribute shares one action with two 
     const actions = Object.values(fixture(source).parse().fcts);
     assert.equal(actions.length, 1);
     assert.equal(actions[0].attributeName, 'title');
-    assert.deepEqual(actions[0].positions.map(position => source.slice(position.start + 1, position.end + 1)), ['{{value}}', '{{value}}']);
+    assert.deepEqual(actions[0].positions.map(position => source.slice(position.start, position.end)), ['{{value}}', '{{value}}']);
     assert.notEqual(actions[0].positions[0].start, actions[0].positions[1].start);
 });
