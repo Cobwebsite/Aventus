@@ -579,8 +579,14 @@ export class DependencyManager {
 		if (!info) {
 			return undefined;
 		}
-		this.loadedPackages[info.name] = new AventusPackageFile(file, build)
-		return this.loadedPackages[info.name];
+		const packageFile = new AventusPackageFile(file, build);
+		this.loadedPackages[info.name] = packageFile;
+		file.onDelete(async () => {
+			if (this.loadedPackages[info.name] === packageFile) {
+				delete this.loadedPackages[info.name];
+			}
+		});
+		return packageFile;
 	}
 
 	private downloadFile(fileUri: string, httpUri: string): Promise<boolean> {
