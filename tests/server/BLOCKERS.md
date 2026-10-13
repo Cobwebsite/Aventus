@@ -2,20 +2,15 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Scénarios d'intégration encore ouverts
+## Note hors périmètre des tests serveur
 
-- `files-real-watcher-rename.test.mjs` vérifie avec un watcher disque réel qu'un renommage retire l'ancien URI, mais ne découvre pas le nouveau chemin : le watcher ne surveille que les fichiers déjà connus. Le comportement souhaité pour les références et la sortie du build après un renommage externe reste à définir.
+- `client/src/cmds/Rename.ts` transmet `item.oldUri` dans le champ `newUri` de la commande `aventus.rename`. À traiter plus tard avec les tests du client VS Code ; ne pas modifier le client pendant cette passe.
 
 ## Découverte avec `readDirs` dans le répertoire temporaire du sandbox Windows
 
 - Source à examiner si nécessaire : `server/src/files/FilesManager.ts`, méthode `parseWorkspace`.
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
-
-## Cache de package conservé après suppression du fichier
-
-- Reproduction automatisée : `file-type-recreation-round55.test.mjs` charge un fichier `.package`, le supprime via `triggerDelete()`, puis constate que `DependencyManager.loadedPackages['Demo@web']` référence encore l'ancien objet. Un nouveau chargement remplace l'entrée.
-- Décision à prendre : invalider immédiatement le cache au retrait du package, ou documenter sa validité jusqu'au prochain chargement ; vérifier alors les imports et dépendances entre ces deux événements.
 
 ## Seconde préparation d'un même template bloquée
 

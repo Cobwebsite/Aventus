@@ -73,7 +73,8 @@ test('dependency manager selects a package file and replaces its named cache ent
         assert.equal(selected.constructor.name, 'AventusPackageFile');
         assert.equal(current.loadedPackages['Demo@web'], selected);
         await first.triggerDelete();
-        assert.equal(current.loadedPackages['Demo@web'], selected);
+        assert.equal(current.loadedPackages['Demo@web'], undefined);
+        assert.deepEqual(current.packages, []);
 
         const replacement = new InternalAventusFile(TextDocument.create(uri, 'Aventus Ts', 2, content));
         const selectedAgain = current.loadPackage(replacement, target);
@@ -81,6 +82,16 @@ test('dependency manager selects a package file and replaces its named cache ent
         assert.notEqual(selectedAgain, selected);
         assert.equal(current.loadedPackages['Demo@web'], selectedAgain);
         await replacement.triggerDelete();
+        assert.equal(current.loadedPackages['Demo@web'], undefined);
+
+        const older = new InternalAventusFile(TextDocument.create(uri, 'Aventus Ts', 3, content));
+        current.loadPackage(older, target);
+        const newer = new InternalAventusFile(TextDocument.create(uri, 'Aventus Ts', 4, content));
+        const latest = current.loadPackage(newer, target);
+        await older.triggerDelete();
+        assert.equal(current.loadedPackages['Demo@web'], latest);
+        await newer.triggerDelete();
+        assert.equal(current.loadedPackages['Demo@web'], undefined);
     } finally {
         GenericServer.instance = previous;
     }
