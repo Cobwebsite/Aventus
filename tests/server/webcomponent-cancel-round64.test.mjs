@@ -87,7 +87,7 @@ test('CSS variable creation accepts a canceled optional default as an empty fall
     }
 });
 
-test('CSS variable creation currently loses an initial lowercase camelCase segment', async () => {
+test('CSS variable creation preserves the initial lowercase camelCase segment', async () => {
     const uri = 'file:///Button.wcs.avt';
     const file = new InternalAventusFile(TextDocument.create(uri, 'scss', 1, '_'));
     const previousServer = GenericServer.instance;
@@ -103,7 +103,7 @@ test('CSS variable creation currently loses an initial lowercase camelCase segme
     FilesManager.instance = { getByUri: () => file };
     try {
         await Commands.allCommandes['aventus.wc.create.cssvar'].run(uri, 0);
-        assert.equal(file.contentUser, '--_button-color: var(--button-color);');
+        assert.equal(file.contentUser, '--_button-primary-color: var(--button-primary-color);');
     } finally {
         clearTimeout(file.delayValidate);
         GenericServer.instance = previousServer;

@@ -29,8 +29,9 @@ export class CreateCSSVariable {
 
 		let file = FilesManager.getInstance().getByUri(uri);
 		if (file) {
+			const words = /[A-Z]?[a-z]+|[A-Z]+(?![a-z])|[0-9]+[a-z]*/g;
 			let fileName = file.name.match(/([A-Z][a-z]*)|([0-9]+[a-z]*)/g)?.join("-").toLowerCase() ?? file.name;
-			let variableName = name.match(/([A-Z][a-z]*)|([0-9]+[a-z]*)/g)?.join("-").toLowerCase() ?? name;
+			let variableName = name.match(words)?.join("-").toLowerCase() ?? name;
 
 			let defaultValueVar = defaultValue ? ", " + defaultValue : '';
 
