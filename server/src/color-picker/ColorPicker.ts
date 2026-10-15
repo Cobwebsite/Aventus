@@ -6,6 +6,8 @@ import { parseComponentValue } from '@csstools/css-parser-algorithms';
 import { tokenize } from '@csstools/css-tokenizer';
 import { ColorNotation, colorData_to_XYZ_D50, toPrecision, XYZ_D50_to_sRGB_Gamut } from './ColorData';
 import { GenericServer } from '../GenericServer';
+import { AventusLanguageId } from '../definition';
+import { getLanguageIdByUri } from '../tools';
 
 
 interface Match {
@@ -32,7 +34,7 @@ export class ColorPicker {
 				return null;
 			}
 			let srgb = colorData.channels;
-			if(colorData.colorNotation !== ColorNotation.RGB) {
+			if (colorData.colorNotation !== ColorNotation.RGB) {
 				srgb = XYZ_D50_to_sRGB_Gamut(colorData_to_XYZ_D50(colorData).channels);
 			}
 			const r = Math.min(255, Math.max(0, Math.round(toPrecision(srgb[0]) * 255)));
@@ -57,16 +59,26 @@ export class ColorPicker {
 		const lastNewline = before.lastIndexOf('\n');
 		return Position.create(lineNumber, index - lastNewline - 1);
 	}
-	private static maskCommentsAndStrings(text: string): string {
+	private static maskCommentsAndStrings(text: string, languageId: string): string {
 		const masked = text.split('');
-		let state: 'code' | 'comment' | 'string' = 'code';
+		let state: 'code' | 'comment' | 'lineComment' | 'string' = 'code';
 		let quote = '';
+		let inUrl = false;
 		for (let i = 0; i < text.length; i++) {
 			const current = text[i];
 			const next = text[i + 1];
 			if (state === 'code') {
-				if (current === '/' && next === '*') {
+				if (!inUrl && text.slice(i, i + 4).toLowerCase() === 'url(' &&
+					(i === 0 || !/[\w-]/.test(text[i - 1]))) {
+					inUrl = true;
+					i += 3;
+				} else if (inUrl && current === ')') {
+					inUrl = false;
+				} else if (current === '/' && next === '*') {
 					state = 'comment';
+					masked[i] = masked[++i] = ' ';
+				} else if (languageId == AventusLanguageId.SCSS && !inUrl && current === '/' && next === '/' && text[i - 1] !== ':') {
+					state = 'lineComment';
 					masked[i] = masked[++i] = ' ';
 				} else if (current === '"' || current === "'") {
 					state = 'string';
@@ -75,7 +87,9 @@ export class ColorPicker {
 				}
 			} else {
 				masked[i] = current === '\n' || current === '\r' ? current : ' ';
-				if (state === 'comment' && current === '*' && next === '/') {
+				if (state === 'lineComment' && current === '\n') {
+					state = 'code';
+				} else if (state === 'comment' && current === '*' && next === '/') {
 					masked[++i] = ' ';
 					state = 'code';
 				} else if (state === 'string' && current === '\\') {
@@ -88,9 +102,9 @@ export class ColorPicker {
 		return masked.join('');
 	}
 
-	static getMatches(text: string): Match[] {
+	static getMatches(text: string, languageId: string): Match[] {
 		let result: Match[] = [];
-		const searchable = this.maskCommentsAndStrings(text);
+		const searchable = this.maskCommentsAndStrings(text, languageId);
 		const candidates: { index: number, value: string }[] = [];
 		for (const match of searchable.matchAll(/#(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})\b/gi)) {
 			candidates.push({ index: match.index, value: match[0] });
@@ -175,7 +189,7 @@ export class ColorPicker {
 	}
 
 	static onDocumentColor(document: TextDocument) {
-		const matches = ColorPicker.getMatches(document.getText());
+		const matches = ColorPicker.getMatches(document.getText(), getLanguageIdByUri(document.uri));
 
 		return matches.map(match => ColorInformation.create(
 			match.range,

@@ -31,11 +31,22 @@ test('color positions account for CRLF and UTF-16 characters before a match', ()
     });
 });
 
-test('SCSS line comments currently leak colors into document color information', () => {
-    const source = '// #f00 blue\n.x { color: #00f; }';
+test('SCSS line comments are ignored without hiding colors after URLs or edits', () => {
+    const source = '// #f00 blue\n.x { background: url(//cdn.example/icon.svg); color: #00f; }';
     const document = TextDocument.create('file:///line-comment.scss', 'scss', 1, source);
     const found = ColorPicker.onDocumentColor(document);
 
-    assert.deepEqual(found.map(item => document.getText(item.range)), ['#f00', '#00f', 'blue']);
-    assert.deepEqual(found.map(item => item.range.start.line), [0, 1, 0]);
+    assert.deepEqual(found.map(item => document.getText(item.range)), ['#00f']);
+    assert.deepEqual(found[0].range.start, { line: 1, character: source.split('\n')[1].indexOf('#00f') });
+
+    TextDocument.update(document, [{ text: '/* #f00 */ .x { background: url(https://cdn.example/icon.svg); color: blue; } // #0f0' }], 2);
+    const updated = ColorPicker.onDocumentColor(document);
+    assert.deepEqual(updated.map(item => document.getText(item.range)), ['blue']);
+    assert.deepEqual(updated[0].range.start, { line: 0, character: document.getText().indexOf('blue') });
+});
+
+test('Aventus global styles use SCSS line comments', () => {
+    const document = TextDocument.create('file:///theme.gs.avt', 'aventus', 1,
+        '// #f00\n.x { color: #00f; }');
+    assert.deepEqual(ColorPicker.onDocumentColor(document).map(item => document.getText(item.range)), ['#00f']);
 });

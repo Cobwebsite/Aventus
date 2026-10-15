@@ -85,13 +85,16 @@ export function getLanguageIdByUri(uri: string) {
             return getLanguageIdByExtension(AventusExtension[key]);
         }
     }
+    if(uri.endsWith(".scss")) {
+        return AventusLanguageId.SCSS;
+    }
     return ''
 }
 export function getLanguageIdByExtension(extension: AventusExtensionValues) {
-    if (extension == ".wcv.avt") {
+    if (extension == AventusExtension.ComponentView) {
         return AventusLanguageId.HTML;
     }
-    else if (extension == ".wcs.avt") {
+    else if (extension == AventusExtension.ComponentStyle || extension == AventusExtension.GlobalStyle) {
         return AventusLanguageId.SCSS;
     }
     return AventusLanguageId.TypeScript;
@@ -359,19 +362,19 @@ export function setValueToObject(path: string, obj: any, value: any) {
 
 }
 export function getValueFromObject(path: string, obj: any) {
-    if(path === undefined) {
+    if (path === undefined) {
         path = '';
     }
     // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
 
     // If path is empty, return the entire object
-    if(path == "") {
+    if (path == "") {
         return obj;
     }
 
     const val = (key: string) => {
-        if(obj instanceof Map) {
+        if (obj instanceof Map) {
             return obj.get(key);
         }
         return obj[key];
@@ -381,16 +384,16 @@ export function getValueFromObject(path: string, obj: any) {
     let splitted = path.split(".");
 
     // Traverse the object along the path
-    for(let i = 0; i < splitted.length - 1; i++) {
+    for (let i = 0; i < splitted.length - 1; i++) {
         let split = splitted[i];
         let value = val(split);
         // If the current segment of the path does not exist in the object or is not an object, return undefined
-        if(!value || typeof value !== 'object') {
+        if (!value || typeof value !== 'object') {
             return undefined;
         }
         obj = value;
     }
-    if(!obj || typeof obj !== 'object') {
+    if (!obj || typeof obj !== 'object') {
         return undefined;
     }
     // Return the value at the last segment of the path
