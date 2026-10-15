@@ -37,7 +37,7 @@ test('les diagnostics de surcharge distante suivent signatures, plages et correc
     };
     try {
         let errors = diagnostics();
-        assert.deepEqual(errors.map(({ code, text, line }) => [code, text, line]), [[undefined, 'true', 0]]);
+        assert.deepEqual(errors.map(({ code, text, line }) => [code, text, line]), [[2769, 'true', 0]]);
         assert.match(errors[0].message, /overload/i);
 
         edit(modelUri, 'namespace Conversion { export function parse(value: string): string; export function parse(value: number): number; export function parse(value: boolean): boolean; export function parse(value: string | number | boolean): string | number | boolean { return value; } }');
@@ -46,7 +46,7 @@ test('les diagnostics de surcharge distante suivent signatures, plages et correc
         edit(modelUri, 'namespace Conversion { export function parse(value: string): string; export function parse(value: number): number; export function parse(value: string | number): string | number { return value; } }');
         edit(userUri, '\n\nconst result = Conversion.parse(true);');
         errors = diagnostics();
-        assert.deepEqual(errors.map(({ code, text, line }) => [code, text, line]), [[undefined, 'true', 2]]);
+        assert.deepEqual(errors.map(({ code, text, line }) => [code, text, line]), [[2769, 'true', 2]]);
 
         edit(userUri, '\n\nconst result = Conversion.parse(42);');
         assert.deepEqual(diagnostics(), []);

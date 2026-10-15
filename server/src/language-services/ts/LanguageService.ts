@@ -292,6 +292,7 @@ export class AventusTsLanguageService {
                         range: convertRange(file.documentInternal, diag),
                         severity: DiagnosticSeverity.Hint,
                         source: AventusLanguageId.TypeScript,
+                        code: diag.code,
                         message: msg,
                         tags: [DiagnosticTag.Unnecessary]
                     })
@@ -301,6 +302,7 @@ export class AventusTsLanguageService {
                         range: convertRange(file.documentInternal, diag),
                         severity: DiagnosticSeverity.Error,
                         source: AventusLanguageId.TypeScript,
+                        code: diag.code,
                         message: msg,
                     })
                 }
