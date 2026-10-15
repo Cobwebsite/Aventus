@@ -134,6 +134,7 @@ export class NpmBuilder {
 
 	private npmBuildTxt: string = "";
 	private npmDepBuildTxt: { result: string, errors: BuildErrors } = { result: "", errors: [] };
+	private compiling?: Promise<{ result: string, errors: BuildErrors }>;
 	private lastDependencies: string = "";
 	private getDependencies(): string {
 		try {
@@ -147,6 +148,19 @@ export class NpmBuilder {
 		}
 	}
 	public async compile(): Promise<{ result: string, errors: BuildErrors }> {
+		if (this.compiling) {
+			await this.compiling;
+			return await this.compile();
+		}
+		const compiling = this.compileCurrent();
+		this.compiling = compiling;
+		try {
+			return await compiling;
+		} finally {
+			if (this.compiling === compiling) this.compiling = undefined;
+		}
+	}
+	private async compileCurrent(): Promise<{ result: string, errors: BuildErrors }> {
 
 		if (Object.keys(this.infos).length == 0) {
 			this.lastInfo = "";

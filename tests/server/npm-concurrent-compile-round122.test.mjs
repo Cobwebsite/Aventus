@@ -6,7 +6,7 @@ const [{ NpmBuilder }, { GenericServer }] = await loadServerModules([
     'project/BuildNpm.ts', 'GenericServer.ts',
 ]);
 
-test('concurrent npm compile can return an empty result while the first bundle is pending', async t => {
+test('concurrent npm compile waits for the first bundle instead of returning an empty result', async t => {
     const previous = GenericServer.instance;
     GenericServer.instance = { logLevel: 0, connection: { sendNotification() {} } };
     t.after(() => { GenericServer.instance = previous; });
@@ -22,11 +22,17 @@ test('concurrent npm compile can return an empty result while the first bundle i
 
     const first = builder.compile();
     assert.equal(calls, 1);
-    const overlapping = await builder.compile();
-    assert.deepEqual(overlapping, { result: '', errors: [] });
+    let secondSettled = false;
+    const overlapping = builder.compile().then(result => {
+        secondSettled = true;
+        return result;
+    });
+    await Promise.resolve();
+    assert.equal(secondSettled, false);
 
     finishBuild({ result: '/* bundled Widget */', errors: [] });
     const completed = await first;
+    assert.deepEqual(await overlapping, completed);
     assert.match(completed.result, /bundled Widget/);
     assert.match(completed.result, /npmCompilation/);
     assert.equal(calls, 1);

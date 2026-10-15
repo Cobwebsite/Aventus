@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Compilation npm concurrente renvoyant une sortie vide
-
-- Reproduction automatisée : `npm-concurrent-compile-round122.test.mjs` lance deux appels à `NpmBuilder.compile()` avec les mêmes imports avant la fin d'esbuild. Le second renvoie `{ result: '', errors: [] }` ; le premier renvoie ensuite le bundle attendu.
-- Cause : `compile()` enregistre `lastInfo` avant d'attendre `esbuildBuild()`. L'appel concurrent voit les imports inchangés et renvoie `npmBuildTxt`, encore vide.
-- Décision à prendre : partager la promesse de compilation en cours avec les appels concurrents, puis publier le même résultat une fois le bundle terminé.
-
 ## Réponse de configuration ancienne appliquée après une notification plus récente
 
 - Reproduction automatisée : `protocol-settings-race-round123.test.mjs` émet deux notifications de configuration, résout la seconde requête de paramètres avant la première, puis constate l'application des niveaux de journalisation dans l'ordre `1, 4`. La réponse ancienne écrase donc la configuration récente.
