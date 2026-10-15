@@ -1,11 +1,5 @@
 # Cas serveur en attente de changement de code
 
-## Code TypeScript absent des diagnostics du service
-
-- Reproduction automatisée : `ts-overload-diagnostics-round240.test.mjs` produit une erreur de surcharge entre deux fichiers, la retire en ajoutant une signature, puis la fait revenir en retirant celle-ci. Le message et la plage suivent les révisions, mais `Diagnostic.code` reste `undefined` même pour cette erreur TS2769.
-- Source : `server/src/language-services/ts/LanguageService.ts`, méthode `doValidation`, recopie le message, la plage, la sévérité et la source des diagnostics TypeScript sans recopier `diag.code`.
-- Décision à prendre : déterminer si l'API LSP doit exposer le code TypeScript, puis ajouter `code: diag.code` aux diagnostics syntaxiques et sémantiques si oui.
-
 ## Abonnement au watcher marqué actif après un échec
 
 - Reproduction automatisée : `files-watcher-add-failure-round238.test.mjs` fait échouer `FSWatcher.add` de façon synchrone. `FilesWatcher.watch` conserve alors l'URI dans `watcheUris` ; un nouvel appel ne transmet rien au watcher, même une fois celui-ci rétabli. Seul un `unwatch` explicite suivi de `watch` permet une nouvelle tentative.
