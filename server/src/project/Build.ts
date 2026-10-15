@@ -978,6 +978,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 finalPackage.name = packageJson.name;
                 finalPackage.displayName = packageJson.displayName;
                 finalPackage.version = packageJson.version;
+                finalPackage.dependencies = packageJson.dependencies;
                 await this.writeFile(packageJsonPath, JSON.stringify(finalPackage, null, 2));
             }
         }

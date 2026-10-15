@@ -7,7 +7,7 @@ import { loadServerModules } from './helpers/load-ts.mjs';
 
 const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
 
-test('npm metadata rebuild retains stale dependencies after a dependency is removed', async t => {
+test('npm metadata rebuild removes stale dependencies and updates versions', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-metadata-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const previous = GenericServer.instance;
@@ -44,5 +44,5 @@ test('npm metadata rebuild retains stale dependencies after a dependency is remo
     await build.writeBuildNpm(options, result);
     const metadata = JSON.parse(readFileSync(join(output, 'package.json'), 'utf8'));
     assert.equal(metadata.name, '@demo/web');
-    assert.deepEqual(metadata.dependencies, { '@demo/first': '~1.2.0', '@demo/second': '^2.0.0' });
+    assert.deepEqual(metadata.dependencies, { '@demo/second': '^3.0.0' });
 });

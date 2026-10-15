@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Dépendances npm périmées dans le package généré après rebuild
-
-- Reproduction automatisée : `npm-metadata-rebuild-round89.test.mjs` génère un `package.json` avec deux dépendances, retire la première et change la version de la seconde, puis régénère le package. Le fichier de sortie conserve les deux anciennes valeurs. `npm-package-json-revision-round173.test.mjs` confirme ce comportement dans deux destinations, même lorsque la version du build et le `package.json` source changent ; les champs utilisateur des sorties restent conservés.
-- Source : `server/src/project/Build.ts`, `writeBuildNpm()` fusionne `{ ...packageJson, ...oldPackage }` et ne réécrit ensuite que `name`, `displayName` et `version`. L'ancien champ `dependencies` écrase donc le calcul du build courant.
-- Décision à prendre : déterminer quelles métadonnées du package de sortie sont conservées lors d'un rebuild et faire prévaloir la liste de dépendances actuelle sur les valeurs générées précédemment.
-
 ## Export statique SCSS : répertoire nommé `.scss` réécrit à la place du fichier
 
 - Reproduction automatisée : `static-scss-directory-round96.test.mjs` exporte `input/theme.scss/main.scss`. Le CSS est écrit dans `output/theme.css/main.scss` puis mis à jour à cet endroit, alors que `output/theme.scss/main.css` n'existe pas.

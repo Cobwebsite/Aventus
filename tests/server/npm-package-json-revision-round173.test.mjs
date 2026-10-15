@@ -57,7 +57,6 @@ test('npm package manifests retain user fields across dependency and version rev
         assert.equal(pkg.version, '1.1.0');
         assert.deepEqual(pkg.scripts, { check: 'node --check index.js' });
         assert.equal(pkg.private, true);
-        // Existing output dependencies currently override the freshly resolved set.
-        assert.deepEqual(pkg.dependencies, { '@example/alpha': '~1.2.0', '@example/beta': '^2.0.0' });
+        assert.deepEqual(pkg.dependencies, { '@example/alpha': '~1.3.0' });
     }
 });
