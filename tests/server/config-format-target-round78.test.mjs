@@ -81,27 +81,23 @@ test('add config section cancels at project or name prompt without writing', asy
     }
 });
 
-test('add config section with no discovered configuration reports its current lookup failure', async () => {
+test('add config section with no discovered configuration warns the client', async () => {
     const previousManager = ProjectManager.getInstance;
     const previousServer = GenericServer.instance;
-    const previousError = console.error;
-    const errors = [];
+    const warnings = [];
     const prompts = [];
     ProjectManager.getInstance = () => ({ getAllConfigFiles: () => [] });
     GenericServer.instance = { logLevel: 4, connection: {
         Select: async (...args) => prompts.push(args),
+        showWarningMessage: message => warnings.push(message),
     } };
-    console.error = error => errors.push(error);
     try {
         await AddConfigSection.run();
-        assert.equal(errors.length, 1);
-        assert.ok(errors[0] instanceof TypeError);
-        assert.match(errors[0].message, /label/);
+        assert.deepEqual(warnings, ['No Aventus configuration was found.']);
         assert.deepEqual(prompts, []);
     } finally {
         ProjectManager.getInstance = previousManager;
         GenericServer.instance = previousServer;
-        console.error = previousError;
     }
 });
 
