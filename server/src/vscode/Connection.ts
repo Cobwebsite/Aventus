@@ -102,8 +102,8 @@ export class VsCodeConnection implements IConnection {
 		this._connection.onInitialize((params: InitializeParams) => {
 			cb({
 				workspaceFolders: params.workspaceFolders ?? null,
-				savePath: params.initializationOptions.savePath,
-				extensionPath: params.initializationOptions.extensionPath,
+				savePath: params.initializationOptions?.savePath,
+				extensionPath: params.initializationOptions?.extensionPath,
 				isIDE: true,
 			})
 			return {

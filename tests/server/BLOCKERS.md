@@ -18,11 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Initialisation LSP impossible sans `initializationOptions`
-
-- Reproduction automatisée : `protocol-initialize-options-round115.test.mjs` appelle le handler `initialize` avec `workspaceFolders: null` et sans `initializationOptions`. Une `TypeError` est levée avant le callback du serveur ; le même handler accepte un nouvel essai contenant les options.
-- Cause : `VsCodeConnection.onInitialize()` lit directement `params.initializationOptions.savePath` et `.extensionPath` sans valeur par défaut.
-- Décision à prendre : définir le comportement pour un client LSP qui n'envoie pas d'options d'initialisation, puis fournir des valeurs par défaut ou une erreur de protocole explicite.
 ## Session Store conservée après HTTP 401
 
 - Reproduction automatisée : `store-unauthorized-session-round117.test.mjs` part d'un token enregistré. Une réponse HTTP 401 renvoie `No token provided`, mais `Store.isConnected` reste vrai ; une deuxième requête réutilise le même bearer et peut réussir.
