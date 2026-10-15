@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Export statique SCSS : répertoire nommé `.scss` réécrit à la place du fichier
-
-- Reproduction automatisée : `static-scss-directory-round96.test.mjs` exporte `input/theme.scss/main.scss`. Le CSS est écrit dans `output/theme.css/main.scss` puis mis à jour à cet endroit, alors que `output/theme.scss/main.css` n'existe pas.
-- Source : `server/src/project/Static.ts`, `copyFile()` applique `pathOut.replace(".scss", ".css")`, qui remplace la première occurrence du chemin complet plutôt que l'extension du nom de fichier.
-- Décision à prendre : remplacer uniquement l'extension du fichier de sortie et vérifier les chemins contenant `.scss` dans les répertoires, sur plusieurs destinations et après édition.
-
 ## `@StoryValue` textuel rend la story d'un WebComponent invalide
 
 - Reproduction automatisée : `storybook-component-storyvalue-round98.test.mjs` parse un vrai composant avec `@Attribute() @StoryValue("First title")`, compile ses contrôles puis écrit la story. Le parseur transmet `First title` sans guillemets à `storyArgs.title` ; la sortie contient `"title":First title` et TypeScript signale une erreur de syntaxe. Une édition vers `"Updated title"` régénère la valeur, mais garde le même défaut.
