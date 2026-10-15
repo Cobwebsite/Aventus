@@ -12,9 +12,18 @@ export class QuickTemplateEdit {
 	public static async run() {
 		let quickNames = SettingsManager.getInstance().settings.quickCreations;
 		const items: (SelectItem & { folderPath: string })[] = [];
+		const pathsByName: { [name: string]: string } = {};
+		let duplicate: { first: string, second: string } | undefined;
 		const readRecu = (info: TemplateScript | TemplatesByName) => {
+			if (duplicate) return;
 			if (info instanceof TemplateScript) {
 				if (info.allowQuick) {
+					const existingPath = pathsByName[info.name];
+					if (existingPath && existingPath !== info.folderPath) {
+						duplicate = { first: existingPath, second: info.folderPath };
+						return;
+					}
+					pathsByName[info.name] = info.folderPath;
 					items.push({
 						label: info.name,
 						detail: info.description,
@@ -36,6 +45,10 @@ export class QuickTemplateEdit {
 		readRecu(projects.templates);
 		let templates = await GenericServer.localTemplateManager?.readTemplates() ?? { nb: 0, templates: {} };
 		readRecu(templates.templates);
+		if (duplicate) {
+			GenericServer.showErrorMessage("You have 2 templates with the same names : " + duplicate.first + " and " + duplicate.second);
+			return;
+		}
 
 
 		if (items.length == 0) {

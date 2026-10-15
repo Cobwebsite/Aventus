@@ -9,7 +9,7 @@ const [{ Commands }, { TemplateManager }, { TemplateScript }, { GenericServer },
     'cmds/index.ts', 'files/TemplateManager.ts', 'files/Template.ts', 'GenericServer.ts', 'settings/Settings.ts',
 ]);
 
-test('quick edit with two same-named templates resolves the selected item by label', async () => {
+test('quick edit reports two same-named templates before selection', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-quick-collision-'));
     const previous = [GenericServer.instance, SettingsManager.getInstance];
     const first = Object.assign(Object.create(TemplateScript.prototype), {
@@ -19,6 +19,7 @@ test('quick edit with two same-named templates resolves the selected item by lab
         name: 'Shared', description: 'second', folderPath: join(root, 'second'), allowQuick: true,
     });
     const saved = [];
+    const errors = [];
     SettingsManager.getInstance = () => ({
         settings: { quickCreations: [] },
         setSettings: (...args) => saved.push(args),
@@ -28,15 +29,14 @@ test('quick edit with two same-named templates resolves the selected item by lab
         _localProject: { readProjects: async () => ({ templates: { second } }) },
         _localTemplate: { readTemplates: async () => ({ templates: {} }) },
         connection: {
-            SelectMultiple: async items => {
-                assert.deepEqual(items.map(item => [item.label, item.detail]), [['Shared', 'first'], ['Shared', 'second']]);
-                return [items[1]];
-            },
+            SelectMultiple: async () => assert.fail('selection must not open for duplicate names'),
+            showErrorMessage: message => errors.push(message),
         },
     };
     try {
         await Commands.allCommandes['aventus.template.quick_edit'].run();
-        assert.deepEqual(saved, [[{ quickCreations: [first.folderPath] }, true]]);
+        assert.deepEqual(saved, []);
+        assert.deepEqual(errors, [`You have 2 templates with the same names : ${first.folderPath} and ${second.folderPath}`]);
     } finally {
         [GenericServer.instance, SettingsManager.getInstance] = previous;
         rmSync(root, { recursive: true, force: true });
