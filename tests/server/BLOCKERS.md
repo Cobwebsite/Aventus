@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Couleurs des commentaires de ligne SCSS proposées par le color picker
-
-- Reproduction automatisée : `color-picker-bounds-round99.test.mjs` interroge `onDocumentColor()` sur `// #f00 blue` suivi d'une règle valide. Les trois couleurs, dont `#f00` et `blue` dans le commentaire, sont retournées.
-- Source : `server/src/color-picker/ColorPicker.ts`, `maskCommentsAndStrings()` masque `/* ... */` et les chaînes, mais ne reconnaît pas les commentaires `//` du SCSS.
-- Décision à prendre : déterminer la prise en charge des commentaires de ligne selon le langage du document. Pour SCSS, les masquer sans masquer les URL ou expressions qui comportent `//`, puis vérifier les plages et présentations après édition.
-
 ## Namespace de dossier calculé pour une source hors de `namespaceRoot`
 
 - Reproduction automatisée : `project-namespace-neighbor-round99.test.mjs` vérifie qu'une source imbriquée sous `src/` reçoit `admin.detail`, puis montre qu'une source du dossier voisin `src-old/` reçoit `workspace.app.src-old.admin` alors qu'elle est hors de la racine configurée.

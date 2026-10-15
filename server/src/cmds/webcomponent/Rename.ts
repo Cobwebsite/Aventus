@@ -15,9 +15,15 @@ export class Rename {
 		if (!uri) {
 			return;
 		}
-		uri = uri.toString().replace(/\.wcv\.avt$/, ".wcl.avt").replace(/\.wcs\.avt$/, ".wcl.avt");
+		uri = uri.toString();
+		for (const extension of [AventusExtension.ComponentView, AventusExtension.ComponentStyle]) {
+			if (uri.endsWith(extension)) {
+				uri = uri.slice(0, -extension.length) + AventusExtension.ComponentLogic;
+				break;
+			}
+		}
 		let splitted = uri.split("/");
-		let oldName = splitted[splitted.length - 1].replace(".wcl.avt", "");
+		let oldName = splitted[splitted.length - 1].replace(AventusExtension.ComponentLogic, "");
 
 		let newName = await GenericServer.Input({
 			title: "New name",
