@@ -51,6 +51,7 @@ async function fixture(run) {
     GenericServer.instance = { logLevel: 4, _extensionPath: root, connection: {
         sendNotification: (...args) => events.push(['notification', ...args]),
         showErrorMessage: message => events.push(['error', message]),
+        showWarningMessage: message => events.push(['warning', message]),
         showInformationMessage: message => events.push(['info', message]),
         showLoadingMessage: async (_message, action) => action(),
     } };
@@ -96,7 +97,7 @@ test('Sharp and PHP concurrent exports suppress duplicates independently and acc
     });
 });
 
-test('converter stderr is currently ignored when stdout lacks an Error marker', async () => {
+test('converter stderr without an Error marker is reported as a warning', async () => {
     await fixture(async ({ root, events, result }) => {
         for (const executable of ['dotnet', 'csharp-converter', 'php', 'php-converter']) available.add(executable);
         const sharp = join(root, 'aventus.sharp.avt');
@@ -109,6 +110,35 @@ test('converter stderr is currently ignored when stdout lacks an Error marker', 
         assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2][1]),
             ['compiling', 'success', 'compiling', 'success']);
         assert.deepEqual(events.filter(e => e[0] === 'error'), []);
+        assert.deepEqual(events.filter(e => e[0] === 'warning').map(e => e[1]),
+            ['conversion warning', 'conversion warning']);
+    });
+});
+
+test('converter stderr with an Error marker produces an error state', async () => {
+    await fixture(async ({ root, events, result }) => {
+        for (const executable of ['dotnet', 'csharp-converter', 'php', 'php-converter']) available.add(executable);
+        const sharp = join(root, 'aventus.sharp.avt');
+        const php = join(root, 'aventus.php.avt');
+        writeFileSync(sharp, JSON.stringify({ csProj: 'Demo.csproj' }));
+        writeFileSync(php, '{}');
+        result(async () => ({ stdout: 'conversion complete', stderr: 'Error : conversion failed' }));
+        const previousClear = console.clear;
+        const previousError = GenericServer.error;
+        console.clear = () => {};
+        GenericServer.error = () => {};
+        try {
+            await commands['aventus.sharp.export'].run(uri(sharp));
+            await commands['aventus.php.export'].run(uri(php));
+        } finally {
+            console.clear = previousClear;
+            GenericServer.error = previousError;
+        }
+        assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2][1]),
+            ['compiling', 'error', 'compiling', 'error']);
+        assert.deepEqual(events.filter(e => e[1] === 'aventus/addDebugFile').map(e => e[2][1]),
+            ['Error : conversion failed', 'Error : conversion failed']);
+        assert.deepEqual(events.filter(e => e[0] === 'warning'), []);
     });
 });
 
