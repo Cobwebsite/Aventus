@@ -131,7 +131,9 @@ test('PHP export uses composer project name and recovers after a failed conversi
         await commands['aventus.php.export'].run(uri(config));
         assert.equal(executions.length, 2);
         assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2]), [
-            ['vendor/demo', 'compiling', undefined], ['vendor/demo', 'compiling', undefined],
+            ['vendor/demo', 'compiling', undefined],
+            ['vendor/demo', 'error', [{ title: 'PHP error', file: 'php_errors' }]],
+            ['vendor/demo', 'compiling', undefined],
             ['vendor/demo', 'success', undefined],
         ]);
         assert.match(events.find(e => e[0] === 'error')[1], /conversion failed/);
@@ -174,6 +176,7 @@ test('converter process failure releases the Sharp compilation guard for a later
         assert.equal(executions.length, 2);
         assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2]), [
             ['Demo.csproj', 'compiling', undefined],
+            ['Demo.csproj', 'error', [{ title: 'C# error', file: 'csharp_errors' }]],
             ['Demo.csproj', 'compiling', undefined],
             ['Demo.csproj', 'success', undefined],
         ]);

@@ -109,7 +109,11 @@ export class PhpExport {
 				}]);
 			}
 		} catch (e) {
-			GenericServer.showErrorMessage(e + "");
+			const error = e as Error & { stderr?: string };
+			const message = error.stderr?.trim() || String(e);
+			GenericServer.showErrorMessage(message);
+			DebugFileAdd.send("php_errors", message);
+			Compiling.send(phpProjName, 'error', [{ title: "PHP error", file: "php_errors" }]);
 		}
 		this.isCompiling = false;
 	}

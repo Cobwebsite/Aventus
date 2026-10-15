@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Échec du processus convertisseur sans état final de compilation
-
-- Reproduction automatisée : `converter-output-concurrency-round99.test.mjs` fait rejeter les processus Sharp et PHP. Chaque commande affiche l'erreur au client, mais la dernière notification de compilation reste `compiling` ; une nouvelle exportation réussie produit ensuite un nouvel état `compiling`, puis `success`.
-- Source : les `catch` de `SharpExport.run()` et `PhpExport.run()` appellent `showErrorMessage()` sans envoyer `Compiling.send(..., 'error', ...)`.
-- Décision à prendre : définir l'état final et les détails d'erreur à transmettre lors d'un échec de processus, puis vérifier la transition attendue sur les deux exports.
-
 ## Événement disque déjà en file après arrêt de surveillance
 
 - Reproduction automatisée : `files-watcher-unwatch-queue-round75.test.mjs` bloque le traitement d'un changement, place une suppression dans la file pour la même URI, appelle `unwatch(uri)`, puis libère le changement. La suppression atteint encore `FilesManager` ; un nouvel événement émis après `unwatch` est bien ignoré.
