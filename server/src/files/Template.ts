@@ -3,7 +3,7 @@ import { dirname, join } from 'path';
 import { pathToFileURL } from 'url';
 
 import { ExecSyncOptionsWithBufferEncoding, spawn } from 'child_process';
-import { execAsync, md5, pathToUri, unlinkSync, uriToPath } from '../tools';
+import { execAsync, execFileAsync, md5, pathToUri, unlinkSync, uriToPath } from '../tools';
 import { ProjectManager } from '../project/ProjectManager';
 import { FilesManager } from './FilesManager';
 import { GenericServer } from '../GenericServer';
@@ -336,7 +336,7 @@ export class TemplateScript {
 		var err: string = "";
 		let result = false;
 		try {
-			const sp = await execAsync(`node --no-warnings ${scriptPath}`, { cwd: this.folderPath })
+			const sp = await execFileAsync(process.execPath, ['--no-warnings', scriptPath], { cwd: this.folderPath });
 
 			err = sp.stderr.toString();
 			a = sp.stdout.toString().trim();
@@ -390,7 +390,7 @@ export class TemplateScript {
 			var a: string = "";
 			var err: string = "";
 			try {
-				const result = await execAsync(`node --no-warnings ${scriptPath}`, { cwd: this.folderPath });
+				const result = await execFileAsync(process.execPath, ['--no-warnings', scriptPath], { cwd: this.folderPath });
 				err = result.stderr.toString();
 				a = result.stdout.toString();
 				const valuesTemp = JSON.parse(a.trim());

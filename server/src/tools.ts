@@ -16,13 +16,13 @@ import { Mutex } from './Mutex';
 
 export const execAsync = promisify(exec);
 const nativeExecFileAsync = promisify(execFile);
-export async function execFileAsync(command: string, args: string[], options?: { encoding?: BufferEncoding }) {
+export async function execFileAsync(command: string, args: string[], options?: { encoding?: BufferEncoding, cwd?: string }) {
     try {
         return await nativeExecFileAsync(command, args, options);
     } catch (error) {
         if (process.platform !== 'win32' || !['EINVAL', 'ENOENT'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
         return await new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
-            const child = spawn(command, args, { windowsHide: true });
+            const child = spawn(command, args, { windowsHide: true, cwd: options?.cwd });
             let stdout = '';
             let stderr = '';
             child.stdout?.on('data', chunk => { stdout += chunk.toString(); });

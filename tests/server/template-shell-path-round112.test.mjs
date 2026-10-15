@@ -10,20 +10,19 @@ const [{ TemplateScript }, { GenericServer }] = await loadServerModules([
     'files/Template.ts', 'GenericServer.ts',
 ]);
 
-test.skip('template preparation fails when the server save directory contains spaces, then recovers elsewhere', async () => {
+test('template preparation supports spaces in the save directory and retries after failure', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-shell-'));
     const source = join(root, 'source');
     const spacedSave = join(root, 'save with spaces');
-    const plainSave = join(root, 'save');
     mkdirSync(source);
     mkdirSync(spacedSave);
-    mkdirSync(plainSave);
     const config = join(source, 'template.avt.ts');
     const base = pathToFileURL(resolve('lib/templateScript/AventusTemplate.ts')).href;
     writeFileSync(config, [
         `import { AventusTemplate } from '${base}';`,
         'export class Template extends AventusTemplate {',
         "  meta() { return { name: 'Shell path fixture' }; }",
+        '  isAllowed() { return true; }',
         '}',
     ].join('\n'));
 
@@ -42,22 +41,21 @@ test.skip('template preparation fails when the server save directory contains sp
         connection: { error: value => errors.push(String(value)) },
     };
     try {
+        writeFileSync(config, 'invalid template source');
         assert.equal(await TemplateScript.create(config), undefined);
         assert.ok(errors.length > 0);
 
-        GenericServer.instance._savePath = plainSave;
-        const retry = TemplateScript.create(config);
-        const retryState = await Promise.race([
-            retry.then(() => 'resolved'),
-            new Promise(resolve => setTimeout(() => resolve('pending'), 150)),
-        ]);
-        assert.equal(retryState, 'pending');
-
-        // The stale in-flight entry prevents retry; clearing it models a fresh process.
-        TemplateScript.preparing = {};
+        writeFileSync(config, [
+            `import { AventusTemplate } from '${base}';`,
+            'export class Template extends AventusTemplate {',
+            "  meta() { return { name: 'Shell path fixture' }; }",
+            '  isAllowed() { return true; }',
+            '}',
+        ].join('\n'));
         const recovered = await TemplateScript.create(config);
         assert.ok(recovered);
         assert.equal(recovered.name, 'Shell path fixture');
+        assert.equal(await recovered.isAllowed(spacedSave, source), true);
     } finally {
         GenericServer.instance = oldServer;
         TemplateScript.memory = oldMemory;
