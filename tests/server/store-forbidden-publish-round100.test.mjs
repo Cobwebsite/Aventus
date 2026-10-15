@@ -62,12 +62,10 @@ test('Store invalidates a live session after publication is forbidden even when 
 
     assert.equal(await Store.connect('alice', 'password'), true);
     assert.equal(Store.isConnected, true);
-    const result = await Store.publishPackage({
+    const publication = Store.publishPackage({
         buildConfig: { fullname: 'Demo', version: '1.0.0', tags: [] },
         project: { getConfigFile: () => ({ folderPath: root }) },
     });
-    assert.ok(result instanceof QueryError);
-    assert.deepEqual(result.errors, [{ code: 403, message: 'You must connect to your account first' }]);
     await new Promise((resolve, reject) => {
         const deadline = Date.now() + 2000;
         const poll = () => {
@@ -77,17 +75,12 @@ test('Store invalidates a live session after publication is forbidden even when 
         };
         poll();
     });
-    assert.equal(Store.isConnected, true, 'the 403 result returns before the logout response clears credentials');
+    assert.equal(Store.isConnected, true, 'the logout response is still pending');
     releaseLogout();
-    await new Promise((resolve, reject) => {
-        const deadline = Date.now() + 2000;
-        const poll = () => {
-            if (!Store.isConnected && requests.length === 3) return resolve();
-            if (Date.now() > deadline) return reject(new Error('Store session did not clear after forbidden publication'));
-            setTimeout(poll, 10);
-        };
-        poll();
-    });
+    const result = await publication;
+    assert.ok(result instanceof QueryError);
+    assert.deepEqual(result.errors, [{ code: 403, message: 'You must connect to your account first' }]);
+    assert.equal(Store.isConnected, false, 'the 403 result returns after credentials are cleared');
     assert.deepEqual(Store._settings, { token: '', username: undefined });
     assert.deepEqual(requests.map(request => request.path), [
         '/api/remote/login', '/api/remote/package/publish', '/api/remote/logout',
