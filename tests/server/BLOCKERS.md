@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Édition rapide : deux templates de même nom pointent vers le premier chemin
-
-- Reproduction automatisée : `template-choices-collision-round73.test.mjs` présente deux templates `Shared` de sources distinctes. L'utilisateur sélectionne le second, mais `quickCreations` reçoit le chemin du premier.
-- Source : `QuickTemplateEdit.run()` retrouve le chemin avec `items.find(p => p.label == item.label)`, ce qui ignore l'identité et le détail de l'élément sélectionné.
-- Décision à prendre : utiliser l'identité de l'élément retourné ou une clé stable, et vérifier les noms identiques entre templates globaux, projets et templates locaux.
-
 ## Exports Sharp/PHP : chemins contenant des espaces transmis sans guillemets au shell
 
 - Reproduction automatisée : `converter-round46.test.mjs` crée des configurations dans un dossier dont le nom contient des espaces et vérifie les commandes construites. Sharp transmet `csharp-converter <chemin>` et PHP transmet `php <phar> <chemin> 2>&1` sans citer ni le chemin de configuration ni celui du PHAR.
