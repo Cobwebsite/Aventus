@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Sortie d'erreur ignorée par les exports Sharp et PHP
-
-- Reproduction automatisée : `converter-output-concurrency-round99.test.mjs` fait renvoyer `stdout = "conversion complete"` et `stderr = "conversion warning"` par chacun des deux convertisseurs. Les deux exports annoncent `success` et ne transmettent aucun message au client.
-- Source : `SharpExport.run()` et `PhpExport.run()` ne lisent que `stdout` et y recherchent la chaîne `Error : ` ; `stderr` est écarté.
-- Décision à prendre : préciser si `stderr` doit provoquer un état d'erreur ou être signalé comme avertissement, puis tester la politique retenue avec les véritables conventions de sortie des convertisseurs.
-
 ## Échec du processus convertisseur sans état final de compilation
 
 - Reproduction automatisée : `converter-output-concurrency-round99.test.mjs` fait rejeter les processus Sharp et PHP. Chaque commande affiche l'erreur au client, mais la dernière notification de compilation reste `compiling` ; une nouvelle exportation réussie produit ensuite un nouvel état `compiling`, puis `success`.

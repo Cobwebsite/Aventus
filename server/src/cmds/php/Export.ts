@@ -89,16 +89,19 @@ export class PhpExport {
 		Compiling.send(phpProjName, 'compiling');
 		try {
 			let phpProj = uriToPath(uri);
-			const { stdout } = await execFileAsync("php-converter", [phpProj], { encoding: 'utf8' });
-			const result = stdout.toString();
-			if (result.indexOf("Error : ") == -1) {
+			const { stdout, stderr } = await execFileAsync("php-converter", [phpProj], { encoding: 'utf8' });
+			const output = stdout.toString();
+			const errorText = stderr.toString();
+			const errorOutput = output.includes("Error : ") ? output : errorText.includes("Error : ") ? errorText : null;
+			if (!errorOutput) {
+				if (errorText.trim()) GenericServer.showWarningMessage(errorText.trim());
 				Compiling.send(phpProjName, 'success');
 			}
 			else {
 				console.clear();
-				GenericServer.error(result);
+				GenericServer.error(errorOutput);
 				let uri = "php_errors";
-				DebugFileAdd.send(uri, result);
+				DebugFileAdd.send(uri, errorOutput);
 
 				Compiling.send(phpProjName, 'error', [{
 					title: "PHP error",

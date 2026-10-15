@@ -82,16 +82,19 @@ export class SharpExport {
 		Compiling.send(csProjName, 'compiling');
 		try {
 			let csProj = uriToPath(uri);
-			const { stdout } = await execFileAsync("csharp-converter", [csProj]);
-			let result = stdout.toString()
-			if (result.indexOf("Error : ") == -1) {
+			const { stdout, stderr } = await execFileAsync("csharp-converter", [csProj]);
+			const output = stdout.toString();
+			const errorText = stderr.toString();
+			const errorOutput = output.includes("Error : ") ? output : errorText.includes("Error : ") ? errorText : null;
+			if (!errorOutput) {
+				if (errorText.trim()) GenericServer.showWarningMessage(errorText.trim());
 				Compiling.send(csProjName, 'success');
 			}
 			else {
 				console.clear();
-				GenericServer.error(result);
+				GenericServer.error(errorOutput);
 				let uri = "csharp_errors";
-				DebugFileAdd.send(uri, result);
+				DebugFileAdd.send(uri, errorOutput);
 
 				Compiling.send(csProjName, 'error', [{
 					title: "C# error",
