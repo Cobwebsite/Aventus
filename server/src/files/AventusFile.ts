@@ -196,10 +196,12 @@ export class InternalAventusFile implements AventusFile {
     }
     public async validate(sendDiagnostics: boolean = true): Promise<Diagnostic[]> {
         if (this.deleted) return [];
+        const versionUser = this.versionUser;
+        const versionInternal = this.versionInternal;
         let diagnostics: { [key: string]: Diagnostic } = {};
         for (let uuid in this.onValidateCb) {
             let diagTemps = await this.onValidateCb[uuid](this);
-            if (this.deleted) return [];
+            if (this.deleted || this.versionUser !== versionUser || this.versionInternal !== versionInternal) return [];
 
             for (let diagTemp of diagTemps) {
                 let key = diagTemp.message + "**" + diagTemp.range.start.line + ":" + diagTemp.range.start.character + "," + diagTemp.range.end.line + ":" + diagTemp.range.end.character;
@@ -208,6 +210,7 @@ export class InternalAventusFile implements AventusFile {
                 }
             }
         }
+        if (this.deleted || this.versionUser !== versionUser || this.versionInternal !== versionInternal) return [];
         if (sendDiagnostics) {
             if (SettingsManager.getInstance().settings.errorByBuild) {
                 const builds = this.getBuild();

@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Ancienne validation publiée après un diagnostic plus récent
-
-- Reproduction automatisée : `files-validation-race-round67.test.mjs` démarre une validation sur l'ancien contenu, la suspend, modifie le document, puis publie le diagnostic du nouveau contenu. À la reprise, l'ancienne validation publie ensuite son résultat et remplace le diagnostic récent côté client. Le même fichier vérifie qu'en l'absence de validation déjà démarrée, les éditions rapides sont regroupées et la dernière version est envoyée à chaque build associé.
-- Source : `InternalAventusFile.validate()` ne vérifie que la suppression du fichier après chaque callback ; aucune version du document n'est comparée avant `GenericServer.sendDiagnostics()`.
-- Décision à prendre : ignorer le résultat d'une validation si une version plus récente du document a été reçue, puis vérifier la séquence de publications pour plusieurs builds et après fermeture.
-
 ## Projet détruit pendant le chargement de sa configuration
 
 - Reproduction automatisée : `project-destroy-inflight-round68.test.mjs` suspend `Project.onConfigSave()` dans `loadConfig()`, détruit le projet, puis laisse la sauvegarde reprendre. Un nouveau `Build` est alors créé et abonné aux nouveaux fichiers après la destruction ; une notification d'enregistrement est également émise. Le test nettoie explicitement cet abonnement après avoir vérifié le comportement.

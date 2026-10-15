@@ -45,14 +45,16 @@ test('deferred validation publishes the latest edited content to each associated
     }
 });
 
-test('an older in-flight validation can overwrite a newer published diagnostic', async () => {
+test('an older in-flight validation does not overwrite a newer published diagnostic', async () => {
     const previous = [GenericServer.instance, SettingsManager.instance];
     const events = [];
     const file = new InternalAventusFile(document(1, 'old'));
     const oldStarted = deferred();
     const releaseOld = deferred();
-    GenericServer.instance = { connection: { sendDiagnostics: params => events.push(params) } };
-    SettingsManager.instance = { settings: { errorByBuild: false } };
+    const builds = [{ buildConfig: { fullname: 'Demo@web' } }, { buildConfig: { fullname: 'Demo@mobile' } }];
+    GenericServer.instance = { connection: { sendDiagnostics: (params, build) => events.push([params, build]) } };
+    SettingsManager.instance = { settings: { errorByBuild: true } };
+    file.onGetBuild(() => builds);
     file.onValidate(async current => {
         const content = current.contentUser;
         if (content === 'old') {
@@ -66,13 +68,39 @@ test('an older in-flight validation can overwrite a newer published diagnostic',
         await oldStarted.promise;
         await file.triggerContentChange(document(2, 'new'));
         assert.deepEqual(await file.validate(), [diagnostic('new')]);
-        assert.deepEqual(events.map(event => event.diagnostics[0].message), ['new']);
+        assert.deepEqual(events.map(([event, build]) => [event.diagnostics[0].message, build]), [['new', 'Demo@web'], ['new', 'Demo@mobile']]);
         releaseOld.resolve();
-        assert.deepEqual(await oldValidation, [diagnostic('old')]);
-        assert.deepEqual(events.map(event => event.diagnostics[0].message), ['new', 'old']);
+        assert.deepEqual(await oldValidation, []);
+        assert.deepEqual(events.map(([event, build]) => [event.diagnostics[0].message, build]), [['new', 'Demo@web'], ['new', 'Demo@mobile']]);
     } finally {
         releaseOld.resolve();
         clearTimeout(file.delayValidate);
+        [GenericServer.instance, SettingsManager.instance] = previous;
+    }
+});
+
+test('closing a file prevents an in-flight validation from publishing', async () => {
+    const previous = [GenericServer.instance, SettingsManager.instance];
+    const events = [];
+    const file = new InternalAventusFile(document(1, 'closing'));
+    const started = deferred();
+    const release = deferred();
+    GenericServer.instance = { connection: { sendDiagnostics: params => events.push(params) } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
+    file.onValidate(async () => {
+        started.resolve();
+        await release.promise;
+        return [diagnostic('closing')];
+    });
+    try {
+        const validation = file.validate();
+        await started.promise;
+        await file.triggerDelete();
+        release.resolve();
+        assert.deepEqual(await validation, []);
+        assert.deepEqual(events, []);
+    } finally {
+        release.resolve();
         [GenericServer.instance, SettingsManager.instance] = previous;
     }
 });
