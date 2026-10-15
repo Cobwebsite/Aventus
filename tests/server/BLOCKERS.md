@@ -24,12 +24,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Nom de variable CSS commençant par une minuscule tronqué
-
-- Reproduction observée pendant `webcomponent-cancel-round64.test.mjs` : la commande `aventus.wc.create.cssvar` transforme `primaryColor` en `--_button-color: var(--button-color);`, alors que `PrimaryColor` donne `--_button-primary-color: var(--button-primary-color);`.
-- Source : `server/src/cmds/webcomponent/CreateCSSVariable.ts`, expression régulière de découpage qui ne capture pas le segment initial en minuscules.
-- Décision à prendre : accepter les noms camelCase dès la première séquence, puis ajouter une assertion de régression pour la variable générée.
-
 ## Commandes de build résolues avant la fin de la compilation
 
 - Reproduction automatisée : `build-command-completion-round65.test.mjs` maintient en attente la promesse du build choisi. `aventus.compile`, `aventus.npm.build` et `aventus.storybook.build` terminent leur commande dès le démarrage du travail ; seule `aventus.static` attend la fin de l'export. Les quatre commandes renvoient `undefined`, même lorsque l'opération produit un résultat.
