@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Commandes de build résolues avant la fin de la compilation
-
-- Reproduction automatisée : `build-command-completion-round65.test.mjs` maintient en attente la promesse du build choisi. `aventus.compile`, `aventus.npm.build` et `aventus.storybook.build` terminent leur commande dès le démarrage du travail ; seule `aventus.static` attend la fin de l'export. Les quatre commandes renvoient `undefined`, même lorsque l'opération produit un résultat.
-- Source : `server/src/cmds/BuildProject.ts`, `server/src/cmds/npm/Build.ts`, `server/src/cmds/storybook/Build.ts` déclenchent le build sans attendre sa promesse ; `server/src/cmds/StaticExport.ts` attend l'export, mais ne renvoie pas sa valeur.
-- Décision à prendre : définir si la réponse de commande doit signaler la fin et le résultat du build. Dans ce cas, attendre et renvoyer la promesse pour propager aussi ses erreurs au demandeur.
-
 ## Sélecteur vide pour les commandes de build
 
 - Reproduction automatisée : `build-command-empty-list-round238.test.mjs` constate que `aventus.compile`, `aventus.npm.build`, `aventus.storybook.build` et `aventus.static` appellent toutes `Select` avec `[]` lorsque leurs listes de cibles sont vides. Si le sélecteur renvoie une annulation, aucune cible n'est lancée.

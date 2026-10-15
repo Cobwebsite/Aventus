@@ -8,7 +8,7 @@ const [{ Commands }, { ProjectManager }, { GenericServer }] = await loadServerMo
 
 const commands = Commands.allCommandes;
 
-test('build commands dispatch selected outputs but only static export waits for completion', async t => {
+test('build commands wait for selected outputs and return their results', async t => {
     const previousManager = ProjectManager.getInstance;
     const previousServer = GenericServer.instance;
     t.after(() => {
@@ -55,12 +55,43 @@ test('build commands dispatch selected outputs but only static export waits for 
             try {
                 await new Promise(resolve => setImmediate(resolve));
                 assert.deepEqual(calls, ['started']);
-                assert.equal(commandSettled, entry.method !== 'export');
+                assert.equal(commandSettled, false);
             } finally {
                 resolveOutput();
             }
-            assert.equal(await commandResult, undefined);
+            assert.equal(await commandResult, 'compiled');
             assert.deepEqual(calls, ['started', 'completed']);
+        });
+    }
+});
+
+test('build commands propagate output failures', async t => {
+    const previousManager = ProjectManager.getInstance;
+    const previousServer = GenericServer.instance;
+    t.after(() => {
+        ProjectManager.getInstance = previousManager;
+        GenericServer.instance = previousServer;
+    });
+
+    const failure = new Error('build failed');
+    const output = {
+        build: async () => { throw failure; },
+        buildNpm: async () => { throw failure; },
+        buildStorybook: async () => { throw failure; },
+        export: async () => { throw failure; },
+    };
+    ProjectManager.getInstance = () => ({
+        getAllBuilds: () => [{ name: 'output', uri: 'file:///project' }],
+        getAllBuildsWithNpm: () => [{ name: 'output', uri: 'file:///project' }],
+        getAllBuildsWithStory: () => [{ name: 'output', uri: 'file:///project' }],
+        getAllStatics: () => [{ name: 'output', uri: 'file:///project' }],
+        getProjectByUri: () => ({ getBuild: () => output, getStatic: () => output }),
+    });
+    GenericServer.instance = { connection: { Select: async () => ({ label: 'output', detail: 'file:///project' }) } };
+
+    for (const command of ['aventus.compile', 'aventus.npm.build', 'aventus.storybook.build', 'aventus.static']) {
+        await t.test(command, async () => {
+            await assert.rejects(commands[command].run(), error => error === failure);
         });
     }
 });

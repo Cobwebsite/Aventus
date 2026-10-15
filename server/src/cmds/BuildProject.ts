@@ -24,7 +24,7 @@ export class BuildProject {
 		if(result) {
 			let uri = result.detail ?? "";
 			let name = result.label;
-			ProjectManager.getInstance().getProjectByUri(uri)?.getBuild(name)?.build();
+			return await ProjectManager.getInstance().getProjectByUri(uri)?.getBuild(name)?.build();
 		}
 	}
 }
