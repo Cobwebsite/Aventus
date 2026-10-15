@@ -575,7 +575,8 @@ export class DependencyManager {
 	// 	return null;
 	// }
 
-	private loadPackage(file: AventusFile, build: Build): AventusPackageFile | undefined {
+	private loadPackage(file: AventusFile | undefined, build: Build): AventusPackageFile | undefined {
+		if (!file) return undefined;
 		const info = AventusPackageFile.getQuickInfo(file);
 		if (!info) {
 			return undefined;
