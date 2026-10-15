@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Namespace de dossier calculé pour une source hors de `namespaceRoot`
-
-- Reproduction automatisée : `project-namespace-neighbor-round99.test.mjs` vérifie qu'une source imbriquée sous `src/` reçoit `admin.detail`, puis montre qu'une source du dossier voisin `src-old/` reçoit `workspace.app.src-old.admin` alors qu'elle est hors de la racine configurée.
-- Source : `server/src/project/Build.ts`, `getNamespaceForUri()` retire la racine avec `path.replace(namespaceRoot, "")` sans vérifier que le chemin appartient à cette racine ; si elle n'est pas présente, le chemin presque entier devient namespace.
-- Décision à prendre : définir le comportement pour une URI hors de la racine (par exemple namespace vide ou rejet), puis vérifier l'appartenance avec une frontière de segment avant de retirer le préfixe.
-
 ## Session Store encore active au retour d'une réponse HTTP 403
 
 - Reproduction automatisée : `store-forbidden-publish-round100.test.mjs` ouvre une vraie session HTTP locale, publie un package qui reçoit 403, puis retarde la réponse de logout. `publishPackage()` rend déjà son `QueryError` alors que `Store.isConnected` reste vrai ; les identifiants sont effacés seulement à la fin du logout. Un logout HTTP 500 les efface finalement aussi.

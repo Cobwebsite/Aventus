@@ -2400,7 +2400,13 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 splittedPath.pop();
             }
             path = splittedPath.join("/") + "/";
-            let namespaceTxt = path.replace(this.buildConfig.namespaceRoot, "").replace(/\//g, '.');
+            const namespaceRoot = this.buildConfig.namespaceRoot.endsWith("/")
+                ? this.buildConfig.namespaceRoot
+                : this.buildConfig.namespaceRoot + "/";
+            if (!path.startsWith(namespaceRoot)) {
+                return "";
+            }
+            let namespaceTxt = path.slice(namespaceRoot.length).replace(/\//g, '.');
             if (namespaceTxt.endsWith(".")) {
                 namespaceTxt = namespaceTxt.slice(0, -1);
             }
