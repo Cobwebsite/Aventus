@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Événement disque déjà en file après arrêt de surveillance
-
-- Reproduction automatisée : `files-watcher-unwatch-queue-round75.test.mjs` bloque le traitement d'un changement, place une suppression dans la file pour la même URI, appelle `unwatch(uri)`, puis libère le changement. La suppression atteint encore `FilesManager` ; un nouvel événement émis après `unwatch` est bien ignoré.
-- Source : `FilesWatcher.onRemove()` vérifie `watcheUris` avant de placer l'action dans `pendingEvents`, mais l'action mise en file ne recontrôle pas l'inscription lorsqu'elle s'exécute.
-- Décision à prendre : préciser si `unwatch` doit annuler les événements déjà reçus. Si oui, vérifier l'inscription lors de l'exécution et tester aussi la réinscription de la même URI pendant qu'un événement ancien attend.
-
 ## SCSS : le second import local reste non résolu après insertion du premier
 
 - Reproduction automatisée : `scss-import-mixin-round34.test.mjs` compile une feuille avec deux `@import` locaux, plus des imports commentés. Le premier est inséré mais le second reste envoyé à Sass sous forme de `@import "second"` ; la compilation ne produit aucun CSS et publie « Can't find stylesheet to import ». Une modification du second fichier laisse le même résultat.
