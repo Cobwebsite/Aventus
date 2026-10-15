@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Action i18n supprimant les commentaires de traduction
-
-- Reproduction automatisée : `i18n-comment-action-round110.test.mjs` valide un fichier `.i18n.avt` comportant un commentaire `//` et une locale manquante. L'action « Import missing locales » ajoute bien la locale, mais son édition remplace l'intégralité du document et supprime le commentaire.
-- Source : `AventusI18nLanguageService.actionImportMissingLocales()` sérialise `file.parsedSrc` avec `JSON.stringify()`, puis propose une édition sur toute la plage du document. Les commentaires ne figurent pas dans `parsedSrc`.
-- Décision à prendre : préciser si les commentaires de traduction doivent être préservés lorsque l'action complète les locales. Si oui, produire des éditions ciblées à partir des positions parsées plutôt qu'une sérialisation complète.
-
 ## Commandes propriété et watch ignorées lorsque le composant appartient au second build
 
 - Reproduction automatisée : `webcomponent-build-selection-round111.test.mjs` donne à `FilesManager.getBuild()` deux builds pour le fichier courant. Le premier ne possède aucun composant et le second contient un `AventusWebComponentLogicalFile` valide. Les commandes `aventus.wc.create.property` et `aventus.wc.create.watch` demandent leurs entrées mais ne modifient pas le fichier et n'envoient aucune notification d'édition.
@@ -137,12 +131,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `component-destination-collision-round124.test.mjs` prépare un composant en fichier unique et trois fichiers de destination contenant déjà du texte. La commande `split` remplace les trois contenus, supprime la source et n'émet aucune erreur. Le parcours inverse `merge` remplace également un composant unique préexistant avant de supprimer les sources séparées.
 - Cause : `SplitComponent.run()` et `MergeComponent.run()` écrivent directement les destinations avec `writeFileSync()` sans vérifier si elles existent ni demander confirmation.
 - Décision à prendre : définir si l'écrasement est autorisé. Si oui, le rendre explicite et vérifier le traitement des fichiers déjà ouverts ou modifiés en mémoire ; sinon, refuser la conversion avant toute écriture ou suppression.
-
-## Action i18n périmée proposée pendant une édition JSON invalide
-
-- Reproduction automatisée : `i18n-invalid-action-round125.test.mjs` part d'une traduction `Old` sans locale `fr`, puis édite le document en JSON incomplet contenant `Editing`. Pendant cette édition, `Import missing locales` reste proposé et son édition remplace tout le contenu par l'ancienne traduction `Old` plus la valeur vide de `fr`. Après correction du JSON, l'action disparaît.
-- Cause : `AventusI18nFile.onContentChange()` garde `parsedSrc` après une erreur de parsing ; `actionImportMissingLocales()` utilise cet ancien état et construit une édition couvrant le document courant entier.
-- Décision à prendre : masquer les actions fondées sur `parsedSrc` tant que le document courant est invalide, ou produire une correction ciblée qui préserve les modifications de l'utilisateur.
 
 ## Injection JavaScript par l'en-tête Host dans le script du serveur HTTP
 

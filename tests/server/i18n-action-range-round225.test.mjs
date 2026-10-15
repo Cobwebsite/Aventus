@@ -30,9 +30,8 @@ test('la correction des locales manquantes reste proposée hors de la plage diag
     const range = { start: unrelated, end: unrelated };
     const actions = await source.getCodeAction(range);
     assert.equal(actions.length, 1);
-    const edit = actions[0].edit.changes[uri][0];
-    assert.equal(source.documentUser.getText(edit.range), source.contentUser);
-    assert.deepEqual(JSON.parse(edit.newText), {
+    const edit = actions[0].edit.changes[uri];
+    assert.deepEqual(JSON.parse(TextDocument.applyEdits(source.documentUser, edit)), {
         alpha: { en: 'One', fr: 'ⵌⵌ' }, beta: { en: 'Two', fr: 'Deux' },
     });
 
@@ -43,7 +42,7 @@ test('la correction des locales manquantes reste proposée hors de la plage diag
     ]);
     const nextActions = await source.getCodeAction({ start: { line: 0, character: 0 }, end: { line: 0, character: 0 } });
     assert.equal(nextActions.length, 1);
-    assert.deepEqual(JSON.parse(nextActions[0].edit.changes[uri][0].newText), {
+    assert.deepEqual(JSON.parse(TextDocument.applyEdits(source.documentUser, nextActions[0].edit.changes[uri])), {
         alpha: { en: 'One', fr: 'Un' }, beta: { en: 'Two', fr: 'ⵌⵌ' },
     });
     assert.deepEqual(translation.exported, { en: { alpha: 'One', beta: 'Two' }, fr: { alpha: 'Un' } });
