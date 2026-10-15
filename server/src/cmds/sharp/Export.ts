@@ -102,7 +102,11 @@ export class SharpExport {
 				}]);
 			}
 		} catch (e) {
-			GenericServer.showErrorMessage(e + "");
+			const error = e as Error & { stderr?: string };
+			const message = error.stderr?.trim() || String(e);
+			GenericServer.showErrorMessage(message);
+			DebugFileAdd.send("csharp_errors", message);
+			Compiling.send(csProjName, 'error', [{ title: "C# error", file: "csharp_errors" }]);
 		}
 		this.isCompiling = false;
 	}

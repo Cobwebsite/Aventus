@@ -142,7 +142,7 @@ test('converter stderr with an Error marker produces an error state', async () =
     });
 });
 
-test('converter process failures notify an error but leave both projects in compiling state until retry', async () => {
+test('converter process failures publish diagnostics and end both compilations before retry', async () => {
     await fixture(async ({ root, events, result }) => {
         for (const executable of ['dotnet', 'csharp-converter', 'php', 'php-converter']) available.add(executable);
         const sharp = join(root, 'aventus.sharp.avt');
@@ -153,13 +153,17 @@ test('converter process failures notify an error but leave both projects in comp
         await commands['aventus.sharp.export'].run(uri(sharp));
         await commands['aventus.php.export'].run(uri(php));
         assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2][1]),
-            ['compiling', 'compiling']);
+            ['compiling', 'error', 'compiling', 'error']);
+        assert.deepEqual(events.filter(e => e[1] === 'aventus/addDebugFile').map(e => e[2]), [
+            ['csharp_errors', 'Error: converter exited 1'],
+            ['php_errors', 'Error: converter exited 1'],
+        ]);
         assert.deepEqual(events.filter(e => e[0] === 'error').map(e => e[1]),
             ['Error: converter exited 1', 'Error: converter exited 1']);
         result(async () => ({ stdout: 'OK', stderr: '' }));
         await commands['aventus.sharp.export'].run(uri(sharp));
         await commands['aventus.php.export'].run(uri(php));
         assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2][1]),
-            ['compiling', 'compiling', 'compiling', 'success', 'compiling', 'success']);
+            ['compiling', 'error', 'compiling', 'error', 'compiling', 'success', 'compiling', 'success']);
     });
 });
