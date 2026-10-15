@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url);
 const existsPath = require.resolve('command-exists');
 const previousCache = require.cache[existsPath];
 const previousExec = childProcess.exec;
+const previousExecFile = childProcess.execFile;
 const available = new Set(['dotnet', 'csharp-converter', 'php', 'php-converter']);
 const executions = [];
 const outputs = [];
@@ -20,14 +21,21 @@ fakeExec[promisify.custom] = async (command, options) => {
     executions.push([command, options]);
     return outputs.shift() ?? { stdout: 'OK', stderr: '' };
 };
+const fakeExecFile = () => { throw new Error('Unexpected callback invocation'); };
+fakeExecFile[promisify.custom] = async (command, args, options) => {
+    executions.push([command, args, options]);
+    return outputs.shift() ?? { stdout: 'OK', stderr: '' };
+};
 require.cache[existsPath] = { id: existsPath, filename: existsPath, loaded: true,
     exports: { sync: name => available.has(name) } };
 childProcess.exec = fakeExec;
+childProcess.execFile = fakeExecFile;
 let modules;
 try {
     modules = await loadServerModules(['cmds/index.ts', 'GenericServer.ts']);
 } finally {
     childProcess.exec = previousExec;
+    childProcess.execFile = previousExecFile;
     if (previousCache) require.cache[existsPath] = previousCache;
     else delete require.cache[existsPath];
 }

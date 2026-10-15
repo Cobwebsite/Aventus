@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url);
 const existsPath = require.resolve('command-exists');
 const previousCache = require.cache[existsPath];
 const previousExec = childProcess.exec;
+const previousExecFile = childProcess.execFile;
 const available = new Set();
 const executions = [];
 let execResults = [];
@@ -22,15 +23,24 @@ fakeExec[promisify.custom] = async (command, options) => {
     if (result instanceof Error) throw result;
     return result ?? { stdout: 'OK', stderr: '' };
 };
+const fakeExecFile = () => { throw new Error('Unexpected callback invocation'); };
+fakeExecFile[promisify.custom] = async (command, args, options) => {
+    executions.push([command, args, options]);
+    const result = execResults.shift();
+    if (result instanceof Error) throw result;
+    return result ?? { stdout: 'OK', stderr: '' };
+};
 require.cache[existsPath] = { id: existsPath, filename: existsPath, loaded: true,
     exports: { sync: name => available.has(name) } };
 childProcess.exec = fakeExec;
+childProcess.execFile = fakeExecFile;
 let modules;
 try {
     modules = await loadServerModules(['cmds/index.ts', 'GenericServer.ts',
         'language-services/json/CSharpManager.ts', 'language-services/json/PhpManager.ts']);
 } finally {
     childProcess.exec = previousExec;
+    childProcess.execFile = previousExecFile;
     if (previousCache) require.cache[existsPath] = previousCache;
     else delete require.cache[existsPath];
 }
@@ -90,8 +100,9 @@ test('Sharp selection among two configs uses selected project name and permits a
             ['First.csproj', 'compiling', undefined], ['First.csproj', 'success', undefined],
         ]);
         assert.equal(executions.length, 2);
-        assert.match(executions[0][0], /second.*aventus\.sharp\.avt/);
-        assert.match(executions[1][0], /first.*aventus\.sharp\.avt/);
+        assert.equal(executions[0][0], 'csharp-converter');
+        assert.match(executions[0][1][0], /second.*aventus\.sharp\.avt/);
+        assert.match(executions[1][1][0], /first.*aventus\.sharp\.avt/);
     });
 });
 
@@ -170,11 +181,11 @@ test('converter process failure releases the Sharp compilation guard for a later
     });
 });
 
-test('converter commands receive the exact config and phar paths, including spaces', async () => {
+test('converter commands receive config paths with spaces and shell characters as single arguments', async () => {
     await fixture(async ({ root }) => {
         available.add('dotnet'); available.add('csharp-converter');
         available.add('php'); available.add('php-converter');
-        const configRoot = join(root, 'space in directory');
+        const configRoot = join(root, 'space & (directory)');
         mkdirSync(configRoot);
         const sharpConfig = join(configRoot, 'aventus.sharp.avt');
         const phpConfig = join(configRoot, 'aventus.php.avt');
@@ -183,8 +194,8 @@ test('converter commands receive the exact config and phar paths, including spac
         await commands['aventus.sharp.export'].run(uri(sharpConfig));
         await commands['aventus.php.export'].run(uri(phpConfig));
         assert.equal(executions.length, 2);
-        assert.equal(executions[0][0], `csharp-converter ${sharpConfig.replaceAll('\\', '/')}`);
-        assert.equal(executions[1][0], `php-converter ${phpConfig.replaceAll('\\', '/')} 2>&1`);
+        assert.deepEqual(executions[0], ['csharp-converter', [sharpConfig.replaceAll('\\', '/')], undefined]);
+        assert.deepEqual(executions[1], ['php-converter', [phpConfig.replaceAll('\\', '/')], { encoding: 'utf8' }]);
     });
 });
 

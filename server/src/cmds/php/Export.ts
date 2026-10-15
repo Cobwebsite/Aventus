@@ -1,7 +1,7 @@
 import { sync as exist } from 'command-exists';
 import { GenericServer } from '../../GenericServer';
 import { join } from 'path';
-import { execAsync, uriToPath } from '../../tools';
+import { execAsync, execFileAsync, uriToPath } from '../../tools';
 import { SelectItem } from '../../IConnection';
 import { AventusExtension } from '../../definition';
 import { existsSync, readFileSync } from 'fs';
@@ -89,7 +89,7 @@ export class PhpExport {
 		Compiling.send(phpProjName, 'compiling');
 		try {
 			let phpProj = uriToPath(uri);
-			const { stdout } = await execAsync("php-converter " + phpProj + " 2>&1", { encoding: 'utf8' });
+			const { stdout } = await execFileAsync("php-converter", [phpProj], { encoding: 'utf8' });
 			const result = stdout.toString();
 			if (result.indexOf("Error : ") == -1) {
 				Compiling.send(phpProjName, 'success');

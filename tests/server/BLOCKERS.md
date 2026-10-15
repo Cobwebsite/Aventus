@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Exports Sharp/PHP : chemins contenant des espaces transmis sans guillemets au shell
-
-- Reproduction automatisée : `converter-round46.test.mjs` crée des configurations dans un dossier dont le nom contient des espaces et vérifie les commandes construites. Sharp transmet `csharp-converter <chemin>` et PHP transmet `php <phar> <chemin> 2>&1` sans citer ni le chemin de configuration ni celui du PHAR.
-- Source : `SharpExport.run()` et `PhpExport.run()` concatènent les chemins directement dans la chaîne passée à `execAsync()`. Le shell sépare donc un chemin contenant des espaces en plusieurs arguments.
-- Décision à prendre : exécuter les outils avec une liste d'arguments ou échapper chaque chemin selon le shell pris en charge ; couvrir les espaces et les caractères spéciaux sur Windows et Unix.
-
 ## Échec de processus lors de la mise à jour Sharp
 
 - Reproduction automatisée : `converter-round46.test.mjs` fait rejeter l'exécution de la mise à jour `csharp-converter`. `SharpUpdateTools.run()` rejette alors sa promesse, ne lance pas la mise à jour `db-query` pourtant installé et ne transmet pas de message d'erreur au client. Une invocation ultérieure réussit.
