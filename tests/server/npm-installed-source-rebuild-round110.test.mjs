@@ -16,7 +16,7 @@ function exportedValue(result) {
     return context.npmCompilation;
 }
 
-test('an installed module update is absent from the bundle until the import shape changes', async t => {
+test('a dependency version change rebuilds the bundle without changing imports', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-source-rebuild-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const priorServer = GenericServer.instance;
@@ -24,6 +24,8 @@ test('an installed module update is absent from the bundle until the import shap
     t.after(() => { GenericServer.instance = priorServer; });
 
     const nodeModulesDir = join(root, 'node_modules');
+    const projectPackageJson = join(root, 'package.json');
+    writeFileSync(projectPackageJson, JSON.stringify({ dependencies: { 'changing-module': '1.0.0' } }));
     const packageDir = join(nodeModulesDir, 'changing-module');
     mkdirSync(packageDir, { recursive: true });
     writeFileSync(join(packageDir, 'package.json'), JSON.stringify({
@@ -39,9 +41,13 @@ test('an installed module update is absent from the bundle until the import shap
     assert.equal(Object.values(exportedValue(first.result))[0].value, 1);
 
     writeFileSync(moduleFile, 'exports.value = 2; exports.extra = 7;\n');
+    const unchangedVersion = await builder.compile();
+    assert.equal(unchangedVersion.result, first.result);
+
+    writeFileSync(projectPackageJson, JSON.stringify({ dependencies: { 'changing-module': '1.0.1' } }));
     const unchangedImports = await builder.compile();
     assert.deepEqual(unchangedImports.errors, []);
-    assert.equal(Object.values(exportedValue(unchangedImports.result))[0].value, 1);
+    assert.equal(Object.values(exportedValue(unchangedImports.result))[0].value, 2);
 
     builder.register('file:///two.lib.avt', { uri: 'changing-module', libName: 'extra' });
     const changedImports = await builder.compile();
