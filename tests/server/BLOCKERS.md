@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## SCSS : le second import local reste non résolu après insertion du premier
-
-- Reproduction automatisée : `scss-import-mixin-round34.test.mjs` compile une feuille avec deux `@import` locaux, plus des imports commentés. Le premier est inséré mais le second reste envoyé à Sass sous forme de `@import "second"` ; la compilation ne produit aucun CSS et publie « Can't find stylesheet to import ». Une modification du second fichier laisse le même résultat.
-- Source : `AventusWebSCSSFile.compile()` remplace le contenu pendant une boucle `RegExp.exec()` qui continue avec `lastIndex` calculé sur la chaîne avant remplacement. Le second import peut ainsi être sauté.
-- Décision à prendre : traiter les imports avec des positions stables ou relancer la recherche après chaque remplacement, puis tester plusieurs imports frères, imports imbriqués et commentaires.
-
 ## Ajout de section de configuration sans projet découvert
 
 - Reproduction automatisée : `config-format-target-round78.test.mjs` appelle `AddConfigSection.run()` lorsque `ProjectManager.getAllConfigFiles()` renvoie une liste vide. La commande intercepte un `TypeError` sur `items[0].label`, journalise l'erreur et ne présente aucun message à l'utilisateur.
