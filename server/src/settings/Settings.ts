@@ -172,8 +172,13 @@ export class SettingsManager {
 	public setSettings(newSettings: Partial<Settings>, global: boolean) {
 		GenericServer.setSettings(newSettings, global)
 	}
-	public setHiddenSettings(newSettings: Partial<HiddenSettings>) {
-		this._hiddenSettings = { ...this._hiddenSettings, ...newSettings };
+	public setHiddenSettings(newSettings: Partial<Omit<HiddenSettings, 'store'>> & { store?: Partial<HiddenSettings['store']> }) {
+		const { store, ...otherSettings } = newSettings;
+		this._hiddenSettings = {
+			...this._hiddenSettings,
+			...otherSettings,
+			store: { ...this._hiddenSettings.store, ...store },
+		};
 		const path = join(GenericServer.savePath, "config.json");
 		writeFileSync(path, JSON.stringify(this._hiddenSettings, null, 4));
 	}

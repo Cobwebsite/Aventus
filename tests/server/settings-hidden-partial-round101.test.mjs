@@ -9,7 +9,7 @@ const [{ SettingsManager }, { GenericServer }] = await loadServerModules([
     'settings/Settings.ts', 'GenericServer.ts',
 ]);
 
-test('a partial hidden Store update retains the top level but replaces the nested Store object', t => {
+test('partial hidden Store updates retain unspecified fields', t => {
     const directory = mkdtempSync(join(tmpdir(), 'aventus-hidden-partial-'));
     const previousServer = GenericServer.instance;
     const previousManager = SettingsManager.instance;
@@ -28,8 +28,13 @@ test('a partial hidden Store update retains the top level but replaces the neste
     const settings = SettingsManager.getInstance();
     settings.setHiddenSettings({ store: { token: 'new-token' } });
     assert.equal(settings.hiddenSettings.version, '2.0');
-    assert.deepEqual(settings.hiddenSettings.store, { token: 'new-token' });
+    assert.deepEqual(settings.hiddenSettings.store, { token: 'new-token', username: 'alice' });
     assert.deepEqual(JSON.parse(readFileSync(path, 'utf8')), {
-        version: '2.0', store: { token: 'new-token' },
+        version: '2.0', store: { token: 'new-token', username: 'alice' },
+    });
+    settings.setHiddenSettings({ store: { username: 'bob' } });
+    assert.deepEqual(settings.hiddenSettings.store, { token: 'new-token', username: 'bob' });
+    assert.deepEqual(JSON.parse(readFileSync(path, 'utf8')), {
+        version: '2.0', store: { token: 'new-token', username: 'bob' },
     });
 });
