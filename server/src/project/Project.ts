@@ -119,7 +119,7 @@ export class Project {
             // it's core project => remove all completions with generic def
             this._isCoreBuild = true;
         }
-        this.globalSCSSLanguageService = new AventusGlobalSCSSLanguageService();
+        this.globalSCSSLanguageService = new AventusGlobalSCSSLanguageService(this);
         if (autoLoad) {
             this.loadFiles();
         }

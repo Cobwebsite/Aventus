@@ -36,7 +36,8 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	}
 
 	protected async onContentChange(): Promise<void> {
-
+		// TODO delete if it's too lagy
+		this.project.globalSCSSLanguageService.loadVariables(this, this.file.uri);
 	}
 	protected async onValidate(): Promise<Diagnostic[]> {
 		this.diagnostics = await this.project.globalSCSSLanguageService.doValidation(this.file);
@@ -171,7 +172,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		return [];
 	}
 	protected async onRename(document: AventusFile, position: Position, newName: string): Promise<WorkspaceEdit | null> {
-		return null;
+		return this.project.globalSCSSLanguageService.onRename(document.documentUser, position, newName);
 	}
 
 	public async addOutPath(path: string, staticName: string) {

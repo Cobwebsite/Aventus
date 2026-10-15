@@ -56,9 +56,11 @@ test('global SCSS references refresh with a changed declaration and use in the s
     assert.equal((await service.findDefinition(second, second.documentUser.positionAt(second.documentUser.getText().lastIndexOf('--shade') + 3)))?.[0]?.uri, uri);
 });
 
-test('component reference lookup currently stays inside its own SCSS file for a global variable', async () => {
-    const global = new AventusGlobalSCSSLanguageService();
-    const local = new AventusSCSSLanguageService({ globalSCSSLanguageService: global });
+test('component reference lookup includes the global declaration', async () => {
+    const project = { scssFiles: {}, getBuilds: () => [build] };
+    const global = new AventusGlobalSCSSLanguageService(project);
+    const build = { project, scssFiles: {}, globalSCSSLanguageService: global };
+    const local = new AventusSCSSLanguageService(build);
     const globalUri = 'file:///D:/round86-reference-global.scss.avt';
     const localUri = 'file:///D:/round86-reference-card.wcs.avt';
     global.loadVariables({ file: { documentUser: document(globalUri, ':root { --accent: red; }') } }, globalUri);
@@ -66,6 +68,6 @@ test('component reference lookup currently stays inside its own SCSS file for a 
     const position = component.documentUser.positionAt(component.documentUser.getText().indexOf('--accent') + 3);
     assert.equal((await local.findDefinition(component, position))?.[0]?.uri, globalUri);
     const references = await local.onReferences(component, position);
-    assert.deepEqual(references.map(location => location.uri), [localUri, localUri]);
-    assert.ok(references.every(location => component.documentUser.getText(location.range) === '--accent'));
+    assert.deepEqual(references.map(location => location.uri), [globalUri, localUri, localUri]);
+    assert.ok(references.slice(1).every(location => component.documentUser.getText(location.range) === '--accent'));
 });

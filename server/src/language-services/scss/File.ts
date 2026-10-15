@@ -230,7 +230,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
         return [this.build]
     }
     protected async onRename(document: AventusFile, position: Position, newName: string): Promise<WorkspaceEdit | null> {
-        return null;
+        return this.build.scssLanguageService.onRename(document, position, newName);
     }
 
 

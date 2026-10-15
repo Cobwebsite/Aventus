@@ -2,7 +2,7 @@ import postcss from 'postcss';
 import postcssSorting from 'postcss-sorting';
 import * as postcssScss from 'postcss-scss';
 import { CompletionItem, CSSFormatConfiguration, getSCSSLanguageService, LanguageService } from "vscode-css-languageservice";
-import { CodeAction, CodeActionContext, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
+import { CodeAction, CodeActionContext, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { Build } from '../../project/Build';
 import { getNodePath, Node, NodeType } from './helper/CSSNode';
 import { SCSSDoc, CustomCssProperty, CustomCssPropertyType } from './helper/CSSCustomNode';
@@ -173,8 +173,26 @@ export class AventusSCSSLanguageService {
         return this.languageService.doCodeActions2(file.documentUser, range, codeActionContext, docSCSS);
     }
     public async onReferences(file: AventusFile, position: Position): Promise<Location[]> {
-        let docSCSS = this.languageService.parseStylesheet(file.documentUser)
+        const docSCSS = this.languageService.parseStylesheet(file.documentUser);
+        const localDefinition = this.languageService.findDefinition(file.documentUser, position, docSCSS);
+        if (localDefinition?.uri === file.documentUser.uri) {
+            return this.languageService.findReferences(file.documentUser, position, docSCSS);
+        }
+        const globalReferences = this.build.globalSCSSLanguageService.getGlobalReferences(file.documentUser, position, this.build);
+        if (globalReferences) return globalReferences;
         return this.languageService.findReferences(file.documentUser, position, docSCSS);
+    }
+
+    public onRename(file: AventusFile, position: Position, newName: string): WorkspaceEdit | null {
+        const docSCSS = this.languageService.parseStylesheet(file.documentUser);
+        const localDefinition = this.languageService.findDefinition(file.documentUser, position, docSCSS);
+        if (localDefinition?.uri !== file.documentUser.uri) {
+            return this.build.globalSCSSLanguageService.onRename(file.documentUser, position, newName);
+        }
+        const name = newName.startsWith('--') ? newName : `--${newName}`;
+        if (!/^--[a-zA-Z_][a-zA-Z0-9_-]*$/.test(name)) return null;
+        const references = this.languageService.findReferences(file.documentUser, position, docSCSS);
+        return { changes: { [file.documentUser.uri]: references.map(reference => ({ range: reference.range, newText: name })) } };
     }
 
 
