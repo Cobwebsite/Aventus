@@ -1,4 +1,5 @@
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'fs';
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from 'fs';
+import { randomUUID } from 'crypto';
 import { AventusConfigBuild, AventusConfigBuildDependency, IncludeType } from '../language-services/json/definition';
 import { join } from 'path';
 import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_I18N_PATH, AVENTUS_DEF_PHP_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
@@ -591,16 +592,23 @@ export class DependencyManager {
 
 	private downloadFile(fileUri: string, httpUri: string): Promise<boolean> {
 		return new Promise<boolean>((resolve) => {
-
+			const tempUri = `${fileUri}.${randomUUID()}.tmp`;
+			let settled = false;
 			const cleanup = () => {
 				try {
-					if (existsSync(fileUri)) {
-						unlinkSync(fileUri);
+					if (existsSync(tempUri)) {
+						unlinkSync(tempUri);
 					}
 				}
 				catch {
 					// Ignore cleanup errors
 				}
+			};
+			const finish = (success: boolean) => {
+				if (settled) return;
+				settled = true;
+				if (!success) cleanup();
+				resolve(success);
 			};
 
 			const requestFunction = httpUri.startsWith("https:") ? gets : get;
@@ -615,9 +623,9 @@ export class DependencyManager {
 				) {
 					response.resume();
 
-					this.downloadFile(fileUri, response.headers.location)
-						.then(resolve)
-						.catch(() => resolve(false));
+					this.downloadFile(fileUri, new URL(response.headers.location, httpUri).href)
+						.then(finish)
+						.catch(() => finish(false));
 
 					return;
 				}
@@ -628,38 +636,40 @@ export class DependencyManager {
 					);
 
 					response.resume();
-					cleanup();
-					resolve(false);
+					finish(false);
 					return;
 				}
 
-				const file = createWriteStream(fileUri);
+				const file = createWriteStream(tempUri, { flags: 'wx' });
+				let failed = false;
 
 				file.on("error", (error) => {
 					console.error(`File write error for ${fileUri}:`, error);
+					failed = true;
 					response.destroy();
-					cleanup();
-					resolve(false);
 				});
 
 				response.on("error", (error) => {
 					console.error(`HTTP response error for ${httpUri}:`, error);
+					failed = true;
 					file.destroy();
-					cleanup();
-					resolve(false);
 				});
-
-				file.on("finish", () => {
-					file.close((error) => {
-						if (error) {
-							console.error(`File close error for ${fileUri}:`, error);
-							cleanup();
-							resolve(false);
-							return;
-						}
-
-						resolve(true);
-					});
+				response.on('aborted', () => {
+					failed = true;
+					file.destroy();
+				});
+				file.on("close", () => {
+					if (failed || !file.writableFinished || !response.complete) {
+						finish(false);
+						return;
+					}
+					try {
+						renameSync(tempUri, fileUri);
+						finish(true);
+					} catch (error) {
+						console.error(`File replace error for ${fileUri}:`, error);
+						finish(false);
+					}
 				});
 
 				response.pipe(file);
@@ -667,8 +677,7 @@ export class DependencyManager {
 
 			request.on("error", (error) => {
 				console.error(`HTTP request error for ${httpUri}:`, error);
-				cleanup();
-				resolve(false);
+				finish(false);
 			});
 		})
 	}
