@@ -24,7 +24,7 @@ export class StorybookBuild {
 		if(result) {
 			let uri = result.detail ?? "";
 			let name = result.label;
-			ProjectManager.getInstance().getProjectByUri(uri)?.getBuild(name)?.buildStorybook();
+			return await ProjectManager.getInstance().getProjectByUri(uri)?.getBuild(name)?.buildStorybook();
 		}
 	}
 }

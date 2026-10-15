@@ -24,7 +24,7 @@ export class StaticExport {
 		if(result) {
 			let uri = result.detail ?? "";
 			let name = result.label;
-			await ProjectManager.getInstance().getProjectByUri(uri)?.getStatic(name)?.export();
+			return await ProjectManager.getInstance().getProjectByUri(uri)?.getStatic(name)?.export();
 		}
 	}
 }
