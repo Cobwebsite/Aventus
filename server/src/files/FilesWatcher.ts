@@ -29,6 +29,10 @@ export class FilesWatcher {
     }
 
     private watcheUris: string[] = [];
+    private watchGeneration: Map<string, number> = new Map();
+    private getWatchGenerationId(uri:string) {
+        return this.watchGeneration.get(uri) ?? 0;
+    }
     public watch(uri: string) {
         if (this.watcheUris.includes(uri)) return
         if (!this.watcher) return;
@@ -43,6 +47,7 @@ export class FilesWatcher {
         if (index == -1) return
 
         this.watcheUris.splice(index, 1);
+        this.watchGeneration.set(uri, this.getWatchGenerationId(uri) + 1);
         this.watcher?.unwatch(uriToPath(uri));
     }
 
@@ -62,7 +67,13 @@ export class FilesWatcher {
     private enqueue(uri: string, action: () => Promise<void>): Promise<void> {
         const pendingEvents = this.pendingEvents;
         const previous = pendingEvents.get(uri) ?? Promise.resolve();
-        const current = previous.catch(() => { }).then(action);
+        const generation = this.getWatchGenerationId(uri);
+        const current = previous.catch(() => { }).then(() => {
+            if (this.watcheUris.includes(uri) && this.getWatchGenerationId(uri) === generation) {
+                return action();
+            }
+            return;
+        });
         pendingEvents.set(uri, current);
         const cleanup = () => {
             if (pendingEvents.get(uri) === current) pendingEvents.delete(uri);
