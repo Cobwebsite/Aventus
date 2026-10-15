@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## `@StoryValue` textuel rend la story d'un WebComponent invalide
-
-- Reproduction automatisée : `storybook-component-storyvalue-round98.test.mjs` parse un vrai composant avec `@Attribute() @StoryValue("First title")`, compile ses contrôles puis écrit la story. Le parseur transmet `First title` sans guillemets à `storyArgs.title` ; la sortie contient `"title":First title` et TypeScript signale une erreur de syntaxe. Une édition vers `"Updated title"` régénère la valeur, mais garde le même défaut.
-- Source : `StoryValueDecorator.is()` reprend `DecoratorInfo.arguments[0].value` sans représentation de chaîne ; `AventusWebcomponentCompiler.addStoryField()` le copie dans `storyArgs`, puis `Storie.writeObjAsJson()` l'insère comme expression TS brute.
-- Décision à prendre : préciser si `@StoryValue` accepte une valeur littérale ou une expression TS. Si c'est une chaîne littérale, sérialiser correctement les guillemets/échappements ; si c'est une expression, documenter la syntaxe et valider la sortie générée.
-
 ## Couleurs des commentaires de ligne SCSS proposées par le color picker
 
 - Reproduction automatisée : `color-picker-bounds-round99.test.mjs` interroge `onDocumentColor()` sur `// #f00 blue` suivi d'une règle valide. Les trois couleurs, dont `#f00` et `blue` dans le commentaire, sont retournées.

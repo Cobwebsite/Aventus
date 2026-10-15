@@ -155,9 +155,6 @@ export class Storie {
 			let txt = '{' + EOL;
 			for (let name in args) {
 				let value: any = args[name];
-				if (typeof value == 'string') {
-					value = value.replace(/\\"/g, '');
-				}
 				if (value == '') {
 					value = '""';
 				}
