@@ -338,6 +338,7 @@ export class FilesManager {
         if (!this.files[document.uri]) {
             if (document.uri.endsWith(AventusExtension.Template)) {
                 await this.registerFile(document);
+                if (!this.files[document.uri]) return false;
                 this.onSave(document);
                 return true;
             }
@@ -351,7 +352,7 @@ export class FilesManager {
      * @param uri 
      * @returns 
      */
-    public async registerFilePackage(uri: string): Promise<AventusFile> {
+    public async registerFilePackage(uri: string): Promise<AventusFile | undefined> {
         let pathToImport = uriToPath(uri);
         let txtToImport = "";
         if (existsSync(pathToImport)) {
@@ -361,7 +362,7 @@ export class FilesManager {
         FilesWatcher.getInstance().watch(uri);
         return await this.registerFile(document);
     }
-    public async registerFile(document: TextDocument): Promise<AventusFile> {
+    public async registerFile(document: TextDocument): Promise<AventusFile | undefined> {
         GenericServer.debug("registering " + document.uri);
         if (!this.files[document.uri]) {
             await this.triggerOnNewFile(document);
@@ -369,6 +370,7 @@ export class FilesManager {
         else {
             await this.files[document.uri].triggerContentChange(document);
         }
+        if (!this.files[document.uri]) return undefined;
         if (!GenericServer.isIDE) {
             FilesWatcher.getInstance().watch(document.uri);
         }
@@ -467,12 +469,24 @@ export class FilesManager {
         if (this.loadingInProgress && document.uri.endsWith(AventusExtension.Config)) {
             return;
         }
-        this.files[document.uri] = new InternalAventusFile(document);
+        const file = new InternalAventusFile(document);
+        this.files[document.uri] = file;
         let proms: Promise<void>[] = [];
         for (let uuid in this.onNewFileCb) {
-            proms.push(this.onNewFileCb[uuid](this.files[document.uri]));
+            proms.push(Promise.resolve().then(() => this.onNewFileCb[uuid](file)));
         }
-        await Promise.all(proms);
+        const results = await Promise.allSettled(proms);
+        const failure = results.find(result => result.status === 'rejected');
+        if (failure) {
+            try {
+                await file.triggerDelete();
+            } finally {
+                if (this.files[document.uri] === file) {
+                    delete this.files[document.uri];
+                }
+            }
+            GenericServer.error("Can't register file " + document.uri + " : " + failure.reason);
+        }
     }
     public onNewFile(cb: (document: AventusFile) => Promise<void>): string {
         let uuid = randomUUID();

@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Fichier conservé après échec d'un callback de création
-
-- Reproduction automatisée : `files-registration-failure-round112.test.mjs` fait échouer un listener `onNewFile()` lors de `registerFile()`. L'appel rejette, mais `getByUri()` retourne déjà le fichier. Après correction du listener, un second `registerFile()` met à jour le contenu sans rejouer ce listener ; le watcher ne démarre qu'à ce second appel.
-- Source : `FilesManager.triggerOnNewFile()` place le fichier dans `this.files` avant `Promise.all()` des callbacks. `registerFile()` ne revient pas sur cette insertion si un callback rejette.
-- Décision à prendre : définir une reprise de l'initialisation après échec d'un listener, soit en annulant l'inscription incomplète, soit en rejouant les callbacks qui n'ont pas abouti, puis vérifier que le watcher et les abonnements sont cohérents.
-
 ## Tableaux Markdown de package avec descriptions multilignes et séparateurs
 
 - Reproduction automatisée : `manifest-package-table-round112.test.mjs` documente une classe sur deux lignes et une propriété dont la description contient `|` et un saut de ligne. Le détail de la classe conserve les deux lignes, mais les cellules des tableaux donnent `First lineSecond line` et `and detailswith more text`. Le `|` de la propriété devient une colonne supplémentaire alors que l'en-tête a trois colonnes.
