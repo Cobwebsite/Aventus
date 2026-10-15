@@ -5,6 +5,6 @@ export class StartServer {
 	static cmd: string = "aventus.liveserver.start";
 
 	public static run() {
-		HttpServer.getInstance().start();
+		return HttpServer.getInstance().start();
 	}
 }

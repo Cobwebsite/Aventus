@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Commandes HTTP terminées avant le démarrage ou l'arrêt réel
-
-- Reproduction automatisée : `command-service-routing-round79.test.mjs` envoie `aventus.liveserver.start` par `Commands.execute` avec un `HttpServer.start()` asynchrone contrôlé. La commande se termine alors que le démarrage est encore en attente.
-- Source : `server/src/cmds/live-server/StartServer.ts`, `StopServer.ts` et `ToggleServer.ts` appellent les méthodes du service sans renvoyer leur résultat.
-- Décision à prendre : définir si la réponse à ces commandes doit couvrir la fin et les erreurs de l'opération HTTP ; si oui, renvoyer ou attendre la promesse du service.
-
 ## Templates locaux conservés lors du changement d'espace de travail
 
 - Reproduction automatisée : `template-workspace-isolation-round80.test.mjs` charge un template, un projet et un template global installés, puis des homonymes locaux dans l'espace A. Après passage à l'espace B, qui ne contient aucun remplacement local, la découverte renvoie encore les fichiers de A pour les trois familles.
