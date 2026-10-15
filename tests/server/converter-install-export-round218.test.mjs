@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url);
 const existsPath = require.resolve('command-exists');
 const previousCache = require.cache[existsPath];
 const previousExec = childProcess.exec;
+const previousExecFile = childProcess.execFile;
 const available = new Set(['dotnet', 'php', 'composer']);
 const executions = [];
 const fakeExec = () => { throw new Error('Unexpected callback invocation'); };
@@ -21,14 +22,21 @@ fakeExec[promisify.custom] = async command => {
     if (command.startsWith('composer global require')) available.add('php-converter');
     return { stdout: 'Conversion complete', stderr: '' };
 };
+const fakeExecFile = () => { throw new Error('Unexpected callback invocation'); };
+fakeExecFile[promisify.custom] = async command => {
+    executions.push(command);
+    return { stdout: 'Conversion complete', stderr: '' };
+};
 require.cache[existsPath] = { id: existsPath, filename: existsPath, loaded: true,
     exports: { sync: name => available.has(name) } };
 childProcess.exec = fakeExec;
+childProcess.execFile = fakeExecFile;
 let modules;
 try {
     modules = await loadServerModules(['cmds/index.ts', 'GenericServer.ts']);
 } finally {
     childProcess.exec = previousExec;
+    childProcess.execFile = previousExecFile;
     if (previousCache) require.cache[existsPath] = previousCache;
     else delete require.cache[existsPath];
 }

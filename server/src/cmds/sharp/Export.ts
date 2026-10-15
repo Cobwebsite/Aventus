@@ -1,6 +1,6 @@
 import { sync as exist } from 'command-exists';
 import { GenericServer } from '../../GenericServer';
-import { execAsync, uriToPath } from '../../tools';
+import { execAsync, execFileAsync, uriToPath } from '../../tools';
 import { SelectItem } from '../../IConnection';
 import { AventusExtension } from '../../definition';
 import { readFileSync } from 'fs';
@@ -82,7 +82,7 @@ export class SharpExport {
 		Compiling.send(csProjName, 'compiling');
 		try {
 			let csProj = uriToPath(uri);
-			const { stdout } = await execAsync("csharp-converter " + csProj);
+			const { stdout } = await execFileAsync("csharp-converter", [csProj]);
 			let result = stdout.toString()
 			if (result.indexOf("Error : ") == -1) {
 				Compiling.send(csProjName, 'success');

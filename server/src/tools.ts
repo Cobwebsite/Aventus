@@ -9,11 +9,32 @@ import { AventusConfig } from './language-services/json/definition';
 import { existsSync, mkdirSync, readFileSync, stat, statSync, unlinkSync as rmSync, writeFileSync } from 'fs';
 import { Statistics } from './notification/Statistics';
 import { promisify } from 'util';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
+import spawn from 'cross-spawn';
 import { createHash } from 'crypto';
 import { Mutex } from './Mutex';
 
 export const execAsync = promisify(exec);
+const nativeExecFileAsync = promisify(execFile);
+export async function execFileAsync(command: string, args: string[], options?: { encoding?: BufferEncoding }) {
+    try {
+        return await nativeExecFileAsync(command, args, options);
+    } catch (error) {
+        if (process.platform !== 'win32' || !['EINVAL', 'ENOENT'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
+        return await new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
+            const child = spawn(command, args, { windowsHide: true });
+            let stdout = '';
+            let stderr = '';
+            child.stdout?.on('data', chunk => { stdout += chunk.toString(); });
+            child.stderr?.on('data', chunk => { stderr += chunk.toString(); });
+            child.on('error', reject);
+            child.on('close', code => {
+                if (code === 0) resolve({ stdout, stderr });
+                else reject(Object.assign(new Error(`${command} exited with code ${code}`), { code, stdout, stderr }));
+            });
+        });
+    }
+}
 export const statAsync = promisify(stat);
 
 export const EOL = "\n";

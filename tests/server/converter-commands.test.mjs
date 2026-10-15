@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url);
 const commandExistsPath = require.resolve('command-exists');
 const existingCacheEntry = require.cache[commandExistsPath];
 const originalExec = childProcess.exec;
+const originalExecFile = childProcess.execFile;
 const available = new Set();
 const executions = [];
 let executionResult = { stdout: 'Conversion complete', stderr: '' };
@@ -21,9 +22,16 @@ fakeExec[promisify.custom] = async (command, options) => {
     if (executionResult instanceof Error) throw executionResult;
     return executionResult;
 };
+const fakeExecFile = () => { throw new Error('callback execution is not expected'); };
+fakeExecFile[promisify.custom] = async (command, args, options) => {
+    executions.push([command, args, options]);
+    if (executionResult instanceof Error) throw executionResult;
+    return executionResult;
+};
 require.cache[commandExistsPath] = { id: commandExistsPath, filename: commandExistsPath,
     loaded: true, exports: { sync: name => available.has(name) } };
 childProcess.exec = fakeExec;
+childProcess.execFile = fakeExecFile;
 let modules;
 try {
     modules = await loadServerModules([
@@ -32,6 +40,7 @@ try {
     ]);
 } finally {
     childProcess.exec = originalExec;
+    childProcess.execFile = originalExecFile;
     if (existingCacheEntry) require.cache[commandExistsPath] = existingCacheEntry;
     else delete require.cache[commandExistsPath];
 }
@@ -87,7 +96,8 @@ test('Sharp export chooses its only config and reports conversion success', asyn
         files.sharp[`file:///${path.replaceAll('\\', '/')}`] = {};
         await commands['aventus.sharp.export'].run();
         assert.equal(executions.length, 1);
-        assert.match(executions[0][0], /csharp-converter .*aventus\.sharp\.avt/);
+        assert.equal(executions[0][0], 'csharp-converter');
+        assert.match(executions[0][1][0], /aventus\.sharp\.avt/);
         assert.deepEqual(events.filter(item => item[0] === 'notification').map(item => item[2]), [
             ['Demo.csproj', 'compiling', undefined], ['Demo.csproj', 'success', undefined],
         ]);
@@ -106,7 +116,8 @@ test('PHP export honors a selected config and reports conversion success', async
         await commands['aventus.php.export'].run();
         assert.equal(selects.length, 1);
         assert.deepEqual(selects[0][0].map(item => item.label), [first, second]);
-        assert.match(executions[0][0], /php-converter .*aventus\.php\.avt 2>&1/);
+        assert.equal(executions[0][0], 'php-converter');
+        assert.match(executions[0][1][0], /aventus\.php\.avt/);
         assert.deepEqual(events.filter(item => item[0] === 'notification').map(item => item[2]), [
             ['', 'compiling', undefined], ['', 'success', undefined],
         ]);
