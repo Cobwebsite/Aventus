@@ -5,6 +5,7 @@ import { createErrorI18n, createErrorI18nPos, createWarningI18nPos } from '../..
 import { AventusI18nSchema } from './schema';
 import { AventusI18nFile, AventusI18nFileSrcParsed } from './File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { GenericServer } from '../../GenericServer';
 
 export class AventusI18nLanguageService {
 	public static readonly empty: string = "ⵌⵌ";
@@ -199,37 +200,52 @@ export class AventusI18nLanguageService {
 	}
 
 	private actionImportMissingLocales(file: AventusI18nFile): CodeAction | undefined {
-		let missing = false;
-		const newEl = JSON.parse(JSON.stringify(file.parsedSrc));
-		for (let key in file.parsedSrc) {
-			let values = file.parsedSrc[key];
-			const locales = file.build.buildConfig.i18n?.locales ?? [];
-			for (let locale of locales) {
-				if (values[locale] === undefined) {
-					missing = true;
-					newEl[key][locale] = AventusI18nLanguageService.empty;
-				}
-			}
+		const document = file.file.documentUser;
+		const source = file.file.contentUser;
+		const jsonDocument = this.languageService.parseJSONDocument(document);
+		const syntaxErrors = (jsonDocument as typeof jsonDocument & { syntaxErrors?: Diagnostic[] }).syntaxErrors;
+		const root = jsonDocument.root;
+		if (root?.type !== 'object' || syntaxErrors?.length) {
+			GenericServer.showErrorMessage('The i18n file is malformed. Fix its JSON before importing missing locales.');
+			return undefined;
+		}
 
-		}
-		if (missing) {
-			const txt = JSON.stringify(this.sortObj(newEl), null, 4);
-			return {
-				title: "Import missing locales",
-				edit: {
-					changes: {
-						[file.file.uri]: [{
-							newText: txt,
-							range: {
-								start: file.file.documentUser.positionAt(0),
-								end: file.file.documentUser.positionAt(file.file.contentUser.length),
-							}
-						}]
-					}
+		const edits: TextEdit[] = [];
+		const locales = file.build.buildConfig.i18n?.locales ?? [];
+		for (const property of root.properties) {
+			const value = property.valueNode;
+			if (value?.type !== 'object') continue;
+
+			const missing = locales.filter(locale => !value.properties.some(existing => existing.keyNode.value === locale));
+			if (missing.length === 0) continue;
+
+			const first = value.properties[0];
+			const offset = first?.offset ?? value.offset + 1;
+			const lineStart = source.lastIndexOf('\n', offset - 1) + 1;
+			const before = source.slice(lineStart, offset);
+			const multiline = source.slice(value.offset, value.offset + value.length).includes('\n');
+			const indent = first && /^\s*$/.test(before) ? before : '    ';
+			const entries = missing.map(locale => `${JSON.stringify(locale)}: ${JSON.stringify(AventusI18nLanguageService.empty)}`);
+			let newText: string;
+			if (first) {
+				if (multiline && /^\s*$/.test(before)) {
+					newText = entries.join(',\n' + indent) + ',\n' + indent;
+				} else {
+					newText = entries.join(', ') + ', ';
 				}
-			};
+			} else if (multiline) {
+				newText = '\n' + indent + entries.join(',\n' + indent) + '\n';
+			} else {
+				newText = entries.join(', ');
+			}
+			const position = document.positionAt(offset);
+			edits.push({ newText, range: { start: position, end: position } });
 		}
-		return undefined;
+		if (edits.length === 0) return undefined;
+		return {
+			title: "Import missing locales",
+			edit: { changes: { [file.file.uri]: edits } }
+		};
 	}
 
 }
