@@ -85,7 +85,7 @@ test('missing disk file update waits for its asynchronous deletion', async () =>
         const update = instance.onUpdatedUri(uri).then(() => { updateFinished = true; });
         await new Promise(resolve => setImmediate(resolve));
         assert.deepEqual(events, ['diagnostics', 'delete-start']);
-        assert.ok(instance.getByUri(uri));
+        assert.equal(instance.getByUri(uri), undefined);
         assert.equal(updateFinished, false);
         finishDelete();
         await update;

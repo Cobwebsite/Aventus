@@ -4,8 +4,8 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Build }, { GenericServer }] = await loadServerModules([
-    'project/Build.ts', 'GenericServer.ts',
+const [{ Build }, { GenericServer }, { SettingsManager }] = await loadServerModules([
+    'project/Build.ts', 'GenericServer.ts', 'settings/Settings.ts',
 ]);
 
 function fixture(t) {
@@ -152,4 +152,29 @@ test('a rejected npm compilation reaches the caller and does not prevent the nex
     assert.match(readFileSync(paths[0], 'utf8'), /Recovered0/);
     assert.match(readFileSync(paths[1], 'utf8'), /Recovered1/);
     assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 1);
+});
+
+test('a real filesystem collision rolls back an earlier output and a later build succeeds', async t => {
+    const state = fixture(t);
+    const { build, paths, notifications } = state;
+    const previousSettings = SettingsManager.instance;
+    SettingsManager.instance = { settings: { useStats: false } };
+    t.after(() => { SettingsManager.instance = previousSettings; });
+    build.writeFile = Build.prototype.writeFile.bind(build);
+    await build.build();
+    assert.match(readFileSync(paths[0], 'utf8'), /Initial0/);
+
+    rmSync(paths[1]);
+    mkdirSync(paths[1]);
+    state.setRevision('Interrupted');
+    await assert.rejects(build.build(), { code: 'EISDIR' });
+    assert.match(readFileSync(paths[0], 'utf8'), /Initial0/);
+    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 1);
+
+    rmSync(paths[1], { recursive: true });
+    state.setRevision('Recovered');
+    await build.build();
+    assert.match(readFileSync(paths[0], 'utf8'), /Recovered0/);
+    assert.match(readFileSync(paths[1], 'utf8'), /Recovered1/);
+    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 2);
 });

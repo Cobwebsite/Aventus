@@ -55,6 +55,7 @@ test('LSP document notifications create, edit, save and close a real file cache 
         await until(() => callbacks.some(item => item[0] === 'save'));
         events.close({ document: document(2, 'second') });
         await until(() => manager.getByUri(uri) === undefined);
+        await until(() => callbacks.some(item => item[0] === 'unwatch'));
 
         assert.deepEqual(callbacks, [
             ['open', 1, 'first'], ['change', 2, 'second'], ['save', 2, 'second'],

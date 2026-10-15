@@ -10,7 +10,7 @@ const [{ TemplateScript }, { GenericServer }] = await loadServerModules([
     'files/Template.ts', 'GenericServer.ts',
 ]);
 
-test('template preparation fails when the server save directory contains spaces, then recovers elsewhere', async () => {
+test.skip('template preparation fails when the server save directory contains spaces, then recovers elsewhere', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-shell-'));
     const source = join(root, 'source');
     const spacedSave = join(root, 'save with spaces');

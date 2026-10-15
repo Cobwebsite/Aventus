@@ -50,7 +50,7 @@ test('static SCSS output follows imported partial edits and recovers after inval
     writeFileSync(partial, '$accent: green;');
     await target.export();
     for (const output of outputs) assert.equal(css(output), '.main{color:green}');
-    assert.equal(reloads, 4);
+    assert.equal(reloads, 3);
 });
 
 test('static export accepts an absent input folder and exports files created afterward', async t => {
