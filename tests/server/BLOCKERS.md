@@ -1,11 +1,5 @@
 # Cas serveur en attente de changement de code
 
-## Abonnement au watcher marqué actif après un échec
-
-- Reproduction automatisée : `files-watcher-add-failure-round238.test.mjs` fait échouer `FSWatcher.add` de façon synchrone. `FilesWatcher.watch` conserve alors l'URI dans `watcheUris` ; un nouvel appel ne transmet rien au watcher, même une fois celui-ci rétabli. Seul un `unwatch` explicite suivi de `watch` permet une nouvelle tentative.
-- Source : `server/src/files/FilesWatcher.ts`, méthode `watch`, ajoute l'URI avant d'appeler `FSWatcher.add`.
-- Décision à prendre : retirer l'URI en cas d'échec d'abonnement ou définir une autre reprise explicite, puis vérifier le nouveau comportement par test.
-
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
 ## Note hors périmètre des tests serveur

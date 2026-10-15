@@ -6,7 +6,7 @@ const [{ FilesWatcher }, { pathToUri, uriToPath }] = await loadServerModules([
     'files/FilesWatcher.ts', 'tools.ts',
 ]);
 
-test('failed watcher subscription retains URI until explicit unwatch, then permits retry', () => {
+test('failed watcher subscription permits retry without explicit unwatch', () => {
     const path = 'D:/project/retry.wcl.avt';
     const uri = pathToUri(path);
     const watchedPath = uriToPath(uri);
@@ -24,13 +24,11 @@ test('failed watcher subscription retains URI until explicit unwatch, then permi
     };
 
     assert.throws(() => watcher.watch(uri), /watch subscription failed/);
-    assert.deepEqual(watcher.watcheUris, [uri]);
+    assert.deepEqual(watcher.watcheUris, []);
     fail = false;
     watcher.watch(uri);
-    assert.deepEqual(calls, [['add', watchedPath]]);
-
-    watcher.unwatch(uri);
-    watcher.watch(uri);
-    assert.deepEqual(calls, [['add', watchedPath], ['unwatch', watchedPath], ['add', watchedPath]]);
+    assert.deepEqual(calls, [['add', watchedPath], ['add', watchedPath]]);
     assert.deepEqual(watcher.watcheUris, [uri]);
+    watcher.watch(uri);
+    assert.deepEqual(calls, [['add', watchedPath], ['add', watchedPath]]);
 });

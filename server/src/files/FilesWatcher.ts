@@ -33,9 +33,9 @@ export class FilesWatcher {
         if (this.watcheUris.includes(uri)) return
         if (!this.watcher) return;
 
-        this.watcheUris.push(uri)
         let pathToWatch = uriToPath(uri);
         this.watcher.add(pathToWatch);
+        this.watcheUris.push(uri)
     }
 
     public unwatch(uri: string) {
