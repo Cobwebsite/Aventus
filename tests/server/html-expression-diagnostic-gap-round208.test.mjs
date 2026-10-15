@@ -5,7 +5,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { ParserHtml } = await loadServerModule('language-services/html/parser/ParserHtml.ts');
 
-test('malformed injection and binding expressions keep exact ranges through edits but produce no syntax diagnostic', () => {
+test('malformed injection and binding expressions produce syntax diagnostics that recover after edits', () => {
     const uri = `file:///D:/test/html-expression-diagnostic-gap-round208-${process.pid}.wcv.avt`;
     const file = { uri, versionUser: 0, documentUser: null };
     const view = { file, tsFile: { componentClassName: 'Card', viewMethodName: 'view' }, scssFile: null };
@@ -25,7 +25,8 @@ test('malformed injection and binding expressions keep exact ranges through edit
     const firstSource = '<input :title="model[" @bind:value="state[">';
     const first = parse(firstSource);
     check(firstSource, first, 'model[', 'state[');
-    assert.deepEqual(first.errors, []);
+    assert.equal(first.errors.length, 2);
+    assert.deepEqual(first.errors.map(error => firstSource.slice(file.documentUser.offsetAt(error.range.start), file.documentUser.offsetAt(error.range.end))), ['model[', 'state[']);
 
     const repairedSource = '\n<section>\n  <input :title="model[0]" @bind:value="state[0]">\n</section>';
     const repaired = parse(repairedSource);
@@ -35,5 +36,6 @@ test('malformed injection and binding expressions keep exact ranges through edit
     const relapseSource = '\n\n<input :title="other(" @bind:value="form(">';
     const relapse = parse(relapseSource);
     check(relapseSource, relapse, 'other(', 'form(');
-    assert.deepEqual(relapse.errors, []);
+    assert.equal(relapse.errors.length, 2);
+    assert.deepEqual(relapse.errors.map(error => relapseSource.slice(file.documentUser.offsetAt(error.range.start), file.documentUser.offsetAt(error.range.end))), ['other(', 'form(']);
 });

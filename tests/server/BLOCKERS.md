@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Erreurs du parseur HTML absentes de la validation du service
-
-- Reproduction automatisée : `html-validation-gap-round66.test.mjs` produit une erreur de fermeture de balise avec `ParserHtml.parse`, mais `AventusHTMLLanguageService.doValidation` renvoie une liste vide. Après correction du document, le parseur n'a plus d'erreur et la validation renvoie toujours la même liste vide.
-- Reproduction complémentaire : `html-expression-diagnostic-gap-round208.test.mjs` conserve les plages exactes de `:title="model["` et `@bind:value="state["` pendant un cycle erreur, réparation, nouvelle erreur, mais `ParserHtml.parse` ne produit aucun diagnostic de syntaxe pour ces expressions. Le cas diffère de la publication LSP ci-dessus : aucun diagnostic n'est créé au niveau du parseur.
-- Décision à prendre : publier les erreurs du parseur par le service de validation HTML, ou documenter un autre chemin de publication des diagnostics et le vérifier par un test de bout en bout.
-- Décision à prendre : déterminer si les expressions d'injection et de binding doivent être analysées comme TypeScript dans le parseur HTML ou dans une validation ultérieure ; dans les deux cas, associer une erreur à la plage de la valeur et vérifier sa disparition après correction.
-
 ## Ancienne validation publiée après un diagnostic plus récent
 
 - Reproduction automatisée : `files-validation-race-round67.test.mjs` démarre une validation sur l'ancien contenu, la suspend, modifie le document, puis publie le diagnostic du nouveau contenu. À la reprise, l'ancienne validation publie ensuite son résultat et remplace le diagnostic récent côté client. Le même fichier vérifie qu'en l'absence de validation déjà démarrée, les éditions rapides sont regroupées et la dernière version est envoyée à chaque build associé.
