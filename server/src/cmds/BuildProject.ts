@@ -25,7 +25,7 @@ export class BuildProject {
 			title: 'Project to compile'
 		})
 
-		if(result) {
+		if(result && items.some(item => item.label === result.label && item.detail === result.detail)) {
 			let uri = result.detail ?? "";
 			let name = result.label;
 			return await ProjectManager.getInstance().getProjectByUri(uri)?.getBuild(name)?.build();

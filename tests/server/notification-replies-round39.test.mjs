@@ -74,15 +74,14 @@ test('same-label selections correlate by request and option IDs', async () => {
     });
 });
 
-test('multiple selection returns client-provided same-label objects without remapping', async () => {
+test('multiple selection maps same-label objects by detail to offered options', async () => {
     await withNotifications(async sent => {
         const options = [{ label: 'Shared', detail: 'A' }, { label: 'Shared', detail: 'B' }];
         const selected = [{ label: 'Shared', detail: 'B' }, { label: 'Shared', detail: 'A' }];
         const request = AskSelectMultiple.send(options, { title: 'Choose duplicates' });
         const id = sent.at(-1)[1][0];
         commands['aventus.receiveselectmultiple'].run(id, selected);
-        assert.equal(await request, selected);
-        assert.notEqual(selected[0], options[1]);
+        assert.deepEqual(await request, [options[1], options[0]]);
         assert.equal(AskSelectMultiple.waitingResponse[id], undefined);
     });
 });

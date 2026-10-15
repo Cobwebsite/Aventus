@@ -6,7 +6,7 @@ const [{ Commands }, { ProjectManager }, { GenericServer }] = await loadServerMo
     'cmds/index.ts', 'project/ProjectManager.ts', 'GenericServer.ts',
 ]);
 
-test('build commands accept a selected target absent from their offered choices', async t => {
+test('build commands ignore a selected target absent from their offered choices', async t => {
     const previousManager = ProjectManager.getInstance;
     const previousServer = GenericServer.instance;
     t.after(() => {
@@ -39,14 +39,8 @@ test('build commands accept a selected target absent from their offered choices'
         return { label: 'Demo@hidden', detail: uri };
     } } };
 
-    for (const [command, kind] of [
-        ['aventus.compile', 'build'],
-        ['aventus.npm.build', 'npm'],
-        ['aventus.storybook.build', 'storybook'],
-        ['aventus.static', 'static'],
-    ]) {
+    for (const command of ['aventus.compile', 'aventus.npm.build', 'aventus.storybook.build', 'aventus.static']) {
         await Commands.allCommandes[command].run();
-        assert.deepEqual(calls, [kind]);
-        calls.length = 0;
+        assert.deepEqual(calls, []);
     }
 });

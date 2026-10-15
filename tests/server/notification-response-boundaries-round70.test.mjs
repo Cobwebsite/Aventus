@@ -48,7 +48,7 @@ test('interleaved replies and cancellations across all four prompt kinds preserv
     }
 });
 
-test('selection replies outside the offered options remain client supplied values', async () => {
+test('selection replies outside the offered options are cancelled', async () => {
     const previous = GenericServer.instance;
     const sent = [];
     GenericServer.instance = { connection: { sendNotification: (...args) => sent.push(args) } };
@@ -58,14 +58,20 @@ test('selection replies outside the offered options remain client supplied value
         const single = AskSelect.send(offered);
         const singleId = sent.at(-1)[1][0];
         commands['aventus.receiveselect'].run(singleId, foreign);
-        assert.equal(await single, foreign);
+        assert.equal(await single, null);
         assert.equal(AskSelect.waitingOptions[singleId], undefined);
 
         const multiple = AskSelectMultiple.send(offered);
         const multiId = sent.at(-1)[1][0];
-        commands['aventus.receiveselectmultiple'].run(multiId, [foreign]);
-        assert.deepEqual(await multiple, [foreign]);
+        commands['aventus.receiveselectmultiple'].run(multiId, [offered[0], foreign]);
+        assert.equal(await multiple, null);
         assert.equal(AskSelectMultiple.waitingResponse[multiId], undefined);
+
+        const validMultiple = AskSelectMultiple.send(offered);
+        const validId = sent.at(-1)[1][0];
+        const transmittedOption = sent.at(-1)[1][1][0];
+        commands['aventus.receiveselectmultiple'].run(validId, [{ ...transmittedOption, label: 'Changed by client' }]);
+        assert.deepEqual(await validMultiple, offered);
     } finally {
         GenericServer.instance = previous;
     }
