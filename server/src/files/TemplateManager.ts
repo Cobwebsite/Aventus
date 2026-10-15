@@ -15,6 +15,15 @@ import { Store } from '../store/Store';
 
 export type TemplatesByName = { [name: string]: TemplateScript | TemplatesByName }
 
+function copyTemplateTree(templates: TemplatesByName): TemplatesByName {
+	const copy: TemplatesByName = {};
+	for (const [name, value] of Object.entries(templates)) {
+		copy[name] = value instanceof TemplateScript || typeof value !== 'object' || value === null
+			? value : copyTemplateTree(value);
+	}
+	return copy;
+}
+
 export class TemplateManager {
 	public static getInstallationPath(root: string, folder: string): string | null {
 		if (!folder || /^[\\/]/.test(folder) || win32.isAbsolute(folder) || /^[A-Za-z]:/.test(folder)) {
@@ -155,6 +164,7 @@ export class TemplateManager {
 
 
 	public async readTemplates(pathToRead: string[], templates: TemplatesByName = {}, nb: number = 0) {
+		templates = copyTemplateTree(templates);
 		const promises: Promise<void>[] = []
 		const readRecu = (currentFolder: string) => {
 			let configPathScript = join(currentFolder, AventusExtension.Template);
