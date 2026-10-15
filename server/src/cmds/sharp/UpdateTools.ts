@@ -19,12 +19,17 @@ export class SharpUpdateTools {
 		for (let tool in tools) {
 			if (exist(tool)) {
 				await GenericServer.showLoadingMessage("Updating " + tool, async () => {
-					const result = await execAsync(tools[tool]);
-					if (result.stderr) {
-						GenericServer.showErrorMessage(result.stderr);
-					}
-					else {
-						toolsDone.push(tool);
+					try {
+						const result = await execAsync(tools[tool]);
+						if (result.stderr) {
+							GenericServer.showErrorMessage(result.stderr);
+						}
+						else {
+							toolsDone.push(tool);
+						}
+					} catch (error) {
+						const failure = error as Error & { stderr?: string };
+						GenericServer.showErrorMessage(`Failed to update ${tool}: ${failure.stderr?.trim() || failure.message}`);
 					}
 				})
 			}

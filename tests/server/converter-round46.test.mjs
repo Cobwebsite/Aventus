@@ -199,20 +199,29 @@ test('converter commands receive config paths with spaces and shell characters a
     });
 });
 
-test('tool update process rejection stops later tools and a later invocation can retry', async () => {
+test('tool update process rejection reports the failure, continues, and a later invocation can retry', async () => {
     await fixture(async ({ events, results }) => {
         available.add('dotnet'); available.add('csharp-converter'); available.add('db-query');
         results([new Error('update process exited 1')]);
-        await assert.rejects(commands['aventus.sharp.update_tools'].run(), /update process exited 1/);
-        assert.deepEqual(executions.map(e => e[0]), ['dotnet tool update --global AventusSharp.Converter']);
-        assert.deepEqual(events.filter(e => e[0] === 'info' || e[0] === 'error'), []);
+        await commands['aventus.sharp.update_tools'].run();
+        assert.deepEqual(executions.map(e => e[0]), [
+            'dotnet tool update --global AventusSharp.Converter',
+            'dotnet tool update --global AventusSharp.DatabaseQuery',
+        ]);
+        assert.deepEqual(events.filter(e => e[0] === 'error').map(e => e[1]), [
+            'Failed to update csharp-converter: update process exited 1',
+        ]);
+        assert.deepEqual(events.filter(e => e[0] === 'info').map(e => e[1]), [
+            'Update done for : db-query',
+        ]);
         results([{ stdout: 'updated converter', stderr: '' }, { stdout: 'updated db', stderr: '' }]);
         await commands['aventus.sharp.update_tools'].run();
-        assert.deepEqual(executions.slice(1).map(e => e[0]), [
+        assert.deepEqual(executions.slice(2).map(e => e[0]), [
             'dotnet tool update --global AventusSharp.Converter',
             'dotnet tool update --global AventusSharp.DatabaseQuery',
         ]);
         assert.deepEqual(events.filter(e => e[0] === 'info').map(e => e[1]), [
+            'Update done for : db-query',
             'Update done for : csharp-converter, db-query',
         ]);
     });

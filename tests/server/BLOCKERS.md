@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Échec de processus lors de la mise à jour Sharp
-
-- Reproduction automatisée : `converter-round46.test.mjs` fait rejeter l'exécution de la mise à jour `csharp-converter`. `SharpUpdateTools.run()` rejette alors sa promesse, ne lance pas la mise à jour `db-query` pourtant installé et ne transmet pas de message d'erreur au client. Une invocation ultérieure réussit.
-- Source : l'appel à `GenericServer.showLoadingMessage()` dans la boucle n'a pas de `try/catch` autour de `execAsync()` ; seul un résultat contenant `stderr` est traité.
-- Décision à prendre : définir si la mise à jour suivante doit se poursuivre après un échec de processus et comment signaler chaque échec au client, puis tester le résultat décidé.
-
 ## Sortie d'erreur ignorée par les exports Sharp et PHP
 
 - Reproduction automatisée : `converter-output-concurrency-round99.test.mjs` fait renvoyer `stdout = "conversion complete"` et `stderr = "conversion warning"` par chacun des deux convertisseurs. Les deux exports annoncent `success` et ne transmettent aucun message au client.
