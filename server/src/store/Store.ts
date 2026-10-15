@@ -202,6 +202,9 @@ export class Store {
 					await this.disconnect();
 				return new QueryError([{ code: 403, message: "You must connect to your account first" }])
 			}
+			if (query.status < 200 || query.status >= 300) {
+				return new QueryError([{ code: query.status, message: `Store request failed with HTTP ${query.status}` }]);
+			}
 			const txt = await query.text();
 			let json: any = undefined;
 			try {
