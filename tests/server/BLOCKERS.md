@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Échec du watcher interrompant la fermeture du serveur
-
-- Reproduction automatisée : `protocol-shutdown-failure-round106.test.mjs` fait échouer `FilesWatcher.destroy()` pendant `shutdown`. Le serveur marque immédiatement `isDown`, puis ne détruit ni les projets ni les fichiers. Un second appel, après réparation du watcher, termine ces nettoyages.
-- Source : `GenericServer.onShutdown()` attend la destruction du watcher avant les autres ressources sans isoler les erreurs de chaque étape.
-- Décision à prendre : préciser si la fermeture doit tenter le nettoyage de toutes les ressources même lorsqu'une étape échoue, et comment signaler les erreurs cumulées au client LSP.
-
 ## Échec de téléchargement d'une dépendance supprimant un package préexistant
 
 - Reproduction automatisée : `dependency-download-round107.test.mjs` télécharge un package depuis un serveur HTTP local, suit une redirection absolue et écrit le fichier. Une nouvelle tentative vers une URL renvoyant 404 avec la même destination retourne `false` et supprime le fichier valide précédent.

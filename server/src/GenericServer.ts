@@ -289,15 +289,24 @@ export class GenericServer {
 	protected async onShutdown() {
 		this.isDown = true;
 		const settings = SettingsManager.getInstance().settings;
+		const errors: Error[] = [];
+		const cleanup = async (name: string, action: () => void | Promise<void>) => {
+			try {
+				await action();
+			} catch (error) {
+				errors.push(new Error(`${name}: ${error}`));
+			}
+		};
 		if (settings.watchFiles) {
-			await FilesWatcher.getInstance().destroy();
+			await cleanup('FilesWatcher', () => FilesWatcher.getInstance().destroy());
 		}
 		if (settings.useCompilators) {
-			CSharpManager.getInstance().destroy();
-			PhpManager.getInstance().destroy();
+			await cleanup('CSharpManager', () => CSharpManager.getInstance().destroy());
+			await cleanup('PhpManager', () => PhpManager.getInstance().destroy());
 		}
-		ProjectManager.getInstance().destroyAll();
-		await FilesManager.getInstance().onShutdown();
+		await cleanup('ProjectManager', () => ProjectManager.getInstance().destroyAll());
+		await cleanup('FilesManager', () => FilesManager.getInstance().onShutdown());
+		return errors;
 	}
 	protected async onCompletion(document: TextDocument | undefined, position: Position) {
 		if (this.isAllowed(document)) {
