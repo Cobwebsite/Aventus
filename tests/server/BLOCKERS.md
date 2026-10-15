@@ -18,11 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Fragment d'URL non cité présenté comme couleur CSS
-
-- Reproduction automatisée : `color-picker-url-fragment-round120.test.mjs` reçoit `url(icon.svg#f00)` et `color: #00f`. `ColorPicker.onDocumentColor()` propose les deux fragments `#f00` et `#00f` comme couleurs.
-- Cause : le masque du color picker retire commentaires et chaînes, mais ne distingue pas le contenu non cité d'une fonction `url(...)` avant de chercher les couleurs hexadécimales.
-- Décision à prendre : ignorer les fragments d'URL non cités lors de la recherche des couleurs, tout en conservant les vrais littéraux CSS voisins.
 ## Nom de package sortant du dossier de documentation des dépendances IA
 
 - Reproduction automatisée : `ai-dependency-docs-round121.test.mjs` fournit un package nommé `../escaped`. La commande écrit `escaped.md` dans `.aventus` au lieu de `.aventus/dependencies`.
