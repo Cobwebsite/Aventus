@@ -206,6 +206,7 @@ export class FilesManager {
         let checkPath = (workspacePathTemp: string) => {
             return true;
         }
+        let checkFile = (filePath: string) => true;
         if (readDirs.length > 0) {
             let regexsDir: string[] = [];
             const allowedDirs: string[] = [];
@@ -245,6 +246,7 @@ export class FilesManager {
                 regexsDirJoin = "(?!)";
             }
             const regex = new RegExp(regexsDirJoin);
+            checkFile = (filePath: string) => regex.test(filePath.replace(/\\/g, '/'));
             checkPath = (workspacePathTemp: string) => {
                 // for the children
                 const resChildren = (workspacePathTemp + "/").match(regex) != null;
@@ -269,7 +271,9 @@ export class FilesManager {
                         await readWorkspace(currentPath);
                     }
                 } else {
-                    await onFile(folderContent[i], currentPath);
+                    if (checkFile(currentPath)) {
+                        await onFile(folderContent[i], currentPath);
+                    }
                 }
             }
         }

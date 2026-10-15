@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## `readDirs` ciblant un fichier charge aussi ses voisins
-
-- Reproduction automatisée : `files-read-dirs-file-filter-round108.test.mjs` utilise `readDirs: ['src/wanted.wcl.avt']`. La découverte enregistre `wanted.wcl.avt` et `sibling.wcl.avt`, mais exclut le fichier du sous-dossier `src/nested`.
-- Cause : `FilesManager.parseWorkspace()` filtre les dossiers parcourus, puis transmet tous leurs fichiers à `loadAllAventusFiles()` sans vérifier le chemin de chaque fichier contre `readDirs`.
-- Décision à prendre : préciser si une entrée `readDirs` désignant un fichier doit limiter le chargement à ce seul fichier. Si oui, appliquer aussi le filtre aux fichiers rencontrés.
-
 ## Catégorie de templates vide après filtrage des scripts interdits
 
 - Reproduction automatisée : `template-query-categories-round109.test.mjs` interroge une catégorie qui ne contient qu'un template dont `isAllowed()` renvoie `false`. Le premier menu propose encore la catégorie ; sa sélection ouvre un second menu vide.
