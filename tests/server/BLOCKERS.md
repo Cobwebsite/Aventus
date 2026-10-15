@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Ancienne classe HTML conservée dans le registre inverse après remplacement direct
-
-- Reproduction automatisée : `html-definition-replacement-round71.test.mjs` remplace une définition interne sous la même URI sans retrait préalable. Le tag et la complétion utilisent la nouvelle classe, mais `internalDocumentationReverse` garde l'ancienne classe, même après retrait de la nouvelle définition.
-- Source : `AventusHTMLLanguageService.addInternalDefinition()` écrase `internalDocumentation[uri]` et ajoute les nouvelles classes au registre inverse sans supprimer les classes de la version précédente. `removeInternalDefinition()` ne connaît ensuite que la nouvelle version.
-- Décision à prendre : préciser si le remplacement direct sous une même URI est une opération prise en charge. Si oui, retirer les anciennes entrées inverses avant l'écrasement, puis vérifier les cycles d'édition et de suppression.
-
 ## Renommage de dossier : seules les références du premier fichier sont mises à jour
 
 - Reproductions automatisées : `project-rename-batch-round72.test.mjs` transmet au projet deux renommages de fichiers TypeScript provenant d'un même dossier. `project-rename-real-batch-round206.test.mjs` confirme avec deux projets et de vrais services TypeScript que seul le premier import est édité ; le second consommateur reste inchangé.

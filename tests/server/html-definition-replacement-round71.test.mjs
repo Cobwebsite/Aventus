@@ -66,7 +66,7 @@ test('removing the winning package definition restores the older package tag and
     assert.ok(!attrs.includes('second-attr'));
 });
 
-test('replacing an internal definition at the same URI leaves a reverse lookup for its former class', () => {
+test('replacing an internal definition at the same URI removes its former reverse lookup', () => {
     const html = service();
     const uri = 'file:///local-component.wcl.avt';
     const file = { uri };
@@ -74,8 +74,19 @@ test('replacing an internal definition at the same URI leaves a reverse lookup f
     html.addInternalDefinition(uri, doc('new-card', 'NewCard', 'new-attr', 'new'), file);
     assert.equal(html.getClassByTag('old-card'), null);
     assert.equal(html.getInternalDefinition('new-card'), file);
-    assert.equal(html.internalDocumentationReverse.OldCard, file);
+    assert.equal(html.internalDocumentationReverse.OldCard, undefined);
     html.removeInternalDefinition(uri);
     assert.equal(html.getInternalDefinition('new-card'), undefined);
-    assert.equal(html.internalDocumentationReverse.OldCard, file);
+    assert.equal(html.internalDocumentationReverse.OldCard, undefined);
+});
+
+test('removing an internal definition preserves a class supplied by another URI', () => {
+    const html = service();
+    const first = { uri: 'file:///first.wcl.avt' };
+    const second = { uri: 'file:///second.wcl.avt' };
+    html.addInternalDefinition(first.uri, doc('first-card', 'SharedCard', 'size', 'small'), first);
+    html.addInternalDefinition(second.uri, doc('second-card', 'SharedCard', 'tone', 'warm'), second);
+    assert.equal(html.internalDocumentationReverse.SharedCard, second);
+    html.removeInternalDefinition(second.uri);
+    assert.equal(html.internalDocumentationReverse.SharedCard, first);
 });

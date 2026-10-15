@@ -29,6 +29,7 @@ export class AventusHTMLLanguageService {
     private documentationInfo: HTMLDoc = {};
     private extenalDocumentation: { [key: string]: HTMLDoc } = {};
     private internalDocumentation: { [key: string]: HTMLDoc } = {};
+    private internalDefinitionFiles: { [uri: string]: AventusWebComponentLogicalFile } = {};
     private internalDocumentationReverse: { [className: string]: AventusWebComponentLogicalFile } = {};
     private internalTagUri: { [tag: string]: { uri: string, fullname: string } } = {};
     private _allowRebuildDefinition: boolean = true;
@@ -523,20 +524,25 @@ export class AventusHTMLLanguageService {
     }
     public addInternalDefinition(uri: string, doc: HTMLDoc, fromFile: AventusWebComponentLogicalFile) {
         this.internalDocumentation[uri] = doc;
-        for (let tagName in doc) {
-            this.internalDocumentationReverse[doc[tagName].class] = fromFile;
-        }
+        this.internalDefinitionFiles[uri] = fromFile;
+        this.rebuildInternalDocumentationReverse();
         this.rebuildDefinition();
     }
     public removeInternalDefinition(uri: string) {
-        let oldDoc = this.internalDocumentation[uri];
-        if (oldDoc) {
-            for (let tagName in oldDoc) {
-                delete this.internalDocumentationReverse[oldDoc[tagName].class];
+        delete this.internalDocumentation[uri];
+        if (this.internalDefinitionFiles) delete this.internalDefinitionFiles[uri];
+        this.rebuildInternalDocumentationReverse();
+        this.rebuildDefinition();
+    }
+    private rebuildInternalDocumentationReverse() {
+        this.internalDocumentationReverse = {};
+        for (const uri in this.internalDocumentation) {
+            const fromFile = this.internalDefinitionFiles?.[uri];
+            if (!fromFile) continue;
+            for (const tagName in this.internalDocumentation[uri]) {
+                this.internalDocumentationReverse[this.internalDocumentation[uri][tagName].class] = fromFile;
             }
         }
-        delete this.internalDocumentation[uri];
-        this.rebuildDefinition();
     }
 
     public getInternalTagUri(tag: string): { uri: string, fullname: string } | undefined {
