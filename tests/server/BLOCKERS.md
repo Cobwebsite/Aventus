@@ -18,11 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Racine i18n `null` laissant la liste des clés inaccessible
-
-- Reproduction automatisée : `i18n-root-shape-round119.test.mjs` remplace un document i18n valide par le JSON `null`. La validation signale une erreur et les exports sont vidés, mais `AventusI18nFile.keys` lève une `TypeError`. Une édition valide suivante rétablit les clés et les exports.
-- Cause : `onContentChange()` assigne `parsedSrc = JSON.parse(...)` avant de vérifier que la racine est un objet ; `keys` appelle ensuite `Object.keys(parsedSrc)`.
-- Décision à prendre : conserver un état `parsedSrc` exploitable pour une racine de type incorrect, par exemple `{}`, tout en publiant le diagnostic de schéma.
 ## Fragment d'URL non cité présenté comme couleur CSS
 
 - Reproduction automatisée : `color-picker-url-fragment-round120.test.mjs` reçoit `url(icon.svg#f00)` et `color: #00f`. `ColorPicker.onDocumentColor()` propose les deux fragments `#f00` et `#00f` comme couleurs.
