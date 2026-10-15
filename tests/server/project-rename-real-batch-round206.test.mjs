@@ -48,7 +48,7 @@ function applyEdit(file, edit) {
     return file.contentUser.slice(0, start) + edit.newText + file.contentUser.slice(end);
 }
 
-test('a real two-project folder rename resolves the first TypeScript import but omits the second', async t => {
+test('a real two-project folder rename resolves both TypeScript imports', async t => {
     const root = pathToFileURL(join(process.cwd(), 'round206-real-rename-batch') + '/').href;
     const uri = name => new URL(name, root).href;
     const oldAlpha = uri('old/alpha.lib.avt');
@@ -82,9 +82,11 @@ test('a real two-project folder rename resolves the first TypeScript import but 
         { oldUri: oldAlpha, newUri: newAlpha },
         { oldUri: oldBeta, newUri: newBeta },
     ]);
-    assert.deepEqual(Object.keys(edits), [consumerA.uri]);
+    assert.deepEqual(Object.keys(edits), [consumerA.uri, consumerB.uri]);
     assert.equal(edits[consumerA.uri].length, 1);
     assert.equal(applyEdit(consumerA, edits[consumerA.uri][0]),
         'import { Alpha } from "../new/alpha.lib.avt";\nexport class ConsumerA extends Alpha {}');
-    assert.equal(edits[consumerB.uri], undefined);
+    assert.equal(edits[consumerB.uri].length, 1);
+    assert.equal(applyEdit(consumerB, edits[consumerB.uri][0]),
+        'import { Beta } from "../new/beta.lib.avt";\nexport class ConsumerB extends Beta {}');
 });

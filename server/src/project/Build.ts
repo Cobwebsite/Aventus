@@ -2442,6 +2442,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
     }
 
     public async onRename(changes: { oldUri: string, newUri: string }[]): Promise<{ [uri: string]: TextEdit[] }> {
+        const result: { [uri: string]: TextEdit[] } = {};
         for (let change of changes) {
             if (change.oldUri.endsWith(AventusExtension.Component) ||
                 change.oldUri.endsWith(AventusExtension.ComponentLogic) ||
@@ -2449,10 +2450,26 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 change.oldUri.endsWith(AventusExtension.Lib) ||
                 change.oldUri.endsWith(AventusExtension.RAM)
             ) {
-                return await this.tsLanguageService.onRenameFile(change.oldUri, change.newUri);
+                const edits = await this.tsLanguageService.onRenameFile(change.oldUri, change.newUri);
+                for (const uri in edits) {
+                    if(!result[uri]) {
+                        result[uri] = [];
+                    }
+                    for (const edit of edits[uri]) {
+                        if (!result[uri].some(existing => 
+                            existing.newText === edit.newText &&
+                            existing.range.start.line === edit.range.start.line &&
+                            existing.range.start.character === edit.range.start.character &&
+                            existing.range.end.line === edit.range.end.line &&
+                            existing.range.end.character === edit.range.end.character
+                        )) {
+                            result[uri].push(edit);
+                        }
+                    }
+                }
             }
         }
-        return {};
+        return result;
     }
 
     public npmAliases: { [fullname: string]: string } = {};
