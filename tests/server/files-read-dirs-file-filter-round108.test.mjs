@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
@@ -9,8 +8,8 @@ const [{ FilesManager }, { SettingsManager }, { InitStep }, { pathToUri }] = awa
     'files/FilesManager.ts', 'settings/Settings.ts', 'notification/InitStep.ts', 'tools.ts',
 ]);
 
-test('a readDirs file entry currently admits sibling Aventus files in the same directory', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'aventus-read-file-'));
+test('a readDirs file entry admits only that file while a directory entry admits its files', async () => {
+    const root = mkdtempSync(join(process.cwd(), 'aventus-read-file-'));
     const priorSettings = SettingsManager.instance;
     const priorSend = InitStep.send;
     const priorDone = InitStep.sendDone;
@@ -31,8 +30,13 @@ test('a readDirs file entry currently admits sibling Aventus files in the same d
         const registered = [];
         manager.registerFile = async document => registered.push(document.uri);
         await manager.loadAllAventusFiles([pathToUri(root)]);
-        assert.deepEqual(registered.sort(), [pathToUri(sibling), pathToUri(wanted)].sort());
+        assert.deepEqual(registered, [pathToUri(wanted)]);
         assert.ok(!registered.includes(pathToUri(nested)));
+
+        registered.length = 0;
+        SettingsManager.instance.settings.readDirs = ['src'];
+        await manager.loadAllAventusFiles([pathToUri(root)]);
+        assert.deepEqual(registered.sort(), [pathToUri(wanted), pathToUri(sibling), pathToUri(nested)].sort());
     } finally {
         SettingsManager.instance = priorSettings;
         InitStep.send = priorSend;
