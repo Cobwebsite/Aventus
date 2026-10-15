@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Renommage de dossier : seules les références du premier fichier sont mises à jour
-
-- Reproductions automatisées : `project-rename-batch-round72.test.mjs` transmet au projet deux renommages de fichiers TypeScript provenant d'un même dossier. `project-rename-real-batch-round206.test.mjs` confirme avec deux projets et de vrais services TypeScript que seul le premier import est édité ; le second consommateur reste inchangé.
-- Source : `Build.onRename()` retourne dès le premier changement ayant une extension TypeScript prise en charge. Les changements suivants du même lot ne sont jamais traités.
-- Décision à prendre : agréger les éditions de tous les changements du lot, en définissant la résolution des éventuels doublons pour une URI consommatrice, puis faire évoluer la régression avec deux imports réels.
-
 ## Renommage de fichiers hors TypeScript : aucune édition de références
 
 - Reproduction automatisée : `project-rename-non-ts-round194.test.mjs` transmet aux deux projets des déplacements de vues, styles, fichiers SCSS, HTML et JSON. Aucun ne produit d'édition ni n'appelle le service de renommage TypeScript ; un fichier `.lib.avt` placé après un style dans le même lot produit bien les éditions attendues.

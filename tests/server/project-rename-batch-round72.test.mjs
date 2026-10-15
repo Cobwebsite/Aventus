@@ -8,7 +8,7 @@ const [{ ProjectManager }, { Project }, { Build }, { AventusTsLanguageService },
     'language-services/ts/LanguageService.ts', 'files/FilesManager.ts',
 ]);
 
-test('a folder rename with two TypeScript files reaches the project as one batch but only the first file supplies edits', async () => {
+test('a folder rename with two TypeScript files includes edits for both files', async () => {
     const oldRoot = 'file:///project/old';
     const newRoot = 'file:///project/new';
     const changes = ['alpha.lib.avt', 'beta.lib.avt'].map(name => ({
@@ -32,9 +32,24 @@ test('a folder rename with two TypeScript files reaches the project as one batch
     manager.projects = { first: project };
 
     const edits = await manager.onRename(changes);
-    assert.deepEqual(calls, [[changes[0].oldUri, changes[0].newUri]]);
-    assert.deepEqual(Object.keys(edits), ['file:///project/alpha-user.lib.avt']);
+    assert.deepEqual(calls, changes.map(change => [change.oldUri, change.newUri]));
+    assert.deepEqual(Object.keys(edits), ['file:///project/alpha-user.lib.avt', 'file:///project/beta-user.lib.avt']);
     assert.equal(edits['file:///project/alpha-user.lib.avt'][0].newText, changes[0].newUri);
+    assert.equal(edits['file:///project/beta-user.lib.avt'][0].newText, changes[1].newUri);
+});
+
+test('batch rename removes identical edits for the same consumer', async () => {
+    const edit = {
+        range: { start: { line: 1, character: 2 }, end: { line: 1, character: 8 } },
+        newText: './new.lib.avt',
+    };
+    const build = Object.create(Build.prototype);
+    build.tsLanguageService = { onRenameFile: async () => ({ 'file:///consumer.lib.avt': [edit] }) };
+    const edits = await build.onRename([
+        { oldUri: 'file:///first.lib.avt', newUri: 'file:///first-new.lib.avt' },
+        { oldUri: 'file:///second.lib.avt', newUri: 'file:///second-new.lib.avt' },
+    ]);
+    assert.deepEqual(edits, { 'file:///consumer.lib.avt': [edit] });
 });
 
 test('multiple imports of one moved file in the same consumer produce only one edit', async t => {
