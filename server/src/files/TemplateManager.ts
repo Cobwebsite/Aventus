@@ -15,6 +15,8 @@ import { Store } from '../store/Store';
 
 export type TemplatesByName = { [name: string]: TemplateScript | TemplatesByName }
 
+export class NoTemplatesAvailableError extends Error {}
+
 function copyTemplateTree(templates: TemplatesByName): TemplatesByName {
 	const copy: TemplatesByName = {};
 	for (const [name, value] of Object.entries(templates)) {
@@ -619,6 +621,27 @@ export class TemplateManager {
 	public async query(path: string, templates: TemplatesByName): Promise<TemplateScript | null>;
 	public async query(path: string, templates: TemplatesByName, quickPicks: SelectItem[]): Promise<TemplateScript | null | SelectItem>;
 	public async query(path: string, templates: TemplatesByName, quickPicks?: SelectItem[]): Promise<TemplateScript | null | SelectItem> {
+		const workspace = this.findWorkspace(path);
+		const filterAllowed = async (items: TemplatesByName): Promise<TemplatesByName> => {
+			const allowed: TemplatesByName = {};
+			for (const [name, item] of Object.entries(items)) {
+				if (item instanceof TemplateScript) {
+					if (await item.isAllowed(path, workspace)) allowed[name] = item;
+				} else {
+					const children = await filterAllowed(item);
+					if (Object.keys(children).length > 0) allowed[name] = children;
+				}
+			}
+			return allowed;
+		};
+		const allowedTemplates = await filterAllowed(templates);
+		if (Object.keys(allowedTemplates).length === 0) {
+			throw new NoTemplatesAvailableError('No templates available for this location');
+		}
+		return this.queryAllowed(allowedTemplates, quickPicks);
+	}
+
+	private async queryAllowed(templates: TemplatesByName, quickPicks?: SelectItem[]): Promise<TemplateScript | null | SelectItem> {
 		let hasCustom = true;
 		if (!quickPicks) {
 			hasCustom = false;
@@ -630,9 +653,6 @@ export class TemplateManager {
 			const current = templates[name];
 			let quickPick: SelectItem;
 			if (current instanceof TemplateScript) {
-
-				if (!await current.isAllowed(path, this.findWorkspace(path))) continue;
-
 				quickPick = {
 					label: name,
 					detail: current.description ?? "",
@@ -648,6 +668,9 @@ export class TemplateManager {
 			quickPicks.push(quickPick);
 		}
 		quickPicks.sort((a, b) => a.label.localeCompare(b.label));
+		if (quickPicks.length === 0) {
+			return null;
+		}
 		const resultFormat = await GenericServer.Select(quickPicks, {
 			title: 'What do you want to create?',
 		});
@@ -660,7 +683,7 @@ export class TemplateManager {
 
 			let resultPick3 = this.getSelectItem(quickPicksTemplateByName, resultFormat);
 			if (resultPick3) {
-				return this.query(path, resultPick3);
+				return this.queryAllowed(resultPick3);
 			}
 
 			if (hasCustom) {

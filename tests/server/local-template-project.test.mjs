@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ LocalTemplateManager }, { LocalProjectManager }, { TemplateScript }, { GenericServer }] = await loadServerModules([
-    'files/LocalTemplate.ts', 'files/LocalProject.ts', 'files/Template.ts', 'GenericServer.ts',
+const [{ LocalTemplateManager }, { LocalProjectManager }, { TemplateScript }, { GenericServer }, { NoTemplatesAvailableError }] = await loadServerModules([
+    'files/LocalTemplate.ts', 'files/LocalProject.ts', 'files/Template.ts', 'GenericServer.ts', 'files/TemplateManager.ts',
 ]);
 
 function withWorkspace(uri, action) {
@@ -97,4 +97,24 @@ test('global creation initializes a selected script and returns on cancelled sel
     selected = null;
     await local.createGlobal('D:\\workspace');
     assert.deepEqual(calls, [['D:\\workspace', 'D:\\workspace']]);
+});
+
+test('creation warns with the template store link when no template is available', async () => {
+    const warnings = [];
+    const previousWarning = GenericServer.showWarningMessage;
+    GenericServer.showWarningMessage = message => warnings.push(message);
+    const manager = {
+        readGlobal: async () => ({ templates: {} }),
+        query: async () => { throw new NoTemplatesAvailableError('No templates available'); },
+    };
+    try {
+        const localTemplate = new LocalTemplateManager(manager);
+        localTemplate.readTemplates = () => ({ templates: {} });
+        await localTemplate.createTemplate('D:\\workspace\\src');
+        await new LocalProjectManager(manager).createGlobal('D:\\workspace');
+        assert.deepEqual(warnings, Array(2).fill(
+            'No templates available for this location. Browse templates: https://store.aventusjs.com/templates'));
+    } finally {
+        GenericServer.showWarningMessage = previousWarning;
+    }
 });

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ TemplateManager }, { TemplateScript }, { GenericServer }] = await loadServerModules([
+const [{ TemplateManager, NoTemplatesAvailableError }, { TemplateScript }, { GenericServer }] = await loadServerModules([
     'files/TemplateManager.ts', 'files/Template.ts', 'GenericServer.ts',
 ]);
 
@@ -42,22 +42,23 @@ test('nested template query sorts categories and filters disallowed leaves at ea
     }
 });
 
-test('category containing only disallowed templates is still offered and opens an empty menu', async () => {
+test('category containing only disallowed templates is hidden', async () => {
     const manager = Object.create(TemplateManager.prototype);
     manager.workspaces = ['D:\\workspace'];
     const checks = [];
     const shown = [];
+    const warnings = [];
     const previous = GenericServer.instance;
     GenericServer.instance = { connection: { Select: async items => {
         shown.push(items.map(item => item.label));
         return items[0] ?? null;
-    } } };
+    }, showWarningMessage: message => warnings.push(message) } };
     try {
-        const chosen = await manager.query('D:\\workspace\\src', {
-            Empty: { Denied: template(false, checks) },
-        });
-        assert.equal(chosen, null);
-        assert.deepEqual(shown, [['Empty'], []]);
+        await assert.rejects(manager.query('D:\\workspace\\src', {
+            Empty: { Nested: { Denied: template(false, checks) } },
+        }), NoTemplatesAvailableError);
+        assert.deepEqual(shown, []);
+        assert.deepEqual(warnings, []);
         assert.deepEqual(checks, [['D:\\workspace\\src', 'D:\\workspace']]);
     } finally {
         GenericServer.instance = previous;
