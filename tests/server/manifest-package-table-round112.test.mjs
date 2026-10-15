@@ -25,17 +25,17 @@ function packageWithDescriptions() {
     };
 }
 
-test('package Markdown keeps ordered class documentation and flattens multiline table cells', () => {
+test('package Markdown keeps ordered class documentation and separates multiline table cells', () => {
     const markdown = new ManifestPackageMd(packageWithDescriptions()).getContent();
-    assert.match(markdown, /\| \[Demo\.Card\]\(#pkg-demo-card\) \| Class \| First lineSecond line \|/);
+    assert.match(markdown, /\| \[Demo\.Card\]\(#pkg-demo-card\) \| Class \| First line Second line \|/);
     assert.match(markdown, /## Demo\.Card\r?\n\r?\nFirst line\r?\nSecond line/);
-    assert.match(markdown, /\| title \| string \| Shown in the overview \| and detailswith more text \|/);
+    assert.match(markdown, /\| title \| string \| Shown in the overview \\\| and details with more text \|/);
 });
 
-test('package Markdown currently leaves description pipes as extra table columns', () => {
+test('package Markdown escapes description pipes within a table cell', () => {
     const markdown = new ManifestPackageMd(packageWithDescriptions()).getContent();
     const header = markdown.split(/\r?\n/).find(line => line.startsWith('| Name | Type | Description |'));
     const property = markdown.split(/\r?\n/).find(line => line.startsWith('| title |'));
     assert.equal((header.match(/\|/g) ?? []).length, 4);
-    assert.equal((property.match(/\|/g) ?? []).length, 5);
+    assert.equal((property.match(/(?<!\\)\|/g) ?? []).length, 4);
 });

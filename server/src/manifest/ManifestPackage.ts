@@ -641,7 +641,7 @@ export class ManifestPackageMd {
 	}
 
 	private addColumns(cols: string[]) {
-		let txt = `| ${cols.map(p => p.replace(/\r\n|\n/g, '').replace(/ {2,}/g, ' ').trim()).join(" | ")} |`;
+		let txt = `| ${cols.map(p => p.replace(/\r\n|\r|\n/g, ' ').replace(/ {2,}/g, ' ').trim().replace(/\|/g, '\\|')).join(" | ")} |`;
 		this.add(txt);
 	}
 	private addColumnsHeader(cols: string[]) {

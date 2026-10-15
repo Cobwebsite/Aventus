@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Tableaux Markdown de package avec descriptions multilignes et séparateurs
-
-- Reproduction automatisée : `manifest-package-table-round112.test.mjs` documente une classe sur deux lignes et une propriété dont la description contient `|` et un saut de ligne. Le détail de la classe conserve les deux lignes, mais les cellules des tableaux donnent `First lineSecond line` et `and detailswith more text`. Le `|` de la propriété devient une colonne supplémentaire alors que l'en-tête a trois colonnes.
-- Source : `ManifestPackageMd.addColumns()` supprime les sauts de ligne sans les remplacer par une séparation et n'échappe pas les barres verticales présentes dans les valeurs.
-- Décision à prendre : préserver une séparation lisible entre lignes et échapper les barres verticales dans les cellules Markdown.
-
 ## Préparation de template bloquée par les espaces et après échec
 
 - Reproduction automatisée : `template-shell-path-round112.test.mjs` place le dossier de sauvegarde du serveur dans un chemin contenant des espaces. `TemplateScript.create()` échoue à charger un script valide, car le chemin du script temporaire est scindé par le shell. Après déplacement vers un dossier sans espaces, le nouvel essai reste indéfiniment en attente ; après remise à zéro du registre `preparing`, le même script se charge.
