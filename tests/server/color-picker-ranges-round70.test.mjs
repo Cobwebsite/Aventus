@@ -40,10 +40,10 @@ test('an empty range produces presentations from the supplied color', () => {
         ['#ff0000', 'hsl(0, 100%, 50%)', 'rgb(255, 0, 0)']);
 });
 
-test('opaque four-digit hex loses its explicit alpha syntax in presentations', () => {
+test('opaque four-digit hex keeps its explicit alpha syntax in presentations', () => {
     const document = TextDocument.create('file:///colors.wcs.avt', 'scss', 1, '#f00f');
     const [found] = ColorPicker.onDocumentColor(document);
     assert.deepEqual(found.color, { red: 1, green: 0, blue: 0, alpha: 1 });
     assert.deepEqual(labels(document, found.range, found.color),
-        ['#ff0000', 'hsl(0, 100%, 50%)', 'rgb(255, 0, 0)']);
+        ['#ff0000ff', 'hsla(0, 100%, 50%, 1)', 'rgba(255, 0, 0, 1)']);
 });

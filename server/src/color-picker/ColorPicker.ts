@@ -197,7 +197,7 @@ export class ColorPicker {
 		const presentationRgba = ColorPresentation.create(c.toString('rgba'));
 
 		let hasAlpha = false;
-		if (t.startsWith('#') && (t.length === 9)) {
+		if (t.startsWith('#') && (t.length === 5 || t.length === 9)) {
 			hasAlpha = true;
 		}
 		if (t.startsWith('hsla')) {
