@@ -16,6 +16,10 @@ export class BuildProject {
 				detail: build.uri
 			})
 		}
+		if (items.length === 0) {
+			GenericServer.showWarningMessage('No project to compile was found.');
+			return;
+		}
 
 		let result = await GenericServer.Select(items, {
 			title: 'Project to compile'

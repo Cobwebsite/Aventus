@@ -6,7 +6,7 @@ const [{ Commands }, { ProjectManager }, { GenericServer }] = await loadServerMo
     'cmds/index.ts', 'project/ProjectManager.ts', 'GenericServer.ts',
 ]);
 
-test('build commands present an empty selection and do no work when no target exists', async t => {
+test('build commands skip selection and do no work when no target exists', async t => {
     const previousManager = ProjectManager.getInstance;
     const previousServer = GenericServer.instance;
     t.after(() => {
@@ -15,6 +15,7 @@ test('build commands present an empty selection and do no work when no target ex
     });
 
     const selections = [];
+    const warnings = [];
     let projectLookups = 0;
     ProjectManager.getInstance = () => ({
         getAllBuilds: () => [],
@@ -24,6 +25,7 @@ test('build commands present an empty selection and do no work when no target ex
         getProjectByUri: () => { projectLookups++; throw new Error('unexpected project lookup'); },
     });
     GenericServer.instance = { connection: {
+        showWarningMessage: message => warnings.push(message),
         Select: async (items, options) => {
             selections.push({ items, title: options.title });
             return undefined;
@@ -37,11 +39,12 @@ test('build commands present an empty selection and do no work when no target ex
         await Commands.allCommandes[command].run();
     }
 
-    assert.deepEqual(selections, [
-        { items: [], title: 'Project to compile' },
-        { items: [], title: 'Package to build' },
-        { items: [], title: 'Story to build' },
-        { items: [], title: 'Static to export' },
+    assert.deepEqual(selections, []);
+    assert.deepEqual(warnings, [
+        'No project to compile was found.',
+        'No package to build was found.',
+        'No Storybook build was found.',
+        'No static export was found.',
     ]);
     assert.equal(projectLookups, 0);
 });

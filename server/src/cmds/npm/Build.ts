@@ -16,6 +16,10 @@ export class NpmBuild {
 				detail: build.uri
 			})
 		}
+		if (items.length === 0) {
+			GenericServer.showWarningMessage('No package to build was found.');
+			return;
+		}
 
 		let result = items.length == 1 ? items[0] : await GenericServer.Select(items, {
 			title: 'Package to build'

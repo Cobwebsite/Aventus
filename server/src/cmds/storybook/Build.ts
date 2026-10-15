@@ -16,6 +16,10 @@ export class StorybookBuild {
 				detail: build.uri
 			})
 		}
+		if (items.length === 0) {
+			GenericServer.showWarningMessage('No Storybook build was found.');
+			return;
+		}
 
 		let result = await GenericServer.Select(items, {
 			title: 'Story to build'
