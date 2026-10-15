@@ -16,10 +16,12 @@ function importedValue(result, alias) {
     return Object.values(context.npmCompilation)[0][alias]();
 }
 
-test('npm compilation caches package contents until import metadata changes, then removes the retired import', async t => {
+test('npm compilation refreshes changed dependency versions and removes a retired import', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-package-cache-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const packageDir = join(root, 'node_modules', 'changing-library');
+    const projectPackageJson = join(root, 'package.json');
+    writeFileSync(projectPackageJson, JSON.stringify({ devDependencies: { 'changing-library': '1.0.0' } }));
     mkdirSync(packageDir, { recursive: true });
     writeFileSync(join(packageDir, 'package.json'), JSON.stringify({ name: 'changing-library', main: 'index.js' }));
     const entry = join(packageDir, 'index.js');
@@ -38,12 +40,13 @@ test('npm compilation caches package contents until import metadata changes, the
     assert.deepEqual(first.errors, []);
     assert.equal(importedValue(first.result, 'current'), 11);
 
-    // The package changes on disk while the registered import remains identical.
+    // The package version changes while the registered import remains identical.
     writeFileSync(entry, 'exports.value = () => 22; exports.newer = () => 33;');
-    const cached = await builder.compile();
-    assert.deepEqual(cached.errors, []);
-    assert.equal(cached.result, first.result);
-    assert.equal(importedValue(cached.result, 'current'), 11);
+    writeFileSync(projectPackageJson, JSON.stringify({ devDependencies: { 'changing-library': '1.0.1' } }));
+    const refreshed = await builder.compile();
+    assert.deepEqual(refreshed.errors, []);
+    assert.notEqual(refreshed.result, first.result);
+    assert.equal(importedValue(refreshed.result, 'current'), 22);
 
     // A different named import changes the generated entry and forces a fresh bundle.
     builder.unregister(source);

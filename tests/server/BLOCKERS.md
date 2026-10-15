@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Bundle npm périmé après changement d'un module installé
-
-- Reproductions automatisées : `npm-installed-source-rebuild-round110.test.mjs` compile un vrai module local avec `value = 1`, modifie son fichier en `value = 2`, puis recompile avec les mêmes imports. Le bundle exécutable retourne encore `1`. Ajouter l'import d'un autre symbole force un nouveau bundle qui retourne `2`. `npm-package-content-cache-round193.test.mjs` confirme ce comportement sur une autre séquence de modifications du package et vérifie aussi le retrait de l'import.
-- Source : `NpmBuilder.compile()` ne relance `esbuildBuild()` que si le texte des imports change ; la clé de cache ne tient pas compte du contenu ou de la version des modules installés.
-- Décision à prendre : définir l'invalidation du cache après installation ou mise à jour npm et vérifier qu'un build suivant utilise le nouveau contenu sans modifier les imports du projet.
-
 ## Action i18n supprimant les commentaires de traduction
 
 - Reproduction automatisée : `i18n-comment-action-round110.test.mjs` valide un fichier `.i18n.avt` comportant un commentaire `//` et une locale manquante. L'action « Import missing locales » ajoute bien la locale, mais son édition remplace l'intégralité du document et supprime le commentaire.

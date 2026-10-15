@@ -4,7 +4,7 @@ import { DebugFileAdd } from '../notification/DebugFileAdd';
 import { EOL, md5 } from '../tools';
 import { build } from 'esbuild';
 import { dirname, join, resolve } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { AventusLanguageId } from '../definition';
 
@@ -134,19 +134,38 @@ export class NpmBuilder {
 
 	private npmBuildTxt: string = "";
 	private npmDepBuildTxt: { result: string, errors: BuildErrors } = { result: "", errors: [] };
+	private lastDependencies: string = "";
+	private getDependencies(): string {
+		try {
+			const packageJson = JSON.parse(readFileSync(join(dirname(this.build.nodeModulesDir), 'package.json'), 'utf8'));
+			const sorted = (dependencies: Record<string, string> = {}) => {
+				return Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b));
+			}
+			return JSON.stringify([sorted(packageJson.dependencies), sorted(packageJson.devDependencies)]);
+		} catch {
+			return "";
+		}
+	}
 	public async compile(): Promise<{ result: string, errors: BuildErrors }> {
 
 		if (Object.keys(this.infos).length == 0) {
+			this.lastInfo = "";
+			this.lastInfoToCompile = "";
+			this.npmBuildTxt = "";
+			this.lastDependencies = "";
 			return {
 				result: "",
 				errors: []
 			};
 		}
 		let currentInfo = JSON.stringify(this.infos)
-		if (this.lastInfo != currentInfo) {
+		const dependencies = this.getDependencies();
+		const dependenciesChanged = this.lastDependencies !== dependencies;
+		if (this.lastInfo != currentInfo || dependenciesChanged) {
 			this.lastInfo = currentInfo
+			this.lastDependencies = dependencies;
 			let toCompile = this.writeFileToCompile()
-			if (this.lastInfoToCompile != toCompile.buildTxt) {
+			if (this.lastInfoToCompile != toCompile.buildTxt || dependenciesChanged) {
 				Compiled.part("Compiling node modules");
 				this.lastInfoToCompile = toCompile.buildTxt;
 				this.npmDepBuildTxt = await this.esbuildBuild(this.lastInfoToCompile)
