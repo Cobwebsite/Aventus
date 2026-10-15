@@ -35,7 +35,7 @@ test('parsed component attributes and properties refresh all manifest formats af
     };
 
     update(1, `/** A card. */ export class Card {
-        @Attribute() mode: string = "small";
+        @Attribute() mode: "small" | "large" = "small";
         public active: boolean = true;
         /** Opens card. */ open(force?: boolean): string { return "open"; }
     }`);
@@ -45,11 +45,15 @@ test('parsed component attributes and properties refresh all manifest formats af
     assert.deepEqual(first.members[1].parameters, [{ name: 'force', type: { text: 'boolean' }, optional: true }]);
     assert.equal(first.members[1].return.type.text, 'string');
     assert.deepEqual(manifest.htmlCustomData._package.tags[0].attributes.map(attribute => attribute.name), ['mode']);
+    assert.deepEqual(manifest.htmlCustomData._package.tags[0].attributes[0].values,
+        [{ name: 'small' }, { name: 'large' }]);
     assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].js.properties.map(property => property.name), ['active']);
+    assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].attributes[0].values,
+        [{ type: 'small' }, { type: 'large' }]);
     assert.deepEqual(Object.keys(manifest.emmetCustomData._package.html.snippets), ['demo-card']);
 
     update(2, `/** Updated card. */ export class Card {
-        @Attribute() size: number = 2;
+        @Attribute() size: "compact" | "expanded" = "compact";
         public ready: boolean = false;
         /** Closes card. */ close(reason: string): void {}
     }`);
@@ -59,6 +63,10 @@ test('parsed component attributes and properties refresh all manifest formats af
     assert.deepEqual(second.members[1].parameters, [{ name: 'reason', type: { text: 'string' } }]);
     assert.equal(second.members[1].return.type.text, 'void');
     assert.deepEqual(manifest.htmlCustomData._package.tags[0].attributes.map(attribute => attribute.name), ['size']);
+    assert.deepEqual(manifest.htmlCustomData._package.tags[0].attributes[0].values,
+        [{ name: 'compact' }, { name: 'expanded' }]);
     assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].js.properties.map(property => property.name), ['ready']);
+    assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].attributes[0].values,
+        [{ type: 'compact' }, { type: 'expanded' }]);
     assert.match(second.summary, /Updated card/);
 });

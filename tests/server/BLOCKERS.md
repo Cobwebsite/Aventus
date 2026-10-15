@@ -1,5 +1,17 @@
 # Cas serveur en attente de changement de code
 
+## Code TypeScript absent des diagnostics du service
+
+- Reproduction automatisée : `ts-overload-diagnostics-round240.test.mjs` produit une erreur de surcharge entre deux fichiers, la retire en ajoutant une signature, puis la fait revenir en retirant celle-ci. Le message et la plage suivent les révisions, mais `Diagnostic.code` reste `undefined` même pour cette erreur TS2769.
+- Source : `server/src/language-services/ts/LanguageService.ts`, méthode `doValidation`, recopie le message, la plage, la sévérité et la source des diagnostics TypeScript sans recopier `diag.code`.
+- Décision à prendre : déterminer si l'API LSP doit exposer le code TypeScript, puis ajouter `code: diag.code` aux diagnostics syntaxiques et sémantiques si oui.
+
+## Abonnement au watcher marqué actif après un échec
+
+- Reproduction automatisée : `files-watcher-add-failure-round238.test.mjs` fait échouer `FSWatcher.add` de façon synchrone. `FilesWatcher.watch` conserve alors l'URI dans `watcheUris` ; un nouvel appel ne transmet rien au watcher, même une fois celui-ci rétabli. Seul un `unwatch` explicite suivi de `watch` permet une nouvelle tentative.
+- Source : `server/src/files/FilesWatcher.ts`, méthode `watch`, ajoute l'URI avant d'appeler `FSWatcher.add`.
+- Décision à prendre : retirer l'URI en cas d'échec d'abonnement ou définir une autre reprise explicite, puis vérifier le nouveau comportement par test.
+
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
 ## Note hors périmètre des tests serveur
@@ -23,10 +35,18 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `build-command-completion-round65.test.mjs` maintient en attente la promesse du build choisi. `aventus.compile`, `aventus.npm.build` et `aventus.storybook.build` terminent leur commande dès le démarrage du travail ; seule `aventus.static` attend la fin de l'export. Les quatre commandes renvoient `undefined`, même lorsque l'opération produit un résultat.
 - Source : `server/src/cmds/BuildProject.ts`, `server/src/cmds/npm/Build.ts`, `server/src/cmds/storybook/Build.ts` déclenchent le build sans attendre sa promesse ; `server/src/cmds/StaticExport.ts` attend l'export, mais ne renvoie pas sa valeur.
 - Décision à prendre : définir si la réponse de commande doit signaler la fin et le résultat du build. Dans ce cas, attendre et renvoyer la promesse pour propager aussi ses erreurs au demandeur.
+
+## Sélecteur vide pour les commandes de build
+
+- Reproduction automatisée : `build-command-empty-list-round238.test.mjs` constate que `aventus.compile`, `aventus.npm.build`, `aventus.storybook.build` et `aventus.static` appellent toutes `Select` avec `[]` lorsque leurs listes de cibles sont vides. Si le sélecteur renvoie une annulation, aucune cible n'est lancée.
+- Sources : `server/src/cmds/BuildProject.ts`, `server/src/cmds/npm/Build.ts`, `server/src/cmds/storybook/Build.ts`, `server/src/cmds/StaticExport.ts`.
+- Décision à prendre : afficher une information explicite ou terminer silencieusement lorsqu'aucune cible n'est disponible, plutôt que demander une sélection sans option.
 ## Erreurs du parseur HTML absentes de la validation du service
 
 - Reproduction automatisée : `html-validation-gap-round66.test.mjs` produit une erreur de fermeture de balise avec `ParserHtml.parse`, mais `AventusHTMLLanguageService.doValidation` renvoie une liste vide. Après correction du document, le parseur n'a plus d'erreur et la validation renvoie toujours la même liste vide.
+- Reproduction complémentaire : `html-expression-diagnostic-gap-round208.test.mjs` conserve les plages exactes de `:title="model["` et `@bind:value="state["` pendant un cycle erreur, réparation, nouvelle erreur, mais `ParserHtml.parse` ne produit aucun diagnostic de syntaxe pour ces expressions. Le cas diffère de la publication LSP ci-dessus : aucun diagnostic n'est créé au niveau du parseur.
 - Décision à prendre : publier les erreurs du parseur par le service de validation HTML, ou documenter un autre chemin de publication des diagnostics et le vérifier par un test de bout en bout.
+- Décision à prendre : déterminer si les expressions d'injection et de binding doivent être analysées comme TypeScript dans le parseur HTML ou dans une validation ultérieure ; dans les deux cas, associer une erreur à la plage de la valeur et vérifier sa disparition après correction.
 
 ## Ancienne validation publiée après un diagnostic plus récent
 
@@ -61,7 +81,9 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 ## Réponses de sélection absentes des options proposées
 
 - Reproduction automatisée : `notification-response-boundaries-round70.test.mjs` répond à une sélection simple ou multiple avec un objet dont le libellé n'était pas proposé. La réponse est acceptée et transmise au demandeur. Une sélection simple remappe seulement les libellés connus ; une sélection multiple transmet directement le tableau fourni par le client.
+- Conséquence sur les commandes : `build-command-unlisted-selection-round213.test.mjs` montre qu'une réponse contenant un build ou une sortie statique absente de la liste proposée déclenche quand même la commande correspondante si la cible existe dans le projet. Les quatre commandes de build, npm, Storybook et export statique sont concernées.
 - Source : `AskSelect.resolve()` conserve la réponse si aucun libellé ne correspond ; `AskSelectMultiple.resolve()` ne vérifie pas les options proposées.
+- Source des commandes : elles résolvent directement `result.detail` et `result.label` sans vérifier leur présence dans les choix calculés avant l'appel à `Select()`.
 - Décision à prendre : préciser si le client peut fournir une valeur libre. Si la sélection doit être limitée aux options, rejeter ou annuler les réponses inconnues et tester également les mélanges d'options connues et inconnues.
 
 ## Demandes laissées en attente après un échec d'envoi de notification
@@ -78,9 +100,15 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Renommage de dossier : seules les références du premier fichier sont mises à jour
 
-- Reproduction automatisée : `project-rename-batch-round72.test.mjs` transmet au projet deux renommages de fichiers TypeScript provenant d'un même dossier. Le service de renommage n'est appelé que pour le premier ; l'édition du second consommateur n'apparaît pas.
+- Reproductions automatisées : `project-rename-batch-round72.test.mjs` transmet au projet deux renommages de fichiers TypeScript provenant d'un même dossier. `project-rename-real-batch-round206.test.mjs` confirme avec deux projets et de vrais services TypeScript que seul le premier import est édité ; le second consommateur reste inchangé.
 - Source : `Build.onRename()` retourne dès le premier changement ayant une extension TypeScript prise en charge. Les changements suivants du même lot ne sont jamais traités.
-- Décision à prendre : agréger les éditions de tous les changements du lot, en définissant la résolution des éventuels doublons pour une URI consommatrice, puis ajouter une régression avec deux imports réels.
+- Décision à prendre : agréger les éditions de tous les changements du lot, en définissant la résolution des éventuels doublons pour une URI consommatrice, puis faire évoluer la régression avec deux imports réels.
+
+## Renommage de fichiers hors TypeScript : aucune édition de références
+
+- Reproduction automatisée : `project-rename-non-ts-round194.test.mjs` transmet aux deux projets des déplacements de vues, styles, fichiers SCSS, HTML et JSON. Aucun ne produit d'édition ni n'appelle le service de renommage TypeScript ; un fichier `.lib.avt` placé après un style dans le même lot produit bien les éditions attendues.
+- Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
+- Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
 ## Plusieurs imports d'un fichier déplacé dans un même consommateur
 
@@ -161,7 +189,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Dépendances npm périmées dans le package généré après rebuild
 
-- Reproduction automatisée : `npm-metadata-rebuild-round89.test.mjs` génère un `package.json` avec deux dépendances, retire la première et change la version de la seconde, puis régénère le package. Le fichier de sortie conserve les deux anciennes valeurs.
+- Reproduction automatisée : `npm-metadata-rebuild-round89.test.mjs` génère un `package.json` avec deux dépendances, retire la première et change la version de la seconde, puis régénère le package. Le fichier de sortie conserve les deux anciennes valeurs. `npm-package-json-revision-round173.test.mjs` confirme ce comportement dans deux destinations, même lorsque la version du build et le `package.json` source changent ; les champs utilisateur des sorties restent conservés.
 - Source : `server/src/project/Build.ts`, `writeBuildNpm()` fusionne `{ ...packageJson, ...oldPackage }` et ne réécrit ensuite que `name`, `displayName` et `version`. L'ancien champ `dependencies` écrase donc le calcul du build courant.
 - Décision à prendre : déterminer quelles métadonnées du package de sortie sont conservées lors d'un rebuild et faire prévaloir la liste de dépendances actuelle sur les valeurs générées précédemment.
 
@@ -242,7 +270,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Bundle npm périmé après changement d'un module installé
 
-- Reproduction automatisée : `npm-installed-source-rebuild-round110.test.mjs` compile un vrai module local avec `value = 1`, modifie son fichier en `value = 2`, puis recompile avec les mêmes imports. Le bundle exécutable retourne encore `1`. Ajouter l'import d'un autre symbole force un nouveau bundle qui retourne `2`.
+- Reproductions automatisées : `npm-installed-source-rebuild-round110.test.mjs` compile un vrai module local avec `value = 1`, modifie son fichier en `value = 2`, puis recompile avec les mêmes imports. Le bundle exécutable retourne encore `1`. Ajouter l'import d'un autre symbole force un nouveau bundle qui retourne `2`. `npm-package-content-cache-round193.test.mjs` confirme ce comportement sur une autre séquence de modifications du package et vérifie aussi le retrait de l'import.
 - Source : `NpmBuilder.compile()` ne relance `esbuildBuild()` que si le texte des imports change ; la clé de cache ne tient pas compte du contenu ou de la version des modules installés.
 - Décision à prendre : définir l'invalidation du cache après installation ou mise à jour npm et vérifier qu'un build suivant utilise le nouveau contenu sans modifier les imports du projet.
 
@@ -344,6 +372,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 ## Variable CSS globale omise dans un sélecteur `:root` groupé
 
 - Reproduction automatisée : `scss-global-selector-scope-round124.test.mjs` charge `:root, html { --accent: navy; }` suivi d'une déclaration `:root` seule. L'index contient la seconde variable, mais `getDefinition('--accent')` ne trouve pas la première.
+- Portée entre fichiers : `scss-global-grouped-fallback-round197.test.mjs` charge d'abord `:root, html { --accent: red; }`, puis une autre feuille `:root { --accent: blue; }`. Le composant consommateur pointe vers la seconde feuille jusqu'au retrait de `html` dans la première ; un sélecteur `html` seul rétablit la seconde source, et sa suppression retire la définition.
 - Cause : `AventusGlobalSCSSLanguageService.loadVariables()` exige que le texte complet du sélecteur soit exactement `:root`. Un groupe contenant `:root` ne satisfait pas cette comparaison.
 - Décision à prendre : reconnaître `:root` parmi les sélecteurs d'une règle, sans traiter comme globale une variable déclarée seulement sous un autre sélecteur.
 
@@ -626,3 +655,331 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `quick-template-name-collision-round153.test.mjs` configure deux templates locaux de nom `Duplicate`, chacun avec un chemin et une description distincts. La sélection du premier élément affiché exécute le second template.
 - Cause : `QuickTemplate.run()` indexe les chemins par `template.name`, ce qui remplace le chemin du premier élément lorsque le second porte le même nom.
 - Décision à prendre : identifier les choix par chemin ou par identifiant unique afin que chaque sélection exécute le template affiché ; préciser si les noms identiques doivent être désambiguïsés dans la liste.
+
+## Plages des expressions HTML décalées
+
+- Reproduction : les deux cas de `html-expression-identity-round62.test.mjs` trouvent les actions attendues, mais les plages découpent `"{{value}` ou ` {{value}` au lieu de `{{value}}`, y compris après édition. Ils sont temporairement ignorés pour préserver une suite exécutable.
+- Décision à prendre : corriger le calcul des positions dans le parseur HTML, puis réactiver les deux tests sans assouplir leurs assertions.
+
+## Nouvelle tentative de préparation d'un template après erreur
+
+- Reproduction : `template-shell-path-round112.test.mjs` provoque une erreur avec un chemin de sauvegarde contenant des espaces. Après changement vers un chemin simple, la nouvelle promesse se résout, alors que le test attendait une entrée de préparation bloquée. Ce cas est temporairement ignoré.
+- Décision à prendre : préciser si la nouvelle tentative doit réussir immédiatement ou si l'état de préparation doit rester bloqué ; adapter ensuite le test et vérifier la récupération complète.
+
+## Renommage groupé de plusieurs sources TypeScript
+
+- Reproduction automatisée : `project-multiple-renames-round158.test.mjs` soumet deux renommages TypeScript dans une seule requête à deux projets. Chaque build ne transmet au service TypeScript que le premier changement ; les références à la deuxième source ne sont jamais éditées.
+- Cause : `Build.onRename()` retourne dès le premier changement dont l'extension est reconnue.
+- Décision à prendre : agréger les éditions de tous les changements TypeScript, y compris quand plusieurs sources modifient un même consommateur, puis vérifier leur ordre et les éventuels conflits de plages.
+
+## Suppression d'une configuration pendant l'initialisation du projet
+
+- Reproduction automatisée : `project-discovery-delete-race-round159.test.mjs` suspend `Project.init()`, supprime la configuration, puis termine l'initialisation. `ProjectManager.onNewFile()` inscrit alors un callback de suppression sur l'ancien projet. Après redécouverte, ce callback périmé supprime le nouveau projet.
+- Cause : l'inscription de `onDelete` se fait après `await init()` sans vérifier que l'instance créée est toujours celle du registre.
+- Décision à prendre : invalider l'initialisation lors de la suppression et ne pas inscrire le callback d'une instance retirée ; vérifier ensuite la recréation et la suppression normale.
+
+## Ressources binaires corrompues par la génération d'un template
+
+- Reproduction automatisée : `template-binary-round159.test.mjs` crée un template avec un texte Unicode et un fichier `icon.png` contenant des octets UTF-8 invalides. Le texte et ses variables sont corrects, mais le binaire généré diffère de la source et contient la séquence de remplacement UTF-8.
+- Cause observée : les fichiers du template sont lus et réécrits comme du texte, même pour une ressource binaire.
+- Décision à prendre : copier les ressources binaires octet pour octet et réserver la substitution de variables aux fichiers texte ; préciser comment reconnaître un fichier texte ou exclure une ressource de la substitution.
+
+## Classement de `@Property()` dans les manifestes de composants
+
+- Reproduction automatisée : `manifest-parsed-visibility-round161.test.mjs` analyse un composant réel avec `@Attribute()` et `@Property()`. Les deux membres apparaissent dans les attributs Custom Elements et Web Types ; `@Property()` n'apparaît pas dans les propriétés JavaScript Web Types. Ce classement suit les éditions de la source.
+- Cause : `Manifest` place les deux décorateurs dans la même liste d'attributs avant la génération des formats.
+- Décision à prendre : confirmer que `@Property()` doit être exposé comme attribut HTML, ou distinguer les propriétés JavaScript des attributs dans les manifestes ; vérifier ensuite les formats HTML Custom Data et Emmet avec la convention choisie.
+
+## Publication d'un JS invalide après échec de minification
+
+- Reproduction automatisée : `build-compression-recovery-round162.test.mjs` demande une sortie comprimée contenant `const =;`. Le minifieur signale une erreur, mais `Build.writeBuildCode()` écrit le code invalide brut à la destination. Une révision valide suivante est correctement minifiée sur la même instance.
+- Décision à prendre : définir si l'échec de minification doit empêcher la publication et préserver la dernière sortie valide, ou si une sortie brute reste souhaitée ; préciser le diagnostic envoyé au client et tester les autres destinations du build.
+
+## Abonnement de suppression d'un style global conservé après destruction du projet
+
+- Reproduction automatisée : `project-global-style-destroy-round165.test.mjs` inscrit le callback de suppression d'un style global, puis détruit le projet. Les abonnements de configuration et de création de fichier sont retirés, mais le callback du style reste enregistré et modifie encore le projet lorsque le fichier est supprimé plus tard.
+- Cause : `Project.destroy()` ne parcourt pas `onFileDeleteUUIDs` et ne retire pas ces callbacks des fichiers de style globaux.
+- Décision à prendre : retirer les abonnements aux suppressions et vider l'état des styles lors de la destruction ; vérifier aussi les callbacks en cours pendant cette opération.
+
+## Collision des métadonnées lors du nettoyage des sorties statiques
+
+- Reproduction automatisée : `static-ownership-metadata-collision-round166.test.mjs` modifie les octets d'une sortie statique en conservant sa taille et force, dans l'état enregistré du test, le même horodatage que la sortie modifiée. Lorsque la source disparaît, `Static.export()` supprime cette sortie malgré son contenu changé.
+- Cause : l'appartenance d'une sortie est vérifiée uniquement avec sa taille et `mtimeMs`, sans empreinte du contenu. Le test contrôle explicitement l'égalité des métadonnées pour reproduire la collision sans dépendre de la précision d'horodatage du système de fichiers.
+- Décision à prendre : préciser si une sortie modifiée doit toujours être préservée et, dans ce cas, stocker une empreinte du contenu ou une autre preuve d'appartenance avant la suppression.
+
+## Variable CSS globale introuvable après un saut de ligne initial
+
+- Reproduction automatisée : `scss-global-consumer-transition-round166.test.mjs` charge `:root { --tone: red; }`, puis édite la même source en ajoutant un saut de ligne avant `:root`. `getDefinition('--tone')` et la définition demandée depuis un composant deviennent absentes. Retirer le saut de ligne restaure la navigation. `scss-global-comment-prefix-round174.test.mjs` montre que des commentaires de bloc ou de ligne placés avant `:root` produisent la même perte, puis que définition et hover reviennent après retrait du préfixe.
+- Décision à prendre : rendre l'indexation des déclarations `:root` indépendante des espaces et lignes qui précèdent la règle, puis vérifier également les commentaires initiaux et les sélecteurs groupés.
+
+## Anciennes sorties JavaScript conservées après changement de routage
+
+- Reproduction automatisée : `build-output-routing-revisions-round170.test.mjs` produit deux groupes de sorties JS séparant code principal, bibliothèque et npm. Une nouvelle révision regroupe chaque groupe dans son fichier principal ; les fichiers `vendor-*.js` et `npm-*.js` de la première révision restent sur disque avec leur ancien contenu.
+- Décision à prendre : définir le nettoyage des sorties générées qui ne figurent plus dans la configuration, tout en préservant les fichiers modifiés hors du build ; vérifier ce nettoyage sur plusieurs groupes et destinations.
+
+## Deux blocs conditionnels de template suppriment le contenu intermédiaire
+
+- Reproduction automatisée : `template-adjacent-conditions-round171.test.mjs` génère un fichier réel avec deux blocs `#if{{optional}}...#end{{optional}}` désactivés et une classe entre eux. Le fichier généré est vide et pourtant enregistré, au lieu de conserver la classe.
+- Cause observée : `replaceIfs` capture depuis le premier `#if` jusqu'au dernier `#end` du même nom.
+- Décision à prendre : traiter chaque bloc conditionnel indépendamment, y compris les blocs répétés et imbriqués ; vérifier le contenu et l'enregistrement du fichier généré.
+
+## Blocs personnalisés répétés dans un template : seul le premier est transformé
+
+- Reproduction automatisée : `template-repeated-blocks-round196.test.mjs` génère un fichier avec deux blocs `#{{wrap}}...#{{wrap/}}` séparés par du texte. Le premier devient `[FIRST WIDGET]`, mais le second conserve ses marqueurs bruts (`#{{wrap}}second Widget#{{wrap/}}`). Les variables sont néanmoins substituées dans les deux blocs et le fichier est enregistré.
+- Cause observée : `AventusTemplate.replaceBlocks()` recherche globalement les correspondances dans le texte initial tout en remplaçant ce texte pendant l'itération ; l'index de recherche saute le second bloc après la première substitution.
+- Décision à prendre : traiter tous les blocs d'un même nom de façon indépendante, en préservant le texte intermédiaire et l'ordre des transformations.
+
+## Séparation de composant dans un dossier préexistant
+
+- Reproduction automatisée : `component-split-existing-folder-round173.test.mjs` sépare `Card.wc.avt` dans un dossier `Card` déjà présent avec `Card.wcs.avt` et un fichier étranger. Le style préexistant est écrasé sans avertissement ; le fichier étranger reste intact et la source unique est supprimée.
+- Cause : `SplitComponent.run()` crée seulement le dossier s'il manque, puis écrit directement les trois fichiers avec `writeFileSync` sans vérifier leur existence.
+- Décision à prendre : définir le comportement attendu en cas de conflit de nom et éviter une perte silencieuse du contenu préexistant avant de supprimer la source unique.
+
+## Destruction incomplète du projet après échec d'un build
+
+- Reproduction automatisée : `project-destroy-failure-retry-round177.test.mjs` fait échouer `destroy()` du premier build. `Project.destroy()` s'interrompt avant la destruction du second build et de la sortie statique. Un second appel les libère, mais répète les désabonnements de configuration et du gestionnaire de fichiers ainsi que la destruction du premier build.
+- Décision à prendre : poursuivre le nettoyage des autres ressources lorsqu'une destruction échoue, puis définir un résultat d'erreur et une nouvelle tentative qui ne répète pas les nettoyages déjà effectués.
+
+## CSS contenant un accent grave produit un JavaScript invalide
+
+- Reproduction automatisée : `build-stylesheet-literal-recovery-round182.test.mjs` écrit une sortie JS avec une feuille CSS valide contenant `content: "`"`. Le code inséré dans `Aventus.Style.store()` échoue à l'analyse JavaScript. Après édition du style puis retrait, les sorties redeviennent exécutables sans ancien contenu.
+- Cause observée : `Build.writeBuildCode()` insère le CSS dans un littéral JavaScript délimité par des accents graves sans échapper ce caractère.
+- Décision à prendre : sérialiser la chaîne CSS comme littéral JavaScript sûr, en couvrant aussi les séquences `${...}`, antislashs et sauts de ligne.
+
+## Interfaces implémentées absentes de la documentation package
+
+- Reproduction automatisée : `manifest-package-inheritance-round183.test.mjs` analyse une classe réelle qui étend une base et implémente `Clickable`, puis une autre base et `Selectable`. La documentation Markdown met à jour la ligne `Parent`, mais n'émet jamais de ligne `Implements` ; le retrait final de l'héritage efface correctement le parent.
+- Décision à prendre : transmettre les interfaces implémentées depuis le parseur jusqu'au modèle du manifeste package et vérifier leur rendu après édition.
+
+## Sorties JavaScript incohérentes après échec d'une destination
+
+- Reproduction automatisée : `build-multi-output-write-retry-round187.test.mjs` appelle `Build.writeBuildCode()` pour deux groupes de sorties. Quand l'écriture du second échoue, le premier contient déjà la nouvelle révision tandis que le second garde l'ancienne. Un nouvel essai réussit et resynchronise les deux fichiers.
+- Décision à prendre : définir si une publication de plusieurs groupes doit être atomique et, dans ce cas, préparer toutes les sorties avant écriture puis restaurer la révision précédente si une destination échoue. Vérifier également le chemin complet `Build.build()`.
+
+## Valeur par défaut d'attribut absente du manifeste Custom Elements
+
+- Reproduction automatisée : `manifest-parsed-attribute-docs-round191.test.mjs` analyse `@Attribute() mode: "small" | "large" = "small"`, puis remplace cet attribut par `density = "roomy"`. Les descriptions et valeurs littérales suivent l'édition dans les manifestes, mais `attributes[].default` reste absent dans Custom Elements pour les deux versions.
+- Décision à prendre : déterminer si la valeur initiale de `@Attribute()` doit être publiée dans `default` ; si oui, transmettre l'initialiseur parsé à la génération Custom Elements et vérifier les autres formats.
+
+## Événements absents des manifestes de composants
+
+- Constat : `server/src/manifest/CustomElements.ts` laisse explicitement la génération des événements en attente (`// events // not ready`) ; `server/src/manifest/WebTypes.ts` comporte également une section événements vide. La couverture des événements de la ligne « Schémas valides » du `TODO.md` ne peut donc pas être finalisée avec un test positif sur le serveur actuel.
+- Décision à prendre : définir quels événements de composant doivent être exposés, leur nom, leur type et leur documentation dans Custom Elements et Web Types, puis ajouter un test sur une source réellement parsée et ses révisions.
+
+## Import nommé d'un namespace local non résolu
+
+- Reproduction automatisée : `ts-local-namespace-alias-round199.test.mjs` analyse `export namespace Widgets`, puis `import { Widgets as UI }` depuis un second fichier. Le parseur crée l'alias local mais laisse `info` vide et émet `Can't load`. Après renommage coordonné du namespace et de l'alias, le diagnostic persiste ; le retrait de l'import le supprime.
+- Cause observée : `ImportInfo` résout les imports locaux par `ParserTs.getBaseInfo()`, qui ne fournit pas le namespace exporté comme déclaration importable.
+- Décision à prendre : déterminer si les namespaces locaux nommés doivent être importables et, dans ce cas, ajouter leur résolution au modèle puis vérifier les membres et les révisions.
+## Réimport local d'un template ou projet dans un dossier déjà installé
+
+- Reproduction automatisée : `template-import-replace-round202.test.mjs` réimporte un projet puis un template vers un `installationFolder` déjà présent. Le dossier cible est entièrement supprimé avant la copie : le fichier de l'ancienne installation absent de la nouvelle source disparaît, tandis qu'un fichier voisin hors du dossier cible est conservé. Les deux commandes annoncent l'installation et rechargent le registre une fois.
+- Source : `TemplateManager.selectProjectToImport()` et `selectTemplateToImport()` appellent `rmSync(destPath, { recursive: true, force: true })` dès que la destination existe, avant `cpSync()`.
+- Décision à prendre : confirmer si le réimport doit remplacer intégralement et sans confirmation le dossier installé. Si oui, documenter cette politique et prévoir le sort des fichiers personnalisés placés dans ce dossier ; sinon, demander confirmation ou refuser le remplacement avant toute suppression.
+
+## Navigation sur un réexport étoile ambigu
+
+- Reproduction automatisée : `ts-star-reexport-collision-round202.test.mjs` part de deux exports distincts, puis ajoute un symbole `make` homonyme aux deux sources réexportées par `export *`. TypeScript signale la collision sur le barrel (`TS2308`), mais `findDefinition()` sur l'appel consommateur continue de pointer vers le premier fichier. Un réexport explicite depuis le second fichier lève le diagnostic et redirige la définition vers cette source.
+- Décision à prendre : déterminer si la navigation doit rester disponible vers le premier candidat pendant une collision signalée, ou si le serveur doit refuser la définition ambiguë. Le test garde le comportement actuel et vérifie la réparation explicite.
+
+## Ajout de section dans une configuration absente des projets proposés
+
+- Reproduction automatisée : `add-config-unlisted-selection-round204.test.mjs` propose deux configurations, puis simule une réponse de sélection contenant l'URI d'une troisième configuration existante. `aventus.addConfigSection` ajoute la section à cette troisième configuration et demande son ouverture ; les deux fichiers proposés restent intacts.
+- Source : `AddConfigSection.run()` reprend directement `result.label` comme URI sans vérifier son appartenance à la liste présentée.
+- Décision à prendre : limiter une réponse de sélection aux configurations proposées et définir le traitement d'une réponse périmée ou altérée avant toute écriture.
+
+## Deux unités de compilation écrivent la même sortie JS
+
+- Reproduction automatisée : `build-shared-output-units-round205.test.mjs` compile deux unités vers le même fichier JS. La seconde remplace entièrement le code de la première sans diagnostic ; inverser l'ordre au rebuild inverse le code conservé, toujours avec une notification de compilation réussie.
+- Source : `Build.build()` publie les unités successivement et `writeBuildCode()` écrit chaque sortie sans détecter une destination déjà utilisée par une unité précédente.
+- Décision à prendre : interdire les destinations JS communes entre unités de compilation, fusionner leurs contenus ou confirmer explicitement la règle « dernière unité gagnante ».
+
+## Définition globale prioritaire sur une variable CSS locale de même nom
+
+- Reproduction automatisée : `scss-global-local-shadow-round206.test.mjs` charge `--accent` dans une feuille globale et le redéclare dans un composant. Les références de l'usage dans le composant contiennent sa déclaration locale et ses usages, mais « aller à la définition » mène à la feuille globale. Après retrait de la feuille globale, le même usage mène à la déclaration locale. Un autre composant sans déclaration locale mène correctement à la feuille globale avant son retrait.
+- Source : `AventusSCSSLanguageService.findDefinition()` consulte le registre global avant de demander la définition du document courant à `vscode-css-languageservice`.
+- Décision à prendre : donner la priorité à la déclaration locale lorsqu'elle est résolue dans le document, puis utiliser la variable globale en repli ; vérifier également les références et le survol après édition.
+
+## Une traduction i18n de type incorrect reste dans l'export
+
+- Reproduction automatisée : `i18n-invalid-value-recovery-round207.test.mjs` fournit une traduction numérique `12` dans un JSON valide avec une locale manquante. Le diagnostic de schéma signale le type incorrect, mais l'export contient encore `12` alors que son contrat annonce des chaînes ; l'action d'ajout de locale conserve également cette valeur numérique. Une édition qui remplace la valeur par une chaîne rétablit diagnostics et exports attendus.
+- Source : `AventusI18nFile.transformForExport()` copie les valeurs JSON sans contrôler leur type ; `actionImportMissingLocales()` recopie tout l'objet source.
+- Décision à prendre : déterminer si une valeur de type incorrect doit être exclue de l'export et de la correction, convertie en chaîne ou conservée tant que le diagnostic est visible.
+
+## Export npm conditionnel `node` prioritaire sur `types` pour les bibliothèques TypeScript
+
+- Reproduction automatisée : `ts-lib-conditional-priority-round209.test.mjs` crée un package dont `exports["."]` expose simultanément `node: ./index.js` et `types: ./index.d.ts`. `loadNodeModules()` charge le JavaScript et omet la déclaration, même si elle existe. Le retrait de `node` fait apparaître la déclaration ; son retrait sur disque puis sa recréation sont bien reflétés. Un `types` pointant vers un fichier absent ne se replie pas sur `default` existant.
+- Source : `libLoader.ts` choisit `node || import || types || require || default` avant de vérifier l'existence du fichier sélectionné.
+- Décision à prendre : pour le service TypeScript, privilégier `types` lorsqu'il est présent et définir si un chemin de déclaration absent doit permettre le repli vers `default` ou signaler seulement le package incomplet.
+
+## Valeur de variable de template contenant `$&` réinjectée comme marqueur
+
+- Reproduction automatisée : `template-dollar-variables-round210.test.mjs` crée un vrai template dont le nom de fichier et le contenu contiennent `${{name}}`, avec la valeur `Cash$&Tail`. Le fichier produit s'appelle `Cash${{name}}Tail.lib.avt` et son contenu conserve également `${{name}}` au lieu d'insérer littéralement `Cash$&Tail` ; ce chemin est enregistré comme source Aventus.
+- Source : `AventusTemplate.replaceVariables()` passe la valeur comme chaîne de remplacement à `String.replace()`, qui interprète `$&` comme la correspondance complète.
+- Décision à prendre : traiter les valeurs de variables comme du texte littéral dans les chemins et contenus, notamment pour `$&`, `$'`, `$\`` et `$$`.
+
+## `package.json` npm conservé quand sa génération est désactivée
+
+- Reproduction automatisée : `npm-config-toggle-round210.test.mjs` génère `package.json` et les points d'entrée dans deux destinations, désactive `packageJson` tout en changeant le nom, la version et l'export, puis le réactive. Les points d'entrée sont actualisés à chaque passage, mais les deux `package.json` gardent le nom et la version initiaux pendant la désactivation. La réactivation les actualise.
+- Source : `Build.writeBuildNpm()` ne suit pas `package.json` dans `.aventus-npm-generated.json` et ne le retire pas quand `outputNpm.packageJson` devient faux.
+- Décision à prendre : déterminer si la désactivation doit retirer un `package.json` précédemment généré, le conserver comme fichier utilisateur, ou signaler son état périmé.
+## Sortie statique partagée entre deux exports laissée après suppression des sources
+
+- Reproduction automatisée : `static-cross-export-ownership-round211.test.mjs` fait écrire deux exports distincts vers le même `shared.bin`. Après suppression de la première source, la copie du second export est préservée. Après suppression de la seconde source, cette copie reste sur disque alors qu'aucune des deux sources n'existe encore ; aucun diagnostic n'est transmis.
+- Cause : chaque instance `Static` tient son registre `exportedBySource` séparément. La seconde voit la sortie comme préexistante à son premier passage et fixe `canDelete` à `false`, sans distinguer une sortie créée par un autre export de celle appartenant à un processus externe.
+- Décision à prendre : définir la propriété et le nettoyage des sorties communes à plusieurs exports, ainsi que le diagnostic éventuel lorsqu'ils visent le même chemin.
+
+## Accesseur avec getter et setter dupliqué dans le manifeste Custom Elements
+
+- Reproduction automatisée : `manifest-parsed-accessor-revisions-round211.test.mjs` parse trois révisions d'un composant. Quand un getter `label(): string` et un setter `label(value: string)` coexistent, Custom Elements produit deux champs publics `label`, le second de type `notype`. Le retrait des accesseurs supprime les deux entrées au passage suivant.
+- Source : `ClassInfo` conserve le setter comme propriété distincte sous la clé interne `°set°label`, tandis que `CustomElements.register()` sérialise les deux propriétés avec leur nom public `label`. Le setter n'a pas de type de retour explicite et devient `notype`.
+- Décision à prendre : fusionner les deux accesseurs en un seul champ public, ou définir une représentation propre au setter dans le manifeste.
+
+## Commentaire de bloc multiligne dans une configuration JSON
+
+- Reproduction automatisée : `json-multiline-comment-recovery-round219.test.mjs` soumet une configuration conforme au schéma avec un commentaire `/* ... */` sur deux lignes. La validation ajoute `Can't parse the json` et `getConfig()` retourne `null`. Après remplacement du commentaire par une version sur une ligne, puis retrait complet, la validation ne signale plus d'erreur et `getConfig()` renvoie à nouveau le projet.
+- Source : `AventusJSONLanguageService.removeComments()` utilise une expression régulière dont `.` ne couvre pas les sauts de ligne ; le commentaire multiligne reste présent avant `JSON.parse()`.
+- Décision à prendre : accepter les commentaires de bloc multilignes dans les configurations, puis les retirer correctement avant le parsing, ou les interdire explicitement avec un diagnostic cohérent.
+
+## Guillemets échappés et `//` dans une chaîne de configuration JSON
+
+- Reproduction automatisée : `json-escaped-quote-comment-round222.test.mjs` valide une configuration dont la description contient un guillemet échappé suivi de `//`. Le document est un JSON valide mais la validation ajoute `Can't parse the json` et `getConfig()` retourne `null`. Remplacer la description par une chaîne sans guillemet échappé restaure la lecture ; remettre le guillemet reproduit l'échec.
+- Source : `AventusJSONLanguageService.removeComments()` reconnaît les chaînes avec `".*?"` sans tenir compte des guillemets échappés. Il traite ensuite `//` comme un début de commentaire et retire le reste de la ligne avant `JSON.parse()`.
+- Décision à prendre : reconnaître les échappements et préserver le contenu des chaînes JSON lors de la suppression des commentaires.
+
+## Parenthèses dans un commentaire de ligne JSON
+
+- Reproduction automatisée : `json-line-comment-punctuation-round230.test.mjs` charge une configuration valide dont un commentaire de ligne contient `details (optional)`. La validation ajoute `Can't parse the json` et `getConfig()` retourne `null`. Le retrait des parenthèses rétablit validation et chargement.
+- Source : la classe de caractères de `AventusJSONLanguageService.removeComments()` pour `//` exclut aussi `(` et `)`, ce qui empêche de retirer ce commentaire avant `JSON.parse()`.
+- Décision à prendre : retirer le commentaire de ligne complet jusqu'au saut de ligne, y compris sa ponctuation, sans altérer les chaînes JSON.
+
+## Sortie npm non suivie après échec partiel d'écriture
+
+- Reproduction automatisée : `npm-partial-write-recovery-round231.test.mjs` publie `Alpha.js`, puis échoue sur `index.d.ts` après avoir écrit `Beta.js`. Le manifeste de propriété reste celui d'Alpha. Un nouvel essai avec `Gamma.js` retire Alpha et publie Gamma, mais laisse `Beta.js` sur disque sans l'inscrire au manifeste.
+- Avec deux destinations, un échec sur la seconde après l'écriture de `Beta.js` laisse aussi une copie partielle dans la première. Les deux manifestes restent anciens ; la publication suivante retire Alpha mais laisse Beta orphelin dans les deux destinations.
+- Source : `Build.writeBuildNpm()` ne publie le manifeste des fichiers générés qu'après toutes les écritures ; les sorties déjà écrites lors d'un échec ne sont ni restaurées ni prises en compte au nouvel essai.
+- Décision à prendre : restaurer les sorties de la tentative échouée ou les inclure dans le nettoyage de la tentative suivante.
+
+## Exports Sharp et PHP lancés malgré des métadonnées JSON invalides
+
+- Reproduction automatisée : `converter-invalid-config-recovery-round232.test.mjs` exécute l'export sur un `aventus.sharp.avt` incomplet. La lecture JSON échoue, mais le convertisseur est tout de même lancé et les états `compiling` puis `success` portent un nom de projet vide. Une correction du fichier rétablit le nom au prochain export.
+- Le même test reproduit ce comportement pour PHP avec un `composer.json` invalide : `php-converter` est lancé sous un nom vide, puis la correction rétablit `vendor/recovered` au prochain export.
+- Source : `SharpExport.run()` et `PhpExport.run()` interceptent l'erreur de lecture/parsing, puis continuent vers `execAsync()` avec le nom de projet initialisé à une chaîne vide.
+- Décision à prendre : arrêter l'export et signaler l'erreur de configuration avant de lancer le convertisseur, ou définir explicitement un comportement de reprise.
+
+## Sorties i18n de révisions différentes après un échec d'écriture
+
+- Reproduction automatisée : `build-i18n-partial-write-recovery-round233.test.mjs` publie deux locales, puis échoue sur `fr.json` après avoir écrit la nouvelle version de `en.json`. La sortie anglaise est alors en nouvelle révision tandis que la sortie française conserve l'ancienne. Un nouvel appel sur le même build synchronise les deux fichiers.
+- Source : `Build.writeBuildI18n()` écrit les fichiers de locale successivement, sans restaurer les sorties déjà écrites si une écriture ultérieure échoue.
+- Décision à prendre : définir si les sorties i18n d'un build doivent être publiées ensemble ou si un état partiel est acceptable après une erreur signalée.
+
+## Modes de sortie i18n configurables sans implémentation
+
+- Reproduction automatisée : `build-i18n-configured-modes-round234.test.mjs` utilise une traduction en anglais et en français. Les modes `basedOnAttribute` et `include` créent leur dossier de destination, mais aucun fichier ; `singleFile` produit bien les deux fichiers attendus avec le même build.
+- Source : le schéma de configuration accepte ces deux modes, tandis que les branches correspondantes de `Build.writeBuildI18n()` sont vides.
+- Décision à prendre : implémenter ces modes ou les retirer des choix de configuration et signaler clairement leur indisponibilité.
+
+## Dossier de namespace i18n créé mais inutilisé en mode `oneToOne`
+
+- Reproduction automatisée : `build-i18n-component-namespace-round235.test.mjs` publie puis révise la traduction d'un composant de namespace `Demo.Widgets`. Le dossier `Demo/Widgets` est créé mais reste vide ; `card_en.json` est écrit à la racine de sortie à chaque révision.
+- Deux composants `Card` dans `Demo.Widgets` et `Demo.Pages` écrivent tous deux ce même `card_en.json` ; la traduction du second écrase celle du premier, tandis que leurs deux dossiers de namespace restent vides.
+- Source : `Build.writeBuildI18n()` calcule et crée `fullPath` pour le namespace du composant, puis construit `outputFile` avec `output` au lieu de `fullPath`.
+- Décision à prendre : écrire les traductions de composants sous leur namespace ou supprimer la création de dossier si la sortie à la racine est voulue.
+
+## Fichiers i18n globaux homonymes écrasés en mode `oneToOne`
+
+- Reproduction automatisée : `build-i18n-global-name-collision-round237.test.mjs` exporte deux fichiers `@common.i18n.avt` situés dans deux dossiers distincts, avec deux locales. Un seul `common_en.json` et un seul `common_fr.json` sont produits. Le second fichier écrase le premier ; inverser l'ordre des sources inverse le contenu retenu.
+- Cause : `Build.writeBuildI18n()` construit le nom de sortie avec le seul nom de fichier, sans chemin ni contrôle de collision.
+- Décision à prendre : définir une convention de chemin pour préserver chaque source, ou signaler explicitement les doublons avant la publication.
+
+## Destination retirée d'un export statique laissée sur disque
+
+- Reproduction automatisée : `static-output-list-transition-round220.test.mjs` ajoute une deuxième destination à un export, puis retire la première et modifie le binaire source. La première copie conserve son ancien contenu tant que la source existe ; elle n'est supprimée qu'après disparition de cette source, même si la destination ne figure plus dans la configuration.
+- Cause : `Static.export()` garde les sorties précédentes dans `exportedBySource` et ne nettoie cette collection que lorsque la source entière disparaît.
+- Décision à prendre : définir si le retrait d'une destination sur une instance d'export active doit supprimer aussitôt les sorties qu'elle a créées, en préservant celles déjà présentes ou modifiées hors du build.
+
+## Recherche i18n par position périmée pendant une édition JSON invalide
+
+- Reproduction automatisée : `i18n-invalid-position-recovery-round220.test.mjs` part de la clé `old`, puis remplace le document par `{"new":` (JSON invalide). `getKeyFromLocation()` renvoie encore `old` pour une position située dans la nouvelle clé. Après correction vers une traduction `new` valide, la recherche et les exports reviennent à jour.
+- Cause : `AventusI18nFile.onContentChange()` conserve `parsed` et `parsedSrc` après l'échec de `JSON.parse()`, alors que `getKeyFromLocation()` convertit la position dans le document courant avant de consulter les plages anciennes.
+
+## Diagnostic i18n de doublon conservé par un autre fichier pendant une édition invalide
+
+- Reproduction automatisée : `i18n-cross-file-invalid-recovery-round222.test.mjs` crée deux fichiers globaux ayant la clé `shared`. Après remplacement du second par un JSON incomplet, le premier continue de signaler un doublon avec l'ancienne clé du second. Une correction vers `replacement` retire le diagnostic et actualise les exports.
+- Cause : `AventusI18nFile.onContentChange()` garde `parsed` après une erreur de parsing ; la validation des autres fichiers consulte cette ancienne analyse dans `build.tsLanguageService.i18nFiles`.
+- Décision à prendre : préciser si une traduction temporairement invalide doit continuer à participer aux diagnostics de doublon des autres fichiers, ou si son analyse doit être écartée jusqu'à sa correction.
+- Décision à prendre : pendant une édition invalide, faut-il vider l'index de positions ou garder le dernier état valide en signalant son caractère périmé aux consommateurs ?
+
+## Action i18n proposée hors de la plage diagnostiquée
+
+- Reproduction automatisée : `i18n-action-range-round225.test.mjs` demande des actions sur la clé `beta` alors que seule `alpha` manque de la locale `fr`. `Import missing locales` est proposé et remplace tout le document. Après une édition qui complète `alpha` et retire `fr` de `beta`, l'action cible la nouvelle absence même lorsqu'elle est demandée au début du document.
+- Cause : `AventusI18nLanguageService.codeAction()` transmet le fichier à `actionImportMissingLocales()` sans utiliser la plage demandée ; la correction parcourt toutes les clés.
+- Décision à prendre : préciser si cette action est volontairement disponible partout dans le fichier, ou si elle doit être limitée à la plage du diagnostic concerné.
+
+## Injection HTML valide masquée par une fermeture invalide précédente
+
+- Reproduction automatisée : `html-raw-malformed-transition-round226.test.mjs` analyse une balise `<pre>` d'abord déclarée brute, puis retire cette configuration. Le `<button>` interne se ferme par `</span>` : le parseur signale l'erreur et expose son injection, mais ne relève plus l'injection du `<button>` valide qui suit `</pre>`. Après correction du contenu de `<pre>`, les deux injections sont retrouvées.
+- Décision à prendre : préciser si le parseur doit reprendre la collecte des injections après une fermeture invalide, au moins à la balise parente suivante.
+
+## Dépendance transitive conservée après remplacement de version d'un package
+
+- Reproduction automatisée : `dependency-version-branch-revision-round226.test.mjs` charge `Shared` en version générique avec `OldLeaf`, puis remplace `Shared` par une version exacte dont la seule dépendance est `NewLeaf`. Le résultat sélectionne bien le fichier exact, mais contient aussi `OldLeaf` et son URI. Le retrait de la branche exacte lors d'une nouvelle résolution retire `NewLeaf` ; sa réintroduction reproduit le reliquat.
+- Cause : `DependencyManager.loadDependency()` remplace l'entrée de `Shared` dans le graphe de résolution, sans retirer les dépendances déjà ajoutées par la première version.
+- Décision à prendre : élaguer les packages qui ne sont plus accessibles depuis les dépendances choisies avant de constituer les fichiers et URI du build.
+
+## Type de retour tableau tronqué dans la documentation Markdown du package
+
+- Reproduction automatisée : `manifest-package-function-generics-round227.test.mjs` fait passer une fonction générique de `T` à `U[]`, puis à `boolean`. La deuxième révision documente `Return : U` alors que la signature TypeScript déclare `U[]` ; les contraintes, paramètres et descriptions sont bien renouvelés.
+- Décision à prendre : conserver le suffixe `[]` dans le rendu Markdown du type de retour.
+
+## Chemin de sortie modifié par un callback de template
+
+- Reproduction automatisée : `template-callback-path-round228.test.mjs` exécute un vrai template dont le callback change `writeInfo.writePath` de `Original.lib.avt` à `Renamed.lib.avt`. Le fichier écrit sur disque garde le nom `Original.lib.avt`, tandis que `FilesManager.onCreatedUri()` reçoit l'URI de `Renamed.lib.avt`, qui n'existe pas.
+- Cause : `AventusTemplate.writeFile()` écrit avec la variable locale `exportPath`, calculée avant le callback, puis enregistre `writeInfo.writePath` après le callback.
+- Décision à prendre : soit appliquer le chemin modifié à l'écriture et à l'enregistrement, soit rendre ce champ non modifiable et toujours enregistrer le chemin réellement écrit.
+
+## Découpage divergent d'un template imbriqué dans un composant unique
+
+- Reproduction automatisée : `component-nested-template-round230.test.mjs` édite un composant unique avec une région `<template>` contenant elle-même `<template><b>Nested</b></template>`. Le sous-document vivant conserve tout le contenu de la région, alors que `AventusWebComponentSingleFile.getRegion()` s'arrête à la fermeture interne et renvoie `<div><template><b>Nested</b>` ; les deux parcours retrouvent le même résultat après suppression du template imbriqué.
+- Cause : `splitDocument()` utilise une capture gourmande pour la région HTML, tandis que `getRegion()` utilise une capture non gourmande.
+- Décision à prendre : définir un découpage commun pour les deux parcours, capable d'identifier la fermeture de la région externe lorsque le HTML contient un template imbriqué.
+
+## Exception de callback pendant la copie d'un template
+
+- Reproduction automatisée : `template-callback-exception-round236.test.mjs` lance un vrai template à deux fichiers. Le callback lève une exception pour le second. Le premier fichier est écrit et enregistré, le second n'est pas créé ; le template termine néanmoins sans rejeter l'appel. Après correction du callback, un nouvel essai crée le second fichier et réenregistre aussi le premier.
+- Cause : `AventusTemplate.writeFile()` intercepte l'exception autour de la boucle de copie, poursuit jusqu'à `registerFile` pour les fichiers déjà traités et ne signale pas l'échec à l'appelant.
+- Décision à prendre : déterminer si une exception du callback doit faire échouer la génération et comment traiter les fichiers déjà écrits ou enregistrés.
+
+## Écriture partielle pendant la séparation d'un composant
+
+- Reproduction automatisée : `component-split-write-recovery-round240.test.mjs` place un dossier au chemin attendu pour `Card.wcv.avt`. `SplitComponent.run()` écrit d'abord `Card.wcs.avt`, puis échoue en écrivant la vue. Le composant unique et le cache restent présents, sans notification, mais le style partiel demeure sur disque. Après retrait du dossier bloquant, une seconde séparation réussit.
+- Décision à prendre : définir si la séparation doit nettoyer les sorties partielles lorsqu'une écriture échoue, afin de rendre l'opération atomique.
+
+## Fichier HTTP accessible hors de la racine via une jonction
+
+- Reproduction automatisée : `http-junction-root-round241.test.mjs` configure une racine HTTP `public`, crée sous celle-ci une jonction `linked` vers un dossier `private` voisin, puis obtient le contenu de `private/secret.txt` par `GET /linked/secret.txt` avec un statut 200.
+- Décision à prendre : préciser si la racine HTTP doit délimiter les chemins réels accessibles. Dans ce cas, refuser les cibles dont le chemin réel sort de la racine avant de les servir.
+
+## Lien de répertoire dans le chemin d'installation d'un template
+
+- Reproduction automatisée : `template-installation-link-round237.test.mjs` crée une jonction `installed/linked` vers un dossier extérieur. `TemplateManager.getInstallationPath(installed, 'linked/new-template')` accepte le chemin, puis un import local réel copie `content.txt` dans `outside/new-template` et annonce l'installation réussie.
+- Cause : la validation compare des chemins normalisés lexicalement sans résoudre les liens de répertoire déjà présents.
+- Décision à prendre : préciser si l'import doit rester confiné à la racine réelle, puis résoudre et vérifier les liens de chaque segment de destination si cette garantie est attendue.
+
+## Valeurs vides de `group` et `prefix` dans `@Storybook`
+
+- Reproduction automatisée : `storybook-empty-group-prefix-round238.test.mjs` analyse trois versions d'une classe : `group: ''` et `prefix: ''`, puis deux valeurs non vides, puis aucun réglage local. La première version garde `Library/Catalog/Widget` au lieu de désactiver le préfixe et le groupe ; les versions suivantes produisent respectivement `Local/Controls/Widget` et `Library/Catalog/Widget`.
+- Cause : `StorybookDecorator.is()` ne renseigne `group` et `prefix` que lorsque leurs valeurs sont véridiques, tandis que `Storie.getFullname()` prévoit déjà le cas d'une chaîne vide explicite.
+- Décision à prendre : décider si une valeur vide explicite doit annuler le préfixe du build et le namespace, puis conserver cette valeur dans le parseur si ce comportement est voulu.
+
+## Collision d'alias entre deux exports d'un même package npm
+
+- Reproduction automatisée : `npm-same-alias-revision-round239.test.mjs` enregistre `first` et `second` du même package sous l'alias `shared`. Le bundle expose `second` sous cet alias, quel que soit l'ordre d'enregistrement. Le retrait de `second` révèle `first`, et son retour remplace de nouveau `first`, sans diagnostic.
+- Cause : `NpmBuilder.writeFileToCompile()` trie les noms d'exports puis affecte chaque valeur au même champ `npmCompilation[hash]['shared']` ; la dernière affectation l'emporte.
+- Décision à prendre : déterminer si une collision d'alias doit être signalée, ou si l'écrasement déterministe est un comportement accepté.
+
+## Signature incomplète des paramètres de fonction dans le manifeste package
+
+- Reproduction automatisée : `manifest-package-function-parameters-round240.test.mjs` analyse et documente trois révisions de `combine`. `first?: string`, `suffix = "!"` et `...parts: number[]` apparaissent comme `first: string`, `suffix: any` et `parts: number`. Une révision suivante remplace correctement ces noms, mais `...flags: boolean[]` devient `flags: boolean`.
+- Cause : `ManifestPackageMd.loadFunction()` reconstruit chaque paramètre avec son nom et le texte de `TypeInfo`, sans traiter le marqueur optionnel, la valeur par défaut ni le token rest ; `TypeInfo.getFullTxt()` réduit les types de tableau dans ce parcours.
+- Décision à prendre : définir la représentation attendue des paramètres optionnels, à valeur par défaut et rest dans la documentation, puis préserver aussi le type tableau si la signature doit rester fidèle au TypeScript.

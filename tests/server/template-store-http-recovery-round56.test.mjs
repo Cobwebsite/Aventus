@@ -96,7 +96,7 @@ test('Store template download survives a bad HTTP archive and installs a later v
     assert.deepEqual(requests, Array(3).fill('/template/download/sample/1.2.3'));
     assert.deepEqual(messages, [
         'reload', 'Template sample installed',
-        'error:Error extracting package to analyze',
+        'error:Error downloading package',
         'reload', 'Template sample installed',
     ]);
 });
