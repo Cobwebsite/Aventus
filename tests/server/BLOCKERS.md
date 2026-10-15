@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Dernier tag de package retiré sans vider le manifeste Emmet
-
-- Reproduction automatisée : `manifest-package-removal-round72.test.mjs` écrit le manifeste d'un package portant `demo-alpha`, retire son dernier export, puis appelle `ManifestPackage.write()`. Le fichier `snippets.json` conserve `demo-alpha`. Le même test vérifie que le retrait d'un tag parmi deux et le renommage d'un tag actualisent correctement le fichier.
-- Source : `ManifestPackage.write()` écrit le résultat seulement si au moins un export possède un `tagName` (`canWrite`). Lorsque le dernier tag disparaît, l'ancien fichier n'est ni vidé ni supprimé.
-- Décision à prendre : lorsque le dernier tag disparaît, écrire le seul snippet `block` ou supprimer le fichier généré ; vérifier ensuite le cycle de retrait du dernier package.
-
 ## Édition rapide : deux templates de même nom pointent vers le premier chemin
 
 - Reproduction automatisée : `template-choices-collision-round73.test.mjs` présente deux templates `Shared` de sources distinctes. L'utilisateur sélectionne le second, mais `quickCreations` reçoit le chemin du premier.

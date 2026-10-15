@@ -3,7 +3,7 @@ import { GenericServer } from '../GenericServer';
 import { AventusPackageFile, AventusPackageTsFileExport } from '../language-services/ts/package/File';
 import { EOL, uriToPath, writeFile } from '../tools';
 import { EmmetCustomDataSchema } from './EmmetCustomDataSchema';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, rmSync } from 'fs';
 import { InfoType } from '../language-services/ts/parser/BaseInfo';
 import { PropertyDecorator } from '../language-services/ts/parser/decorators/PropertyDecorator';
 import { AttributeDecorator } from '../language-services/ts/parser/decorators/AttributeDecorator';
@@ -50,20 +50,23 @@ export class ManifestPackage {
 			}
 		}
 
-		if (canWrite) {
-			const dir = uriToPath(GenericServer.getWorkspaceUri());
-			const emmetPath = join(dir, ".aventus", "emmet");
-			const snippetPath = join(emmetPath, "snippets.json");
-			if (!force && !existsSync(snippetPath)) {
-				this.done = true;
-				return;
-			}
-			if (!existsSync(emmetPath)) {
-				mkdirSync(emmetPath, { recursive: true })
-			}
-			await writeFile(snippetPath, JSON.stringify(result, null, 2), "manifest");
+		const dir = uriToPath(GenericServer.getWorkspaceUri());
+		const emmetPath = join(dir, ".aventus", "emmet");
+		const snippetPath = join(emmetPath, "snippets.json");
+		if (!canWrite) {
+			if (existsSync(snippetPath)) rmSync(snippetPath);
 			this.done = true;
+			return;
 		}
+		if (!force && !existsSync(snippetPath)) {
+			this.done = true;
+			return;
+		}
+		if (!existsSync(emmetPath)) {
+			mkdirSync(emmetPath, { recursive: true })
+		}
+		await writeFile(snippetPath, JSON.stringify(result, null, 2), "manifest");
+		this.done = true;
 
 	}
 
