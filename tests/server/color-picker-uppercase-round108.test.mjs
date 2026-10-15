@@ -5,7 +5,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { ColorPicker } = await loadServerModule('color-picker/ColorPicker.ts');
 
-test('uppercase opaque alpha functions are found but lose explicit alpha presentations', () => {
+test('uppercase opaque alpha functions retain explicit alpha presentations', () => {
     const document = TextDocument.create('file:///uppercase.scss', 'scss', 1,
         '.a { color: RGBA(255, 0, 0, 1); background: HSLA(120, 100%, 50%, 1); }');
     const found = ColorPicker.onDocumentColor(document);
@@ -15,7 +15,7 @@ test('uppercase opaque alpha functions are found but lose explicit alpha present
     assert.deepEqual(found.map(item => item.color.alpha), [1, 1]);
     assert.deepEqual(found.map(item => ColorPicker.onColorPresentations(document, item.range, item.color)
         .map(presentation => presentation.label)), [
-        ['#ff0000', 'hsl(0, 100%, 50%)', 'rgb(255, 0, 0)'],
-        ['#00ff00', 'hsl(120, 100%, 50%)', 'rgb(0, 255, 0)'],
+        ['#ff0000ff', 'hsla(0, 100%, 50%, 1)', 'rgba(255, 0, 0, 1)'],
+        ['#00ff00ff', 'hsla(120, 100%, 50%, 1)', 'rgba(0, 255, 0, 1)'],
     ]);
 });

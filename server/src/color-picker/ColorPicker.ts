@@ -200,7 +200,7 @@ export class ColorPicker {
 		let c = ColorInfo.fromRgb(color.red * 255, color.green * 255, color.blue * 255);
 		c.alpha = color.alpha;
 		let colString = document.getText(range);
-		let t = colString;
+		let t = colString.toLowerCase();
 
 
 		const presentationHex = ColorPresentation.create(c.toString('hex'));

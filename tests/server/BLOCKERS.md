@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Alpha explicite perdu pour les fonctions couleur majuscules
-
-- Reproduction automatisée : `color-picker-uppercase-round108.test.mjs` détecte `RGBA(255, 0, 0, 1)` et `HSLA(120, 100%, 50%, 1)`, mais `onColorPresentations()` ne propose que `hex`, `hsl` et `rgb` sans alpha.
-- Cause : la détection des fonctions est insensible à la casse, tandis que le choix des présentations teste `startsWith('rgba')` et `startsWith('hsla')` avec la casse exacte. L'alpha opaque (`1`) ne suffit pas à sélectionner les formes avec alpha.
-- Décision à prendre : conserver l'alpha explicitement écrit lorsque la fonction d'origine est en majuscules, comme pour les mêmes fonctions en minuscules.
-
 ## `readDirs` ciblant un fichier charge aussi ses voisins
 
 - Reproduction automatisée : `files-read-dirs-file-filter-round108.test.mjs` utilise `readDirs: ['src/wanted.wcl.avt']`. La découverte enregistre `wanted.wcl.avt` et `sibling.wcl.avt`, mais exclut le fichier du sous-dossier `src/nested`.
