@@ -12,14 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Réponses de sélection absentes des options proposées
-
-- Reproduction automatisée : `notification-response-boundaries-round70.test.mjs` répond à une sélection simple ou multiple avec un objet dont le libellé n'était pas proposé. La réponse est acceptée et transmise au demandeur. Une sélection simple remappe seulement les libellés connus ; une sélection multiple transmet directement le tableau fourni par le client.
-- Conséquence sur les commandes : `build-command-unlisted-selection-round213.test.mjs` montre qu'une réponse contenant un build ou une sortie statique absente de la liste proposée déclenche quand même la commande correspondante si la cible existe dans le projet. Les quatre commandes de build, npm, Storybook et export statique sont concernées.
-- Source : `AskSelect.resolve()` conserve la réponse si aucun libellé ne correspond ; `AskSelectMultiple.resolve()` ne vérifie pas les options proposées.
-- Source des commandes : elles résolvent directement `result.detail` et `result.label` sans vérifier leur présence dans les choix calculés avant l'appel à `Select()`.
-- Décision à prendre : préciser si le client peut fournir une valeur libre. Si la sélection doit être limitée aux options, rejeter ou annuler les réponses inconnues et tester également les mélanges d'options connues et inconnues.
-
 ## Demandes laissées en attente après un échec d'envoi de notification
 
 - Reproduction automatisée : `notification-response-boundaries-round70.test.mjs` fait échouer `sendNotification()` pour chacune des quatre demandes (entrée, sélection, sélection multiple et popup). La promesse est rejetée, mais la demande reste dans `waitingResponse` ; la sélection simple conserve aussi ses options. Le test retire explicitement ces entrées pour ne pas contaminer la suite.

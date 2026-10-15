@@ -34,7 +34,10 @@ export class AskSelect {
 				else if (!response.id) {
 					// Accept older clients only when their label identifies one option.
 					const matches = options.filter(option => option.label === response!.label);
-					response = matches.length === 1 ? matches[0] : matches.length > 1 ? null : response;
+					response = matches.length === 1 ? matches[0] : null;
+				}
+				else {
+					response = null;
 				}
 			}
 			this.waitingResponse[uuid](response);
