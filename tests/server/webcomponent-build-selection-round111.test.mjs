@@ -53,7 +53,7 @@ test('watch callback uses Aventus.WatchAction outside a core build and preserves
     });
 });
 
-test('property and watch silently stop when the first build has no component despite a later matching build', async () => {
+test('property and watch use the later build when it contains the component', async () => {
     const uri = 'file:///D:/round111/Widget.wcl.avt';
     const builds = [{ tsFiles: {} }, { tsFiles: { [uri]: component() }, isCoreBuild: false }];
     for (const [command, answers, selections] of [
@@ -62,8 +62,18 @@ test('property and watch silently stop when the first build has no component des
     ]) {
         await withBuilds(builds, answers, selections, async ({ uri, file, notifications }) => {
             await Commands.allCommandes[command].run(uri, 6, 'prefill');
-            assert.equal(file.contentUser, 'before_after');
-            assert.deepEqual(notifications, []);
+            assert.match(file.contentUser, command.endsWith('property') ? /public title\?:string;/ : /public state\?:number;/);
+            assert.deepEqual(notifications.map(([method]) => method), ['aventus/editFile']);
         });
     }
+});
+
+test('watch callback uses the core build that contains the component', async () => {
+    const uri = 'file:///D:/round111/Widget.wcl.avt';
+    const builds = [{ tsFiles: {}, isCoreBuild: false }, { tsFiles: { [uri]: component() }, isCoreBuild: true }];
+    await withBuilds(builds, ['state', 'number'], [{ label: 'Yes' }], async ({ uri, file }) => {
+        await Commands.allCommandes['aventus.wc.create.watch'].run(uri, 6, 'state');
+        assert.match(file.contentUser, /action: WatchAction/);
+        assert.doesNotMatch(file.contentUser, /action: Aventus\.WatchAction/);
+    });
 });

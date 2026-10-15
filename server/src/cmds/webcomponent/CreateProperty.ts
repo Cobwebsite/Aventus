@@ -32,8 +32,8 @@ export class CreateProperty {
 		const name = await GenericServer.Input({
 			title: "Provide a name for your Property",
 			validations: [{
-				message:'A property must be with lowercase, number or _',
-				regex:'^[_a-z0-9]+$'
+				message: 'A property must be with lowercase, number or _',
+				regex: '^[_a-z0-9]+$'
 			}],
 			value: prefillName
 		});
@@ -62,12 +62,13 @@ export class CreateProperty {
 		let file = FilesManager.getInstance().getByUri(uri);
 		if (file) {
 			let oldEnd = file.documentUser.positionAt(file.contentUser.length);
-			let builds = FilesManager.getInstance().getBuild(file.documentUser);
+			let builds = FilesManager.getInstance().getBuild(file.documentUser) ?? [];
 			let componentName = "";
-			if (builds && builds.length > 0) {
-				let fileTs = builds[0].tsFiles[uri]
+			for (let build of builds) {
+				let fileTs = build.tsFiles[uri];
 				if (fileTs instanceof AventusWebComponentLogicalFile) {
 					componentName = fileTs.getComponentName();
+					break;
 				}
 			}
 			if (componentName == "") {
