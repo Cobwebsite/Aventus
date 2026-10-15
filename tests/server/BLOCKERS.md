@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Références SCSS d'une variable globale limitées au fichier courant
-
-- Reproduction automatisée : `scss-global-refresh-round86.test.mjs` charge `--accent` dans une feuille globale et l'utilise deux fois dans un style de composant. La définition depuis le composant mène à la feuille globale, mais la recherche des références ne renvoie que les deux usages du composant et omet la déclaration globale. `scss-global-cross-file-references-round131.test.mjs` part de la déclaration globale avec deux fichiers consommateurs : seules la déclaration et l'utilisation dans la feuille globale sont renvoyées, y compris après remplacement de la variable dans cette feuille.
-- Source : `AventusSCSSLanguageService.onReferences()` et `AventusGlobalSCSSLanguageService.onReferences()` délèguent uniquement à `vscode-css-languageservice.findReferences()` sur le document courant ; le registre des variables globales n'est pas interrogé pour les références.
-- Décision à prendre : préciser si « rechercher les références » d'une variable CSS globale doit agréger la déclaration et les usages de tous les fichiers du build. Si oui, établir un index inter-fichiers et couvrir ajout, modification et suppression.
-
 ## Dépendances npm périmées dans le package généré après rebuild
 
 - Reproduction automatisée : `npm-metadata-rebuild-round89.test.mjs` génère un `package.json` avec deux dépendances, retire la première et change la version de la seconde, puis régénère le package. Le fichier de sortie conserve les deux anciennes valeurs. `npm-package-json-revision-round173.test.mjs` confirme ce comportement dans deux destinations, même lorsque la version du build et le `package.json` source changent ; les champs utilisateur des sorties restent conservés.

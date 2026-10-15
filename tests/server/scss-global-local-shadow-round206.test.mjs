@@ -22,8 +22,10 @@ const position = (entry, name, occurrence = 0) => {
 };
 
 test('a local custom property shadows a global one for references but not definition navigation', async () => {
-    const global = new AventusGlobalSCSSLanguageService();
-    const local = new AventusSCSSLanguageService({ globalSCSSLanguageService: global });
+    const project = { scssFiles: {}, getBuilds: () => [build] };
+    const global = new AventusGlobalSCSSLanguageService(project);
+    const build = { project, scssFiles: {}, globalSCSSLanguageService: global };
+    const local = new AventusSCSSLanguageService(build);
     const source = file(sourceUri, 1, ':root { --accent: red; }');
     global.loadVariables({ file: source }, sourceUri);
     let card = file(localUri, 1, '.card { --accent: blue; color: var(--accent); }');
@@ -33,6 +35,10 @@ test('a local custom property shadows a global one for references but not defini
     const cardReferences = await local.onReferences(card, cardUsage);
     assert.deepEqual(cardReferences.map(({ uri }) => uri), [localUri, localUri]);
     assert.ok(cardReferences.every(({ range }) => card.documentUser.getText(range) === '--accent'));
+    const localRename = local.onRename(card, cardUsage, 'local-tone');
+    assert.deepEqual(Object.keys(localRename.changes), [localUri]);
+    assert.equal(localRename.changes[localUri].length, 2);
+    assert.ok(localRename.changes[localUri].every(edit => edit.newText === '--local-tone'));
     assert.equal((await local.findDefinition(card, cardUsage))?.[0]?.uri, sourceUri);
     assert.equal((await local.findDefinition(badge, position(badge, '--accent')))?.[0]?.uri, sourceUri);
 

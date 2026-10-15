@@ -2,10 +2,12 @@ import postcss from 'postcss';
 import postcssSorting from 'postcss-sorting';
 import * as postcssScss from 'postcss-scss';
 import { CSSFormatConfiguration, getSCSSLanguageService, LanguageService, TextDocument } from "vscode-css-languageservice";
-import { CodeAction, CodeActionContext, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
+import { CodeAction, CodeActionContext, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { AventusFile } from '../../files/AventusFile';
 import { getNodePath, Node, NodeType } from './helper/CSSNode';
 import { AventusGlobalSCSSFile } from './GlobalFile';
+import type { Build } from '../../project/Build';
+import type { Project } from '../../project/Project';
 
 
 
@@ -16,13 +18,17 @@ export type GlobalCSSVariable = {
     value: string
 }
 
+function withoutComments(text: string): string {
+    return text.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, comment => comment.replace(/[^\r\n]/g, ' '));
+}
+
 export class AventusGlobalSCSSLanguageService {
     private languageService: LanguageService;
     private variablesByUri: { [uri: string]: GlobalCSSVariable[] } = {}
     public variablesByName: { [name: string]: GlobalCSSVariable } = {}
-
-
-    public constructor() {
+    private project: Project
+    public constructor(project: Project) {
+        this.project = project;
         this.languageService = getSCSSLanguageService();
     }
 
@@ -84,8 +90,87 @@ export class AventusGlobalSCSSLanguageService {
         return this.languageService.doCodeActions2(file.documentUser, range, codeActionContext, docSCSS);
     }
     public async onReferences(file: AventusFile, position: Position): Promise<Location[]> {
+        const globalReferences = this.getGlobalReferences(file.documentUser, position);
+        if (globalReferences) return globalReferences;
         let docSCSS = this.languageService.parseStylesheet(file.documentUser)
         return this.languageService.findReferences(file.documentUser, position, docSCSS);
+    }
+
+    public getGlobalReferences(document: TextDocument, position: Position, build?: Build): Location[] | null {
+        const offset = document.offsetAt(position);
+        const source = withoutComments(document.getText());
+        const token = /--[a-zA-Z0-9_-]+/g;
+        let match: RegExpExecArray | null;
+        let name: string | undefined;
+        while (match = token.exec(source)) {
+            if (match.index <= offset && offset <= match.index + match[0].length) {
+                name = match[0];
+                break;
+            }
+        }
+        if (!name) return null;
+        const definition = this.getDefinition(name);
+        if (!definition) return null;
+
+        const locations: Location[] = [{ uri: definition.uri, range: definition.range }];
+        const documents = new Map<string, TextDocument>();
+        const project = this.project;
+        const builds = build ? [build] : project.getBuilds()
+        for (const file of Object.values(project.scssFiles)) {
+            documents.set(file.file.documentUser.uri, file.file.documentUser);
+        }
+        for (const currentBuild of builds) {
+            for (const file of Object.values(currentBuild.scssFiles)) {
+                documents.set(file.file.documentUser.uri, file.file.documentUser);
+            }
+        }
+        documents.set(document.uri, document);
+        for (const current of documents.values()) {
+            const text = withoutComments(current.getText());
+            const uses = /var\(\s*(--[a-zA-Z0-9_-]+)/g;
+            let use: RegExpExecArray | null;
+            while (use = uses.exec(text)) {
+                if (use[1] !== name) continue;
+                const start = use.index + use[0].lastIndexOf(name);
+                locations.push({
+                    uri: current.uri,
+                    range: {
+                        start: current.positionAt(start),
+                        end: current.positionAt(start + name.length),
+                    }
+                });
+            }
+        }
+        return locations.some(location =>
+            location.uri === document.uri &&
+            document.offsetAt(location.range.start) <= offset &&
+            offset < document.offsetAt(location.range.end))
+            ? locations : null;
+    }
+
+    public onRename(document: TextDocument, position: Position, newName: string): WorkspaceEdit | null {
+        const references = this.getGlobalReferences(document, position);
+        if (!references) return null;
+        const name = newName.startsWith('--') ? newName : `--${newName}`;
+        if (!/^--[a-zA-Z_][a-zA-Z0-9_-]*$/.test(name)) return null;
+
+        const changes: { [uri: string]: TextEdit[] } = {};
+        const seen = new Set<string>();
+        for (const reference of references) {
+            const { uri, range } = reference;
+            const key = `${uri}:${range.start.line}:${range.start.character}:${range.end.line}:${range.end.character}`;
+            if (seen.has(key)) continue;
+
+            seen.add(key);
+            if (!changes[uri]) {
+                changes[uri] = [];
+            }
+            changes[uri].push({
+                range,
+                newText: name
+            });
+        }
+        return { changes };
     }
 
 
