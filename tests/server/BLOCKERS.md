@@ -18,18 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Nom de package sortant du dossier de documentation des dépendances IA
-
-- Reproduction automatisée : `ai-dependency-docs-round121.test.mjs` fournit un package nommé `../escaped`. La commande écrit `escaped.md` dans `.aventus` au lieu de `.aventus/dependencies`.
-- Cause : `Dependency.run()` utilise directement `p.name + '.md'` dans `join(dependenciesDir, ...)` sans vérifier que le chemin résolu reste dans `dependenciesDir`.
-- Décision à prendre : valider ou neutraliser les séparateurs et segments `..` du nom de package avant l'écriture, puis vérifier la destination résolue.
-
-## Documentation IA impossible pour un nom de package scoped
-
-- Reproduction automatisée : `ai-dependency-docs-round121.test.mjs` fournit un package nommé `@org/library`. `Dependency.run()` rejette avec `ENOENT` et n'écrit aucun Markdown, car le sous-dossier `@org` n'existe pas.
-- Cause : le nom du package est utilisé tel quel comme chemin de fichier, sans création de sous-dossier ni conversion vers un nom de fichier sûr.
-- Décision à prendre : définir un encodage de nom de fichier pour les packages scoped qui préserve leur identité sans créer de chemin arbitraire.
-
 ## Compilation npm concurrente renvoyant une sortie vide
 
 - Reproduction automatisée : `npm-concurrent-compile-round122.test.mjs` lance deux appels à `NpmBuilder.compile()` avec les mêmes imports avant la fin d'esbuild. Le second renvoie `{ result: '', errors: [] }` ; le premier renvoie ensuite le bundle attendu.
