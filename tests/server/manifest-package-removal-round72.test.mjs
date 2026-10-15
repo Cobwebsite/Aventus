@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -51,16 +51,17 @@ test('removing one of two package exports keeps only the remaining Emmet tag', a
         ['block', 'demo-beta']);
 });
 
-test('removing the last package tag currently leaves the previous Emmet file unchanged', async t => {
+test('removing the last package tag deletes the generated snippets file', async t => {
     const { output, makeFile } = setup(t);
     const alpha = makeFile('alpha', 'demo-alpha');
     ManifestPackage.files[alpha.file.uri] = alpha;
     await ManifestPackage.write(true);
-    const before = readFileSync(output, 'utf8');
-
     delete ManifestPackage.files[alpha.file.uri];
     await ManifestPackage.write();
-    assert.equal(readFileSync(output, 'utf8'), before);
+    assert.equal(existsSync(output), false);
+
+    ManifestPackage.files[alpha.file.uri] = alpha;
+    await ManifestPackage.write(true);
     assert.deepEqual(Object.keys(JSON.parse(readFileSync(output, 'utf8')).html.snippets),
         ['block', 'demo-alpha']);
 });
