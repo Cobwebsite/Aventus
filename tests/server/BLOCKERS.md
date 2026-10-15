@@ -18,11 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Réponse Store de succès acceptée avec un statut HTTP d'erreur
-
-- Reproduction automatisée : `store-status-result-round114.test.mjs` reçoit `{"errors":[],"result":true}` avec HTTP 500 puis 429. `Store.postWithErrors()` retourne `true` dans les deux cas, comme pour HTTP 200.
-- Cause : `postWithErrors()` traite spécialement 401 et 403, puis décide du succès sur le seul corps JSON, sans vérifier les autres statuts HTTP.
-- Décision à prendre : définir la priorité entre statut HTTP et enveloppe JSON ; si un statut non réussi doit toujours être une erreur, renvoyer un `QueryError` pour ces réponses et conserver la possibilité d'un nouvel essai.
 ## Initialisation LSP impossible sans `initializationOptions`
 
 - Reproduction automatisée : `protocol-initialize-options-round115.test.mjs` appelle le handler `initialize` avec `workspaceFolders: null` et sans `initializationOptions`. Une `TypeError` est levée avant le callback du serveur ; le même handler accepte un nouvel essai contenant les options.
