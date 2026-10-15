@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Échec de téléchargement d'une dépendance supprimant un package préexistant
-
-- Reproduction automatisée : `dependency-download-round107.test.mjs` télécharge un package depuis un serveur HTTP local, suit une redirection absolue et écrit le fichier. Une nouvelle tentative vers une URL renvoyant 404 avec la même destination retourne `false` et supprime le fichier valide précédent.
-- Source : `DependencyManager.downloadFile()` appelle `cleanup()` sur les réponses HTTP non réussies ; cette fonction supprime `fileUri` sans distinguer un fichier préexistant d'un fichier créé par la tentative courante.
-- Décision à prendre : préciser si une mise à jour échouée doit conserver la version précédemment téléchargée. Si oui, écrire d'abord dans un fichier temporaire puis remplacer la destination uniquement après téléchargement complet et fermeture réussie.
-
 ## Alpha explicite perdu pour les fonctions couleur majuscules
 
 - Reproduction automatisée : `color-picker-uppercase-round108.test.mjs` détecte `RGBA(255, 0, 0, 1)` et `HSLA(120, 100%, 50%, 1)`, mais `onColorPresentations()` ne propose que `hex`, `hsl` et `rgb` sans alpha.
