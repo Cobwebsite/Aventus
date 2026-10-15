@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Compilation déjà engagée poursuivie après destruction du build
-
-- Reproduction automatisée : `project-destroy-inflight-round68.test.mjs` suspend une compilation après son démarrage, détruit le `Build`, puis reprend la compilation. L'écriture de sortie et la notification de compilation arrivent après la notification de désenregistrement.
-- Source : `Build.destroy()` retire les abonnements sans annuler la promesse `_build()` en cours ; celle-ci poursuit les étapes d'écriture après ses attentes asynchrones.
-- Décision à prendre : définir si une compilation en cours doit être annulée ou attendue avant désenregistrement, puis vérifier l'absence de sorties et de notifications tardives selon le contrat choisi.
-
 ## Présentations de couleur avec alpha explicite sur quatre chiffres hexadécimaux
 
 - Reproduction automatisée : `color-picker-ranges-round70.test.mjs` reconnaît `#f00f` comme rouge opaque, mais les présentations proposées sont `#ff0000`, `hsl(...)` et `rgb(...)`. La syntaxe alpha explicite disparaît alors que la valeur n'a pas changé.

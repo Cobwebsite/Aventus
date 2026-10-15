@@ -75,6 +75,8 @@ export type LocalCodeResult = {
     useDecorator: boolean,
 };
 
+class BuildCancelledError extends Error { }
+
 export class Build {
     public project: Project;
     public readonly buildConfig: AventusConfigBuild;
@@ -376,6 +378,9 @@ export class Build {
             }
         }
     }
+    private ensureBuildActive() {
+        if (this.destroyed) throw new BuildCancelledError();
+    }
     private async _build() {
         if (this.destroyed || !this.allowBuild) {
             return
@@ -389,11 +394,15 @@ export class Build {
             for (let compile of this.buildConfig.compile) {
                 if (compile.i18n) {
                     await this.writeBuildI18n(compile.i18n);
+                    this.ensureBuildActive();
                 }
                 let compilationInfo = await this.buildOrderCompilationInfo(compile);
+                this.ensureBuildActive();
                 let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
+                this.ensureBuildActive();
 
                 const outputErrors = await this.writeBuildCode(result, compilationInfo.libSrc, compile.output, compile.compressed);
+                this.ensureBuildActive();
                 buildErrors.push(...outputErrors, ...compilationInfo.errors);
 
                 let srcInfo = {
@@ -402,23 +411,33 @@ export class Build {
                     existing: result.codeNotRenderInJs
                 }
                 await this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm);
+                this.ensureBuildActive();
 
                 if (compile.outputNpm.live) {
                     await this.writeBuildNpm(compile.outputNpm, result);
+                    this.ensureBuildActive();
                 }
                 if (this.buildConfig.stories && this.buildConfig.stories.live) {
                     await this.stories.check();
+                    this.ensureBuildActive();
                     await this.writeBuildNpm({
                         path: [join(this.buildConfig.stories.output, "generated")],
                         packageJson: false,
                         npmName: '',
                         live: false
                     }, result);
+                    this.ensureBuildActive();
                     await this.stories.write(this.tsFiles);
+                    this.ensureBuildActive();
                 }
             }
 
+            this.ensureBuildActive();
             await this.publishOutputs();
+            this.ensureBuildActive();
+        } catch (error) {
+            if (error instanceof BuildCancelledError) return;
+            throw error;
         } finally {
             this.pendingOutputs = undefined;
             this.pendingDeletions = undefined;
@@ -2510,11 +2529,15 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 
         const written: { path: string, previous?: string }[] = [];
         try {
+            this.ensureBuildActive();
             for (const [path, content] of outputs) {
+                this.ensureBuildActive();
                 const previous = existsSync(path) ? readFileSync(path, 'utf8') : undefined;
                 written.push({ path, previous });
                 await this.writeFile(path, content);
+                this.ensureBuildActive();
             }
+            this.ensureBuildActive();
             for (const [path, expectedHash] of deletions ?? []) {
                 if (!existsSync(path)) continue;
                 const previous = readFileSync(path, 'utf8');
