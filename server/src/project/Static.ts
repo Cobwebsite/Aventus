@@ -76,7 +76,7 @@ export class Static {
                             let style = compile(pathFile, {
                                 style: 'compressed',
                             }).css.toString().trim();
-                            const cssPath = pathOut.replace(".scss", ".css");
+                            const cssPath = pathOut.slice(0, -".scss".length) + ".css";
                             await writeFile(cssPath, style, "static", this.name);
                             return cssPath;
                         }
@@ -116,7 +116,7 @@ export class Static {
                         }
                     }
                     else {
-                        const outputPath = normalize(resultPath.endsWith('.scss') ? resultPath.replace('.scss', '.css') : resultPath);
+                        const outputPath = normalize(resultPath.endsWith('.scss') ? resultPath.slice(0, -".scss".length) + ".css" : resultPath);
                         const existedBefore = existsSync(outputPath);
                         const writtenPath = await copyFile(filePath, resultPath);
                         if (writtenPath) this.rememberOutput(currentOutputs, previousOutputs, writtenPath, existedBefore);
