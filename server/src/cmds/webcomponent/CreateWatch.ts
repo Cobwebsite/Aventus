@@ -46,20 +46,16 @@ export class CreateWatch {
 		if (file) {
 			let oldEnd = file.documentUser.positionAt(file.contentUser.length);
 			let builds = FilesManager.getInstance().getBuild(file.documentUser);
-			let componentName = "";
-			if (builds && builds.length > 0) {
-				let fileTs = builds[0].tsFiles[uri]
-				if (fileTs instanceof AventusWebComponentLogicalFile) {
-					componentName = fileTs.getComponentName();
-				}
-			}
+			const componentBuild = builds?.find(build => build.tsFiles[uri] instanceof AventusWebComponentLogicalFile);
+			const component = componentBuild?.tsFiles[uri] as AventusWebComponentLogicalFile | undefined;
+			let componentName = component?.getComponentName() ?? "";
 			if (componentName == "") {
 				return;
 			}
 			let cb = '';
 			if (needCb) {
 				let prefix = 'Aventus.';
-				if (builds && builds.length > 0 && builds[0].isCoreBuild) {
+				if (componentBuild?.isCoreBuild) {
 					prefix = ''
 				}
 				cb = '(target: ' + componentName + ', action: ' + prefix + 'WatchAction, path: string, value: any) => {' + EOL + EOL + '}';

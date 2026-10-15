@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Commandes propriété et watch ignorées lorsque le composant appartient au second build
-
-- Reproduction automatisée : `webcomponent-build-selection-round111.test.mjs` donne à `FilesManager.getBuild()` deux builds pour le fichier courant. Le premier ne possède aucun composant et le second contient un `AventusWebComponentLogicalFile` valide. Les commandes `aventus.wc.create.property` et `aventus.wc.create.watch` demandent leurs entrées mais ne modifient pas le fichier et n'envoient aucune notification d'édition.
-- Source : `CreateProperty.run()` et `CreateWatch.run()` cherchent uniquement dans `builds[0].tsFiles[uri]`, sans parcourir les autres builds associés au document.
-- Décision à prendre : sélectionner le build contenant le composant, ou définir explicitement une priorité des builds et signaler au client quand le premier build ne convient pas.
-
 ## Projet non réessayé après un échec transitoire d'initialisation
 
 - Reproduction automatisée : `project-manager-init-retry-round111.test.mjs` fait échouer `Project.init()` lors de la première découverte d'une configuration. Le projet reste dans le registre sans callback de suppression ; une seconde découverte du même fichier ne relance pas l'initialisation. Une suppression explicite via le gestionnaire permet ensuite une nouvelle création réussie.
