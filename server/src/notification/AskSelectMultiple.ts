@@ -18,7 +18,14 @@ export class AskSelectMultiple {
 			this.waitingResponse[uuid] = (response: SelectItem[] | null) => {
 				resolve(response);
 			};
-			GenericServer.sendNotification("aventus/askselectmultiple", uuid, items.map((item, index) => ({ ...item, id: optionIds[index] })), options);
+			try {
+				GenericServer.sendNotification("aventus/askselectmultiple", uuid, items.map((item, index) => ({ ...item, id: optionIds[index] })), options);
+			} catch {
+				delete this.waitingResponse[uuid];
+				delete this.waitingOptions[uuid];
+				delete this.waitingOptionIds[uuid];
+				resolve(null);
+			}
 		})
 	}
 

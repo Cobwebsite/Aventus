@@ -14,7 +14,12 @@ export class Popup {
 			this.waitingResponse[uuid] = (response: string | null) => {
 				resolve(response);
 			};
-			GenericServer.sendNotification("aventus/popup", uuid, text, choices);
+			try {
+				GenericServer.sendNotification("aventus/popup", uuid, text, choices);
+			} catch {
+				delete this.waitingResponse[uuid];
+				resolve(null);
+			}
 		})
 	}
 

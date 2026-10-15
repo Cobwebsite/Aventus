@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Demandes laissées en attente après un échec d'envoi de notification
-
-- Reproduction automatisée : `notification-response-boundaries-round70.test.mjs` fait échouer `sendNotification()` pour chacune des quatre demandes (entrée, sélection, sélection multiple et popup). La promesse est rejetée, mais la demande reste dans `waitingResponse` ; la sélection simple conserve aussi ses options. Le test retire explicitement ces entrées pour ne pas contaminer la suite.
-- Source : chaque méthode `send()` enregistre la demande avant d'appeler `GenericServer.sendNotification()` sans nettoyage en cas d'exception.
-- Décision à prendre : supprimer l'état en attente en cas d'échec d'envoi et vérifier la récupération lors de l'envoi suivant.
-
 ## Ancienne classe HTML conservée dans le registre inverse après remplacement direct
 
 - Reproduction automatisée : `html-definition-replacement-round71.test.mjs` remplace une définition interne sous la même URI sans retrait préalable. Le tag et la complétion utilisent la nouvelle classe, mais `internalDocumentationReverse` garde l'ancienne classe, même après retrait de la nouvelle définition.

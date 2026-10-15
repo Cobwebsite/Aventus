@@ -15,7 +15,12 @@ export class AskInput {
 			this.waitingResponse[uuid] = (response: string | null) => {
 				resolve(response);
 			};
-			GenericServer.sendNotification("aventus/askinput", uuid, options);
+			try {
+				GenericServer.sendNotification("aventus/askinput", uuid, options);
+			} catch {
+				delete this.waitingResponse[uuid];
+				resolve(null);
+			}
 		})
 	}
 

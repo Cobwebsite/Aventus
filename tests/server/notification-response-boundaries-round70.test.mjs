@@ -77,27 +77,36 @@ test('selection replies outside the offered options are cancelled', async () => 
     }
 });
 
-test('failed notification dispatch leaves a pending request for every prompt kind', async () => {
+test('failed notification dispatch cleans pending state and permits a later request', async () => {
     const previous = GenericServer.instance;
-    GenericServer.instance = { connection: { sendNotification: () => { throw new Error('transport closed'); } } };
+    const sent = [];
+    let fail = true;
+    GenericServer.instance = { connection: { sendNotification: (...args) => {
+        if (fail) throw new Error('transport closed');
+        sent.push(args);
+    } } };
     const kinds = [
-        { send: () => AskInput.send({ title: 'Name' }), owner: AskInput },
-        { send: () => AskSelect.send([{ label: 'A' }]), owner: AskSelect },
-        { send: () => AskSelectMultiple.send([{ label: 'A' }]), owner: AskSelectMultiple },
-        { send: () => Popup.send('Continue?', 'Yes'), owner: Popup },
+        { send: () => AskInput.send({ title: 'Name' }), owner: AskInput, answer: 'Name' },
+        { send: () => AskSelect.send([{ label: 'A' }]), owner: AskSelect, answer: { label: 'A' } },
+        { send: () => AskSelectMultiple.send([{ label: 'A' }]), owner: AskSelectMultiple, answer: [{ label: 'A' }] },
+        { send: () => Popup.send('Continue?', 'Yes'), owner: Popup, answer: 'Yes' },
     ];
     try {
         for (const kind of kinds) {
             const before = new Set(Object.keys(kind.owner.waitingResponse));
-            const failure = kind.send();
-            await assert.rejects(failure, /transport closed/);
+            assert.equal(await kind.send(), null);
             const leaked = Object.keys(kind.owner.waitingResponse).filter(id => !before.has(id));
-            assert.equal(leaked.length, 1);
-            // The failed send cannot receive a reply; remove test-owned state explicitly.
-            for (const id of leaked) {
-                delete kind.owner.waitingResponse[id];
-                if (kind.owner === AskSelect) delete AskSelect.waitingOptions[id];
+            assert.deepEqual(leaked, []);
+            if (kind.owner === AskSelect || kind.owner === AskSelectMultiple) {
+                assert.deepEqual(Object.keys(kind.owner.waitingOptions), []);
+                assert.deepEqual(Object.keys(kind.owner.waitingOptionIds), []);
             }
+            fail = false;
+            const recovered = kind.send();
+            const id = sent.at(-1)[1][0];
+            kind.owner.resolve(id, kind.answer);
+            assert.deepEqual(await recovered, kind.answer);
+            fail = true;
         }
     } finally {
         GenericServer.instance = previous;
