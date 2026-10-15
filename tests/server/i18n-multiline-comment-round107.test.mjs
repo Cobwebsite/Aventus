@@ -17,12 +17,18 @@ function fixture(version, content) {
     };
 }
 
-test('la validation i18n signale actuellement un faux échec JSON pour un commentaire de bloc multiligne', async () => {
+test('la validation i18n accepte un commentaire de bloc multiligne et conserve les positions', async () => {
     const commented = fixture(1, '{\n  /* note du traducteur\n     sur deux lignes */\n  "message": {"en":"Hello"}\n}');
     const errors = await service.validate(commented);
-    assert.deepEqual(errors.map(error => error.message), ["Can't parse the json"]);
+    assert.deepEqual(errors.map(error => error.message), ['Missing locales fr']);
+    assert.equal(commented.file.documentUser.getText(errors[0].range), '"message"');
 
-    const cleaned = fixture(2, '{\n  "message": {"en":"Hello"}\n}');
+    const quotedComment = fixture(2, '{\n  "message": {"en":"Contains /* text */ and // text"}\n}');
+    const quotedErrors = await service.validate(quotedComment);
+    assert.deepEqual(quotedErrors.map(error => error.message), ['Missing locales fr']);
+    assert.equal(quotedComment.file.documentUser.getText(quotedErrors[0].range), '"message"');
+
+    const cleaned = fixture(3, '{\n  "message": {"en":"Hello"}\n}');
     const afterEdit = await service.validate(cleaned);
     assert.deepEqual(afterEdit.map(error => error.message), ['Missing locales fr']);
     assert.equal(cleaned.file.documentUser.getText(afterEdit[0].range), '"message"');

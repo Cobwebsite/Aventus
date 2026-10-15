@@ -1,9 +1,10 @@
-import { CodeAction, Diagnostic, DiagnosticSeverity, FormattingOptions, getLanguageService, LanguageService, Position, Range, TextEdit } from 'vscode-json-languageservice';
+import { CodeAction, Diagnostic, DiagnosticSeverity, FormattingOptions, getLanguageService, LanguageService, ObjectASTNode, Position, Range, TextEdit } from 'vscode-json-languageservice';
 import { AventusErrorCode, AventusExtension } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
 import { createErrorI18n, createErrorI18nPos, createWarningI18nPos } from '../../tools';
 import { AventusI18nSchema } from './schema';
 import { AventusI18nFile, AventusI18nFileSrcParsed } from './File';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class AventusI18nLanguageService {
 	public static readonly empty: string = "ⵌⵌ";
@@ -39,9 +40,14 @@ export class AventusI18nLanguageService {
 		let document = file.file.documentUser;
 		let jsonDoc = this.languageService.parseJSONDocument(document);
 		let errors = await this.languageService.doValidation(document, jsonDoc);
-		let configTxt = this.removeComments(document.getText());
+		const syntaxErrors = (jsonDoc as typeof jsonDoc & { syntaxErrors?: Diagnostic[] }).syntaxErrors;
+		if (!jsonDoc.root || syntaxErrors?.length) {
+			if (errors.length == 0) {
+				errors.push(createErrorI18n(document, "Can't parse the json"));
+			}
+			return errors.map(error => ({ ...error, severity: DiagnosticSeverity.Error }));
+		}
 		try {
-			JSON.parse(configTxt);
 			const parsed = file.parsed ?? {};
 			const locales = file.build.buildConfig.i18n?.locales ?? [];
 
@@ -52,9 +58,9 @@ export class AventusI18nLanguageService {
 					if (duplicates.length > 0) {
 						errors.push(
 							createErrorI18nPos(
-								document, 
+								document,
 								`Duplicate translation key ${key} across global files`,
-								parsed[key].keyStart, 
+								parsed[key].keyStart,
 								parsed[key].keyEnd
 							)
 						);
@@ -73,8 +79,8 @@ export class AventusI18nLanguageService {
 
 				const missing: string[] = [];
 				for (let locale of locales) {
-				if (parsed[key].locales[locale] === undefined) {
-					missing.push(locale);
+					if (parsed[key].locales[locale] === undefined) {
+						missing.push(locale);
 					}
 				}
 				if (missing.length > 0) {
@@ -97,8 +103,22 @@ export class AventusI18nLanguageService {
 
 	public async format(file: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
 		try {
-			const obj = JSON.parse(file.contentUser);
-			const txt = JSON.stringify(this.sortObj(obj), null, 4);
+			let txt: string;
+			try {
+				const obj = JSON.parse(file.contentUser);
+				txt = JSON.stringify(this.sortObj(obj), null, 4);
+			} catch {
+				const jsonDocument = this.languageService.parseJSONDocument(file.documentUser);
+				const root = jsonDocument.root;
+				const syntaxErrors = (jsonDocument as typeof jsonDocument & { syntaxErrors?: Diagnostic[] }).syntaxErrors;
+				if (!root || root.type !== 'object' || syntaxErrors?.length) return [];
+
+				const sorted = file.contentUser.slice(0, root.offset) + this.sortJsoncObject(file.contentUser, root) +
+					file.contentUser.slice(root.offset + root.length);
+				const sortedDocument = TextDocument.create(file.uri, file.documentUser.languageId, file.documentUser.version, sorted);
+				const edits = await this.languageService.format(sortedDocument, undefined, { tabSize: 4, insertSpaces: true });
+				txt = TextDocument.applyEdits(sortedDocument, edits);
+			}
 			const txtEdit: TextEdit = {
 				newText: txt,
 				range: {
@@ -111,6 +131,36 @@ export class AventusI18nLanguageService {
 
 		}
 		return [];
+	}
+
+	private sortJsoncObject(source: string, node: ObjectASTNode): string {
+		const properties = node.properties;
+		let previousEnd = node.offset + 1;
+		const entries: { key: string; text: string; }[] = [];
+		for (const property of properties) {
+			const value = property.valueNode;
+			const prefix = this.removeJsoncComma(source.slice(previousEnd, property.offset));
+			previousEnd = property.offset + property.length;
+			let content = source.slice(property.offset, previousEnd);
+			if (value?.type === 'object') {
+				const start = value.offset - property.offset;
+				content = content.slice(0, start) + this.sortJsoncObject(source, value) +
+					content.slice(start + value.length);
+			}
+			entries.push({
+				key: property.keyNode.value,
+				text: prefix + content
+			});
+		}
+
+		const tail = this.removeJsoncComma(source.slice(previousEnd, node.offset + node.length - 1));
+		entries.sort((a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+		const obj = entries.map(entry => entry.text).join(',');
+		return '{' + obj + tail + '}';
+	}
+
+	private removeJsoncComma(text: string): string {
+		return text.replace(/^(\s*),/, '$1');
 	}
 
 	public async codeAction(file: AventusI18nFile, range: Range): Promise<CodeAction[]> {
@@ -126,20 +176,6 @@ export class AventusI18nLanguageService {
 		return result;
 	}
 
-	private removeComments(txt: string): string {
-		let regex = /(\".*?\"|\'.*?\')|(\/\*.*?\*\/|\/\/[^(\r\n|\n)]*$)/gm
-		txt = txt.replace(regex, (match, grp1, grp2) => {
-			if (grp2) {
-				let result = "";
-				for (let i = 0; i < grp2.length; i++) {
-					result += " "
-				}
-				return result;
-			}
-			return grp1;
-		})
-		return txt;
-	}
 	public sortObj(unordered: AventusI18nFileSrcParsed) {
 		return AventusI18nLanguageService.sortObj(unordered);
 	}

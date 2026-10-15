@@ -18,17 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Formatage i18n indisponible pour un document avec commentaires valides
-
-- Reproduction automatisée : `i18n-comment-format-round102.test.mjs` valide un fichier `.i18n.avt` complet avec un commentaire `//` et ne reçoit aucune édition de formatage. Après retrait du commentaire, le même contenu est formaté et ses clés sont triées.
-- Source : `AventusI18nLanguageService` active `allowComments` pour la validation, mais `format()` appelle directement `JSON.parse(file.contentUser)` et retourne `[]` sur exception.
-- Décision à prendre : préciser si le formatage doit prendre en charge les commentaires acceptés par le service. Si oui, utiliser un parseur JSON avec commentaires qui préserve leur position et vérifier l'ordre des clés après formatage.
-
-## Validation i18n erronée avec un commentaire de bloc multiligne
-
-- Reproduction automatisée : `i18n-multiline-comment-round107.test.mjs` valide un fichier `.i18n.avt` avec `/* ... */` sur deux lignes et une traduction manquante. Le service renvoie `Can't parse the json` au lieu du diagnostic `Missing locales fr`. Après retrait du commentaire, le diagnostic attendu apparaît.
-- Source : `AventusI18nLanguageService.removeComments()` emploie `.*?` sans mode couvrant les sauts de ligne ; le commentaire de bloc reste dans le texte passé à `JSON.parse()` alors que `vscode-json-languageservice` l'accepte.
-- Décision à prendre : aligner l'analyse JSON secondaire sur les commentaires acceptés par le validateur, tout en préservant les positions et les chaînes contenant des séquences `/*` ou `//`.
 ## Échec du watcher interrompant la fermeture du serveur
 
 - Reproduction automatisée : `protocol-shutdown-failure-round106.test.mjs` fait échouer `FilesWatcher.destroy()` pendant `shutdown`. Le serveur marque immédiatement `isDown`, puis ne détruit ni les projets ni les fichiers. Un second appel, après réparation du watcher, termine ces nettoyages.
