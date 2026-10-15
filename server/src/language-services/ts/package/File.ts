@@ -37,10 +37,11 @@ export interface AventusPackageTsFileExportNoCode {
 	dependencies: { fullName: string; isStrong: boolean }[];
 }
 export class AventusPackageFile extends AventusBaseFile {
+	private static readonly headerRegex = /^\/\/ ([a-zA-Z0-9_]+(?:@[a-zA-Z0-9_]+)?):([0-9]+)\.([0-9]+)\.([0-9]+)$/m;
 	public static getQuickInfo(file: AventusFile): { name: string, version: { major: number, minor: number, patch: number } } | undefined {
 		try {
 			if (/\/\/#region js def \/\/([\s\S]*?)\/\/#endregion js def \/\//.test(file.contentUser)) {
-				let regexInfo = /^\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)$/gm.exec(file.contentUser);
+				let regexInfo = this.headerRegex.exec(file.contentUser);
 				if (regexInfo) {
 					return {
 						name: regexInfo[1],
@@ -165,12 +166,10 @@ export class AventusPackageFile extends AventusBaseFile {
 
 	private separeSection() {
 		if (this.file.contentUser.match(/\/\/#region js def \/\/([\s\S]*?)\/\/#endregion js def \/\//g)) {
-			let regexInfo = /^\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)$/gm.exec(this.file.contentUser);
-			if (regexInfo) {
-				this.name = regexInfo[1];
-				this.version.major = Number(regexInfo[2]);
-				this.version.minor = Number(regexInfo[3]);
-				this.version.patch = Number(regexInfo[4]);
+			const quickInfo = AventusPackageFile.getQuickInfo(this.file);
+			if (quickInfo) {
+				this.name = quickInfo.name;
+				this.version = quickInfo.version;
 			}
 			let jsDefToImport = /([\s\S]*?)\/\/#endregion js def \/\//g.exec(this.file.contentUser);
 			let jsDef = "";
