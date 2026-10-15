@@ -41,7 +41,8 @@ export class AventusI18nFile extends AventusBaseFile {
 
 	protected async onContentChange(): Promise<void> {
 		try {
-			this.parsedSrc = JSON.parse(this.file.contentUser);
+			const parsed = JSON.parse(this.file.contentUser);
+			this.parsedSrc = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
 			this.parsed = I18nParser.parse(this.file.documentUser);
 			this.transformForExport();
 			if (this.file instanceof InternalAventusFile) {
