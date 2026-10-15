@@ -27,9 +27,18 @@ export class ProjectManager {
             }
 
             if (!this.projects[file.documentUser.uri]) {
-                this.projects[file.documentUser.uri] = new Project(file, ProjectManager.autoLoad);
-                if (ProjectManager.autoLoad) {
-                    await this.projects[file.documentUser.uri].init()
+                const project = new Project(file, ProjectManager.autoLoad);
+                this.projects[file.documentUser.uri] = project;
+                try {
+                    if (ProjectManager.autoLoad) {
+                        await project.init();
+                    }
+                } catch (error) {
+                    project.destroy();
+                    if (this.projects[file.documentUser.uri] === project) {
+                        delete this.projects[file.documentUser.uri];
+                    }
+                    throw error;
                 }
 
                 file.onDelete(this.onDeleteFile.bind(this));

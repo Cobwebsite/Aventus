@@ -7,7 +7,7 @@ const [{ ProjectManager }, { Project }, { FilesManager }] = await loadServerModu
     'project/ProjectManager.ts', 'project/Project.ts', 'files/FilesManager.ts',
 ]);
 
-test('a failed project initialization leaves its registration and prevents rediscovery until deletion', async t => {
+test('a failed project initialization is cleaned up and can be retried on rediscovery', async t => {
     const previous = {
         files: FilesManager.instance,
         autoLoad: ProjectManager.autoLoad,
@@ -56,30 +56,14 @@ test('a failed project initialization leaves its registration and prevents redis
     manager.projects = {};
 
     await assert.rejects(manager.onNewFile(file), /transient initialization failure/);
-    const failed = manager.getProjectByUri(uri);
-    assert.ok(failed instanceof Project);
-    assert.equal(onDelete, undefined);
-    assert.equal(subscriptions.size, 1);
-
-    const priorError = console.error;
-    const errors = [];
-    console.error = message => errors.push(message);
-    try {
-        await manager.onNewFile(file);
-    } finally {
-        console.error = priorError;
-    }
-    assert.equal(attempts, 1);
-    assert.equal(manager.getProjectByUri(uri), failed);
-    assert.match(errors[0], /already inside project manager/);
-
-    await manager.onDeleteFile(file);
     assert.equal(manager.getProjectByUri(uri), undefined);
+    assert.equal(onDelete, undefined);
     assert.equal(subscriptions.size, 0);
+
     await manager.onNewFile(file);
     assert.equal(attempts, 2);
     assert.ok(manager.getProjectByUri(uri) instanceof Project);
-    assert.notEqual(manager.getProjectByUri(uri), failed);
+    assert.equal(subscriptions.size, 1);
     assert.equal(typeof onDelete, 'function');
     await onDelete(file);
     assert.equal(subscriptions.size, 0);

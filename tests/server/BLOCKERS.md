@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Projet non réessayé après un échec transitoire d'initialisation
-
-- Reproduction automatisée : `project-manager-init-retry-round111.test.mjs` fait échouer `Project.init()` lors de la première découverte d'une configuration. Le projet reste dans le registre sans callback de suppression ; une seconde découverte du même fichier ne relance pas l'initialisation. Une suppression explicite via le gestionnaire permet ensuite une nouvelle création réussie.
-- Source : `ProjectManager.onNewFile()` inscrit le projet dans `this.projects` avant `await project.init()`, et n'annule pas cette inscription si l'attente rejette. Le callback `file.onDelete()` n'est installé qu'après la réussite.
-- Décision à prendre : retirer et détruire l'instance incomplète sur échec d'initialisation, puis permettre une redécouverte ou un nouvel essai explicite sans suppression préalable.
-
 ## Fichier conservé après échec d'un callback de création
 
 - Reproduction automatisée : `files-registration-failure-round112.test.mjs` fait échouer un listener `onNewFile()` lors de `registerFile()`. L'appel rejette, mais `getByUri()` retourne déjà le fichier. Après correction du listener, un second `registerFile()` met à jour le contenu sans rejouer ce listener ; le watcher ne démarre qu'à ce second appel.
