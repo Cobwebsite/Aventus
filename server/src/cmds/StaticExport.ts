@@ -16,6 +16,10 @@ export class StaticExport {
 				detail: build.uri
 			})
 		}
+		if (items.length === 0) {
+			GenericServer.showWarningMessage('No static export was found.');
+			return;
+		}
 
 		let result = await GenericServer.Select(items, {
 			title: 'Static to export'

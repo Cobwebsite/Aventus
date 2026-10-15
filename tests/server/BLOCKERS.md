@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Sélecteur vide pour les commandes de build
-
-- Reproduction automatisée : `build-command-empty-list-round238.test.mjs` constate que `aventus.compile`, `aventus.npm.build`, `aventus.storybook.build` et `aventus.static` appellent toutes `Select` avec `[]` lorsque leurs listes de cibles sont vides. Si le sélecteur renvoie une annulation, aucune cible n'est lancée.
-- Sources : `server/src/cmds/BuildProject.ts`, `server/src/cmds/npm/Build.ts`, `server/src/cmds/storybook/Build.ts`, `server/src/cmds/StaticExport.ts`.
-- Décision à prendre : afficher une information explicite ou terminer silencieusement lorsqu'aucune cible n'est disponible, plutôt que demander une sélection sans option.
 ## Erreurs du parseur HTML absentes de la validation du service
 
 - Reproduction automatisée : `html-validation-gap-round66.test.mjs` produit une erreur de fermeture de balise avec `ParserHtml.parse`, mais `AventusHTMLLanguageService.doValidation` renvoie une liste vide. Après correction du document, le parseur n'a plus d'erreur et la validation renvoie toujours la même liste vide.
