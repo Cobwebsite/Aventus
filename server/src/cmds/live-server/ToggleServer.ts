@@ -5,6 +5,6 @@ export class ToggleServer {
 	static cmd: string = "aventus.liveserver.toggle";
 	
 	public static run() {
-		HttpServer.getInstance().toggle();
+		return HttpServer.getInstance().toggle();
 	}
 }

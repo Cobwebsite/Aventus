@@ -13,27 +13,54 @@ test('execute routes live-server and settings commands to the matching service',
     const oldHttp = HttpServer.getInstance;
     const oldRefresh = GenericServer.refreshSettings;
     const calls = [];
-    let release;
-    const gate = new Promise(resolve => { release = resolve; });
+    const gates = {};
+    for (const operation of ['start', 'stop', 'toggle']) {
+        gates[operation] = {};
+        gates[operation].promise = new Promise((resolve, reject) => {
+            gates[operation].resolve = resolve;
+            gates[operation].reject = reject;
+        });
+    }
     HttpServer.getInstance = () => ({
-        start: async () => { calls.push('start'); await gate; calls.push('started'); },
-        stop: () => calls.push('stop'),
-        toggle: () => calls.push('toggle'),
+        start: async () => { calls.push('start'); await gates.start.promise; calls.push('started'); },
+        stop: async () => { calls.push('stop'); await gates.stop.promise; calls.push('stopped'); },
+        toggle: async () => { calls.push('toggle'); await gates.toggle.promise; calls.push('toggled'); },
     });
     GenericServer.refreshSettings = () => calls.push('settings');
     try {
-        await Commands.execute({ command: 'aventus.liveserver.start' });
-        assert.deepEqual(calls, ['start']);
-        release();
+        let settled = false;
+        const start = Commands.execute({ command: 'aventus.liveserver.start' }).then(() => { settled = true; });
         await Promise.resolve();
-        await Commands.execute({ command: 'aventus.liveserver.stop' });
-        await Commands.execute({ command: 'aventus.liveserver.toggle' });
+        assert.deepEqual(calls, ['start']);
+        assert.equal(settled, false);
+        gates.start.resolve();
+        await start;
+        const stop = Commands.execute({ command: 'aventus.liveserver.stop' });
+        await Promise.resolve();
+        assert.deepEqual(calls, ['start', 'started', 'stop']);
+        gates.stop.resolve();
+        await stop;
+        const toggle = Commands.execute({ command: 'aventus.liveserver.toggle' });
+        await Promise.resolve();
+        assert.deepEqual(calls, ['start', 'started', 'stop', 'stopped', 'toggle']);
+        gates.toggle.resolve();
+        await toggle;
         await Commands.execute({ command: 'aventus.reloadSettings' });
-        assert.deepEqual(calls, ['start', 'started', 'stop', 'toggle', 'settings']);
+        assert.deepEqual(calls, ['start', 'started', 'stop', 'stopped', 'toggle', 'toggled', 'settings']);
     } finally {
-        release();
+        for (const gate of Object.values(gates)) gate.resolve();
         HttpServer.getInstance = oldHttp;
         GenericServer.refreshSettings = oldRefresh;
+    }
+});
+
+test('execute propagates a live-server operation failure', async () => {
+    const oldHttp = HttpServer.getInstance;
+    HttpServer.getInstance = () => ({ start: async () => { throw new Error('start failed'); } });
+    try {
+        await assert.rejects(Commands.execute({ command: 'aventus.liveserver.start' }), /start failed/);
+    } finally {
+        HttpServer.getInstance = oldHttp;
     }
 });
 

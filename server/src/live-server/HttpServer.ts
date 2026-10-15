@@ -45,10 +45,10 @@ export class HttpServer {
 
 	public toggle() {
 		if (this.server && this.server.listening) {
-			this.stop();
+			return this.stop();
 		}
 		else {
-			this.start();
+			return this.start();
 		}
 	}
 	public async start() {

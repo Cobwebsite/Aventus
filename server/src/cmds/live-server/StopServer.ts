@@ -5,6 +5,6 @@ export class StopServer {
 	static cmd: string = "aventus.liveserver.stop";
 	
 	public static run() {
-		HttpServer.getInstance().stop();
+		return HttpServer.getInstance().stop();
 	}
 }
