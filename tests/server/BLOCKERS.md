@@ -18,11 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Paramètres Store partiels : nom d'utilisateur perdu
-
-- Reproduction automatisée : `settings-hidden-partial-round101.test.mjs` charge un `config.json` contenant `store.token` et `store.username`, puis appelle `setHiddenSettings({ store: { token: 'new-token' } })`. Le nouveau fichier conserve `version`, mais supprime `store.username`.
-- Source : `SettingsManager.setHiddenSettings()` fusionne uniquement le premier niveau avec `{ ...this._hiddenSettings, ...newSettings }` ; l'objet `store` est remplacé en entier.
-- Décision à prendre : préciser si les mises à jour partielles de `store` doivent préserver les champs non fournis. Si oui, fusionner ce sous-objet et tester aussi les mises à jour successives de token et de nom d'utilisateur.
 ## Formatage i18n indisponible pour un document avec commentaires valides
 
 - Reproduction automatisée : `i18n-comment-format-round102.test.mjs` valide un fichier `.i18n.avt` complet avec un commentaire `//` et ne reçoit aucune édition de formatage. Après retrait du commentaire, le même contenu est formaté et ses clés sont triées.
