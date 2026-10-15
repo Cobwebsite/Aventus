@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Plusieurs imports d'un fichier déplacé dans un même consommateur
-
-- Reproduction automatisée : `project-rename-batch-round72.test.mjs` fournit deux références au même fichier déplacé, dans deux lignes d'un consommateur. `onRenameFile()` ne renvoie que l'édition de la seconde ligne.
-- Source : `AventusTsLanguageService.onRenameFile()` réaffecte `result[file.uri] = textEdits` à chaque référence au lieu d'ajouter l'édition au tableau déjà associé à cette URI.
-- Décision à prendre : accumuler les éditions de toutes les références par URI, puis vérifier les imports répétés et les imports répartis entre plusieurs fichiers.
-
 ## Dernier tag de package retiré sans vider le manifeste Emmet
 
 - Reproduction automatisée : `manifest-package-removal-round72.test.mjs` écrit le manifeste d'un package portant `demo-alpha`, retire son dernier export, puis appelle `ManifestPackage.write()`. Le fichier `snippets.json` conserve `demo-alpha`. Le même test vérifie que le retrait d'un tag parmi deux et le renommage d'un tag actualisent correctement le fichier.

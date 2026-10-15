@@ -1011,13 +1011,12 @@ export class AventusTsLanguageService {
 
     public async onRenameFile(oldUri: string, newUri: string): Promise<{ [uri: string]: TextEdit[] }> {
 
-        let result = {};
+        let result: { [uri: string]: TextEdit[] } = {};
         let references = this.languageService.getFileReferences(oldUri);
 
         for (let reference of references) {
             let file = FilesManager.getInstance().getByUri(reference.fileName);
             if (file) {
-                let textEdits: TextEdit[] = [];
                 let splittedFile = file.folderUri.split("/");
                 let splittedNewUri = newUri.split("/");
 
@@ -1045,7 +1044,10 @@ export class AventusTsLanguageService {
                     newTextArr.push(newUriPart);
                 }
 
-                textEdits.push({
+                if(!result[file.uri]) {
+                    result[file.uri] = [];
+                }
+                result[file.uri].push({
                     newText: newTextArr.join("/"),
                     range: {
                         start: file.documentInternal.positionAt(reference.textSpan.start),
@@ -1053,7 +1055,6 @@ export class AventusTsLanguageService {
                     }
                 })
 
-                result[file.uri] = textEdits;
             }
         }
 

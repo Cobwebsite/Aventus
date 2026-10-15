@@ -52,15 +52,19 @@ test('batch rename removes identical edits for the same consumer', async () => {
     assert.deepEqual(edits, { 'file:///consumer.lib.avt': [edit] });
 });
 
-test('multiple imports of one moved file in the same consumer produce only one edit', async t => {
+test('multiple imports of one moved file are edited in the same and separate consumers', async t => {
     const oldUri = 'file:///project/old.lib.avt';
     const newUri = 'file:///project/new.lib.avt';
     const consumerUri = 'file:///project/consumer.lib.avt';
     const content = 'import { Alpha } from "./old.lib.avt";\nexport { Alpha } from "./old.lib.avt";';
     const document = TextDocument.create(consumerUri, 'typescript', 1, content);
     const file = { uri: consumerUri, folderUri: 'file:///project', documentInternal: document };
+    const secondUri = 'file:///project/second-consumer.lib.avt';
+    const secondContent = 'import { Alpha } from "./old.lib.avt";';
+    const secondDocument = TextDocument.create(secondUri, 'typescript', 1, secondContent);
+    const secondFile = { uri: secondUri, folderUri: 'file:///project', documentInternal: secondDocument };
     const prior = FilesManager.getInstance;
-    FilesManager.getInstance = () => ({ getByUri: uri => uri === consumerUri ? file : undefined });
+    FilesManager.getInstance = () => ({ getByUri: uri => uri === consumerUri ? file : uri === secondUri ? secondFile : undefined });
     t.after(() => { FilesManager.getInstance = prior; });
     const languageService = Object.create(AventusTsLanguageService.prototype);
     languageService.languageService = { getFileReferences: uri => {
@@ -68,12 +72,18 @@ test('multiple imports of one moved file in the same consumer produce only one e
         return [
             { fileName: consumerUri, textSpan: { start: content.indexOf('./old.lib.avt'), length: './old.lib.avt'.length } },
             { fileName: consumerUri, textSpan: { start: content.lastIndexOf('./old.lib.avt'), length: './old.lib.avt'.length } },
+            { fileName: secondUri, textSpan: { start: secondContent.indexOf('./old.lib.avt'), length: './old.lib.avt'.length } },
         ];
     } };
 
     const edits = await languageService.onRenameFile(oldUri, newUri);
-    assert.deepEqual(Object.keys(edits), [consumerUri]);
-    assert.equal(edits[consumerUri].length, 1);
-    assert.deepEqual(edits[consumerUri][0].range.start, document.positionAt(content.lastIndexOf('./old.lib.avt')));
-    assert.equal(edits[consumerUri][0].newText, './new.lib.avt');
+    assert.deepEqual(Object.keys(edits), [consumerUri, secondUri]);
+    assert.equal(edits[consumerUri].length, 2);
+    assert.deepEqual(edits[consumerUri].map(edit => edit.range.start), [
+        document.positionAt(content.indexOf('./old.lib.avt')),
+        document.positionAt(content.lastIndexOf('./old.lib.avt')),
+    ]);
+    assert.deepEqual(edits[consumerUri].map(edit => edit.newText), ['./new.lib.avt', './new.lib.avt']);
+    assert.equal(edits[secondUri].length, 1);
+    assert.equal(edits[secondUri][0].newText, './new.lib.avt');
 });
