@@ -1,6 +1,6 @@
 import { GenericServer } from '../GenericServer';
 import { uriToPath } from '../tools';
-import { TemplateManager } from './TemplateManager';
+import { NoTemplatesAvailableError, TemplateManager } from './TemplateManager';
 
 export class LocalTemplateManager {
 	private templateManager: TemplateManager;
@@ -8,12 +8,17 @@ export class LocalTemplateManager {
 		this.templateManager = templateManager;
 	}
 	public async createTemplate(path: string) {
-		let loadedTemplates = await this.readTemplates();
-		let loadedGlobal = await this.templateManager.readGlobal();
+		try {
+			let loadedTemplates = await this.readTemplates();
+			let loadedGlobal = await this.templateManager.readGlobal();
 
-		const templateResult = await this.templateManager.query(path, { ...loadedGlobal.templates, ...loadedTemplates.templates });
-		if (templateResult) {
-			await templateResult.init(path, this.templateManager.findWorkspace(path));
+			const templateResult = await this.templateManager.query(path, { ...loadedGlobal.templates, ...loadedTemplates.templates });
+			if (templateResult) {
+				await templateResult.init(path, this.templateManager.findWorkspace(path));
+			}
+		} catch (error) {
+			if (!(error instanceof NoTemplatesAvailableError)) throw error;
+			GenericServer.showWarningMessage('No templates available for this location. Browse templates: https://store.aventusjs.com/templates');
 		}
 	}
 

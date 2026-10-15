@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Catégorie de templates vide après filtrage des scripts interdits
-
-- Reproduction automatisée : `template-query-categories-round109.test.mjs` interroge une catégorie qui ne contient qu'un template dont `isAllowed()` renvoie `false`. Le premier menu propose encore la catégorie ; sa sélection ouvre un second menu vide.
-- Source : `TemplateManager.query()` ajoute chaque sous-arbre aux choix avant de vérifier si ses feuilles sont autorisées pour la destination. Le filtrage ne s'effectue qu'au niveau des scripts.
-- Décision à prendre : masquer les catégories sans template autorisé, en conservant le comportement actuel des catégories qui contiennent au moins un script utilisable.
-
 ## Bundle npm périmé après changement d'un module installé
 
 - Reproductions automatisées : `npm-installed-source-rebuild-round110.test.mjs` compile un vrai module local avec `value = 1`, modifie son fichier en `value = 2`, puis recompile avec les mêmes imports. Le bundle exécutable retourne encore `1`. Ajouter l'import d'un autre symbole force un nouveau bundle qui retourne `2`. `npm-package-content-cache-round193.test.mjs` confirme ce comportement sur une autre séquence de modifications du package et vérifie aussi le retrait de l'import.
