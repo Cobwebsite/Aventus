@@ -50,7 +50,7 @@ test('StoryValue from a parsed WebComponent becomes a live Storybook arg and fol
             const compiler = new AventusWebcomponentCompiler(logical, build);
             const result = compiler.compile();
             assert.equal(result.componentName, 'Card');
-            assert.equal(fileParsed.classes.Card.properties.title.defaultValueStory, storyValue);
+            assert.equal(fileParsed.classes.Card.properties.title.defaultValueStory, JSON.stringify(storyValue));
             logical.storyBookInfo = { argsTypes: compiler.storyArgTypes, args: compiler.storyArgs };
             await story.write({ [uri]: logical }, true);
             const output = readFileSync(join(root, 'auto', 'Card.stories.ts'), 'utf8');
@@ -58,16 +58,20 @@ test('StoryValue from a parsed WebComponent becomes a live Storybook arg and fol
             return { output, args: compiler.storyArgs, argTypes: compiler.storyArgTypes, diagnostics };
         };
         const first = await compile(1, 'First title');
-        assert.equal(first.args.title, 'First title');
+        assert.equal(first.args.title, '"First title"');
         assert.equal(first.argTypes.title.control, 'text');
-        assert.match(first.output, /"title":First title/);
-        assert.ok(first.diagnostics.length > 0, 'the bare string makes generated TypeScript invalid');
+        assert.match(first.output, /"title":"First title"/);
+        assert.equal(first.diagnostics.length, 0);
         assert.match(first.output, /render: \(args\) => render\(args, Card\)/);
         const second = await compile(2, 'Updated title');
-        assert.equal(second.args.title, 'Updated title');
-        assert.match(second.output, /"title":Updated title/);
-        assert.ok(second.diagnostics.length > 0);
+        assert.equal(second.args.title, '"Updated title"');
+        assert.match(second.output, /"title":"Updated title"/);
+        assert.equal(second.diagnostics.length, 0);
         assert.doesNotMatch(second.output, /First title/);
+        const escaped = await compile(3, 'A "quote" and \\ path');
+        assert.equal(escaped.args.title, JSON.stringify('A "quote" and \\ path'));
+        assert.ok(escaped.output.includes(`"title":${JSON.stringify('A "quote" and \\ path')}`));
+        assert.equal(escaped.diagnostics.length, 0);
     } finally {
         SettingsManager.instance = previousSettings;
         rmSync(root, { recursive: true, force: true });

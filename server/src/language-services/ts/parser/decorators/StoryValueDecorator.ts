@@ -5,7 +5,8 @@ export class StoryValueDecorator {
 	public static is(decorator: DecoratorInfo): StoryValueDecorator | null {
 		if (decorator.name == "StoryValue") {
 			if (decorator.arguments.length > 0) {
-				let content: string = decorator.arguments[0].value;
+				const argument = decorator.arguments[0];
+				let content: string = argument.type === 'string' ? JSON.stringify(argument.value) : argument.value;
 				return new StoryValueDecorator(content);
 			}
 			return null;
