@@ -88,5 +88,5 @@ test('Store invalidates a live session after publication is forbidden even when 
     assert.equal(requests[0].authorization, undefined);
     assert.match(requests[1].authorization, /^Bearer live-token\|.+/);
     assert.match(requests[2].authorization, /^Bearer live-token\|.+/);
-    assert.deepEqual(errors, ['Logout failed']);
+    assert.deepEqual(errors, ['Store request failed with HTTP 500']);
 });
