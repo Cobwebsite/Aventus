@@ -18,11 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Préparation de template bloquée par les espaces et après échec
-
-- Reproduction automatisée : `template-shell-path-round112.test.mjs` place le dossier de sauvegarde du serveur dans un chemin contenant des espaces. `TemplateScript.create()` échoue à charger un script valide, car le chemin du script temporaire est scindé par le shell. Après déplacement vers un dossier sans espaces, le nouvel essai reste indéfiniment en attente ; après remise à zéro du registre `preparing`, le même script se charge.
-- Source : `TemplateScript.prepareScript()` construit `node --no-warnings ${scriptPath}` sans citer le chemin. À la fin de la préparation, la clé de `TemplateScript.preparing` est remplacée par `[]` au lieu d'être supprimée ; un appel ultérieur ajoute un callback à cette entrée sans relancer le travail.
-- Décision à prendre : passer le chemin temporaire comme argument au processus Node et supprimer la clé `preparing` dans tous les chemins de fin, y compris après échec ; vérifier aussi `isAllowed()`, qui utilise la même invocation shell.
 ## Réponse Store de succès acceptée avec un statut HTTP d'erreur
 
 - Reproduction automatisée : `store-status-result-round114.test.mjs` reçoit `{"errors":[],"result":true}` avec HTTP 500 puis 429. `Store.postWithErrors()` retourne `true` dans les deux cas, comme pour HTTP 200.
