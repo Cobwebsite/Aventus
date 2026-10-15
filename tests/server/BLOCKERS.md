@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Présentations de couleur avec alpha explicite sur quatre chiffres hexadécimaux
-
-- Reproduction automatisée : `color-picker-ranges-round70.test.mjs` reconnaît `#f00f` comme rouge opaque, mais les présentations proposées sont `#ff0000`, `hsl(...)` et `rgb(...)`. La syntaxe alpha explicite disparaît alors que la valeur n'a pas changé.
-- Source : `ColorPicker.onColorPresentations()` ne considère que les chaînes hexadécimales de neuf caractères pour conserver une présentation avec alpha ; la forme courte `#RGBA` n'est pas prise en compte lorsque `color.alpha === 1`.
-- Décision à prendre : préserver ou non la présence explicite du canal alpha pour `#RGBA` opaque. Si oui, reconnaître cette forme dans le choix des présentations et ajouter une assertion de régression.
-
 ## Réponses de sélection absentes des options proposées
 
 - Reproduction automatisée : `notification-response-boundaries-round70.test.mjs` répond à une sélection simple ou multiple avec un objet dont le libellé n'était pas proposé. La réponse est acceptée et transmise au demandeur. Une sélection simple remappe seulement les libellés connus ; une sélection multiple transmet directement le tableau fourni par le client.
