@@ -18,12 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Templates locaux conservés lors du changement d'espace de travail
-
-- Reproduction automatisée : `template-workspace-isolation-round80.test.mjs` charge un template, un projet et un template global installés, puis des homonymes locaux dans l'espace A. Après passage à l'espace B, qui ne contient aucun remplacement local, la découverte renvoie encore les fichiers de A pour les trois familles.
-- Source : `LocalTemplateManager.readTemplates()`, `LocalProjectManager.readProjects()` et `TemplateManager.readGlobal()` passent les objets des registres généraux à `TemplateManager.readTemplates()`, qui les modifie directement via `setValueToObject()`.
-- Décision à prendre : isoler les registres par espace de travail ou copier la structure avant de fusionner les entrées locales ; couvrir ensuite les passages A → B → A et la suppression d'une entrée locale.
-
 ## Références SCSS d'une variable globale limitées au fichier courant
 
 - Reproduction automatisée : `scss-global-refresh-round86.test.mjs` charge `--accent` dans une feuille globale et l'utilise deux fois dans un style de composant. La définition depuis le composant mène à la feuille globale, mais la recherche des références ne renvoie que les deux usages du composant et omet la déclaration globale. `scss-global-cross-file-references-round131.test.mjs` part de la déclaration globale avec deux fichiers consommateurs : seules la déclaration et l'utilisation dans la feuille globale sont renvoyées, y compris après remplacement de la variable dans cette feuille.

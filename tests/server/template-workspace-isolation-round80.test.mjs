@@ -12,7 +12,7 @@ const [{ TemplateManager }, { TemplateScript }, { LocalTemplateManager },
     'files/LocalProject.ts', 'GenericServer.ts',
 ]);
 
-test('workspace template, project and global overlays currently leak into the next workspace', async () => {
+test('workspace template, project and global overlays stay within their workspace', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-workspace-isolation-'));
     const a = join(root, 'a');
     const b = join(root, 'b');
@@ -51,12 +51,22 @@ test('workspace template, project and global overlays currently leak into the ne
         const inBTemplate = await new LocalTemplateManager(manager).readTemplates();
         const inBProject = await new LocalProjectManager(manager).readProjects();
         const inBGlobal = await manager.readGlobal();
-        assert.equal(inBTemplate.templates.Shared.config, localTemplate);
-        assert.equal(inBProject.templates.Shared.config, localProject);
-        assert.equal(inBGlobal.templates.Shared.config, localGlobal);
-        assert.notEqual(inBTemplate.templates.Shared.config, installedTemplate);
-        assert.notEqual(inBProject.templates.Shared.config, installedProject);
-        assert.notEqual(inBGlobal.templates.Shared.config, installedGlobal);
+        assert.equal(inBTemplate.templates.Shared.config, installedTemplate);
+        assert.equal(inBProject.templates.Shared.config, installedProject);
+        assert.equal(inBGlobal.templates.Shared.config, installedGlobal);
+        assert.equal(manager.getGeneralTemplates().Shared.config, installedTemplate);
+        assert.equal(manager.getGeneralProjects().Shared.config, installedProject);
+        assert.equal(manager.getGeneralGlobal().Shared.config, installedGlobal);
+
+        GenericServer.instance = { workspaces: [pathToFileURL(a).href] };
+        assert.equal((await new LocalTemplateManager(manager).readTemplates()).templates.Shared.config, localTemplate);
+        assert.equal((await new LocalProjectManager(manager).readProjects()).templates.Shared.config, localProject);
+        assert.equal((await manager.readGlobal()).templates.Shared.config, localGlobal);
+
+        for (const path of [localTemplate, localProject, localGlobal]) rmSync(path);
+        assert.equal((await new LocalTemplateManager(manager).readTemplates()).templates.Shared.config, installedTemplate);
+        assert.equal((await new LocalProjectManager(manager).readProjects()).templates.Shared.config, installedProject);
+        assert.equal((await manager.readGlobal()).templates.Shared.config, installedGlobal);
     } finally {
         TemplateScript.create = previousCreate;
         GenericServer.instance = previousServer;
