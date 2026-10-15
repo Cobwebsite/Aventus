@@ -8,7 +8,7 @@ import { ActionChange, ActionLoop, HtmlTemplateResult, InterestPoint } from './d
 import { AventusHTMLFile } from '../File';
 import { SCSSParsedRule } from '../../scss/LanguageService';
 import { createErrorHTMLPos, md5 } from '../../../tools';
-import { Decorator, ForOfStatement, IfStatement, Node, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
+import { Decorator, Diagnostic as DiagnosticTs, ForOfStatement, IfStatement, Node, ScriptTarget, SyntaxKind, createSourceFile, flattenDiagnosticMessageText, forEachChild } from 'typescript';
 import { GenericServer } from '../../../GenericServer';
 
 export class ParserHtml {
@@ -388,10 +388,28 @@ export class ParserHtml {
 		ParserHtml.idTemplate = 0;
 		ParserHtml.idTemplate = 0;
 		this.parse(this.document);
+		this.validateExpressions(document.file.documentUser);
 		ParserHtml.currentParsingDoc = null;
 		this.isReady = true;
 		for (let cb of this.readyCb) {
 			cb();
+		}
+	}
+
+	private validateExpressions(document: TextDocument) {
+		const expressions = [...this.injections, ...this.bindings];
+		for (const expression of expressions) {
+			const source = createSourceFile('expression.ts', `const value = (${expression.injectTsTxt});`, ScriptTarget.ESNext, true);
+			const syntaxErrors = (source as typeof source & { parseDiagnostics: DiagnosticTs[] }).parseDiagnostics;
+			for (const error of syntaxErrors) {
+				this.errors.push({
+					range: Range.create(document.positionAt(expression.start + 1), document.positionAt(expression.end - 1)),
+					severity: DiagnosticSeverity.Error,
+					source: AventusLanguageId.TypeScript,
+					code: error.code,
+					message: flattenDiagnosticMessageText(error.messageText, '\n'),
+				});
+			}
 		}
 	}
 
