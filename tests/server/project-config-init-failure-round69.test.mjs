@@ -13,7 +13,7 @@ const [{ Project }, { Build }, { SettingsManager }, { GenericServer },
     'GenericServer.ts', 'files/FilesManager.ts', 'project/DependencyManager.ts', 'Mutex.ts',
 ]);
 
-test('a failed build initialization leaves a queued config save waiting', async t => {
+test('a failed build initialization releases resources and permits the next config save', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-config-init-failure-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const uri = pathToFileURL(join(root, 'aventus.conf.avt')).href;
@@ -51,19 +51,12 @@ test('a failed build initialization leaves a queued config save waiting', async 
         onConfigSaveMutex: new Mutex() });
     await assert.rejects(project.onConfigSave(), /simulated init failure/);
     assert.equal(attempts, 1);
+    assert.deepEqual(project.getBuildsName(), []);
 
     configFile.documentUser = TextDocument.create(uri, 'json', 2,
         JSON.stringify({ module: 'Demo', build: [{ name: 'second', src: [] }] }));
-    const nextSave = project.onConfigSave();
-    let settled = false;
-    nextSave.then(() => { settled = true; }, () => { settled = true; });
-    await new Promise(resolve => setTimeout(resolve, 30));
-    assert.equal(settled, false);
-    assert.equal(attempts, 1);
-    assert.deepEqual(project.getBuildsName(), ['Demo@first']);
-
-    // Dispose the waiting mutex so the test does not retain a pending promise.
-    project.onConfigSaveMutex.dispose();
-    await assert.rejects(nextSave, { name: 'MutexDisposedError' });
+    await project.onConfigSave();
+    assert.equal(attempts, 2);
+    assert.deepEqual(project.getBuildsName(), ['Demo@second']);
     project.destroy();
 });
