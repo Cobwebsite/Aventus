@@ -79,7 +79,7 @@ test('destroy during config loading does not create a subscribed build after des
     assert.deepEqual(notifications, []);
 });
 
-test('destroy during compilation lets the already running build write its output', async t => {
+test('destroy during compilation prevents later output and completion notification', async t => {
     const before = { files: FilesManager.instance, server: GenericServer.instance };
     const events = [];
     FilesManager.instance = { removeOnNewFile: () => events.push('unsubscribed') };
@@ -125,5 +125,5 @@ test('destroy during compilation lets the already running build write its output
     assert.deepEqual(events.slice(0, 2), ['unsubscribed', 'aventus/unregisterBuild']);
     releaseCompilation();
     await compiling;
-    assert.ok(events.indexOf('output written') > events.indexOf('aventus/unregisterBuild'));
+    assert.deepEqual(events, ['unsubscribed', 'aventus/unregisterBuild']);
 });

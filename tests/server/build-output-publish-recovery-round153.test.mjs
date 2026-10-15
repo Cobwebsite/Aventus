@@ -70,3 +70,34 @@ test('publishing a rebuild deletes only an unchanged obsolete output while retai
     assert.equal(existsSync(obsolete), false);
     assert.equal(readFileSync(edited, 'utf8'), 'edited outside the build');
 });
+
+test('destroying a build during publication restores the earlier output', async t => {
+    const root = mkdtempSync(join(tmpdir(), 'aventus-build-publish-destroy-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+    const first = join(root, 'first.js');
+    const second = join(root, 'second.js');
+    writeFileSync(first, 'previous');
+
+    const build = Object.create(Build.prototype);
+    let releaseWrite;
+    const writing = new Promise(resolve => { releaseWrite = resolve; });
+    let writeStarted;
+    const started = new Promise(resolve => { writeStarted = resolve; });
+    build.writeFile = async (path, content) => {
+        if (path === first && content === 'updated') {
+            writeStarted();
+            await writing;
+        }
+        writeFileSync(path, content);
+    };
+    build.pendingOutputs = new Map([[first, 'updated'], [second, 'new']]);
+    build.pendingDeletions = new Map();
+
+    const publishing = build.publishOutputs();
+    await started;
+    build.destroyed = true;
+    releaseWrite();
+    await assert.rejects(publishing);
+    assert.equal(readFileSync(first, 'utf8'), 'previous');
+    assert.equal(existsSync(second), false);
+});
