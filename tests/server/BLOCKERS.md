@@ -18,11 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Session Store encore active au retour d'une réponse HTTP 403
-
-- Reproduction automatisée : `store-forbidden-publish-round100.test.mjs` ouvre une vraie session HTTP locale, publie un package qui reçoit 403, puis retarde la réponse de logout. `publishPackage()` rend déjà son `QueryError` alors que `Store.isConnected` reste vrai ; les identifiants sont effacés seulement à la fin du logout. Un logout HTTP 500 les efface finalement aussi.
-- Source : `server/src/store/Store.ts`, `postWithErrors()` appelle `this.disconnect()` sans attendre sa promesse dans la branche 403.
-- Décision à prendre : préciser si l'invalidation locale doit être effective avant de rendre l'erreur 403. Si oui, attendre ou effectuer immédiatement la suppression des identifiants, sans faire dépendre la sécurité locale de la réponse de logout.
 ## Paramètres Store partiels : nom d'utilisateur perdu
 
 - Reproduction automatisée : `settings-hidden-partial-round101.test.mjs` charge un `config.json` contenant `store.token` et `store.username`, puis appelle `setHiddenSettings({ store: { token: 'new-token' } })`. Le nouveau fichier conserve `version`, mais supprime `store.username`.

@@ -199,7 +199,7 @@ export class Store {
 			}
 			if (query.status == 403) {
 				if (uri != '/logout')
-					this.disconnect();
+					await this.disconnect();
 				return new QueryError([{ code: 403, message: "You must connect to your account first" }])
 			}
 			const txt = await query.text();
