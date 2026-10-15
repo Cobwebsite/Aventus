@@ -18,11 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Enveloppe Store mal formée traitée comme une réponse valide
-
-- Reproduction automatisée : `store-response-shape-round118.test.mjs` reçoit `errors` sous forme d'objet au lieu d'une liste. Avec `result: true`, `Store.postWithErrors()` retourne `true` ; sans `result`, il retourne `undefined`, hors du contrat annoncé `T | QueryError`.
-- Cause : la fonction teste seulement la présence de `json.errors` puis lit sa propriété `length`, qui n'existe pas sur un objet ordinaire.
-- Décision à prendre : valider la forme de `errors` et la présence de `result` avant de retourner un succès ; renvoyer un `QueryError` explicite pour les enveloppes invalides.
 ## Racine i18n `null` laissant la liste des clés inaccessible
 
 - Reproduction automatisée : `i18n-root-shape-round119.test.mjs` remplace un document i18n valide par le JSON `null`. La validation signale une erreur et les exports sont vidés, mais `AventusI18nFile.keys` lève une `TypeError`. Une édition valide suivante rétablit les clés et les exports.

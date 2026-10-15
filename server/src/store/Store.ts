@@ -215,13 +215,16 @@ export class Store {
 				throw e;
 			}
 
-			if (json.errors) {
-				if (json.errors.length > 0) {
-					return new QueryError(json.errors);
-				}
-				return json.result as T;
+			if (!json || !Array.isArray(json.errors)) {
+				return new QueryError([{ code: -500, message: "Wrong response format from the api" }]);
 			}
-			return new QueryError([{ code: -500, message: "Wrong response format from the api" }])
+			if (json.errors.length > 0) {
+				return new QueryError(json.errors);
+			}
+			if (!Object.hasOwn(json, 'result')) {
+				return new QueryError([{ code: -500, message: "Wrong response format from the api" }]);
+			}
+			return json.result as T;
 		} catch (e) {
 
 			return new QueryError([{ code: -500, message: e + "" }])
