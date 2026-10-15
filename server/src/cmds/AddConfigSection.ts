@@ -16,6 +16,10 @@ export class AddConfigSection {
 			if (!uri) {
 				let items: SelectItem[] = [];
 				let configFiles = ProjectManager.getInstance().getAllConfigFiles();
+				if (configFiles.length === 0) {
+					GenericServer.showWarningMessage("No Aventus configuration was found.");
+					return;
+				}
 				for (let file of configFiles) {
 					items.push({
 						label: file

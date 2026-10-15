@@ -18,11 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Ajout de section de configuration sans projet découvert
-
-- Reproduction automatisée : `config-format-target-round78.test.mjs` appelle `AddConfigSection.run()` lorsque `ProjectManager.getAllConfigFiles()` renvoie une liste vide. La commande intercepte un `TypeError` sur `items[0].label`, journalise l'erreur et ne présente aucun message à l'utilisateur.
-- Source : `server/src/cmds/AddConfigSection.ts` gère le choix parmi plusieurs fichiers et l'unique fichier, mais accède à `items[0]` sans traiter le cas vide.
-- Décision à prendre : définir la réponse utilisateur attendue lorsqu'aucune configuration n'existe, puis tester ce comportement après correction.
 ## Commandes HTTP terminées avant le démarrage ou l'arrêt réel
 
 - Reproduction automatisée : `command-service-routing-round79.test.mjs` envoie `aventus.liveserver.start` par `Commands.execute` avec un `HttpServer.start()` asynchrone contrôlé. La commande se termine alors que le démarrage est encore en attente.
