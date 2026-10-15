@@ -12,23 +12,11 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Observation : une fixture créée dans le répertoire temporaire fourni par le sandbox Windows renvoyait une liste vide avec `readDirs: ['src']`, alors que la même fixture créée dans le répertoire du projet découvre correctement la configuration de `src` et ignore le dossier voisin. Hors sandbox, la fixture temporaire réussissait également.
 - Le test `files-workspace-lifecycle.test.mjs` utilise désormais un répertoire temporaire dans le projet et vérifie le résultat positif sur toutes les plateformes. La cause du comportement propre au chemin temporaire du sandbox n'est pas établie ; aucune modification du serveur n'est proposée sur cette seule observation.
 
-## Projet détruit pendant le chargement de sa configuration
-
-- Reproduction automatisée : `project-destroy-inflight-round68.test.mjs` suspend `Project.onConfigSave()` dans `loadConfig()`, détruit le projet, puis laisse la sauvegarde reprendre. Un nouveau `Build` est alors créé et abonné aux nouveaux fichiers après la destruction ; une notification d'enregistrement est également émise. Le test nettoie explicitement cet abonnement après avoir vérifié le comportement.
-- Source : `Project.destroy()` ne marque pas l'instance comme détruite et `onConfigSave()` ne vérifie pas cet état après ses attentes asynchrones.
-- Décision à prendre : interrompre la création de ressources après destruction, et définir comment annuler ou attendre les sauvegardes de configuration en cours.
-
 ## Compilation déjà engagée poursuivie après destruction du build
 
 - Reproduction automatisée : `project-destroy-inflight-round68.test.mjs` suspend une compilation après son démarrage, détruit le `Build`, puis reprend la compilation. L'écriture de sortie et la notification de compilation arrivent après la notification de désenregistrement.
 - Source : `Build.destroy()` retire les abonnements sans annuler la promesse `_build()` en cours ; celle-ci poursuit les étapes d'écriture après ses attentes asynchrones.
 - Décision à prendre : définir si une compilation en cours doit être annulée ou attendue avant désenregistrement, puis vérifier l'absence de sorties et de notifications tardives selon le contrat choisi.
-
-## Sauvegardes de configuration bloquées après une erreur d'initialisation
-
-- Reproduction automatisée : `project-config-init-failure-round69.test.mjs` fait échouer `Build.init()` pendant `Project.onConfigSave()`. La sauvegarde échoue, mais le verrou reste acquis ; une deuxième sauvegarde, avec une configuration corrigée, ne démarre jamais. Le test libère explicitement le verrou en fin de scénario pour nettoyer la promesse en attente.
-- Source : `Project.onConfigSave()` appelle `onConfigSaveMutex.release()` uniquement après la création de tous les builds et exports statiques. Une exception dans cette séquence saute la libération.
-- Décision à prendre : libérer le verrou dans un bloc `finally`, et préciser le nettoyage des builds ou sorties partiellement créés avant de tester leur récupération.
 
 ## Présentations de couleur avec alpha explicite sur quatre chiffres hexadécimaux
 

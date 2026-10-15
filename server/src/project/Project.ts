@@ -17,6 +17,7 @@ export class Project {
     private config: AventusConfig | null = null;
     private builds: Build[] = [];
     private statics: Static[] = [];
+    private destroyed = false;
     private _isCoreBuild: Boolean = false;
 
     public scssFiles: { [uri: string]: AventusGlobalSCSSFile } = {}
@@ -151,6 +152,7 @@ export class Project {
 
     public async loadConfig() {
         let newConfig = await AventusJSONLanguageService.getInstance().getConfig(this.configFile);
+        if (this.destroyed) return;
         if (this.config) {
             let oldConfigTxt = JSON.stringify(this.config);
             let newConfigTxt = "";
@@ -175,50 +177,70 @@ export class Project {
      * Load the new config file and create build
      */
     public async onConfigSave() {
+        if (this.destroyed) return;
         await this.onConfigSaveMutex.waitOne();
-        await this.loadConfig();
-        for (let _static of this.statics) {
-            _static.destroy();
-        }
-        this.statics = [];
-        for (let build of this.builds) {
-            build.destroy();
-        }
-        this.builds = [];
-        if (this.config) {
-            for (let build of this.config.build) {
-                if (this.buildsAllowed) {
-                    if (!this.buildsAllowed.includes(build.name ?? "")) {
-                        let b = this.builds.find(p => p.buildConfig.name == build.name);
-                        if (b) {
-                            b.build();
+        try {
+            if (this.destroyed) return;
+            await this.loadConfig();
+            if (this.destroyed) return;
+            for (let _static of this.statics) {
+                _static.destroy();
+            }
+            this.statics = [];
+            for (let build of this.builds) {
+                build.destroy();
+            }
+            this.builds = [];
+            if (this.config) {
+                for (let build of this.config.build) {
+                    if (this.destroyed) return;
+                    if (this.buildsAllowed) {
+                        if (!this.buildsAllowed.includes(build.name ?? "")) {
+                            let b = this.builds.find(p => p.buildConfig.name == build.name);
+                            if (b) {
+                                b.build();
+                            }
+                            continue;
                         }
-                        continue;
                     }
-                }
-                else {
-                    // disable only if we don't specify build
-                    if (build.disabled) {
-                        continue;
+                    else {
+                        // disable only if we don't specify build
+                        if (build.disabled) {
+                            continue;
+                        }
                     }
+                    let newBuild = new Build(this, build);
+                    this.builds.push(newBuild);
+                    await newBuild.init()
+                    if (this.destroyed) return;
                 }
-                let newBuild = new Build(this, build);
-                this.builds.push(newBuild);
-                await newBuild.init()
-            }
 
-            if (this.config.static) {
-                for (let _static of this.config.static) {
-                    if (this.staticsAllowed && !this.staticsAllowed.includes(_static.name)) {
-                        continue;
+                if (this.config.static) {
+                    for (let _static of this.config.static) {
+                        if (this.destroyed) return;
+                        if (this.staticsAllowed && !this.staticsAllowed.includes(_static.name)) {
+                            continue;
+                        }
+                        let staticEl = new Static(this, _static);
+                        this.statics.push(staticEl);
+                        await staticEl.export();
+                        if (this.destroyed) return;
                     }
-                    let staticEl = new Static(this, _static);
-                    await staticEl.export();
-                    this.statics.push(staticEl);
                 }
             }
+        } catch (error) {
+            for (const build of this.builds) {
+                build.destroy();
+            }
+            for (const staticEl of this.statics) {
+                staticEl.destroy();
+            }
+            this.builds = [];
+            this.statics = [];
+            throw error;
+        } finally {
+            this.onConfigSaveMutex.release();
         }
-        this.onConfigSaveMutex.release();
     }
 
     public async onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
@@ -355,6 +377,8 @@ export class Project {
     }
 
     public destroy() {
+        if (this.destroyed) return;
+        this.destroyed = true;
         FilesManager.getInstance().removeOnNewFile(this.onNewFileUUID);
         this.configFile.removeOnSave(this.onSaveUUID);
         this.configFile.removeOnValidate(this.onValidateUUID);
@@ -369,6 +393,8 @@ export class Project {
         for (let _static of this.statics) {
             _static.destroy();
         }
+        this.builds = [];
+        this.statics = [];
     }
 
 

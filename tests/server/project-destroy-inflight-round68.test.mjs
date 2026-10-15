@@ -11,7 +11,7 @@ const [{ Project }, { Build }, { Mutex }, { FilesManager }, { DependencyManager 
     'project/DependencyManager.ts', 'GenericServer.ts', 'settings/Settings.ts',
 ]);
 
-test('destroy during config loading still creates a subscribed build after destruction', async t => {
+test('destroy during config loading does not create a subscribed build after destruction', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-project-destroy-inflight-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const before = {
@@ -74,13 +74,9 @@ test('destroy during config loading still creates a subscribed build after destr
     releaseLoad();
     await saving;
 
-    assert.deepEqual(project.getBuildsName(), ['Demo@web']);
-    assert.deepEqual([...subscriptions], ['new-1']);
-    assert.deepEqual(notifications.map(([name]) => name), ['aventus/registerBuild']);
-
-    // Release the subscription created after the project was destroyed.
-    project.getBuilds()[0].destroy();
+    assert.deepEqual(project.getBuildsName(), []);
     assert.deepEqual([...subscriptions], []);
+    assert.deepEqual(notifications, []);
 });
 
 test('destroy during compilation lets the already running build write its output', async t => {
