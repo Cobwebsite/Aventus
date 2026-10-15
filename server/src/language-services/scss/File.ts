@@ -102,7 +102,10 @@ export class AventusWebSCSSFile extends AventusBaseFile {
 
                 let regex = /@import *?('|")(\S*?)('|");?/g;
                 let arrMatch: RegExpExecArray | null = null;
+                let expandedContent = "";
+                let position = 0;
                 while (arrMatch = regex.exec(textToSearch)) {
+                    expandedContent += textToSearch.slice(position, arrMatch.index);
                     let importName = arrMatch[2];
                     let fileDependency = await this.resolvePath(importName, file.folderPath);
                     if (fileDependency) {
@@ -110,13 +113,14 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                         if (nesteadContent == errorMsgTxt) {
                             return nesteadContent;
                         }
-                        textToSearch = textToSearch.replace(arrMatch[0], nesteadContent);
+                        expandedContent += nesteadContent;
+                        position = regex.lastIndex;
                     }
                     else {
                         return errorMsgTxt;
                     }
                 }
-                return textToSearch;
+                return expandedContent + textToSearch.slice(position);
             }
             let oneFileContent = await _loadContent(this.file);
             if (oneFileContent != "|error|") {
