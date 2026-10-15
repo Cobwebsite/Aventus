@@ -195,6 +195,7 @@ export class Store {
 				headers
 			});
 			if (query.status == 401) {
+				this.setSettings({ token: "", username: undefined });
 				return new QueryError([{ code: 401, message: "No token provided" }])
 			}
 			if (query.status == 403) {

@@ -18,11 +18,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Session Store conservée après HTTP 401
-
-- Reproduction automatisée : `store-unauthorized-session-round117.test.mjs` part d'un token enregistré. Une réponse HTTP 401 renvoie `No token provided`, mais `Store.isConnected` reste vrai ; une deuxième requête réutilise le même bearer et peut réussir.
-- Cause : `Store.postWithErrors()` renvoie directement un `QueryError` pour 401, alors que le chemin 403 déclenche une déconnexion.
-- Décision à prendre : préciser si 401 indique une session devenue invalide et doit effacer les identifiants locaux, ou si le token doit rester disponible pour un nouvel essai.
 ## Enveloppe Store mal formée traitée comme une réponse valide
 
 - Reproduction automatisée : `store-response-shape-round118.test.mjs` reçoit `errors` sous forme d'objet au lieu d'une liste. Avec `result: true`, `Store.postWithErrors()` retourne `true` ; sans `result`, il retourne `undefined`, hors du contrat annoncé `T | QueryError`.
