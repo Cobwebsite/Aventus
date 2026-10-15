@@ -84,6 +84,8 @@ export class ColorPicker {
 					state = 'string';
 					quote = current;
 					masked[i] = ' ';
+				} else if (inUrl) {
+					masked[i] = current === '\n' || current === '\r' ? current : ' ';
 				}
 			} else {
 				masked[i] = current === '\n' || current === '\r' ? current : ' ';
