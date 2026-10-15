@@ -16,17 +16,27 @@ test('folder namespace follows the configured root across nested folders', () =>
     assert.equal(build.getNamespaceForUri('file:///workspace/app/src/admin/detail/widget.lib.avt'), 'admin.detail');
 });
 
-test('folder namespace currently leaks a neighboring source tree into the namespace', () => {
+test('folder namespace is empty outside the configured root', () => {
     const build = Object.create(Build.prototype);
     build.buildConfig = {
         namespaceStrategy: 'followFolders',
         namespaceRoot,
     };
 
-    // A sibling whose name begins with "src" is outside namespaceRoot.
-    // Capture the current result until a source change can be agreed upon.
     assert.equal(
         build.getNamespaceForUri('file:///workspace/app/src-old/admin/widget.lib.avt'),
-        'workspace.app.src-old.admin',
+        '',
     );
+    assert.equal(build.getNamespaceForUri('file:///workspace/other/widget.lib.avt'), '');
+});
+
+test('folder namespace also accepts a root without a trailing separator', () => {
+    const build = Object.create(Build.prototype);
+    build.buildConfig = {
+        namespaceStrategy: 'followFoldersCamelCase',
+        namespaceRoot: namespaceRoot.slice(0, -1),
+    };
+
+    assert.equal(build.getNamespaceForUri('file:///workspace/app/src/admin-detail/widget.lib.avt'), 'AdminDetail');
+    assert.equal(build.getNamespaceForUri('file:///workspace/app/src-old/widget.lib.avt'), '');
 });
