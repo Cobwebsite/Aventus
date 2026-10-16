@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Échec de formatage seulement journalisé
-
-- Reproduction automatisée : `format-error-retry-round130.test.mjs` fait échouer le premier formateur d'un lot ; le second fichier est formaté, la commande se termine normalement, puis un nouvel appel formate le premier après disparition de l'erreur.
-- Cause : `Format.run()` intercepte l'exception de chaque fichier et appelle seulement `console.error()` ; aucune réponse ou notification d'erreur n'est transmise par la commande.
-- Décision à prendre : définir le retour utilisateur attendu pour un formatage partiel et conserver la possibilité de traiter les autres fichiers et de réessayer.
-
 ## Build différé exécuté après activation du mode global sans build
 
 - Reproduction automatisée : `build-pending-no-build-round131.test.mjs` programme un build avec délai, active `noBuild` avant l'expiration, puis constate la création de la sortie et la notification de compilation. Une nouvelle demande de build faite après l'activation est pourtant ignorée.
