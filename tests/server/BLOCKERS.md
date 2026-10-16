@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Événement du watcher traité après sa destruction
-
-- Reproduction automatisée : `files-watcher-rewatch-queue-round127.test.mjs` suspend une mise à jour et place une suppression dans la file. `FilesWatcher.destroy()` termine et efface son instance avant que la suppression soit transmise à `FilesManager.onDeletedUri()`.
-- Cause : `destroy()` attend seulement `watcher.close()` ; les promesses de `pendingEvents` continuent indépendamment.
-- Décision à prendre : attendre ou annuler les événements déjà en file lors de la destruction, et préciser si une opération déjà commencée doit terminer avant que `destroy()` ne rende la main.
-
 ## Couleurs nommées renvoyées hors de l'ordre du document
 
 - Reproduction automatisée : `color-picker-order-round127.test.mjs` place `blue` avant `#f00` et `rgb(...)`, puis `red` après. `onDocumentColor()` renvoie `#f00`, `rgb(...)`, `blue`, `red` ; les plages pointent bien vers les bonnes positions.

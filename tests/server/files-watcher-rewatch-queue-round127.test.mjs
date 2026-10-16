@@ -49,7 +49,7 @@ test('a deletion queued before unwatch is discarded after rewatch', async () => 
     }
 });
 
-test('destroy completes while a queued deletion can still reach the files manager', async () => {
+test('destroy waits for an active event and cancels a queued deletion', async () => {
     const path = 'D:/project/shutdown.wcl.avt';
     const uri = pathToUri(path);
     const watcher = Object.create(FilesWatcher.prototype);
@@ -77,13 +77,17 @@ test('destroy completes while a queued deletion can still reach the files manage
         const update = watcher.onContentChange(path);
         const removal = watcher.onRemove(path);
         await new Promise(resolve => setImmediate(resolve));
-        await watcher.destroy();
-        assert.equal(FilesWatcher.instance, undefined);
+        let destroyed = false;
+        const destruction = watcher.destroy().then(() => { destroyed = true; });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(destroyed, false);
         assert.deepEqual(calls, ['update start']);
 
         releaseUpdate();
-        await Promise.all([update, removal]);
-        assert.deepEqual(calls, ['update start', 'update end', 'delete']);
+        await Promise.all([update, removal, destruction]);
+        assert.equal(FilesWatcher.instance, undefined);
+        assert.deepEqual(calls, ['update start', 'update end']);
+        assert.equal(watcher.pendingEvents.size, 0);
     } finally {
         releaseUpdate();
         FilesWatcher.instance = previousWatcher;
