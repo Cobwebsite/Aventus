@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Métadonnées de template périmées après remplacement par un fichier plus ancien
-
-- Reproduction automatisée : `template-cache-timestamp-round131.test.mjs` charge un vrai `template.avt.ts` nommé `Original`, remplace son contenu par `Edited` et recule son horodatage d'une minute. `TemplateScript.create()` rend toujours la même instance avec le nom `Original`.
-- Cause : le cache recharge le script seulement si le `mtime` courant est strictement supérieur à celui mémorisé. Un remplacement par copie, extraction ou synchronisation peut conserver ou reculer cet horodatage.
-- Décision à prendre : définir une invalidation fiable après remplacement du fichier, par exemple un identifiant de contenu ou une invalidation explicite lors des événements de fichiers, sans reparcourir inutilement chaque template à chaque demande.
-
 ## Clé i18n `__proto__` perdue dans les objets de travail
 
 - Reproduction automatisée : `i18n-prototype-key-round132.test.mjs` remplace une clé ordinaire par `__proto__` dans un JSON valide. `keys` la contient, mais le parseur ne la présente pas comme propriété propre, `getKeyFromLocation()` ne la retrouve pas, l'export omet sa traduction et la validation signale à tort `Can't parse the json`. Le retour à une clé ordinaire rétablit ces fonctions.
