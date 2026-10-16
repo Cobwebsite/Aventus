@@ -19,7 +19,7 @@ function declaredKeys(parsed) {
     return keys;
 }
 
-test('une clé i18n contenant un saut de ligne corrompt le type généré puis une édition le répare', async t => {
+test('une clé i18n contenant un saut de ligne reste valide dans le type généré', async t => {
     const uri = 'file:///D:/round138/messages.i18n.avt';
     const source = new InternalAventusFile(TextDocument.create(uri, 'json', 1,
         JSON.stringify({ 'line\nbreak': { en: 'Line', fr: 'Ligne' } })));
@@ -37,9 +37,10 @@ test('une clé i18n contenant un saut de ligne corrompt le type généré puis u
     assert.deepEqual(translation.keys, ['line\nbreak']);
     assert.equal(translation.exported.en['line\nbreak'], 'Line');
     const generated = source.documentInternal.getText();
-    assert.ok(generated.includes('"line\nbreak": string'));
+    assert.ok(generated.includes('"line\\nbreak": string'));
     const parsed = ts.createSourceFile('i18n.d.ts', generated, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-    assert.ok(parsed.parseDiagnostics.length > 0);
+    assert.equal(parsed.parseDiagnostics.length, 0);
+    assert.deepEqual(declaredKeys(parsed), ['line\nbreak']);
 
     await source.triggerContentChange(TextDocument.create(uri, 'json', 2,
         JSON.stringify({ 'line-break': { en: 'Line', fr: 'Ligne' } })));
@@ -49,7 +50,7 @@ test('une clé i18n contenant un saut de ligne corrompt le type généré puis u
     assert.equal(ts.createSourceFile('i18n.d.ts', repaired, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS).parseDiagnostics.length, 0);
 });
 
-test('une clé i18n contenant une séquence antislash-t déclare silencieusement une autre clé TS', async t => {
+test('une clé i18n contenant une séquence antislash-t garde son nom dans le type généré', async t => {
     const uri = 'file:///D:/round138/escape.i18n.avt';
     const key = 'backslash\\t';
     const source = new InternalAventusFile(TextDocument.create(uri, 'json', 1,
@@ -70,8 +71,7 @@ test('une clé i18n contenant une séquence antislash-t déclare silencieusement
     const generated = source.documentInternal.getText();
     const parsed = ts.createSourceFile('i18n.d.ts', generated, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
     assert.equal(parsed.parseDiagnostics.length, 0);
-    assert.deepEqual(declaredKeys(parsed), ['backslash\t']);
-    assert.notEqual(declaredKeys(parsed)[0], key);
+    assert.deepEqual(declaredKeys(parsed), [key]);
 
     await source.triggerContentChange(TextDocument.create(uri, 'json', 2,
         JSON.stringify({ backslash_t: { en: 'Value' } })));
