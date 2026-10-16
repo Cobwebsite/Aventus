@@ -100,7 +100,10 @@ export class Project {
     public getInternalWebComponentDefinition(path: string, tagName: string): ClassInfo | undefined {
         for (let build of this.builds) {
             if (build.outputPathes.includes(path)) {
-                return build.getLocalWebComponentDefinition(tagName);
+                const definition = build.getLocalWebComponentDefinition(tagName);
+                if (definition) {
+                    return definition;
+                }
             }
         }
         return;
