@@ -13,7 +13,7 @@ import { PropertyInfo } from '../language-services/ts/parser/PropertyInfo';
 import { MethodInfo } from '../language-services/ts/parser/MethodInfo';
 import { SCSSDoc } from '../language-services/scss/helper/CSSCustomNode';
 import { TypeInfo } from '../language-services/ts/parser/TypeInfo';
-import { TypeNode } from 'typescript';
+import { ParameterDeclaration, TypeNode } from 'typescript';
 import { DocumentationInfo } from '../language-services/ts/parser/DocumentationInfo';
 
 export class ManifestPackage {
@@ -189,6 +189,12 @@ export class ManifestPackageMd {
 		result = result.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\|/g, "&vert;")
 		return result;
 	}
+	private getParameter(param: ParameterDeclaration): string {
+		const dots = param.dotDotDotToken ? '...' : '';
+		const question = param.questionToken ? '?' : '';
+		const name = `${dots}${param.name.getText()}${question}`;
+		return `${name}: ${param.type ? this.getType(param.type) : 'any'}`;
+	}
 	private loadFunction(info: AventusPackageTsFileExport): void {
 		const _function = this.file.fileParsed!.functions[info.fullName];
 
@@ -213,14 +219,7 @@ export class ManifestPackageMd {
 		const parameters: string[] = []
 
 		for (let param of _function.node.parameters) {
-			let temp = param.name.getText();
-			if (param.type) {
-				temp += ": " + this.getType(param.type)
-			}
-			else {
-				temp += ": any";
-			}
-			parameters.push(temp)
+			parameters.push(this.getParameter(param));
 		}
 		name += `(${parameters.join(", ")})`
 		// todo load example
@@ -420,14 +419,7 @@ export class ManifestPackageMd {
 		const parameters: string[] = []
 
 		for (let param of method.node.parameters) {
-			let temp = param.name.getText();
-			if (param.type) {
-				temp += ": " + this.getType(param.type)
-			}
-			else {
-				temp += ": any";
-			}
-			parameters.push(temp)
+			parameters.push(this.getParameter(param));
 		}
 		name += `(${parameters.join(", ")})`
 		return {

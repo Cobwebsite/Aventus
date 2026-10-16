@@ -294,7 +294,11 @@ export class TypeInfo {
 
 
 	public getFullTxt(): string {
-		const typeKind: TypeInfoKind[] = []
+		const result = this.getFullTxtBase();
+		return this.isArray ? `${result}[]` : result;
+	}
+
+	private getFullTxtBase(): string {
 		if (
 			this.kind == "any" ||
 			this.kind == "boolean" ||
