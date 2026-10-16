@@ -13,7 +13,7 @@ function deferred() {
     return { promise, resolve };
 }
 
-test('shutdown returns while an already-started content-change callback is still running', async () => {
+test('shutdown waits for an already-started content-change callback before deleting the file', async () => {
     const previous = [FilesWatcher.instance, GenericServer.instance];
     const manager = Object.create(FilesManager.prototype);
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
@@ -37,15 +37,15 @@ test('shutdown returns while an already-started content-change callback is still
         await manager.registerFile(doc(1, 'first'));
         const changing = manager.onContentChange(doc(2, 'second'));
         await started.promise;
-        await manager.onShutdown();
+        const shutdown = manager.onShutdown();
+        await Promise.resolve();
+        assert.equal(manager.getByUri(uri)?.isDeleted, true);
+        assert.deepEqual(events, [['change-start', 2]]);
+        release.resolve();
+        await Promise.all([changing, shutdown]);
         assert.equal(manager.getByUri(uri), undefined);
         assert.deepEqual(events, [
-            ['change-start', 2], ['delete', 2], ['unwatch', uri],
-        ]);
-        release.resolve();
-        await changing;
-        assert.deepEqual(events, [
-            ['change-start', 2], ['delete', 2], ['unwatch', uri], ['change-end', 2],
+            ['change-start', 2], ['change-end', 2], ['delete', 2], ['unwatch', uri],
         ]);
     } finally {
         release.resolve();

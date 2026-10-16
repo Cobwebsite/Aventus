@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Callback de modification encore actif après l'arrêt du gestionnaire de fichiers
-
-- Reproduction automatisée : `files-shutdown-inflight-round132.test.mjs` suspend un callback `onContentChange`, appelle `FilesManager.onShutdown()`, puis observe la suppression du fichier en cache et du watcher avant la fin du callback. Une fois libéré, ce callback continue à s'exécuter après l'arrêt.
-- Cause : `onShutdown()` attend les callbacks de suppression via `triggerDelete()`, mais `InternalAventusFile` ne suit ni n'attend les callbacks de modification déjà engagés.
-- Décision à prendre : préciser si l'arrêt doit attendre ces callbacks ou les annuler. Si l'exécution après arrêt est permise, garantir qu'elle ne modifie pas des projets ou ressources déjà détruits.
-
 ## Imports npm enregistrés pendant un build désactivé
 
 - Reproduction automatisée : `npm-disabled-registration-round133.test.mjs` enregistre un import dans `NpmBuilder` après `Build.disableBuild()`, puis appelle `Build.enableBuild()`. L'import reste stocké, mais `compile()` renvoie une sortie vide jusqu'à un appel manuel à `rebuildInfo()`.

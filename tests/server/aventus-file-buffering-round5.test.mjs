@@ -132,9 +132,10 @@ test('deleting a file settles queued content changes without applying them', asy
         await until(() => seen.length === 1);
         const queued = file.triggerContentChange(document(3, 'third'));
         await new Promise(resolve => setTimeout(resolve, 5));
-        await file.triggerDelete();
-        await Promise.all([first, queued]);
+        const deleting = file.triggerDelete();
+        await queued;
         gate.resolve();
+        await Promise.all([first, deleting]);
         await new Promise(resolve => setImmediate(resolve));
         assert.deepEqual(seen, ['second']);
         assert.equal(file.contentUser, 'second');
