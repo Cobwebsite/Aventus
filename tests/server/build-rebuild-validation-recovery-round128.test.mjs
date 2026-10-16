@@ -4,7 +4,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { Build } = await loadServerModule('project/Build.ts');
 
-test('a validation failure leaves rebuild state disabled until a later successful retry', async () => {
+test('a validation failure restores rebuild state before a later successful retry', async () => {
     const calls = [];
     let failValidation = true;
     const build = Object.create(Build.prototype);
@@ -29,13 +29,13 @@ test('a validation failure leaves rebuild state disabled until a later successfu
     build.build = async () => calls.push('build');
 
     await assert.rejects(build.rebuildAll(), /validation failed/);
-    assert.deepEqual(calls, ['scss:false', 'html:false', 'validate:style']);
-    assert.equal(build._allowBuild, false);
-    assert.equal(build.insideRebuildAll, true);
+    assert.deepEqual(calls, ['scss:false', 'html:false', 'validate:style', 'scss:true', 'html:true']);
+    assert.equal(build._allowBuild, true);
+    assert.equal(build.insideRebuildAll, false);
 
     failValidation = false;
     await build.rebuildAll();
-    assert.deepEqual(calls.slice(3), [
+    assert.deepEqual(calls.slice(5), [
         'scss:false', 'html:false', 'validate:style', 'scss:true', 'html:true',
         'save:style', 'npm', 'build',
     ]);

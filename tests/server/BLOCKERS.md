@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## État du build conservé après échec de validation pendant un rebuild
-
-- Reproduction automatisée : `build-rebuild-validation-recovery-round128.test.mjs` fait échouer la validation d'un style dans `Build.rebuildAll()`. La promesse rejette, puis `_allowBuild` reste à `false`, `insideRebuildAll` à `true`, et les services SCSS et HTML ne reçoivent pas leur réactivation. Une nouvelle tentative réussie rétablit ces états.
-- Cause : `rebuildAll()` remet les indicateurs et les services de définition en état uniquement après la boucle de validation ; une exception interrompt cette séquence.
-- Décision à prendre : garantir la remise en état dans un bloc `finally` et définir comment signaler ou nettoyer les sorties d'un rebuild partiel avant de tester la correction.
-
 ## Ancienne compilation écrivant après une nouvelle révision
 
 - Reproduction automatisée : `build-overlapping-revisions-round129.test.mjs` démarre une compilation du premier état, la suspend avant l'écriture, compile et écrit le second état, puis libère la première. La sortie contient finalement le premier état, malgré deux notifications de compilation réussie.

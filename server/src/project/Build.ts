@@ -247,53 +247,62 @@ export class Build {
         this.scssLanguageService.allowRebuildDefinition(false);
         this.htmlLanguageService.allowRebuildDefinition(false);
         // validate
-        if (isInit) {
-            for (let uri in this.tsLanguageService.i18nFiles) {
-                await this.tsLanguageService.i18nFiles[uri].validate();
-            }
-            for (let uri in this.i18nComponentsFiles) {
-                await this.i18nComponentsFiles[uri].validate();
-            }
-            for (let uri in this.wcFiles) {
-                await this.wcFiles[uri].init();
-            }
-            for (let uri in this.scssFiles) {
-                await this.scssFiles[uri].init();
-                await this.scssFiles[uri].validate();
-            }
-            for (let uri in this.htmlFiles) {
-                await this.htmlFiles[uri].init();
-                await this.htmlFiles[uri].validate();
-            }
+        let validationSucceeded = false;
+        try {
+            if (isInit) {
+                for (let uri in this.tsLanguageService.i18nFiles) {
+                    await this.tsLanguageService.i18nFiles[uri].validate();
+                }
+                for (let uri in this.i18nComponentsFiles) {
+                    await this.i18nComponentsFiles[uri].validate();
+                }
+                for (let uri in this.wcFiles) {
+                    await this.wcFiles[uri].init();
+                }
+                for (let uri in this.scssFiles) {
+                    await this.scssFiles[uri].init();
+                    await this.scssFiles[uri].validate();
+                }
+                for (let uri in this.htmlFiles) {
+                    await this.htmlFiles[uri].init();
+                    await this.htmlFiles[uri].validate();
+                }
 
-            for (let uri in this.tsFiles) {
-                await this.tsFiles[uri].validate();
-            }
+                for (let uri in this.tsFiles) {
+                    await this.tsFiles[uri].validate();
+                }
 
+            }
+            else {
+                for (let uri in this.tsLanguageService.i18nFiles) {
+                    await this.tsLanguageService.i18nFiles[uri].validate();
+                }
+                for (let uri in this.i18nComponentsFiles) {
+                    await this.i18nComponentsFiles[uri].validate();
+                }
+                for (let uri in this.scssFiles) {
+                    await this.scssFiles[uri].validate();
+                }
+                for (let uri in this.htmlFiles) {
+                    await this.htmlFiles[uri].validate();
+                }
+                // for (let uri in this.wcFiles) {
+                //     await this.wcFiles[uri].validate();
+                // }
+                for (let uri in this.tsFiles) {
+                    await this.tsFiles[uri].validate();
+                }
+            }
+            validationSucceeded = true;
         }
-        else {
-            for (let uri in this.tsLanguageService.i18nFiles) {
-                await this.tsLanguageService.i18nFiles[uri].validate();
-            }
-            for (let uri in this.i18nComponentsFiles) {
-                await this.i18nComponentsFiles[uri].validate();
-            }
-            for (let uri in this.scssFiles) {
-                await this.scssFiles[uri].validate();
-            }
-            for (let uri in this.htmlFiles) {
-                await this.htmlFiles[uri].validate();
-            }
-            // for (let uri in this.wcFiles) {
-            //     await this.wcFiles[uri].validate();
-            // }
-            for (let uri in this.tsFiles) {
-                await this.tsFiles[uri].validate();
+        finally {
+            this.scssLanguageService.allowRebuildDefinition(true);
+            this.htmlLanguageService.allowRebuildDefinition(true);
+            this.insideRebuildAll = false;
+            if (!validationSucceeded) {
+                this.allowBuild = true;
             }
         }
-        this.scssLanguageService.allowRebuildDefinition(true);
-        this.htmlLanguageService.allowRebuildDefinition(true);
-        this.insideRebuildAll = false;
 
         for (let uri in this.scssFiles) {
             await this.scssFiles[uri].triggerSave();
