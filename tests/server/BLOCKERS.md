@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Régression du contenu d'un fichier après une révision reçue en retard
-
-- Reproduction automatisée : `files-out-of-order-versions-round134.test.mjs` applique la version 3 d'un document puis sa version 2. `InternalAventusFile` notifie les deux changements et conserve finalement la version 2 avec son ancien contenu.
-- Cause : `triggerContentChange()` et `triggerContentChangeNoBuffer()` n'écartent pas les versions inférieures à `versionUser` avant de remplacer le document.
-- Décision à prendre : définir si les versions LSP strictement croissantes sont une précondition ou si le serveur doit ignorer les notifications périmées ; protéger aussi les événements disque dont les versions sont calculées localement.
-
 ## Nouvelle session Store effacée par une déconnexion encore en attente
 
 - Reproduction automatisée : `store-logout-login-race-round133.test.mjs` suspend une déconnexion HTTP démarrée avec un ancien token, termine une nouvelle connexion, puis libère la réponse de logout. La nouvelle session est effacée.

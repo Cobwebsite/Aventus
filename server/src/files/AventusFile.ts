@@ -255,7 +255,7 @@ export class InternalAventusFile implements AventusFile {
 
     public triggerContentChange(document: TextDocument): Promise<void> {
         return new Promise<void>((resolve) => {
-            if (this.deleted) {
+            if (this.deleted || document.version <= this.versionUser) {
                 resolve();
                 return;
             }
@@ -264,10 +264,17 @@ export class InternalAventusFile implements AventusFile {
                 return;
             }
             setTimeout(() => {
-                if (this.deleted) {
+                const waiting = this.waitingDocContentChange[document.uri];
+                let canContinue = true;
+                if(this.deleted) canContinue = false;
+                else if(document.version <= this.versionUser) canContinue = false;
+                else if(waiting && typeof waiting !== 'boolean' && document.version <= waiting.version) canContinue = false;
+
+                if (!canContinue) {
                     resolve();
                     return;
                 }
+                
                 if (!this.waitingDocContentChange[document.uri]) {
                     this.waitingDocContentChange[document.uri] = true;
                     this.resolveContentChange[document.uri] = {
@@ -331,7 +338,7 @@ export class InternalAventusFile implements AventusFile {
         }
 
         let newDoc = this.waitingDocContentChange[document.uri];
-        if (newDoc && typeof newDoc != 'boolean') {
+        if (newDoc && typeof newDoc != 'boolean' && newDoc.version > this.versionUser) {
             this.waitingDocContentChange[document.uri] = true;
             this.triggerContentChangeNoBuffer(newDoc);
         }
