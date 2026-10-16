@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Export statique toujours actif après destruction
-
-- Reproduction automatisée : `static-destroy-export-round132.test.mjs` exporte un fichier, détruit l'instance `Static`, modifie la source puis rappelle `export()`. La destination est mise à jour et le rechargement HTTP est demandé une seconde fois.
-- Cause : `Static.destroy()` ferme seulement le watcher ; `isReady` reste vrai et `export()` ne vérifie aucun état de destruction.
-- Décision à prendre : définir si une instance détruite doit refuser ou ignorer les exports ultérieurs et si un export déjà commencé doit terminer. Dans le premier cas, invalider son état avant de fermer le watcher.
-
 ## Callback de modification encore actif après l'arrêt du gestionnaire de fichiers
 
 - Reproduction automatisée : `files-shutdown-inflight-round132.test.mjs` suspend un callback `onContentChange`, appelle `FilesManager.onShutdown()`, puis observe la suppression du fichier en cache et du watcher avant la fin du callback. Une fois libéré, ce callback continue à s'exécuter après l'arrêt.
