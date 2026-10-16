@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Injection JavaScript par l'en-tête Host dans le script du serveur HTTP
-
-- Reproduction automatisée : `http-injected-host-round125.test.mjs` interroge le serveur HTTP réel avec `Host: localhost';globalThis.injectedHostMarker=true;//`. La réponse de `/?get_injected_code` contient `var address = 'ws://localhost';globalThis.injectedHostMarker=true;///ws';` : la valeur fournie par le client sort de la chaîne JavaScript.
-- Le même test vérifie qu'un en-tête `Host` présent prévaut sur le paramètre `host` de la requête ; un client ne peut pas corriger ce choix en fournissant ce paramètre.
-- Cause : `HttpServer.createStaticServer()` insère `req.headers.host` directement entre apostrophes dans `INJECTED_CODE`, sans sérialisation JavaScript ni validation du nom d'hôte.
-- Décision à prendre : valider l'hôte et sérialiser l'URL WebSocket comme chaîne JavaScript avant de générer le script. Évaluer également si cette route ouverte doit accepter un `Host` arbitraire.
-
 ## Completion d'un template avant la fin de sa sauvegarde initiale
 
 - Reproduction automatisée : `files-template-lazy-save-round131.test.mjs` demande une completion sur un `template.avt.ts` absent du cache. Le fichier est enregistré et son callback `triggerSave()` démarre, mais la completion est renvoyée avant la fin de ce callback.

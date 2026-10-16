@@ -11,7 +11,7 @@ const [{ HttpServer }, { SettingsManager }, { GenericServer }] = await loadServe
     'live-server/HttpServer.ts', 'settings/Settings.ts', 'GenericServer.ts',
 ]);
 
-test('live HTTP injected script interpolates an untrusted Host header without JavaScript escaping', async () => {
+test('live HTTP injected script rejects an invalid Host header', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-http-host-'));
     writeFileSync(join(root, 'index.html'), '<html><head></head><body>Home</body></html>');
     const previousSettings = SettingsManager.instance;
@@ -39,8 +39,8 @@ test('live HTTP injected script interpolates an untrusted Host header without Ja
             req.on('error', reject);
             req.end();
         });
-        assert.equal(response.status, 200);
-        assert.match(response.body, /var address = 'ws:\/\/localhost';globalThis\.injectedHostMarker=true;\/\/\/ws';/);
+        assert.equal(response.status, 400);
+        assert.equal(response.body, 'Invalid host');
     } finally {
         server.stop();
         SettingsManager.instance = previousSettings;
@@ -49,7 +49,7 @@ test('live HTTP injected script interpolates an untrusted Host header without Ja
     }
 });
 
-test('live HTTP injected script treats the Host header as authoritative over its query host', async () => {
+test('live HTTP injected script serializes a valid Host header ahead of its query host', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-http-host-precedence-'));
     writeFileSync(join(root, 'index.html'), '<html><head></head><body>Home</body></html>');
     const previousSettings = SettingsManager.instance;
@@ -76,7 +76,7 @@ test('live HTTP injected script treats the Host header as authoritative over its
             req.on('error', reject);
             req.end();
         });
-        assert.match(response, /var address = 'ws:\/\/header\.example\/ws';/);
+        assert.match(response, /var address = "ws:\/\/header\.example\/ws";/);
         assert.doesNotMatch(response, /query\.example/);
     } finally {
         server.stop();
