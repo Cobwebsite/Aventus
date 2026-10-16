@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Découverte des fichiers interrompue par un échec d'enregistrement
-
-- Reproduction automatisée : `files-discovery-failure-round128.test.mjs` fait rejeter le premier enregistrement de source par `loadAllAventusFiles()`. La méthode rejette, `loadingInProgress` reste à `true` et `InitStep.sendDone()` n'est pas appelé. Un second appel complet rétablit l'état et enregistre source puis configuration.
-- Cause : `loadAllAventusFiles()` remet `loadingInProgress` à `false` seulement après la boucle de découverte ; aucune remise en état n'est faite sur le chemin d'erreur.
-- Décision à prendre : définir l'état et la notification attendus après un échec de découverte, puis garantir leur restauration sans imposer un second chargement complet si le serveur doit rester utilisable.
-
 ## Événement du watcher traité après sa destruction
 
 - Reproduction automatisée : `files-watcher-rewatch-queue-round127.test.mjs` suspend une mise à jour et place une suppression dans la file. `FilesWatcher.destroy()` termine et efface son instance avant que la suppression soit transmise à `FilesManager.onDeletedUri()`.
