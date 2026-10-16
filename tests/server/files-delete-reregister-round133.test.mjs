@@ -66,7 +66,7 @@ test('a replacement registered while deletion is pending stays registered', asyn
     assert.deepEqual(events, [['new', 'old'], ['new', 'replacement']]);
 });
 
-test('a save can run against a deleted file while shutdown waits for its delete callback', async t => {
+test('a save is ignored while shutdown waits for its delete callback', async t => {
     const previous = [FilesWatcher.instance, GenericServer.instance];
     const manager = createManager();
     const uri = 'file:///round133/shutdown-save.wcl.avt';
@@ -95,9 +95,9 @@ test('a save can run against a deleted file while shutdown waits for its delete 
     const shutdown = manager.onShutdown();
     await started.promise;
     await manager.onSave(doc);
-    assert.deepEqual(events, [['delete-start'], ['save', true]]);
+    assert.deepEqual(events, [['delete-start']]);
     release.resolve();
     await shutdown;
-    assert.deepEqual(events, [['delete-start'], ['save', true], ['delete-end'], ['unwatch', uri]]);
+    assert.deepEqual(events, [['delete-start'], ['delete-end'], ['unwatch', uri]]);
     assert.equal(manager.getByUri(uri), undefined);
 });
