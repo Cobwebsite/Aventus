@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Completion d'un template avant la fin de sa sauvegarde initiale
-
-- Reproduction automatisée : `files-template-lazy-save-round131.test.mjs` demande une completion sur un `template.avt.ts` absent du cache. Le fichier est enregistré et son callback `triggerSave()` démarre, mais la completion est renvoyée avant la fin de ce callback.
-- Cause : `FilesManager.fileExists()` appelle `this.onSave(document)` sans attendre la promesse après `registerFile()`.
-- Décision à prendre : définir si la première requête de langage doit attendre la préparation du template ; si oui, attendre la sauvegarde et propager son échec avant de répondre.
-
 ## Rechargement HTTP différé après arrêt et redémarrage
 
 - Reproduction automatisée : `http-stale-reload-round126.test.mjs` programme un rechargement, arrête le serveur puis simule un nouveau client connecté avant l'expiration du délai. Ce client reçoit le message `reload` de la session précédente.

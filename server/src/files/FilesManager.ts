@@ -14,8 +14,6 @@ import { SettingsManager } from '../settings/Settings';
 import { normalize } from 'path';
 import { ProjectManager } from '../project/ProjectManager';
 import { Statistics } from '../notification/Statistics';
-import { AventusJSONLanguageService } from '../language-services/json/LanguageService';
-import { AventusConfig } from '../language-services/json/definition';
 
 export class FilesManager {
     private static instance: FilesManager;
@@ -28,6 +26,8 @@ export class FilesManager {
     private constructor() { }
 
     private files: { [uri: string]: InternalAventusFile } = {};
+    private pendingTemplateInitializations: Map<string, Promise<boolean>> = new Map();
+    private failedTemplateInitializations: Set<string> = new Set();
 
     private lockedUpdatedUri: { [uri: string]: NodeJS.Timeout } = {};
     private loadingInProgress: boolean = true;
@@ -335,16 +335,36 @@ export class FilesManager {
     }
 
     protected async fileExists(document: TextDocument) {
-        if (!this.files[document.uri]) {
-            if (document.uri.endsWith(AventusExtension.Template)) {
-                await this.registerFile(document);
-                if (!this.files[document.uri]) return false;
-                this.onSave(document);
-                return true;
+        const uri = document.uri;
+        if (uri.endsWith(AventusExtension.Template)) {
+            const pending = this.pendingTemplateInitializations.get(uri);
+            if (pending) return pending;
+
+            if (!this.files[uri] || this.failedTemplateInitializations.has(uri)) {
+
+                const initialization = (async () => {
+                    if (!this.files[uri]) await this.registerFile(document);
+                    if (!this.files[uri]) return false;
+                    await this.onSave(document);
+                    return true;
+                })();
+
+                const initializations = this.pendingTemplateInitializations;
+                initializations.set(uri, initialization);
+
+                try {
+                    const exists = await initialization;
+                    this.failedTemplateInitializations.delete(uri);
+                    return exists;
+                } catch (error) {
+                    this.failedTemplateInitializations.add(uri);
+                    throw error;
+                } finally {
+                    initializations.delete(uri);
+                }
             }
-            return false;
         }
-        return true;
+        return !!this.files[uri];
     }
 
     /**
