@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Définition de composant ignorée dans le second build partageant une sortie
-
-- Reproduction automatisée : `project-shared-output-definition-round124.test.mjs` associe deux builds au même chemin de sortie. Le premier ne définit pas `x-second`, le second le définit ; `Project.getInternalWebComponentDefinition()` renvoie néanmoins `undefined` sans interroger le second. Avec des chemins distincts, la recherche atteint correctement le build correspondant.
-- Cause : la méthode retourne immédiatement le résultat du premier build dont `outputPathes` contient le chemin, même lorsque sa recherche locale renvoie `undefined`.
-- Décision à prendre : parcourir les autres builds partageant cette sortie lorsque la définition n'est pas trouvée, et préciser la priorité si plusieurs builds définissent le même tag.
-
 ## Conversion de composant écrasant une destination déjà présente
 
 - Reproduction automatisée : `component-destination-collision-round124.test.mjs` prépare un composant en fichier unique et trois fichiers de destination contenant déjà du texte. La commande `split` remplace les trois contenus, supprime la source et n'émet aucune erreur. Le parcours inverse `merge` remplace également un composant unique préexistant avant de supprimer les sources séparées.
