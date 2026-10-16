@@ -70,7 +70,11 @@ export class Project {
 
                 for (let i = 0; i < basePathSplitted.length; i++) {
                     if (filePathSplitted.length > i) {
-                        if (basePathSplitted[i] == filePathSplitted[i]) {
+                        let sameSegment = basePathSplitted[i] === filePathSplitted[i];
+                        if(process.platform === 'win32') {
+                            sameSegment = basePathSplitted[i].toLowerCase() === filePathSplitted[i].toLowerCase()
+                        }
+                        if (sameSegment) {
                             basePathSplitted.splice(i, 1);
                             filePathSplitted.splice(i, 1);
                             i--;

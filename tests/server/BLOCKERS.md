@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Alias Windows sensibles à la casse des chemins
-
-- Reproduction automatisée : `project-alias-case-round135.test.mjs` résout `@src/item` depuis `C:\\Workspace\\Project\\src`, puis depuis le même dossier écrit `c:\\workspace\\project\\src`. Le premier donne `./item` ; le second remonte inutilement l'arborescence avant de redescendre vers l'alias.
-- Cause : `Project.resolveAlias()` compare les segments normalisés avec `==`, sans tenir compte de l'insensibilité à la casse des chemins Windows.
-- Décision à prendre : définir la comparaison des chemins selon la plateforme et conserver une résolution relative stable lorsque seul l'usage des majuscules change.
-
 ## Désinstallation de template pilotée par un chemin non proposé
 
 - Reproduction automatisée : `template-uninstall-response-round137.test.mjs` présente un seul template installé, puis simule une réponse de sélection contenant le chemin d'un autre dossier temporaire. `selectTemplateToUninstall()` supprime cet autre dossier, conserve le template installé et annonce quand même la suppression.
