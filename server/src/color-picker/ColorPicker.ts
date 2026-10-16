@@ -112,7 +112,7 @@ export class ColorPicker {
 		for (const match of searchable.matchAll(/#(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})\b/gi)) {
 			candidates.push({ index: match.index, value: match[0] });
 		}
-		for (const match of searchable.matchAll(/\b(?:rgba?|hsla?|oklab|oklch|color)\(/gi)) {
+		for (const match of searchable.matchAll(/\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix|color)\(/gi)) {
 			let depth = 1;
 			let end = match.index + match[0].length;
 			for (; end < searchable.length && depth > 0; end++) {
@@ -129,6 +129,9 @@ export class ColorPicker {
 		for (const candidate of candidates) {
 			const t = candidate.value;
 			const length = t.length;
+			if (recognizedFunctions.some(span => candidate.index >= span.start && candidate.index + length <= span.end)) {
+				continue;
+			}
 			let type = t.startsWith('#') ? 'hex' : t.slice(0, t.indexOf('(')).toLowerCase();
 
 			const range = Range.create(

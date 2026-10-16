@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Fonctions de couleur CSS valides ignorées par le color picker
-
-- Reproduction automatisée : `color-picker-missing-functions-round130.test.mjs` confirme que le parseur CSS accepte `hwb(...)`, `lab(...)`, `lch(...)` et `color-mix(...)`, mais que `onDocumentColor()` ne renvoie aucune plage pour ces fonctions. Les couleurs hexadécimales et `rgb(...)` voisines restent reconnues ; les noms `red` et `blue` internes à `color-mix(...)` sont renvoyés séparément.
-- Cause : la liste des fonctions candidates dans `ColorPicker.getMatches()` ne contient que `rgb`, `rgba`, `hsl`, `hsla`, `oklab`, `oklch` et `color`. La recherche des noms s'applique ensuite au contenu des fonctions non reconnues.
-- Décision à prendre : définir les fonctions CSS prises en charge par le color picker et si une couleur composée doit produire une seule plage ou plusieurs ; élargir ensuite la détection sans compter les noms internes deux fois.
-
 ## Sections Build homonymes créées par la commande
 
 - Reproduction automatisée : `add-config-duplicate-round130.test.mjs` lance deux fois `aventus.addConfigSection` avec le nom `Shared App`. Le fichier contient deux sections de même nom et deux destinations `./dist/Shared-App.js` ; les deux ajouts sont annoncés au client.
