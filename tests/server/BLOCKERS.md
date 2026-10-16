@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Sauvegarde acceptée sur un fichier déjà supprimé pendant l'arrêt
-
-- Reproduction automatisée : `files-delete-reregister-round133.test.mjs` suspend un callback de suppression lancé par `FilesManager.onShutdown()`, puis appelle `onSave()` pour le même URI. Le callback de sauvegarde s'exécute alors que `file.isDeleted` vaut `true`, avant le retrait final du cache.
-- Cause : `onShutdown()` laisse l'entrée en cache pendant le callback et `triggerSave()` ne vérifie pas l'état `deleted`.
-- Décision à prendre : préciser si les notifications reçues pendant l'arrêt doivent être ignorées ou attendre sa fin ; éviter qu'une sauvegarde traite une instance déjà supprimée.
-
 ## Noms de locale i18n hérités des prototypes JavaScript
 
 - Reproduction automatisée : `i18n-reserved-locales-round133.test.mjs` configure une locale `constructor` absente du JSON. La validation ne la signale pas, mais l'action l'insère ; une édition qui l'ajoute permet ensuite son export. Une locale `__proto__` présente dans le JSON disparaît de l'analyse et de l'export, et la validation signale à tort `Can't parse the json`. Une édition vers `fr` remplace cette erreur par `Locale not needed`.

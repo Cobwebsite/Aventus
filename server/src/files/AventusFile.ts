@@ -413,6 +413,7 @@ export class InternalAventusFile implements AventusFile {
 
     public async triggerSave(): Promise<void> {
         for (let uuid in this.onSaveCb) {
+            if (this.deleted) return;
             await this.onSaveCb[uuid](this);
         }
     }
