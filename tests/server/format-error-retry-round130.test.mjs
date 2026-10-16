@@ -44,7 +44,11 @@ test('format command continues after one formatter fails and retries that file o
         getUris: () => uris,
         getByUri: uri => files[uris.indexOf(uri)],
     };
-    GenericServer.instance = { connection: { showLoadingMessage: async (_message, action) => action() } };
+    const messages = [];
+    GenericServer.instance = { connection: {
+        showLoadingMessage: async (_message, action) => action(),
+        showErrorMessage: message => messages.push(message),
+    } };
     const errors = [];
     console.error = error => errors.push(error);
 
@@ -52,10 +56,14 @@ test('format command continues after one formatter fails and retries that file o
     assert.deepEqual(seen, ['first', 'second']);
     assert.equal(errors.length, 1);
     assert.match(errors[0].message, /formatter unavailable/);
+    assert.equal(messages.length, 1);
+    assert.match(messages[0], /first\.wcl\.avt/);
+    assert.doesNotMatch(messages[0], /second\.wcl\.avt/);
     assert.deepEqual(paths.map(path => readFileSync(path, 'utf8')), ['old', 'second']);
 
     failFirst = false;
     await Commands.allCommandes['aventus.format'].run(uris[0]);
     assert.deepEqual(seen, ['first', 'second', 'first']);
     assert.deepEqual(paths.map(path => readFileSync(path, 'utf8')), ['first', 'second']);
+    assert.equal(messages.length, 1);
 });

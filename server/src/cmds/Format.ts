@@ -16,6 +16,7 @@ export class Format {
 		else {
 			uris = FilesManager.getInstance().getUris();
 		}
+		const failed: string[] = [];
 		await GenericServer.showLoadingMessage("Formatting " + uris.length + " files", async () => {
 			for (let uriTemp of uris) {
 				let file = FilesManager.getInstance().getByUri(uriTemp);
@@ -30,9 +31,13 @@ export class Format {
 						}
 					} catch (e) {
 						console.error(e)
+						failed.push(uriToPath(uriTemp));
 					}
 				}
 			}
 		})
+		if (failed.length > 0) {
+			GenericServer.showErrorMessage(`Formatting failed for ${failed.length} file(s):\n${failed.join('\n')}`);
+		}
 	}
 }
