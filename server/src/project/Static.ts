@@ -63,6 +63,7 @@ export class Static {
 
             const copyFile = async (pathFile, pathOut): Promise<string | null> => {
                 try {
+                    if (!this.isReady) return null;
                     pathOut = normalize(pathOut);
                     let splitted = pathOut.split(sep);
                     let filename = splitted.pop();
@@ -77,6 +78,7 @@ export class Static {
                                 style: 'compressed',
                             }).css.toString().trim();
                             const cssPath = pathOut.slice(0, -".scss".length) + ".css";
+                            if (!this.isReady) return null;
                             await writeFile(cssPath, style, "static", this.name);
                             return cssPath;
                         }
@@ -95,10 +97,12 @@ export class Static {
             let staticFiles = foundAll(this.staticConfig.inputPathFolder);
             const currentSources = new Set(staticFiles.map(path => path.replace(/\\/g, '/')));
             for (let filePath of staticFiles) {
+                if (!this.isReady) return;
                 filePath = filePath.replace(/\\/g, '/');
                 const previousOutputs = this.exportedBySource.get(filePath);
                 const currentOutputs = new Map<string, { size: number, mtimeMs: number, canDelete: boolean }>();
                 for (let outputPathFolder of this.staticConfig.outputPathFolder) {
+                    if (!this.isReady) return;
                     let resultPath = filePath.replace(this.staticConfig.inputPathFolder, outputPathFolder);
                     if (filePath.endsWith(AventusExtension.Base)) {
                         if (filePath.endsWith(AventusExtension.GlobalStyle)) {
@@ -107,11 +111,13 @@ export class Static {
                             if (!cssFile) {
                                 const doc = TextDocument.create(pathToUri(filePath), AventusExtension.GlobalStyle, 1, readFileSync(filePath, 'utf8'))
                                 await FilesManager.getInstance().registerFile(doc);
+                                if (!this.isReady) return;
                                 cssFile = this.project.scssFiles[pathToUri(filePath)];
                             }
                             const outputPath = normalize(resultPath);
                             const existedBefore = existsSync(outputPath);
                             await cssFile.addOutPath(resultPath, this.name);
+                            if (!this.isReady) return;
                             this.rememberOutput(currentOutputs, previousOutputs, outputPath, existedBefore);
                         }
                     }
@@ -119,6 +125,7 @@ export class Static {
                         const outputPath = normalize(resultPath.endsWith('.scss') ? resultPath.slice(0, -".scss".length) + ".css" : resultPath);
                         const existedBefore = existsSync(outputPath);
                         const writtenPath = await copyFile(filePath, resultPath);
+                        if (!this.isReady) return;
                         if (writtenPath) this.rememberOutput(currentOutputs, previousOutputs, writtenPath, existedBefore);
                     }
                 }
@@ -126,6 +133,7 @@ export class Static {
                     this.exportedBySource.set(filePath, new Map([...(previousOutputs ?? []), ...currentOutputs]));
                 }
             }
+            if (!this.isReady) return;
             for (const [source, outputs] of this.exportedBySource) {
                 if (currentSources.has(source)) continue;
                 for (const [path, recorded] of outputs) {
@@ -144,7 +152,7 @@ export class Static {
                 }
                 this.exportedBySource.delete(source);
             }
-            if (!success) return;
+            if (!success || !this.isReady) return;
             HttpServer.getInstance().reload();
             Statistics.sendStaticTime(this.name);
         }
@@ -183,6 +191,7 @@ export class Static {
     }
 
     public destroy() {
+        this.isReady = false;
         if (this.watcher) {
             this.watcher.close();
         }
