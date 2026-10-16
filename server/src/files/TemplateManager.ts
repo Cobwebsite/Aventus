@@ -557,14 +557,27 @@ export class TemplateManager {
 		const result = await GenericServer.SelectMultiple(quickPicks, { title: "Select templates to remove" })
 		if (!result) return;
 
+		let removed = 0;
+		const selected = new Set<TemplateScript>();
 		for (let item of result) {
-			if (item.detail) {
-				let folderPath = dirname(item.detail);
-				rmSync(folderPath, { recursive: true, force: true })
-			}
+			const index = quickPicks.findIndex(choice => choice.label === item.label && choice.detail === item.detail);
+			if (index < 0) continue;
+
+			const template = templates[index];
+			if (selected.has(template) || getValueFromObject(template.name, this.getGeneralTemplates()) !== template) continue;
+			
+			const folderPath = resolve(dirname(template.config));
+			const insideTemplatePath = this.templatePath.some(root => {
+				const relativePath = relative(resolve(root), folderPath);
+				return relativePath !== '' && relativePath !== '..' && !relativePath.startsWith('..' + sep) && !isAbsolute(relativePath);
+			});
+			if (!insideTemplatePath || !existsSync(template.config)) continue;
+			selected.add(template);
+			rmSync(folderPath, { recursive: true, force: true });
+			removed++;
 		}
 
-		if (result.length > 0) {
+		if (removed > 0) {
 			await this.reloadTemplates();
 			GenericServer.showInformationMessage("Templates deleted");
 		}

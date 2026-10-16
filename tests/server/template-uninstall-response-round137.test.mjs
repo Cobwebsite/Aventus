@@ -9,7 +9,7 @@ const [{ TemplateManager }, { TemplateScript }, { GenericServer }] = await loadS
     'files/TemplateManager.ts', 'files/Template.ts', 'GenericServer.ts',
 ]);
 
-test('template uninstall trusts a returned selection path outside the offered templates', async () => {
+test('template uninstall accepts only offered templates inside a registered root', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-uninstall-selection-'));
     const installed = join(root, 'installed', 'known');
     const unrelated = join(root, 'unrelated');
@@ -22,21 +22,49 @@ test('template uninstall trusts a returned selection path outside the offered te
     const script = Object.assign(Object.create(TemplateScript.prototype), { name: 'Known', config });
     const manager = Object.create(TemplateManager.prototype);
     manager.loadedTemplates = { Known: script };
+    manager.templatePath = [join(root, 'installed')];
     let reloads = 0;
+    const messages = [];
+    let response = [{ label: 'Known', detail: join(unrelated, 'template.avt.ts') }];
+    let afterSelect = () => {};
     manager.reloadTemplates = async () => { reloads++; };
     const previous = GenericServer.instance;
     GenericServer.instance = { connection: {
         SelectMultiple: async choices => {
-            assert.deepEqual(choices.map(choice => choice.detail), [config]);
-            return [{ label: 'Known', detail: join(unrelated, 'template.avt.ts') }];
+            assert.equal(choices.length, 1);
+            afterSelect();
+            return response;
         },
-        showInformationMessage() {},
+        showInformationMessage: message => messages.push(message),
     } };
     try {
         await manager.selectTemplateToUninstall();
         assert.equal(existsSync(installed), true);
-        assert.equal(existsSync(unrelated), false);
+        assert.equal(existsSync(unrelated), true);
+        assert.equal(reloads, 0);
+        assert.deepEqual(messages, []);
+
+        response = [{ label: 'Known', detail: config }];
+        afterSelect = () => { manager.loadedTemplates = {}; };
+        await manager.selectTemplateToUninstall();
+        assert.equal(existsSync(installed), true);
+        assert.equal(reloads, 0);
+
+        afterSelect = () => {};
+        const outsideConfig = join(unrelated, 'template.avt.ts');
+        manager.loadedTemplates = { Outside: Object.assign(Object.create(TemplateScript.prototype), { name: 'Outside', config: outsideConfig }) };
+        response = [{ label: 'Outside', detail: outsideConfig }];
+        await manager.selectTemplateToUninstall();
+        assert.equal(existsSync(unrelated), true);
+        assert.equal(reloads, 0);
+
+        manager.loadedTemplates = { Known: script };
+        response = [{ label: 'Known', detail: config }];
+        await manager.selectTemplateToUninstall();
+        assert.equal(existsSync(installed), false);
+        assert.equal(existsSync(unrelated), true);
         assert.equal(reloads, 1);
+        assert.deepEqual(messages, ['Templates deleted']);
     } finally {
         GenericServer.instance = previous;
         rmSync(root, { recursive: true, force: true });
