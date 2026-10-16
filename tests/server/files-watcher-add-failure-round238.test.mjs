@@ -15,6 +15,7 @@ test('failed watcher subscription permits retry without explicit unwatch', () =>
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     watcher.watcher = {
         add(value) {
             calls.push(['add', value]);

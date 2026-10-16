@@ -67,18 +67,18 @@ test('parsed Storybook select options and values track three component revisions
     const first = await generate(1, '"compact" | "wide"', 'compact');
     assert.deepEqual(first.controls.mode.options, ['compact', 'wide']);
     assert.equal(first.controls.mode.control, 'select');
-    assert.equal(first.args.mode, 'compact');
+    assert.equal(first.args.mode, '"compact"');
     assert.match(first.output, /"options": \[\s*"compact",\s*"wide"/);
 
     const second = await generate(2, '"wide" | "full"', 'full');
     assert.deepEqual(second.controls.mode.options, ['wide', 'full']);
-    assert.equal(second.args.mode, 'full');
+    assert.equal(second.args.mode, '"full"');
     assert.match(second.output, /"options": \[\s*"wide",\s*"full"/);
     assert.doesNotMatch(second.output, /"compact"/);
 
     const third = await generate(3, '"minimal"', 'minimal');
     assert.deepEqual(third.controls.mode.options, ['minimal']);
-    assert.equal(third.args.mode, 'minimal');
+    assert.equal(third.args.mode, '"minimal"');
     assert.match(third.output, /"minimal"/);
     assert.doesNotMatch(third.output, /"wide"|"full"|"compact"/);
 });

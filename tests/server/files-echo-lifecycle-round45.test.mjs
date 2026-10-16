@@ -35,6 +35,7 @@ test('client edit suppresses its own disk echo while a second watched file updat
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     watcher.watcher = { add() {}, unwatch() {} };
     const events = [];
     FilesManager.instance = manager;
@@ -86,6 +87,7 @@ test('closing a present file retains its cache, whereas disk removal unwatches a
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     watcher.watcher = { add() {}, unwatch() {} };
     const events = [];
     FilesManager.instance = manager;

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
+import { parseI18nAction } from './helpers/i18n-edits.mjs';
 
 const [{ InternalAventusFile }, { AventusI18nFile }] = await loadServerModules([
     'files/AventusFile.ts', 'language-services/i18n/File.ts',
@@ -33,7 +34,7 @@ test('trois diagnostics i18n indépendants suivent les éditions et leurs plages
         ['Translation not set', '"ⵌⵌ"', 2, 2],
     ]);
     const firstAction = await source.getCodeAction({ start: { line: 1, character: 2 }, end: { line: 1, character: 9 } });
-    assert.deepEqual(JSON.parse(firstAction[0].edit.changes[uri][0].newText), {
+    assert.deepEqual(parseI18nAction(source.documentUser, firstAction[0]), {
         first: { en: 'One', de: 'Eins', fr: 'ⵌⵌ' },
         second: { en: 'ⵌⵌ', fr: 'Deux' },
     });

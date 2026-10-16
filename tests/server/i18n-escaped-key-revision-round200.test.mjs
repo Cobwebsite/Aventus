@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
+import { parseI18nAction } from './helpers/i18n-edits.mjs';
 
 const [{ InternalAventusFile }, { AventusI18nFile }] = await loadServerModules([
     'files/AventusFile.ts', 'language-services/i18n/File.ts',
@@ -27,7 +28,7 @@ test('une clé JSON échappée renouvelle sa plage, sa correction et son export 
     assert.equal(source.documentUser.getText(diagnostics[0].range), '"caf\\u00e9"');
     assert.deepEqual(translation.exported, { en: { 'café': 'Coffee' }, fr: {} });
     const firstAction = (await source.getCodeAction(diagnostics[0].range))[0];
-    assert.deepEqual(JSON.parse(firstAction.edit.changes[uri][0].newText), {
+    assert.deepEqual(parseI18nAction(source.documentUser, firstAction), {
         'café': { en: 'Coffee', fr: 'ⵌⵌ' },
     });
 
@@ -43,7 +44,7 @@ test('une clé JSON échappée renouvelle sa plage, sa correction et son export 
     assert.equal(diagnostics.length, 1);
     assert.equal(source.documentUser.getText(diagnostics[0].range), '"tea"');
     assert.deepEqual(translation.exported, { en: { tea: 'Tea' }, fr: {} });
-    assert.deepEqual(JSON.parse((await source.getCodeAction(diagnostics[0].range))[0].edit.changes[uri][0].newText), {
+    assert.deepEqual(parseI18nAction(source.documentUser, (await source.getCodeAction(diagnostics[0].range))[0]), {
         tea: { en: 'Tea', fr: 'ⵌⵌ' },
     });
 });

@@ -41,7 +41,7 @@ test('static export stops when selection is cancelled', async () => {
     const originalSelect = GenericServer.Select;
     let projectLookups = 0;
     ProjectManager.getInstance = () => ({
-        getAllStatics: () => [],
+        getAllStatics: () => [{ name: 'docs', uri: 'file:///docs' }],
         getProjectByUri: () => { projectLookups++; },
     });
     GenericServer.Select = async () => undefined;

@@ -12,6 +12,7 @@ test('unwatch cancels queued events for a file', async () => {
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [uri];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     const oldManager = FilesManager.instance;
     const oldServer = GenericServer.instance;
     const calls = [];
@@ -48,6 +49,7 @@ test('rewatching the same URI does not revive an event from the previous watch',
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [uri];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     watcher.watcher = { add() {}, unwatch() {} };
     const oldManager = FilesManager.instance;
     const oldServer = GenericServer.instance;

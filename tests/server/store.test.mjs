@@ -60,7 +60,11 @@ test('store POST parses a successful result and submits JSON without bearer when
 test('store POST reports authentication, API, malformed and network errors', async () => {
     const originalFetch = globalThis.fetch;
     const originalServer = GenericServer.instance;
+    const originalSettings = Store._settings;
+    const originalSetSettings = Store.setSettings;
     GenericServer.instance = { connection: {}, logLevel: 4 };
+    Store._settings = { token: 'saved-token', username: 'dev' };
+    Store.setSettings = settings => { Store._settings = { ...Store._settings, ...settings }; };
     try {
         for (const [response, code] of [
             [{ status: 401, text: async () => '' }, 401],
@@ -71,6 +75,10 @@ test('store POST reports authentication, API, malformed and network errors', asy
             const result = await Store.postWithErrors('/login', {}, { withoutBearer: true });
             assert.ok(result instanceof QueryError);
             assert.equal(result.errors[0].code, code);
+            if (code === 401) {
+                assert.equal(Store.token, '');
+                assert.equal(Store.settings.username, undefined);
+            }
         }
         globalThis.fetch = async () => { throw new Error('offline'); };
         const offline = await Store.postWithErrors('/login', {}, { withoutBearer: true });
@@ -79,6 +87,8 @@ test('store POST reports authentication, API, malformed and network errors', asy
     } finally {
         globalThis.fetch = originalFetch;
         GenericServer.instance = originalServer;
+        Store._settings = originalSettings;
+        Store.setSettings = originalSetSettings;
     }
 });
 

@@ -14,6 +14,7 @@ test('HTML component definitions track local, external and removed states across
     const html = Object.create(AventusHTMLLanguageService.prototype);
     html.extenalDocumentation = {};
     html.internalDocumentation = {};
+    html.internalDefinitionFiles = {};
     html.internalDocumentationReverse = {};
     html.internalTagUri = {};
     html._allowRebuildDefinition = true;

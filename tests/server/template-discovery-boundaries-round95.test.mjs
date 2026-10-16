@@ -36,7 +36,7 @@ test('template discovery stops at a script root while traversing sibling categor
     }
 });
 
-test('template query passes destination and workspace to eligibility and returns a custom action', async () => {
+test('template query passes destination and workspace to eligibility and rejects an empty result', async () => {
     const manager = Object.create(TemplateManager.prototype);
     manager.workspaces = ['D:\\work'];
     const script = Object.create(TemplateScript.prototype);
@@ -51,10 +51,10 @@ test('template query passes destination and workspace to eligibility and returns
     } } };
     try {
         const custom = { label: 'Custom action', detail: 'Create from scratch' };
-        const result = await manager.query('D:\\work\\src', { Hidden: script }, [custom]);
+        await assert.rejects(manager.query('D:\\work\\src', { Hidden: script }, [custom]),
+            /No templates available for this location/);
         assert.deepEqual(checks, [['D:\\work\\src', 'D:\\work']]);
-        assert.deepEqual(shown.map(item => item.label), ['Custom action']);
-        assert.deepEqual(result, custom);
+        assert.equal(shown, undefined);
     } finally {
         GenericServer.instance = previous;
     }

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
+import { parseI18nAction } from './helpers/i18n-edits.mjs';
 
 const [{ InternalAventusFile }, { AventusI18nFile }] = await loadServerModules([
     'files/AventusFile.ts', 'language-services/i18n/File.ts',
@@ -32,7 +33,7 @@ test('une traduction numérique et une locale absente suivent correction et nouv
     const action = (await source.getCodeAction({
         start: { line: 1, character: 2 }, end: { line: 1, character: 10 },
     }))[0];
-    assert.deepEqual(JSON.parse(action.edit.changes[uri][0].newText), {
+    assert.deepEqual(parseI18nAction(source.documentUser, action), {
         amount: { en: 12, fr: 'ⵌⵌ' },
     });
 
@@ -50,9 +51,9 @@ test('une traduction numérique et une locale absente suivent correction et nouv
         '{"amount":{"en":"Thirteen"}}'));
     assert.deepEqual(await details(), [['Missing locales fr', '"amount"', 1]]);
     assert.deepEqual(translation.exported, { en: { amount: 'Thirteen' }, fr: {} });
-    assert.deepEqual(JSON.parse((await source.getCodeAction({
+    assert.deepEqual(parseI18nAction(source.documentUser, (await source.getCodeAction({
         start: { line: 0, character: 1 }, end: { line: 0, character: 9 },
-    }))[0].edit.changes[uri][0].newText), {
+    }))[0]), {
         amount: { en: 'Thirteen', fr: 'ⵌⵌ' },
     });
 });

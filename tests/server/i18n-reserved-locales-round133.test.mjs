@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
+import { parseI18nAction } from './helpers/i18n-edits.mjs';
 
 const [{ InternalAventusFile }, { AventusI18nFile }] = await loadServerModules([
     'files/AventusFile.ts', 'language-services/i18n/File.ts',
@@ -25,7 +26,10 @@ function fixture(t, locales, content) {
 test('une locale constructor manquante est masquée par la propriété héritée puis apparaît après édition', async t => {
     const { source, translation, change } = fixture(t, ['en', 'constructor'], '{"message":{"en":"Hello"}}');
     assert.deepEqual(await source.validate(false), []);
-    assert.deepEqual(await source.getCodeAction({ start: { line: 0, character: 1 }, end: { line: 0, character: 10 } }), []);
+    const action = (await source.getCodeAction({ start: { line: 0, character: 1 }, end: { line: 0, character: 10 } }))[0];
+    assert.deepEqual(parseI18nAction(source.documentUser, action), {
+        message: { constructor: 'ⵌⵌ', en: 'Hello' },
+    });
     assert.equal(Object.hasOwn(translation.parsed.message.locales, 'constructor'), false);
     assert.deepEqual(translation.exported.en, { message: 'Hello' });
     assert.deepEqual(translation.exported.constructor, {});

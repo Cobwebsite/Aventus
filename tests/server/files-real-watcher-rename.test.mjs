@@ -24,6 +24,7 @@ test('renaming a disk file removes its watched URI without discovering the new p
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     const events = [];
     let diskWatcher;
     FilesManager.instance = manager;
@@ -38,11 +39,12 @@ test('renaming a disk file removes its watched URI without discovering the new p
         });
         // A real filesystem watcher observes the same individual path that FilesWatcher.watch() subscribes to.
         diskWatcher = watch([], { ignoreInitial: true, persistent: true });
+        const ready = new Promise(resolve => diskWatcher.once('ready', resolve));
         watcher.watcher = diskWatcher;
         diskWatcher.on('unlink', path => void watcher.onRemove(path));
         await manager.registerFile(TextDocument.create(oldUri, 'typescript', 1, 'class Before {}'));
         assert.deepEqual(watcher.watcheUris, [oldUri]);
-        await new Promise(resolve => diskWatcher.once('ready', resolve));
+        await ready;
         renameSync(oldPath, newPath);
         await new Promise((resolve, reject) => {
             const timer = setTimeout(() => reject(Error('Watcher did not report removal')), 8_000);

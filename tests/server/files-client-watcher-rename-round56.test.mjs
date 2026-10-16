@@ -29,6 +29,7 @@ test('client save on one path and disk rename on another keep file cache, callba
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     watcher.watcher = { add() {}, unwatch() {} };
     const events = [];
     const diagnostics = [];

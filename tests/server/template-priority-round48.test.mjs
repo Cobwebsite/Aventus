@@ -69,7 +69,7 @@ test('settings notification reloads all three registries and discovery uses the 
     }
 });
 
-test('workspace entries override installed templates and projects during actual filesystem discovery', async () => {
+test('workspace entries override returned registries without mutating installed templates and projects', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-local-priority-'));
     const installedTemplates = join(root, 'installed-templates');
     const installedProjects = join(root, 'installed-projects');
@@ -107,9 +107,9 @@ test('workspace entries override installed templates and projects during actual 
         assert.equal(localProjects.templates.Shared.origin, 'local-project');
         assert.equal(localGlobals.templates.Shared.origin, 'local-global');
         assert.deepEqual([localTemplates.nb, localProjects.nb, localGlobals.nb], [2, 2, 2]);
-        assert.equal(manager.getGeneralTemplates().Shared.origin, 'local-template');
-        assert.equal(manager.getGeneralProjects().Shared.origin, 'local-project');
-        assert.equal(manager.getGeneralGlobal().Shared.origin, 'local-global');
+        assert.equal(manager.getGeneralTemplates().Shared.origin, 'base-template');
+        assert.equal(manager.getGeneralProjects().Shared.origin, 'base-project');
+        assert.equal(manager.getGeneralGlobal().Shared.origin, 'base-global');
     } finally {
         TemplateScript.create = oldCreate;
         GenericServer.instance = oldServer;

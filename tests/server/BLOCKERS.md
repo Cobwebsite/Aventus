@@ -86,12 +86,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Cause : `loadAllAventusFiles()` remet `loadingInProgress` à `false` seulement après la boucle de découverte ; aucune remise en état n'est faite sur le chemin d'erreur.
 - Décision à prendre : définir l'état et la notification attendus après un échec de découverte, puis garantir leur restauration sans imposer un second chargement complet si le serveur doit rester utilisable.
 
-## Suppression de watcher périmée après désinscription et réinscription
-
-- Reproduction automatisée : `files-watcher-rewatch-queue-round127.test.mjs` bloque une mise à jour, place une suppression dans la file de la même URI, désinscrit puis réinscrit le fichier avant de libérer la mise à jour. L'ancienne suppression atteint encore `FilesManager.onDeletedUri()` alors que la nouvelle inscription est active.
-- Cause : l'action placée dans `pendingEvents` ne porte aucune génération d'inscription ; `unwatch()` et `watch()` ne la rendent pas caduque.
-- Décision à prendre : associer les événements en file à une génération de surveillance et ignorer ceux d'une inscription précédente, ou définir explicitement que la file est conservée entre désinscription et réinscription.
-
 ## Événement du watcher traité après sa destruction
 
 - Reproduction automatisée : `files-watcher-rewatch-queue-round127.test.mjs` suspend une mise à jour et place une suppression dans la file. `FilesWatcher.destroy()` termine et efface son instance avant que la suppression soit transmise à `FilesManager.onDeletedUri()`.
@@ -115,12 +109,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `storybook-multiple-templates-round129.test.mjs` fournit deux dossiers sous `templates/storybook`. `Storie.readEnvStoryBook()` rejette avec la chaîne `TODO code multiple template` et ne copie aucun fichier vers le dossier de sortie.
 - Cause : la branche `folders.length != 1` interrompt systématiquement le traitement.
 - Décision à prendre : définir le choix du template (configuration explicite, défaut stable ou fusion) et renvoyer une erreur exploitable si ce choix est ambigu.
-
-## Nom de couleur reconnu dans une URL CSS non citée
-
-- Reproduction automatisée : `color-picker-url-name-round127.test.mjs` renvoie `red` pour `background-image: url(red)` alors qu'il s'agit d'une ressource. Le même nom dans `url("red")` est correctement masqué, et une vraie déclaration `color: blue` reste détectée.
-- Cause : la détection des noms de couleurs s'applique au texte entier après masquage des chaînes et commentaires, sans distinguer les arguments non cités de `url(...)`.
-- Décision à prendre : exclure les jetons des URL CSS de la détection des couleurs tout en préservant les fonctions de couleur et leurs plages.
 
 ## Script template supprimé alors qu'il est en cache
 
@@ -238,9 +226,9 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Noms de locale i18n hérités des prototypes JavaScript
 
-- Reproduction automatisée : `i18n-reserved-locales-round133.test.mjs` configure une locale `constructor` absente du JSON. La validation et l'action de correction ne la signalent pas ; une édition qui l'ajoute permet ensuite son export. Une locale `__proto__` présente dans le JSON disparaît de l'analyse et de l'export, et la validation signale à tort `Can't parse the json`. Une édition vers `fr` remplace cette erreur par `Locale not needed`.
-- Cause : le parseur, la validation, l'action et l'export utilisent des objets `{}` et consultent les noms de locale avec un simple accès de propriété. Les noms hérités peuvent donc sembler présents sans propriété propre ; `__proto__` modifie le prototype lors de l'affectation.
-- Décision à prendre : accepter ou refuser explicitement ces noms de locale. S'ils sont valides, utiliser des dictionnaires sans prototype et vérifier les propriétés propres dans le diagnostic, la correction et l'export.
+- Reproduction automatisée : `i18n-reserved-locales-round133.test.mjs` configure une locale `constructor` absente du JSON. La validation ne la signale pas, mais l'action l'insère ; une édition qui l'ajoute permet ensuite son export. Une locale `__proto__` présente dans le JSON disparaît de l'analyse et de l'export, et la validation signale à tort `Can't parse the json`. Une édition vers `fr` remplace cette erreur par `Locale not needed`.
+- Cause : le parseur, la validation et l'export utilisent des objets `{}` et consultent les noms de locale avec un simple accès de propriété ; l'action lit directement les propriétés du JSON. Les noms hérités peuvent donc sembler présents sans propriété propre ; `__proto__` modifie le prototype lors de l'affectation.
+- Décision à prendre : accepter ou refuser explicitement ces noms de locale. S'ils sont valides, utiliser des dictionnaires sans prototype et vérifier les propriétés propres dans le diagnostic et l'export pour les aligner sur l'action.
 
 ## Suppression d'un partial SCSS importé
 
@@ -272,12 +260,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Cause : `AventusI18nFile.onContentChange()` n'échappe que les guillemets lorsqu'il insère les clés dans les littéraux de la déclaration TypeScript.
 - Décision à prendre : échapper toutes les clés pour un littéral TypeScript valide, ou refuser explicitement celles qui ne peuvent pas être représentées ; vérifier aussi les retours chariot et antislashs.
 
-## Fin prématurée des commandes build, npm et Storybook
-
-- Reproduction automatisée : `build-command-completion-round147.test.mjs` lance successivement les commandes de build de projet, de package npm et de Storybook avec une tâche asynchrone suspendue. Chacune termine sa promesse alors que sa tâche est encore en cours. La commande d'export statique attend, elle, la fin de l'export sélectionné.
-- Cause : `BuildProject.run()`, `NpmBuild.run()` et `StorybookBuild.run()` appellent leur méthode de build sans `await` ni `return`.
-- Décision à prendre : déterminer si la promesse de commande doit représenter la fin du build et transmettre son échec au client ; si oui, attendre le build sélectionné comme le fait `StaticExport.run()`.
-
 ## Export i18n périmé pendant une édition JSON invalide
 
 - Reproduction automatisée : `i18n-invalid-export-round148.test.mjs` part d'une traduction `old` valide, édite le fichier en JSON incomplet contenant une nouvelle clé, puis vérifie que `keys` et `exported` conservent l'ancienne traduction pendant que la validation signale une erreur. Une correction valide remplace enfin l'export. Le consommateur du build peut donc lire des traductions périmées pendant une édition invalide. Décision attendue : conserver volontairement le dernier export valide ou vider les exports en cas d'erreur de parsing.
@@ -292,12 +274,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `dependency-duplicate-direct-aliases-round149.test.mjs` configure deux clés directes pointant vers le même fichier package, une avec `include: full`, l'autre avec `include: need`. Le résultat contient une seule instance du package, mais son type d'inclusion est celui de la dernière clé. Inverser l'ordre des propriétés inverse le résultat.
 - Cause : `loadDependenciesFromBuild()` stocke l'inclusion par le nom déclaré dans le package et écrase cette valeur à chaque dépendance directe chargée.
 - Décision à prendre : définir la priorité attendue quand deux noms de configuration résolvent le même package : refuser le doublon, conserver le premier, choisir l'inclusion la plus forte ou garder la dernière valeur.
-
-## Échec d'initialisation d'un projet : entrée conservée sans reprise
-
-- Reproduction automatisée : `project-discovery-concurrent-round151.test.mjs` fait échouer `Project.init()` après la création de l'entrée dans `ProjectManager`. Le projet reste dans le registre, son callback de suppression n'est pas enregistré et une nouvelle notification de découverte ne relance pas l'initialisation.
-- Cause : `ProjectManager.onNewFile()` ajoute le projet avant `await init()` et n'annule pas cet ajout quand la promesse rejette. L'enregistrement de `onDelete` se situe après cette attente.
-- Décision à prendre : retirer et détruire le projet lors d'un échec d'initialisation, ou conserver une instance réessayable avec un état explicite ; vérifier ensuite la reprise et la suppression.
 
 ## Collision de tag entre deux composants dans les manifestes
 
@@ -320,12 +296,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 - Reproduction : `template-shell-path-round112.test.mjs` provoque une erreur avec un chemin de sauvegarde contenant des espaces. Après changement vers un chemin simple, la nouvelle promesse se résout, alors que le test attendait une entrée de préparation bloquée. Ce cas est temporairement ignoré.
 - Décision à prendre : préciser si la nouvelle tentative doit réussir immédiatement ou si l'état de préparation doit rester bloqué ; adapter ensuite le test et vérifier la récupération complète.
-
-## Renommage groupé de plusieurs sources TypeScript
-
-- Reproduction automatisée : `project-multiple-renames-round158.test.mjs` soumet deux renommages TypeScript dans une seule requête à deux projets. Chaque build ne transmet au service TypeScript que le premier changement ; les références à la deuxième source ne sont jamais éditées.
-- Cause : `Build.onRename()` retourne dès le premier changement dont l'extension est reconnue.
-- Décision à prendre : agréger les éditions de tous les changements TypeScript, y compris quand plusieurs sources modifient un même consommateur, puis vérifier leur ordre et les éventuels conflits de plages.
 
 ## Suppression d'une configuration pendant l'initialisation du projet
 
@@ -392,8 +362,8 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Destruction incomplète du projet après échec d'un build
 
-- Reproduction automatisée : `project-destroy-failure-retry-round177.test.mjs` fait échouer `destroy()` du premier build. `Project.destroy()` s'interrompt avant la destruction du second build et de la sortie statique. Un second appel les libère, mais répète les désabonnements de configuration et du gestionnaire de fichiers ainsi que la destruction du premier build.
-- Décision à prendre : poursuivre le nettoyage des autres ressources lorsqu'une destruction échoue, puis définir un résultat d'erreur et une nouvelle tentative qui ne répète pas les nettoyages déjà effectués.
+- Reproduction automatisée : `project-destroy-failure-retry-round177.test.mjs` fait échouer `destroy()` du premier build. `Project.destroy()` marque d'abord le projet détruit, puis s'interrompt avant la destruction du second build et de la sortie statique. Un second appel ne nettoie rien : ces deux ressources restent actives.
+- Décision à prendre : poursuivre le nettoyage des autres ressources lorsqu'une destruction échoue, puis définir le résultat d'erreur et la possibilité d'une nouvelle tentative.
 
 ## CSS contenant un accent grave produit un JavaScript invalide
 
@@ -567,7 +537,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Action i18n proposée hors de la plage diagnostiquée
 
-- Reproduction automatisée : `i18n-action-range-round225.test.mjs` demande des actions sur la clé `beta` alors que seule `alpha` manque de la locale `fr`. `Import missing locales` est proposé et remplace tout le document. Après une édition qui complète `alpha` et retire `fr` de `beta`, l'action cible la nouvelle absence même lorsqu'elle est demandée au début du document.
+- Reproduction automatisée : `i18n-action-range-round225.test.mjs` demande des actions sur la clé `beta` alors que seule `alpha` manque de la locale `fr`. `Import missing locales` est proposé et insère la traduction dans `alpha`. Après une édition qui complète `alpha` et retire `fr` de `beta`, l'action cible la nouvelle absence même lorsqu'elle est demandée au début du document.
 - Cause : `AventusI18nLanguageService.codeAction()` transmet le fichier à `actionImportMissingLocales()` sans utiliser la plage demandée ; la correction parcourt toutes les clés.
 - Décision à prendre : préciser si cette action est volontairement disponible partout dans le fichier, ou si elle doit être limitée à la plage du diagnostic concerné.
 
@@ -633,8 +603,64 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Cause : `NpmBuilder.writeFileToCompile()` trie les noms d'exports puis affecte chaque valeur au même champ `npmCompilation[hash]['shared']` ; la dernière affectation l'emporte.
 - Décision à prendre : déterminer si une collision d'alias doit être signalée, ou si l'écrasement déterministe est un comportement accepté.
 
+## Cache npm après exception du bundler concurrent
+
+- Reproduction automatisée : `npm-concurrent-error-recovery-round242.test.mjs` lance deux appels `NpmBuilder.compile()` sur les mêmes imports. Une exception transitoire d'esbuild rejette les deux appels. Un troisième appel identique renvoie une sortie vide sans relancer esbuild ; un import supplémentaire force une nouvelle compilation réussie.
+- Cause : `compileCurrent()` conserve `lastInfo` et `lastInfoToCompile` lorsqu'`esbuildBuild()` rejette avant de renseigner `npmDepBuildTxt`.
+- Décision à prendre : invalider ces caches lors d'une exception pour permettre un nouvel essai avec les mêmes imports.
+
+## Export statique récursif quand la destination est dans la source
+
+- Reproduction automatisée : `static-output-inside-input-round244.test.mjs` configure `input/generated` comme destination d'un export dont la source est `input`. Le premier export écrit `generated/data.txt`, le second redécouvre cette copie et écrit `generated/generated/data.txt`. Après suppression de `input/data.txt`, un export suivant écrit encore `generated/generated/generated/data.txt`.
+- Cause : `Static.export()` parcourt récursivement tout le dossier source sans exclure ses dossiers de sortie.
+- Décision à prendre : refuser une destination située dans la source ou l'exclure de la découverte pour éviter la croissance récursive des sorties.
+
 ## Signature incomplète des paramètres de fonction dans le manifeste package
 
 - Reproduction automatisée : `manifest-package-function-parameters-round240.test.mjs` analyse et documente trois révisions de `combine`. `first?: string`, `suffix = "!"` et `...parts: number[]` apparaissent comme `first: string`, `suffix: any` et `parts: number`. Une révision suivante remplace correctement ces noms, mais `...flags: boolean[]` devient `flags: boolean`.
 - Cause : `ManifestPackageMd.loadFunction()` reconstruit chaque paramètre avec son nom et le texte de `TypeInfo`, sans traiter le marqueur optionnel, la valeur par défaut ni le token rest ; `TypeInfo.getFullTxt()` réduit les types de tableau dans ce parcours.
 - Décision à prendre : définir la représentation attendue des paramètres optionnels, à valeur par défaut et rest dans la documentation, puis préserver aussi le type tableau si la signature doit rester fidèle au TypeScript.
+
+## Métadonnées périmées sur un package chargé en cache
+
+- Reproduction automatisée : `dependency-cached-metadata-round242.test.mjs` résout plusieurs fois le même objet package. Un override npm prend effet, son retrait révèle le nouvel en-tête, mais le retrait ultérieur des en-têtes npm et description laisse `npmUri` et `description` à leurs anciennes valeurs.
+- Cause : `DependencyManager.loadDependency()` affecte ces champs lorsque la configuration ou les en-têtes existent, mais ne les efface pas lorsqu'ils disparaissent d'un objet package réutilisé.
+- Décision à prendre : définir si la résolution doit recalculer ces deux métadonnées à chaque lecture d'un package déjà chargé ; si oui, remettre les valeurs absentes à `undefined` avant de publier la nouvelle résolution.
+
+## Enregistrement concurrent d'un fichier et échec tardif du callback initial
+
+- Reproduction automatisée : `files-concurrent-registration-failure-round243.test.mjs` suspend le callback d'ouverture d'une URI, puis enregistre une deuxième version de la même URI. Le deuxième appel renvoie bien un fichier contenant cette version. Quand le premier callback échoue, le gestionnaire déclenche sa suppression et retire l'URI de son registre, malgré la réussite du deuxième appel. Une troisième ouverture rétablit le fichier.
+- Cause : `triggerOnNewFile()` publie l'objet dans `files` avant d'attendre les callbacks ; `registerFile()` concurrent traite alors la deuxième version comme une mise à jour de cet objet. Le rollback du premier appel supprime ensuite le même objet.
+- Décision à prendre : déterminer si les enregistrements d'une même URI doivent être sérialisés ou si un échec de callback initial doit préserver une version reçue et validée pendant son attente.
+
+## Ajout de section après une édition concurrente de la configuration
+
+- Reproduction automatisée : `add-config-concurrent-file-edit-round243.test.mjs` modifie le fichier de configuration pendant que la commande attend le nom d'une section Static. La commande écrit ensuite la version lue avant cette saisie, effaçant le nouveau module, la section statique et le champ personnalisé ajoutés entre-temps. Une édition survenue pendant la sélection du type de section est, elle, conservée.
+- Cause : `AddConfigSection.run()` lit et parse le fichier après la sélection du type, puis conserve cet objet en mémoire pendant `GenericServer.Input()` avant de réécrire le fichier entier.
+- Décision à prendre : relire et valider la configuration après la saisie du nom, ou refuser l'écriture si le fichier a changé pendant l'interaction, afin d'éviter la perte silencieuse d'éditions concurrentes.
+
+## Import multiple de templates partiellement appliqué en cas d'échec
+
+- Reproduction automatisée : `template-import-partial-retry-round244.test.mjs` sélectionne deux templates locaux. Le premier dossier est copié ; la seconde copie échoue parce que son dossier parent est un fichier. L'appel rejette sans recharger le registre ni annoncer l'installation, mais le premier dossier reste sur disque. Après réparation du chemin, un nouvel essai installe les deux et recharge une fois.
+- Cause : `TemplateManager.selectTemplateToImport()` copie chaque sélection immédiatement et ne lance `reloadTemplates()` qu'après la boucle entière ; une erreur de `cpSync()` interrompt cette boucle sans annuler les copies précédentes.
+- Décision à prendre : définir si l'import multiple doit être atomique ou, en cas d'échec partiel, recharger le registre et signaler précisément les éléments déjà installés.
+
+## Alias npm non échappé dans la sortie JavaScript
+
+## Réimport local après disparition de la source
+
+- Reproduction automatisée : `template-import-source-disappears-round246.test.mjs` retire le dossier source d'un projet ou template local après l'affichage de la sélection. Le réimport supprime d'abord l'ancienne installation, puis `cpSync()` échoue ; aucun rechargement ni message de réussite ne suit. Restaurer la source permet un nouvel essai réussi.
+- Cause : les deux branches d'import retirent le dossier cible préexistant avant de copier la source sélectionnée, sans vérifier à nouveau que celle-ci existe ni préparer une copie provisoire.
+- Décision à prendre : préserver l'ancienne installation si la copie échoue, par exemple en copiant dans un dossier provisoire avant de remplacer la destination.
+
+## Alias npm non échappé dans la sortie JavaScript
+
+- Reproduction automatisée : `npm-alias-escaping-round245.test.mjs` enregistre un export npm avec l'alias `user'sValue`. `NpmBuilder.compile()` ne renvoie aucune erreur, mais l'exécution du texte produit lève `SyntaxError`. Le retrait de cet import puis l'enregistrement de `usersValue` rétablit un bundle exécutable sur la même instance.
+- Cause : `NpmBuilder.writeFileToCompile()` insère l'alias entre apostrophes dans `toExport` sans l'échapper. Ce fragment est assemblé après esbuild et échappe ainsi à sa validation syntaxique.
+- Décision à prendre : définir les caractères admis dans les alias, puis échapper la clé produite ou diagnostiquer un alias invalide avant de publier le bundle.
+
+## Référence SCSS masquée par une URL `https://` sur la même ligne
+
+- Reproduction automatisée : `scss-global-url-comment-reference-round246.test.mjs` définit `--tone` dans `:root` et l'utilise après `url("https://example.test/image.svg")` sur la même ligne. La recherche de références et le renommage ne voient que la déclaration. Remplacer l'URL par une URL `data:` révèle aussi l'usage, sans changer la variable.
+- Cause : `AventusGlobalSCSSLanguageService.getGlobalReferences()` appelle `withoutComments()`, dont l'expression `//[^\r\n]*` traite le `//` d'une chaîne URL comme un commentaire et masque la suite de la ligne.
+- Décision à prendre : utiliser une analyse qui distingue les commentaires des chaînes et URL avant de collecter les références CSS et les éditions de renommage.

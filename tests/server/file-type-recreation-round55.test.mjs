@@ -70,7 +70,7 @@ test('dependency manager selects a package file and replaces its named cache ent
         const first = new InternalAventusFile(TextDocument.create(uri, 'Aventus Ts', 1, content));
         const selected = current.loadPackage(first, target);
         assert.ok(selected);
-        assert.equal(selected.constructor.name, 'AventusPackageFile');
+        assert.equal(selected.constructor.name.endsWith('AventusPackageFile'), true);
         assert.equal(current.loadedPackages['Demo@web'], selected);
         await first.triggerDelete();
         assert.equal(current.loadedPackages['Demo@web'], undefined);

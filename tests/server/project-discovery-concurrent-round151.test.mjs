@@ -67,7 +67,7 @@ test('concurrent notifications for one configuration create one project while in
     assert.equal(subscriptions.size, 0);
 });
 
-test('failed project initialization keeps the registry entry and prevents discovery retry', async t => {
+test('failed project initialization removes the registry entry and its subscriptions', async t => {
     const previousFiles = FilesManager.instance;
     const previousAutoLoad = ProjectManager.autoLoad;
     const previousInit = Project.prototype.init;
@@ -106,15 +106,8 @@ test('failed project initialization keeps the registry entry and prevents discov
     manager.projects = {};
 
     await assert.rejects(manager.onNewFile(config), /initialization failed/);
-    const failedProject = manager.getProjectByUri(uri);
-    assert.ok(failedProject instanceof Project);
+    assert.equal(manager.getProjectByUri(uri), undefined);
     assert.equal(initCalls, 1);
     assert.equal(deleteSubscriptions, 0);
-
-    await manager.onNewFile(config);
-    assert.equal(manager.getProjectByUri(uri), failedProject);
-    assert.equal(initCalls, 1);
-    assert.equal(deleteSubscriptions, 0);
-    failedProject.destroy();
     assert.equal(subscriptions.size, 0);
 });

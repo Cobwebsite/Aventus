@@ -3,6 +3,7 @@ import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { I18nParser } from '../../server/src/language-services/i18n/Parser.ts';
 import { loadServerModules } from './helpers/load-ts.mjs';
+import { parseI18nAction } from './helpers/i18n-edits.mjs';
 
 const [{ AventusSCSSLanguageService }, { AventusGlobalSCSSLanguageService }, { AventusI18nLanguageService }] = await loadServerModules([
     'language-services/scss/LanguageService.ts',
@@ -91,7 +92,7 @@ test('i18n locale import changes only incomplete messages', async () => {
     const file = translation('{"complete":{"en":"Hello","fr":"Bonjour"},"missing":{"en":"Hi"}}');
     const actions = await AventusI18nLanguageService.getInstance().codeAction(file, null);
     assert.equal(actions.length, 1);
-    const updated = JSON.parse(actions[0].edit.changes[file.file.uri][0].newText);
+    const updated = parseI18nAction(file.file.documentUser, actions[0]);
     assert.deepEqual(updated.complete, { en: 'Hello', fr: 'Bonjour' });
     assert.deepEqual(updated.missing, { en: 'Hi', fr: 'ⵌⵌ' });
 });

@@ -15,6 +15,7 @@ function htmlService() {
     const service = Object.create(AventusHTMLLanguageService.prototype);
     service.extenalDocumentation = {};
     service.internalDocumentation = {};
+    service.internalDefinitionFiles = {};
     service.internalDocumentationReverse = {};
     service.internalTagUri = {};
     service._allowRebuildDefinition = true;

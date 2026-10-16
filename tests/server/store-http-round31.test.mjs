@@ -30,9 +30,15 @@ test('Store exchanges JSON with a local HTTP endpoint and maps authorization fai
         server.listen(0, '127.0.0.1', resolve);
     });
     const previousUrl = Store.url;
+    const previousSettings = Store._settings;
+    const previousSetSettings = Store.setSettings;
     Store.url = `http://127.0.0.1:${server.address().port}`;
+    Store._settings = { token: 'old-token', username: 'alice' };
+    Store.setSettings = settings => { Store._settings = { ...Store._settings, ...settings }; };
     t.after(async () => {
         Store.url = previousUrl;
+        Store._settings = previousSettings;
+        Store.setSettings = previousSetSettings;
         server.closeAllConnections();
         await new Promise(resolve => server.close(resolve));
     });
@@ -41,6 +47,8 @@ test('Store exchanges JSON with a local HTTP endpoint and maps authorization fai
     const rejected = await Store.postWithErrors('/login', { username: 'alice', password: 'wrong' }, { withoutBearer: true });
     assert.ok(rejected instanceof QueryError);
     assert.deepEqual(rejected.errors, [{ code: 401, message: 'No token provided' }]);
+    assert.equal(Store.isConnected, false);
+    assert.equal(Store.settings.username, undefined);
     assert.deepEqual(received, [
         { method: 'POST', path: '/api/remote/login', type: 'application/json', authorization: undefined,
             body: { username: 'alice', password: 'secret' } },

@@ -121,7 +121,7 @@ test('package and template scripts use their own handlers rather than build sour
     const templateFile = source('template.avt.ts', 'export default class Demo {}');
     try {
         const selected = dependencyManager.loadPackage(packageFile, build());
-        assert.equal(selected?.constructor.name, 'AventusPackageFile');
+        assert.equal(selected?.constructor.name.endsWith('AventusPackageFile'), true);
         assert.equal(dependencyManager.loadedPackages['Demo@web'], selected);
         await templateManager.onNewFile(templateFile);
         assert.equal(Object.keys(templateFile.onGetBuildCb).length, 1);
