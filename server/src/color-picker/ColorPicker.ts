@@ -108,6 +108,7 @@ export class ColorPicker {
 		let result: Match[] = [];
 		const searchable = this.maskCommentsAndStrings(text, languageId);
 		const candidates: { index: number, value: string }[] = [];
+		const recognizedFunctions: { start: number, end: number }[] = [];
 		for (const match of searchable.matchAll(/#(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})\b/gi)) {
 			candidates.push({ index: match.index, value: match[0] });
 		}
@@ -139,6 +140,9 @@ export class ColorPicker {
 
 
 			if (col) {
+				if (type !== 'hex') {
+					recognizedFunctions.push({ start: candidate.index, end: candidate.index + length });
+				}
 				result.push({
 					color: col,
 					type,
@@ -167,6 +171,9 @@ export class ColorPicker {
 					continue;
 				}
 				const length = t.length;
+				if (recognizedFunctions.some(span => match.index >= span.start && match.index + length <= span.end)) {
+					continue;
+				}
 				let type: string = "hex";
 
 				const range = Range.create(
@@ -187,7 +194,11 @@ export class ColorPicker {
 			}
 		}
 
-		return result;
+		return result.sort((a, b) =>
+			a.range.start.line - b.range.start.line ||
+			a.range.start.character - b.range.start.character ||
+			b.length - a.length
+		);
 	}
 
 	static onDocumentColor(document: TextDocument) {

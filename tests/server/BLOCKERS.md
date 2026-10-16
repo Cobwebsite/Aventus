@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Couleurs nommées renvoyées hors de l'ordre du document
-
-- Reproduction automatisée : `color-picker-order-round127.test.mjs` place `blue` avant `#f00` et `rgb(...)`, puis `red` après. `onDocumentColor()` renvoie `#f00`, `rgb(...)`, `blue`, `red` ; les plages pointent bien vers les bonnes positions.
-- Cause : `ColorPicker.getMatches()` trie les candidats hexadécimaux et fonctionnels, mais ajoute les couleurs nommées au résultat après cette boucle sans trier la liste complète.
-- Décision à prendre : trier toutes les couleurs reconnues par position avant de produire les informations LSP, et préciser l'ordre en cas de plages chevauchantes.
-
 ## Documentation Storybook interprétée comme une expression TypeScript
 
 - Reproduction automatisée : `storybook-description-interpolation-round130.test.mjs` parse une classe dont le JSDoc contient le texte littéral `${name}`. La story générée place ce texte dans un template TypeScript ; l'AST contient une interpolation de l'identifiant `name`, qui n'est pas défini dans la story.
