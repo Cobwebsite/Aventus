@@ -251,6 +251,16 @@ export class InternalAventusFile implements AventusFile {
     private delayValidate: NodeJS.Timeout | undefined;
     private waitingDocContentChange: { [uri: string]: TextDocument | true } = {};
     private resolveContentChange: { [uri: string]: { [version: number]: (() => void)[] } } = {};
+    private activeContentChanges = new Set<Promise<void>>();
+
+    private startContentChange(document: TextDocument) {
+        const change = this.triggerContentChangeNoBuffer(document);
+        this.activeContentChanges.add(change);
+        void change.then(
+            () => this.activeContentChanges.delete(change),
+            () => this.activeContentChanges.delete(change),
+        );
+    }
 
 
     public triggerContentChange(document: TextDocument): Promise<void> {
@@ -280,7 +290,7 @@ export class InternalAventusFile implements AventusFile {
                     this.resolveContentChange[document.uri] = {
                         [document.version]: [resolve]
                     };
-                    this.triggerContentChangeNoBuffer(document);
+                    this.startContentChange(document);
                 }
                 else {
                     if (!this.resolveContentChange[document.uri]) {
@@ -340,7 +350,7 @@ export class InternalAventusFile implements AventusFile {
         let newDoc = this.waitingDocContentChange[document.uri];
         if (newDoc && typeof newDoc != 'boolean' && newDoc.version > this.versionUser) {
             this.waitingDocContentChange[document.uri] = true;
-            this.triggerContentChangeNoBuffer(newDoc);
+            this.startContentChange(newDoc);
         }
         else {
             delete this.waitingDocContentChange[document.uri];
@@ -438,6 +448,7 @@ export class InternalAventusFile implements AventusFile {
         }
         this.resolveContentChange = {};
         this.waitingDocContentChange = {};
+        await Promise.allSettled(this.activeContentChanges);
         let proms: Promise<void>[] = [];
         for (let uuid in this.onDeleteCb) {
             proms.push(this.onDeleteCb[uuid](this));
