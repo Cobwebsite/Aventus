@@ -8,7 +8,7 @@ const [{ InternalAventusFile }, { AventusI18nFile }] = await loadServerModules([
     'language-services/i18n/File.ts',
 ]);
 
-test('une clé i18n __proto__ après édition reste visible mais perd son analyse et son export', async t => {
+test('une clé i18n __proto__ est refusée sans masquer les traductions valides', async t => {
     const uri = 'file:///D:/round132/messages.i18n.avt';
     const source = new InternalAventusFile(TextDocument.create(uri, 'json', 1, '{"normal":{"en":"First","fr":"Premier"}}'));
     const build = {
@@ -24,12 +24,15 @@ test('une clé i18n __proto__ après édition reste visible mais perd son analys
     assert.deepEqual(await source.validate(false), []);
     assert.deepEqual(translation.exported.en, { normal: 'First' });
 
-    await source.triggerContentChange(TextDocument.create(uri, 'json', 2, '{"__proto__":{"en":"Second","fr":"Deuxième"}}'));
-    assert.deepEqual(translation.keys, ['__proto__']);
-    assert.deepEqual(Object.keys(translation.parsed), []);
+    await source.triggerContentChange(TextDocument.create(uri, 'json', 2, '{"__proto__":{"en":"Second","fr":"Deuxième"},"valid":{"en":"Valid","fr":"Valide"}}'));
+    assert.deepEqual(translation.keys, ['valid']);
+    assert.deepEqual(Object.keys(translation.parsed), ['valid']);
     assert.equal(translation.getKeyFromLocation([{ line: 0, character: 3 }, { line: 0, character: 3 }]), null);
     assert.equal(Object.hasOwn(translation.exported.en, '__proto__'), false);
-    assert.deepEqual((await source.validate(false)).map(item => item.message), ["Can't parse the json"]);
+    assert.equal(translation.exported.en.valid, 'Valid');
+    const diagnostics = await source.validate(false);
+    assert.deepEqual(diagnostics.map(item => item.message), ['Translation key __proto__ is not allowed']);
+    assert.equal(source.documentUser.getText(diagnostics[0].range), '"__proto__"');
 
     await source.triggerContentChange(TextDocument.create(uri, 'json', 3, '{"recovered":{"en":"Third","fr":"Troisième"}}'));
     assert.deepEqual(await source.validate(false), []);

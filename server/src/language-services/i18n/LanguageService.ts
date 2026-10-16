@@ -51,6 +51,13 @@ export class AventusI18nLanguageService {
 		try {
 			const parsed = file.parsed ?? {};
 			const locales = file.build.buildConfig.i18n?.locales ?? [];
+			for (const property of jsonDoc.root.children ?? []) {
+				if (property.type !== 'property') continue;
+				const key = property.children?.[0];
+				if (key?.value === '__proto__') {
+					errors.push(createErrorI18nPos(document, 'Translation key __proto__ is not allowed', key.offset, key.offset + key.length));
+				}
+			}
 
 			for (let key in parsed) {
 				if (file.isGlobal) {

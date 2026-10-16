@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Clé i18n `__proto__` perdue dans les objets de travail
-
-- Reproduction automatisée : `i18n-prototype-key-round132.test.mjs` remplace une clé ordinaire par `__proto__` dans un JSON valide. `keys` la contient, mais le parseur ne la présente pas comme propriété propre, `getKeyFromLocation()` ne la retrouve pas, l'export omet sa traduction et la validation signale à tort `Can't parse the json`. Le retour à une clé ordinaire rétablit ces fonctions.
-- Cause : `I18nParser.parse()` et `transformForExport()` construisent des dictionnaires avec `{}` puis écrivent une propriété `__proto__`, qui agit sur le prototype au lieu d'être conservée comme clé propre. La validation intercepte ensuite l'exception et la transforme en erreur JSON générique.
-- Décision à prendre : accepter ou refuser explicitement les noms de clés réservés par JavaScript. Si ces noms restent valides, utiliser des dictionnaires sans prototype ou des propriétés définies explicitement, et préserver un diagnostic précis en cas d'erreur réelle.
-
 ## Export statique toujours actif après destruction
 
 - Reproduction automatisée : `static-destroy-export-round132.test.mjs` exporte un fichier, détruit l'instance `Static`, modifie la source puis rappelle `export()`. La destination est mise à jour et le rechargement HTTP est demandé une seconde fois.
