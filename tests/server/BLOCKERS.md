@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Clé i18n JSON non échappée dans la déclaration TypeScript générée
-
-- Reproduction automatisée : `i18n-generated-type-escape-round138.test.mjs` crée un fichier i18n global avec une clé contenant un saut de ligne JSON échappé. La validation i18n ne signale aucune erreur et l'export conserve la clé ; la déclaration `AventusI18n` générée contient le saut de ligne littéral entre guillemets et le parseur TypeScript remonte une erreur. Une clé contenant les deux caractères antislash et `t` produit un type TypeScript syntaxiquement valide, mais dont le nom de propriété contient une tabulation. Renommer les clés par édition rétablit les déclarations attendues.
-- Cause : `AventusI18nFile.onContentChange()` n'échappe que les guillemets lorsqu'il insère les clés dans les littéraux de la déclaration TypeScript.
-- Décision à prendre : échapper toutes les clés pour un littéral TypeScript valide, ou refuser explicitement celles qui ne peuvent pas être représentées ; vérifier aussi les retours chariot et antislashs.
-
 ## Export i18n périmé pendant une édition JSON invalide
 
 - Reproduction automatisée : `i18n-invalid-export-round148.test.mjs` part d'une traduction `old` valide, édite le fichier en JSON incomplet contenant une nouvelle clé, puis vérifie que `keys` et `exported` conservent l'ancienne traduction pendant que la validation signale une erreur. Une correction valide remplace enfin l'export. Le consommateur du build peut donc lire des traductions périmées pendant une édition invalide. Décision attendue : conserver volontairement le dernier export valide ou vider les exports en cas d'erreur de parsing.

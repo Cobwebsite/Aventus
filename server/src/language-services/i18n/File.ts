@@ -50,7 +50,7 @@ export class AventusI18nFile extends AventusBaseFile {
 			this.transformForExport();
 			if (this.file instanceof InternalAventusFile) {
 				if (this.isGlobal) {
-					const values = this.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(","+EOL)
+					const values = this.keys.map(key => `${JSON.stringify(key)}: string`).join(","+EOL)
 					const content = `declare global {
 	namespace Aventus { 
 		interface AventusI18n {
