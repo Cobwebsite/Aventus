@@ -6,7 +6,7 @@ const [{ Project }, { FilesManager }] = await loadServerModules([
     'project/Project.ts', 'files/FilesManager.ts',
 ]);
 
-test('a failed child build cleanup interrupts project destruction; retry releases remaining resources', t => {
+test('a failed child build cleanup leaves project destruction terminal and remaining resources live', t => {
     const oldFiles = FilesManager.instance;
     const released = [];
     FilesManager.instance = { removeOnNewFile: id => released.push(`file:${id}`) };
@@ -40,8 +40,9 @@ test('a failed child build cleanup interrupts project destruction; retry release
 
     firstFails = false;
     project.destroy();
-    assert.equal(released.filter(event => event === 'second-build').length, 1);
-    assert.equal(released.filter(event => event === 'static').length, 1);
-    assert.equal(released.filter(event => event === 'first-build').length, 2);
-    assert.equal(released.filter(event => event === 'file:project-file').length, 2);
+    assert.equal(released.filter(event => event === 'second-build').length, 0);
+    assert.equal(released.filter(event => event === 'static').length, 0);
+    assert.equal(released.filter(event => event === 'first-build').length, 1);
+    assert.equal(released.filter(event => event === 'file:project-file').length, 1);
+    assert.equal(project.destroyed, true);
 });

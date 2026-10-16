@@ -6,7 +6,7 @@ const [{ Commands }, { ProjectManager }, { GenericServer }] = await loadServerMo
     'cmds/index.ts', 'project/ProjectManager.ts', 'GenericServer.ts',
 ]);
 
-test('build command completion differs from static export while selected jobs are pending', async t => {
+test('build, npm, Storybook and static commands await their selected jobs', async t => {
     const previousManager = ProjectManager.getInstance;
     const previousServer = GenericServer.instance;
     t.after(() => {
@@ -41,18 +41,16 @@ test('build command completion differs from static export while selected jobs ar
         ['aventus.compile', 'build'],
         ['aventus.npm.build', 'npm'],
         ['aventus.storybook.build', 'storybook'],
+        ['aventus.static', 'static'],
     ]) {
-        await Commands.allCommandes[command].run();
+        let settled = false;
+        const completion = Commands.allCommandes[command].run().then(() => { settled = true; });
+        await new Promise(resolve => setImmediate(resolve));
         assert.ok(pending.has(kind), `${kind} should have started`);
+        assert.equal(settled, false, `${kind} command should await its job`);
         pending.get(kind)();
+        await completion;
+        assert.equal(settled, true);
     }
-
-    let settled = false;
-    const completion = Commands.allCommandes['aventus.static'].run().then(() => { settled = true; });
-    await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(started, ['build', 'npm', 'storybook', 'static']);
-    assert.equal(settled, false);
-    pending.get('static')();
-    await completion;
-    assert.equal(settled, true);
 });

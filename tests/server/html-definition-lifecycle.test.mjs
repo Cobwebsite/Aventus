@@ -13,6 +13,7 @@ function service() {
     const result = Object.create(AventusHTMLLanguageService.prototype);
     result.extenalDocumentation = {};
     result.internalDocumentation = {};
+    result.internalDefinitionFiles = {};
     result.internalDocumentationReverse = {};
     result.internalTagUri = {};
     result._allowRebuildDefinition = true;

@@ -73,7 +73,8 @@ test('a corrected closing tag clears the parser diagnostic on a new document', (
 test('TypeScript syntax errors in an HTML injection map back to the expression', () => {
     const source = '<div :value="{{bad(}}"></div>';
     const parsed = parse(source);
-    assert.deepEqual(parsed.errors, []);
+    assert.ok(parsed.errors.length > 0);
+    assert.ok(parsed.errors.every(error => source.slice(error.range.start.character, error.range.end.character).includes('bad(')));
     const injection = parsed.injections[0];
     assert.ok(injection);
 

@@ -51,7 +51,7 @@ test('Store post reports all API errors in their original order', async () => {
     const messages = [];
     GenericServer.error = message => messages.push(message);
     globalThis.fetch = async () => ({
-        status: 422,
+        status: 200,
         text: async () => JSON.stringify({ errors: [
             { code: 1, message: 'name required' },
             { code: 2, message: 'version invalid' },

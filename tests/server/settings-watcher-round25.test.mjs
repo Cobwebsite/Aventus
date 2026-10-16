@@ -77,6 +77,7 @@ test('watcher deduplicates subscriptions, unwatch stops dispatch, and rewatch su
     const removals = [];
     watcher.watcher = { add: path => adds.push(path), unwatch: async path => { removals.push(path); } };
     watcher.watcheUris = [];
+    watcher.watchGeneration = new Map();
     const path = 'D:/round25/rewatch.wcl.avt';
     const uri = pathToUri(path);
     watcher.watch(uri);

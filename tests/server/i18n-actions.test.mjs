@@ -3,6 +3,7 @@ import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { I18nParser } from '../../server/src/language-services/i18n/Parser.ts';
 import { loadServerModule } from './helpers/load-ts.mjs';
+import { parseI18nAction } from './helpers/i18n-edits.mjs';
 
 const { AventusI18nLanguageService } = await loadServerModule('language-services/i18n/LanguageService.ts');
 const service = AventusI18nLanguageService.getInstance();
@@ -23,8 +24,8 @@ test('i18n code action fills each missing locale and preserves existing translat
     assert.equal(actions.length, 1);
     assert.equal(actions[0].title, 'Import missing locales');
     const edit = actions[0].edit.changes[file.file.uri][0];
-    assert.equal(file.file.documentUser.offsetAt(edit.range.end), file.file.contentUser.length);
-    assert.deepEqual(JSON.parse(edit.newText), {
+    assert.equal(file.file.documentUser.offsetAt(edit.range.end), file.file.documentUser.offsetAt(edit.range.start));
+    assert.deepEqual(parseI18nAction(file.file.documentUser, actions[0]), {
         a: { en: 'ⵌⵌ', fr: 'Salut' },
         z: { en: 'Hello', fr: 'ⵌⵌ' },
     });
@@ -45,15 +46,17 @@ test('i18n formatter sorts both translation keys and locale names', async () => 
 test('i18n missing-locale action fills every key and is stable after application', async () => {
     const initial = fixture({ b: { en: 'B' }, a: { fr: 'A' } });
     const action = (await service.codeAction(initial, null))[0];
-    const filled = JSON.parse(action.edit.changes[initial.file.uri][0].newText);
-    assert.deepEqual(Object.keys(filled), ['a', 'b']);
+    const filled = parseI18nAction(initial.file.documentUser, action);
+    assert.deepEqual(Object.keys(filled), ['b', 'a']);
     assert.deepEqual(await service.codeAction(fixture(filled), null), []);
 });
 
-test('i18n action safely ignores malformed source object', async () => {
+test('i18n action derives missing locales from the document when cached source is null', async () => {
     const broken = fixture({ key: { en: 'Hello' } });
     broken.parsedSrc = null;
-    assert.deepEqual(await service.codeAction(broken, null), []);
+    assert.deepEqual(parseI18nAction(broken.file.documentUser, (await service.codeAction(broken, null))[0]), {
+        key: { en: 'Hello', fr: 'ⵌⵌ' },
+    });
 });
 
 test('i18n validation catches duplicate translation keys', async () => {

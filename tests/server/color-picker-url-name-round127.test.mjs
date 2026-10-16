@@ -5,15 +5,15 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { ColorPicker } = await loadServerModule('color-picker/ColorPicker.ts');
 
-test('color picker currently treats a named color inside an unquoted CSS URL as a color', () => {
+test('color picker ignores a named color inside an unquoted CSS URL', () => {
     const source = '.icon { background-image: url(red); color: blue; }';
     const document = TextDocument.create('file:///url-name.wcs.avt', 'scss', 1, source);
 
     const found = ColorPicker.onDocumentColor(document);
 
-    assert.deepEqual(found.map(item => document.getText(item.range)), ['red', 'blue']);
+    assert.deepEqual(found.map(item => document.getText(item.range)), ['blue']);
     assert.deepEqual(found.map(item => item.range.start.character), [
-        source.indexOf('red'), source.indexOf('blue'),
+        source.indexOf('blue'),
     ]);
 });
 

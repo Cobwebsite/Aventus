@@ -6,7 +6,7 @@ const [{ ProjectManager }, { Project }, { Build }] = await loadServerModules([
     'project/ProjectManager.ts', 'project/Project.ts', 'project/Build.ts',
 ]);
 
-test('a batch of TypeScript renames currently forwards only its first source to each build', async () => {
+test('a batch of TypeScript renames forwards every source to each build and aggregates edits', async () => {
     const changes = [
         { oldUri: 'file:///shared/first.lib.avt', newUri: 'file:///shared/first-renamed.lib.avt' },
         { oldUri: 'file:///shared/second.data.avt', newUri: 'file:///shared/second-renamed.data.avt' },
@@ -33,11 +33,14 @@ test('a batch of TypeScript renames currently forwards only its first source to 
     const edits = await manager.onRename(changes);
     assert.deepEqual(calls, [
         ['alpha', changes[0].oldUri, changes[0].newUri],
+        ['alpha', changes[1].oldUri, changes[1].newUri],
         ['beta', changes[0].oldUri, changes[0].newUri],
+        ['beta', changes[1].oldUri, changes[1].newUri],
     ]);
     assert.deepEqual(Object.keys(edits), [
         'file:///shared/alpha-consumer.lib.avt',
         'file:///shared/beta-consumer.lib.avt',
     ]);
-    assert.ok(Object.values(edits).every(entries => entries[0].newText === changes[0].newUri));
+    assert.ok(Object.values(edits).every(entries => entries.length === 2 &&
+        entries[0].newText === changes[0].newUri && entries[1].newText === changes[1].newUri));
 });

@@ -8,6 +8,7 @@ test('files watcher adds each URI only once and removes it from its registry', (
     const added = [];
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [];
+    watcher.watchGeneration = new Map();
     watcher.watcher = { add: path => added.push(path), unwatch() {} };
     const uri = 'file:///d%3A/app/file.wcl.avt';
     watcher.watch(uri);

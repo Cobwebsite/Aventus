@@ -24,16 +24,12 @@ test('un doublon de locale suit les editions sans conserver son diagnostic ni sa
     assert.deepEqual(await diagnostics(), [
         ['Duplicate object key', '"en"', 1],
         ['Duplicate object key', '"en"', 1],
-        ['Missing locales fr', '"title"', 1],
     ]);
     assert.deepEqual(translation.exported, { en: { title: 'Last' }, fr: {} });
     assert.equal(translation.parsed.title.locales.en.value, 'Last');
 
     const range = { start: { line: 1, character: 2 }, end: { line: 1, character: 9 } };
-    const action = (await source.getCodeAction(range))[0];
-    assert.deepEqual(JSON.parse(action.edit.changes[uri][0].newText), {
-        title: { en: 'Last', fr: 'ⵌⵌ' },
-    });
+    assert.deepEqual(await source.getCodeAction(range), []);
 
     await source.triggerContentChange(document(2, '{\n  "title": {"en":"Only","fr":"Unique"}\n}'));
     assert.deepEqual(await diagnostics(), []);

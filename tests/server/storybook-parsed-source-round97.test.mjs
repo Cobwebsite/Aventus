@@ -42,7 +42,7 @@ test('Storybook writes parser-derived decorators and declarations, then replaces
             }
         `);
         assert.ok(first.classes.Item.storieContent);
-        assert.equal(first.classes.Item.properties.title.defaultValueStory, 'First');
+        assert.equal(first.classes.Item.properties.title.defaultValueStory, '"First"');
         const stories = new Storie(build, config);
         await stories.write({ [uri]: { fileParsed: first } }, true);
         const storyPath = join(root, 'auto', 'Catalog', 'Item.stories.ts');
@@ -67,7 +67,7 @@ test('Storybook writes parser-derived decorators and declarations, then replaces
             }
         `);
         assert.notEqual(second, first);
-        assert.equal(second.classes.Item.properties.title.defaultValueStory, 'Second');
+        assert.equal(second.classes.Item.properties.title.defaultValueStory, '"Second"');
         await stories.write({ [uri]: { fileParsed: second } }, true);
         const secondStory = readFileSync(storyPath, 'utf8');
         assert.match(secondStory, /Docs\/Records\/Item/);

@@ -72,10 +72,10 @@ test('package publication without README recovers after HTTP validation and serv
     };
     const invalid = await Store.publishPackage(build);
     assert.ok(invalid instanceof QueryError);
-    assert.deepEqual(invalid.errors, [{ code: 422, message: 'Invalid version' }]);
+    assert.deepEqual(invalid.errors, [{ code: 422, message: 'Store request failed with HTTP 422' }]);
     const unavailable = await Store.publishPackage(build);
     assert.ok(unavailable instanceof QueryError);
-    assert.deepEqual(unavailable.errors, [{ code: 500, message: 'Temporary failure' }]);
+    assert.deepEqual(unavailable.errors, [{ code: 500, message: 'Store request failed with HTTP 500' }]);
     assert.equal(await Store.publishPackage(build), true);
     assert.equal(requests.length, 3);
     for (const request of requests) {
@@ -115,7 +115,7 @@ test('template publication removes its archive after HTTP 500 and succeeds on re
     };
     const failed = await Store.publishTemplate(template);
     assert.ok(failed instanceof QueryError);
-    assert.deepEqual(failed.errors, [{ code: 500, message: 'Temporary failure' }]);
+    assert.deepEqual(failed.errors, [{ code: 500, message: 'Store request failed with HTTP 500' }]);
     assert.equal(existsSync(join(root, 'temp', 'Sample.zip')), false);
     assert.equal(await Store.publishTemplate(template), true);
     assert.equal(existsSync(join(root, 'temp', 'Sample.zip')), false);

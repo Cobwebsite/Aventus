@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
+import { parseI18nAction } from './helpers/i18n-edits.mjs';
 
 const [{ InternalAventusFile }, { AventusI18nFile }, { AventusWebComponentLogicalFile }] = await loadServerModules([
     'files/AventusFile.ts', 'language-services/i18n/File.ts', 'language-services/ts/component/File.ts',
@@ -49,7 +50,7 @@ test('les clés identiques restent isolées entre traductions globales et compos
     const range = { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
     const actions = await card.source.getCodeAction(range);
     assert.equal(actions.length, 1);
-    assert.deepEqual(JSON.parse(actions[0].edit.changes[card.uri][0].newText), { title: { en: 'Card', fr: 'ⵌⵌ' } });
+    assert.deepEqual(parseI18nAction(card.source.documentUser, actions[0]), { title: { en: 'Card', fr: 'ⵌⵌ' } });
 
     await card.edit(2, '{"title":{"en":"Card","fr":"Carte"}}');
     await global.edit(2, '{"caption":{"en":"Caption","fr":"Légende"}}');

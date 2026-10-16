@@ -22,6 +22,7 @@ test('package file tag revisions remove old HTML definitions while preserving a 
     const html = Object.create(AventusHTMLLanguageService.prototype);
     html.extenalDocumentation = {};
     html.internalDocumentation = {};
+    html.internalDefinitionFiles = {};
     html.internalDocumentationReverse = {};
     html.internalTagUri = {};
     html._allowRebuildDefinition = true;

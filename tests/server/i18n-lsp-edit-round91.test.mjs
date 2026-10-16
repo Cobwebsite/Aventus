@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
+import { parseI18nAction } from './helpers/i18n-edits.mjs';
 
 const [{ InternalAventusFile }, { AventusI18nFile }] = await loadServerModules([
     'files/AventusFile.ts',
@@ -48,7 +49,7 @@ test('les diagnostics i18n et la correction proposée reflètent trois éditions
         ['Missing locales fr', '"hello"'],
     ]);
     let actions = await source.getCodeAction(diagnostics[0].range);
-    assert.deepEqual(JSON.parse(actions[0].edit.changes[uri][0].newText), { hello: { en: 'Hello', fr: 'ⵌⵌ' } });
+    assert.deepEqual(parseI18nAction(source.documentUser, actions[0]), { hello: { en: 'Hello', fr: 'ⵌⵌ' } });
 
     await change(2, '{\n  "hello": {"en":"Hello", "fr":"ⵌⵌ"}\n}');
     diagnostics = await source.validate(false);

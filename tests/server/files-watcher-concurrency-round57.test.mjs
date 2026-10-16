@@ -10,6 +10,7 @@ function watcherFor(paths) {
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = paths.map(pathToUri);
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     return watcher;
 }
 

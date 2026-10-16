@@ -36,10 +36,13 @@ test('i18n locale import returns no action when configured locales are already p
     assert.deepEqual(file.parsedSrc.first, { en: 'First', fr: 'Premier' });
 });
 
-test('i18n formatter leaves the source untouched for JSON with comments', async () => {
+test('i18n formatter preserves comments while formatting JSONC', async () => {
     const source = '// translator note\n{"first":{"en":"First"}}';
     const documentUser = TextDocument.create('file:///round11.i18n.avt', 'json', 1, source);
     const file = { uri: documentUser.uri, documentUser, contentUser: source };
-    assert.deepEqual(await service.format(file, null, {}), []);
+    const edits = await service.format(file, null, {});
+    assert.equal(edits.length, 1);
+    assert.match(edits[0].newText, /^\/\/ translator note\n/);
+    assert.match(edits[0].newText, /"first": \{\s+"en": "First"\s+\}/);
     assert.equal(file.contentUser, source);
 });

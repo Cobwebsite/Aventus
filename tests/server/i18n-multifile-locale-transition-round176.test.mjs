@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
+import { applyI18nAction } from './helpers/i18n-edits.mjs';
 
 const [{ InternalAventusFile }, { AventusI18nFile }] = await loadServerModules([
     'files/AventusFile.ts', 'language-services/i18n/File.ts',
@@ -45,7 +46,7 @@ test('une transition des locales recompose indépendamment diagnostics, correcti
     const actions = await first.source.getCodeAction(range);
     assert.equal(actions.length, 1);
     assert.equal(actions[0].title, 'Import missing locales');
-    const replacement = actions[0].edit.changes[first.uri][0].newText;
+    const replacement = applyI18nAction(first.source.documentUser, actions[0]);
     assert.deepEqual(JSON.parse(replacement), { zeta: { de: 'ⵌⵌ', en: 'One', fr: 'Un' } });
     assert.deepEqual(await second.source.getCodeAction(range), []);
 

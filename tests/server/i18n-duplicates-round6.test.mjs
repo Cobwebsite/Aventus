@@ -23,7 +23,7 @@ test('i18n validation reports repeated message keys', async () => {
     const errors = await service.validate(file);
     const duplicate = errors.find(error => /duplicate/i.test(error.message));
     assert.ok(duplicate, errors.map(error => error.message).join(', '));
-    assert.equal(duplicate.severity, 2);
+    assert.equal(duplicate.severity, 1);
     assert.equal(source.slice(file.file.documentUser.offsetAt(duplicate.range.start), file.file.documentUser.offsetAt(duplicate.range.end)), '"welcome"');
 });
 
@@ -33,6 +33,6 @@ test('i18n validation reports repeated locale keys within one message', async ()
     const errors = await service.validate(file);
     const duplicate = errors.find(error => /duplicate/i.test(error.message));
     assert.ok(duplicate, errors.map(error => error.message).join(', '));
-    assert.equal(duplicate.severity, 2);
+    assert.equal(duplicate.severity, 1);
     assert.equal(source.slice(file.file.documentUser.offsetAt(duplicate.range.start), file.file.documentUser.offsetAt(duplicate.range.end)), '"en"');
 });

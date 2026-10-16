@@ -28,6 +28,7 @@ test('package file revisions and deletion restore a local HTML component without
     const html = Object.create(AventusHTMLLanguageService.prototype);
     html.extenalDocumentation = {};
     html.internalDocumentation = {};
+    html.internalDefinitionFiles = {};
     html.internalDocumentationReverse = {};
     html.internalTagUri = {};
     html._allowRebuildDefinition = true;

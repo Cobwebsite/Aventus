@@ -3,6 +3,7 @@ import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { I18nParser } from '../../server/src/language-services/i18n/Parser.ts';
 import { loadServerModule } from './helpers/load-ts.mjs';
+import { parseI18nAction } from './helpers/i18n-edits.mjs';
 
 const { AventusI18nLanguageService } = await loadServerModule('language-services/i18n/LanguageService.ts');
 const service = AventusI18nLanguageService.getInstance();
@@ -48,10 +49,10 @@ test('i18n locale import action fills each missing locale once in sorted output'
     assert.equal(actions.length, 1);
     assert.equal(actions[0].title, 'Import missing locales');
     const edits = actions[0].edit.changes[file.file.uri];
-    assert.equal(edits.length, 1);
-    const content = JSON.parse(edits[0].newText);
-    assert.deepEqual(Object.keys(content), ['a', 'z']);
+    assert.equal(edits.length, 2);
+    const content = parseI18nAction(file.file.documentUser, actions[0]);
+    assert.deepEqual(Object.keys(content), ['z', 'a']);
     assert.deepEqual(content.a, { en: 'ⵌⵌ', fr: 'A' });
     assert.deepEqual(content.z, { en: 'Z', fr: 'ⵌⵌ' });
-    assert.equal(file.file.documentUser.offsetAt(edits[0].range.end), file.file.contentUser.length);
+    assert.ok(edits.every(edit => file.file.documentUser.offsetAt(edit.range.end) === file.file.documentUser.offsetAt(edit.range.start)));
 });

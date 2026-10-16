@@ -6,12 +6,13 @@ const [{ FilesWatcher }, { FilesManager }, { GenericServer }, { pathToUri }] = a
     'files/FilesWatcher.ts', 'files/FilesManager.ts', 'GenericServer.ts', 'tools.ts',
 ]);
 
-test('a failed update does not discard queued deletion and recreation across rewatch', async () => {
+test('a failed update discards an old queued deletion while allowing recreation after rewatch', async () => {
     const path = 'D:/project/recovered.wcl.avt';
     const uri = pathToUri(path);
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [uri];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     watcher.watcher = { add() {}, unwatch() {} };
     const previousManager = FilesManager.instance;
     const previousServer = GenericServer.instance;
@@ -42,7 +43,7 @@ test('a failed update does not discard queued deletion and recreation across rew
         await Promise.all([deletion, recreation]);
 
         assert.deepEqual(calls, [
-            ['update start', uri], ['delete', uri],
+            ['update start', uri],
             ['update start', uri], ['update end', uri],
         ]);
         assert.equal(watcher.pendingEvents.size, 0);

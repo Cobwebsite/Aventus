@@ -27,6 +27,7 @@ test('HTML tag definitions follow component class and tag revisions without stal
     service.build = build;
     service.extenalDocumentation = {};
     service.internalDocumentation = {};
+    service.internalDefinitionFiles = {};
     service.internalDocumentationReverse = {};
     service.internalTagUri = {};
     service._allowRebuildDefinition = true;

@@ -6,12 +6,13 @@ const [{ FilesWatcher }, { FilesManager }, { GenericServer }, { pathToUri }] = a
     'files/FilesWatcher.ts', 'files/FilesManager.ts', 'GenericServer.ts', 'tools.ts',
 ]);
 
-test('a deletion queued before unwatch still affects the same URI after rewatch', async () => {
+test('a deletion queued before unwatch is discarded after rewatch', async () => {
     const path = 'D:/project/recreated.wcl.avt';
     const uri = pathToUri(path);
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [uri];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     watcher.watcher = { add() {}, unwatch() {} };
     const previousManager = FilesManager.instance;
     const previousServer = GenericServer.instance;
@@ -39,7 +40,7 @@ test('a deletion queued before unwatch still affects the same URI after rewatch'
         releaseUpdate();
         await Promise.all([update, removal]);
 
-        assert.deepEqual(calls, ['old update start', 'old update end', 'old delete']);
+        assert.deepEqual(calls, ['old update start', 'old update end']);
         assert.equal(watcher.pendingEvents.size, 0);
     } finally {
         releaseUpdate();
@@ -54,6 +55,7 @@ test('destroy completes while a queued deletion can still reach the files manage
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [uri];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     watcher.watcher = { close: async () => {} };
     const previousWatcher = FilesWatcher.instance;
     const previousManager = FilesManager.instance;

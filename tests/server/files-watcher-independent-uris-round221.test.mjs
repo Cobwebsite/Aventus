@@ -14,6 +14,7 @@ test('watcher serializes each URI while a second URI continues independently', a
     const watcher = Object.create(FilesWatcher.prototype);
     watcher.watcheUris = [firstUri, secondUri];
     watcher.pendingEvents = new Map();
+    watcher.watchGeneration = new Map();
     const previousManager = FilesManager.instance;
     const previousServer = GenericServer.instance;
     const calls = [];
