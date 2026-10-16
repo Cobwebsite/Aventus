@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Rechargement HTTP différé après arrêt et redémarrage
-
-- Reproduction automatisée : `http-stale-reload-round126.test.mjs` programme un rechargement, arrête le serveur puis simule un nouveau client connecté avant l'expiration du délai. Ce client reçoit le message `reload` de la session précédente.
-- Cause : `HttpServer.stop()` ferme les connexions mais ne libère pas `reloadTimeout` ; le callback appelle ensuite `_reload()` avec la nouvelle liste de clients.
-- Décision à prendre : annuler le timer dans `stop()` et remettre `reloadTimeout` à `undefined` pour éviter un rechargement obsolète après redémarrage.
-
 ## Motif `readDirs` avec plusieurs jokers
 
 - Reproduction automatisée : `files-discovery-multiple-wildcards-round128.test.mjs` découvre une configuration avec `src/*`, mais l'ignore avec `src/*/components/*` alors que le chemin `src/alpha/components/beta/aventus.conf.avt` correspond au motif.
