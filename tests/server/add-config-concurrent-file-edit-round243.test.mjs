@@ -76,8 +76,8 @@ test('add static section keeps an edit made while its name is being entered', as
     await pending;
 
     assert.deepEqual(JSON.parse(readFileSync(path, 'utf8')), {
-        ...original,
-        static: [{ name: 'New assets', input: '', output: '' }],
+        ...revised,
+        static: [...revised.static, { name: 'New assets', input: '', output: '' }],
     });
     assert.deepEqual(notifications, [['aventus/openfile', [uri]]]);
 });

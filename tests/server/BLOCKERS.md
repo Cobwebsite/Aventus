@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Sections Build homonymes créées par la commande
-
-- Reproduction automatisée : `add-config-duplicate-round130.test.mjs` lance deux fois `aventus.addConfigSection` avec le nom `Shared App`. Le fichier contient deux sections de même nom et deux destinations `./dist/Shared-App.js` ; les deux ajouts sont annoncés au client.
-- Cause : `AddConfigSection.run()` ajoute directement la nouvelle section au tableau `build` sans rechercher un nom ou une destination déjà présents.
-- Décision à prendre : définir si un doublon doit être refusé, renommé ou remplacer la section existante, puis vérifier la cohérence avec les validations de configuration et de sorties.
-
 ## Échec de formatage seulement journalisé
 
 - Reproduction automatisée : `format-error-retry-round130.test.mjs` fait échouer le premier formateur d'un lot ; le second fichier est formaté, la commande se termine normalement, puis un nouvel appel formate le premier après disparition de l'erreur.
