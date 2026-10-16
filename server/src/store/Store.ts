@@ -18,6 +18,7 @@ export class Store {
 	public static readonly url = "https://store.aventusjs.com";
 	// public static readonly url = "http://127.0.0.1:8000";
 	private static _settings: StoreSettings;
+	private static sessionRevision = 0;
 	public static get settings(): StoreSettings {
 		if (!this._settings) {
 			this._settings = SettingsManager.getInstance().hiddenSettings.store
@@ -38,6 +39,7 @@ export class Store {
 	}
 
 	public static async connect(username: string, password: string) {
+		const revision = ++this.sessionRevision;
 		const machineId = await Id();
 		const machineName = hostname();
 		const token = await this.post<string>("/login", {
@@ -46,6 +48,7 @@ export class Store {
 			machineId,
 			machineName,
 		}, { withoutBearer: true })
+		if (revision !== this.sessionRevision) return false;
 		if (token) {
 			this.setSettings({ token, username })
 			return true;
@@ -54,8 +57,11 @@ export class Store {
 		return false;
 	}
 	public static async disconnect() {
+		const revision = ++this.sessionRevision;
 		await this.post<boolean>('/logout')
-		this.setSettings({ token: "", username: undefined })
+		if (revision === this.sessionRevision) {
+			this.setSettings({ token: "", username: undefined })
+		}
 	}
 	public static async publishPackage(build: Build): Promise<boolean | QueryError> {
 		const form = new FormData();

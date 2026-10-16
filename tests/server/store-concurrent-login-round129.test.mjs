@@ -5,7 +5,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { Store } = await loadServerModule('store/Store.ts');
 
-test('an earlier Store login response overwrites a later successful login', async t => {
+test('an earlier Store login response cannot overwrite a later successful login', async t => {
     let releaseFirst;
     const firstGate = new Promise(resolve => { releaseFirst = resolve; });
     let firstArrived;
@@ -46,8 +46,8 @@ test('an earlier Store login response overwrites a later successful login', asyn
     assert.deepEqual(Store._settings, { token: 'bob-token', username: 'bob' });
 
     releaseFirst();
-    assert.equal(await oldLogin, true);
-    assert.deepEqual(Store._settings, { token: 'alice-token', username: 'alice' });
+    assert.equal(await oldLogin, false);
+    assert.deepEqual(Store._settings, { token: 'bob-token', username: 'bob' });
     assert.deepEqual(requests, [
         { path: '/api/remote/login', username: 'alice', authorization: undefined },
         { path: '/api/remote/login', username: 'bob', authorization: undefined },

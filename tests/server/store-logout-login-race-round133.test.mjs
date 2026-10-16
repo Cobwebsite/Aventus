@@ -5,7 +5,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { Store } = await loadServerModule('store/Store.ts');
 
-test('an earlier logout clears a newer successful Store login when its response arrives last', async t => {
+test('an earlier logout cannot clear a newer successful Store login', async t => {
     let releaseLogout;
     const logoutGate = new Promise(resolve => { releaseLogout = resolve; });
     let signalLogout;
@@ -45,7 +45,7 @@ test('an earlier logout clears a newer successful Store login when its response 
 
     releaseLogout();
     await logout;
-    assert.deepEqual(Store._settings, { token: '', username: undefined });
+    assert.deepEqual(Store._settings, { token: 'new-token', username: 'new' });
     assert.equal(requests[0].path, '/api/remote/logout');
     assert.match(requests[0].authorization, /^Bearer old-token\|.+/);
     assert.deepEqual(requests.map(request => request.path), ['/api/remote/logout', '/api/remote/login']);

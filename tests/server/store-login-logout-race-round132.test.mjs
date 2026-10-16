@@ -5,7 +5,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { Store } = await loadServerModule('store/Store.ts');
 
-test('a pending login reconnects Store after a later logout completes', async t => {
+test('a pending login cannot reconnect Store after a later logout', async t => {
     let releaseLogin;
     const loginGate = new Promise(resolve => { releaseLogin = resolve; });
     let signalLogin;
@@ -44,7 +44,7 @@ test('a pending login reconnects Store after a later logout completes', async t 
     assert.equal(Store.isConnected, false);
 
     releaseLogin();
-    assert.equal(await login, true);
-    assert.deepEqual(Store._settings, { token: 'late-token', username: 'alice' });
+    assert.equal(await login, false);
+    assert.deepEqual(Store._settings, { token: '', username: undefined });
     assert.deepEqual(requests, ['/api/remote/login', '/api/remote/logout']);
 });

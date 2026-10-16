@@ -12,24 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Nouvelle session Store effacée par une déconnexion encore en attente
-
-- Reproduction automatisée : `store-logout-login-race-round133.test.mjs` suspend une déconnexion HTTP démarrée avec un ancien token, termine une nouvelle connexion, puis libère la réponse de logout. La nouvelle session est effacée.
-- Cause : `Store.disconnect()` applique l'effacement des identifiants à la fin de sa requête, sans vérifier qu'une connexion plus récente les a remplacés.
-- Décision à prendre : coordonner les opérations de session et empêcher qu'une déconnexion antérieure efface un token obtenu ensuite.
-
-## Déconnexion Store annulée par une connexion encore en attente
-
-- Reproduction automatisée : `store-login-logout-race-round132.test.mjs` laisse une connexion HTTP en attente, termine ensuite `Store.disconnect()`, puis libère la réponse de connexion. La session redevient connectée malgré la déconnexion plus récente.
-- Cause : `Store.connect()` applique son token dès que sa réponse arrive, sans tenir compte d'une déconnexion intervenue entre-temps.
-- Décision à prendre : définir l'ordre d'autorité des opérations de session et invalider les réponses de connexion antérieures à une déconnexion.
-
-## Connexions Store simultanées appliquées dans l'ordre des réponses
-
-- Reproduction automatisée : `store-concurrent-login-round129.test.mjs` lance une connexion pour Alice, laisse sa réponse HTTP en attente, puis termine une connexion pour Bob. La session devient celle de Bob, avant que la réponse d'Alice ne la remplace.
-- Cause : `Store.connect()` appelle `setSettings()` après chaque réponse réussie sans vérifier si une connexion plus récente a été demandée entre-temps.
-- Décision à prendre : définir la priorité des connexions concurrentes (dernière demande ou dernière réponse), puis ignorer ou annuler les réponses périmées si la dernière demande doit faire autorité. Prévoir également le cas d'une déconnexion pendant une connexion en attente.
-
 ## Références d'une classe HTML masquées par une réponse TypeScript vide
 
 - Reproduction automatisée : `html-style-references-fallback-round129.test.mjs` lie une vue à une classe TS et à un style SCSS, puis modifie vue et style. Pour une classe présente dans le style, `onReferences()` renvoie le sélecteur si la recherche TS répond `null`, mais renvoie `[]` si elle répond `[]`. Une réponse TS non vide est renvoyée seule.
