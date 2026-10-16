@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Motif `readDirs` avec plusieurs jokers
-
-- Reproduction automatisée : `files-discovery-multiple-wildcards-round128.test.mjs` découvre une configuration avec `src/*`, mais l'ignore avec `src/*/components/*` alors que le chemin `src/alpha/components/beta/aventus.conf.avt` correspond au motif.
-- Cause : `FilesManager.parseWorkspace()` ne remplace que le premier `*` du motif transformé en expression régulière ; les autres restent des quantificateurs réguliers appliqués au caractère précédent.
-- Décision à prendre : préciser la syntaxe des motifs `readDirs`, puis traduire chaque joker et tester le parcours des répertoires intermédiaires.
-
 ## Découverte des fichiers interrompue par un échec d'enregistrement
 
 - Reproduction automatisée : `files-discovery-failure-round128.test.mjs` fait rejeter le premier enregistrement de source par `loadAllAventusFiles()`. La méthode rejette, `loadingInProgress` reste à `true` et `InitStep.sendDone()` n'est pas appelé. Un second appel complet rétablit l'état et enregistre source puis configuration.
