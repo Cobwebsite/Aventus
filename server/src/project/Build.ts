@@ -369,7 +369,7 @@ export class Build {
             }
             this.timerBuild = setTimeout(async () => {
                 this.timerBuild = undefined;
-                if (this.destroyed) return;
+                if (this.destroyed || GenericServer.noBuild) return;
                 await this.queueBuild(revision);
             }, delay)
         }
@@ -407,12 +407,12 @@ export class Build {
         }
     }
     private ensureBuildActive(revision: number) {
-        if (this.destroyed || revision !== this.buildRevision) {
+        if (this.destroyed || revision !== this.buildRevision || GenericServer.noBuild) {
             throw new BuildCancelledError();
         }
     }
     private async _build(revision: number) {
-        if (this.destroyed || !this.allowBuild || revision !== this.buildRevision) {
+        if (this.destroyed || !this.allowBuild || revision !== this.buildRevision || GenericServer.noBuild) {
             return
         }
         GenericServer.debug("building " + this.buildConfig.fullname);

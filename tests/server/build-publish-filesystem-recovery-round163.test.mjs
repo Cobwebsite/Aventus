@@ -6,10 +6,14 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Build }] = await loadServerModules(['project/Build.ts']);
+const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
 
-function makeBuild() {
+function makeBuild(t) {
+    const previousServer = GenericServer.instance;
+    GenericServer.instance = { _noBuild: false };
+    t.after(() => { GenericServer.instance = previousServer; });
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.writeFile = async (path, content) => writeFileSync(path, content);
     return build;
 }
@@ -25,21 +29,21 @@ test('a filesystem deletion error restores earlier output writes and deletions, 
     writeFileSync(current, 'previous current');
     writeFileSync(obsolete, 'previous obsolete');
     mkdirSync(invalid);
-    const build = makeBuild();
+    const build = makeBuild(t);
     const queue = () => {
         build.pendingOutputs = new Map([[current, 'new current']]);
         build.pendingDeletions = new Map([[obsolete, hash('previous obsolete')], [invalid, hash('anything')]]);
     };
 
     queue();
-    await assert.rejects(build.publishOutputs());
+    await assert.rejects(build.publishOutputs(0));
     assert.equal(readFileSync(current, 'utf8'), 'previous current');
     assert.equal(readFileSync(obsolete, 'utf8'), 'previous obsolete');
     assert.equal(existsSync(invalid), true);
 
     rmSync(invalid, { recursive: true });
     queue();
-    await build.publishOutputs();
+    await build.publishOutputs(0);
     assert.equal(readFileSync(current, 'utf8'), 'new current');
     assert.equal(existsSync(obsolete), false);
 });
@@ -51,20 +55,20 @@ test('a real output path occupied by a directory rolls back an earlier overwrite
     const second = join(root, 'second.js');
     writeFileSync(first, 'first version');
     mkdirSync(second);
-    const build = makeBuild();
+    const build = makeBuild(t);
     const queue = () => {
         build.pendingOutputs = new Map([[first, 'second version'], [second, 'new second']]);
         build.pendingDeletions = new Map();
     };
 
     queue();
-    await assert.rejects(build.publishOutputs());
+    await assert.rejects(build.publishOutputs(0));
     assert.equal(readFileSync(first, 'utf8'), 'first version');
     assert.equal(existsSync(second), true);
 
     rmSync(second, { recursive: true });
     queue();
-    await build.publishOutputs();
+    await build.publishOutputs(0);
     assert.equal(readFileSync(first, 'utf8'), 'second version');
     assert.equal(readFileSync(second, 'utf8'), 'new second');
 });
