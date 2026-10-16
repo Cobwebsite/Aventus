@@ -22,6 +22,7 @@ test('files watcher adds each URI only once and removes it from its registry', (
 
 test('files watcher closes an active watcher on destruction', async () => {
     const watcher = Object.create(FilesWatcher.prototype);
+    watcher.pendingEvents = new Map();
     let closed = false;
     watcher.watcher = { close: async () => { closed = true; } };
     await watcher.destroy();

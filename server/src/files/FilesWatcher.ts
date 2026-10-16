@@ -15,6 +15,7 @@ export class FilesWatcher {
     }
     private watcher?: FSWatcher;
     private pendingEvents: Map<string, Promise<void>> = new Map();
+    private destroyed = false;
     private constructor() {
         if (SettingsManager.getInstance().settings.watchFiles) {
             this.watcher = watch('\t', {
@@ -34,6 +35,7 @@ export class FilesWatcher {
         return this.watchGeneration.get(uri) ?? 0;
     }
     public watch(uri: string) {
+        if (this.destroyed) return;
         if (this.watcheUris.includes(uri)) return
         if (!this.watcher) return;
 
@@ -65,11 +67,12 @@ export class FilesWatcher {
         }
     }
     private enqueue(uri: string, action: () => Promise<void>): Promise<void> {
+        if (this.destroyed) return Promise.resolve();
         const pendingEvents = this.pendingEvents;
         const previous = pendingEvents.get(uri) ?? Promise.resolve();
         const generation = this.getWatchGenerationId(uri);
         const current = previous.catch(() => { }).then(() => {
-            if (this.watcheUris.includes(uri) && this.getWatchGenerationId(uri) === generation) {
+            if (!this.destroyed && this.watcheUris.includes(uri) && this.getWatchGenerationId(uri) === generation) {
                 return action();
             }
             return;
@@ -82,7 +85,13 @@ export class FilesWatcher {
         return current;
     }
     public async destroy() {
-        await this.watcher?.close();
-        FilesWatcher.instance = undefined;
+        this.destroyed = true;
+        const pending = [...this.pendingEvents.values()];
+        try {
+            await this.watcher?.close();
+        } finally {
+            await Promise.allSettled(pending);
+            FilesWatcher.instance = undefined;
+        }
     }
 }
