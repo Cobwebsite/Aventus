@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Mot clé CSS transparent ignoré par le color picker
-
-- Reproduction automatisée : `color-picker-transparent-round138.test.mjs` vérifie que le parseur CSS accepte `transparent` avec alpha nul. Dans une feuille de style, `ColorPicker.onDocumentColor()` ignore ce mot clé, alors que son remplacement par `rgba(0 0 0 / 0)` est détecté ; le retour à `transparent` fait disparaître l'information de couleur.
-- Cause : la recherche des couleurs nommées se fonde sur les propriétés de `ColorInfo.Colors`, qui ne comprennent pas `TRANSPARENT`.
-- Décision à prendre : définir la prise en charge du mot clé `transparent` dans le color picker, avec une présentation conservant la transparence et des plages exactes après édition.
-
 ## Régression du contenu d'un fichier après une révision reçue en retard
 
 - Reproduction automatisée : `files-out-of-order-versions-round134.test.mjs` applique la version 3 d'un document puis sa version 2. `InternalAventusFile` notifie les deux changements et conserve finalement la version 2 avec son ancien contenu.

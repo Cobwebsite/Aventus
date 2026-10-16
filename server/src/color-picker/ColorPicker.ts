@@ -160,6 +160,7 @@ export class ColorPicker {
 					colors.push(prop);
 				}
 			}
+			colors.push('TRANSPARENT');
 			this.colorTxtList = colors;
 		}
 		let regex = new RegExp("(?<![\\w\\d.\"'&$-])(" + this.colorTxtList.join("|") + ")(?![-\\w\\d])", "gi");
@@ -180,8 +181,8 @@ export class ColorPicker {
 					this.getPos(text, match.index),
 					this.getPos(text, match.index + t.length)
 				);
-
-				const col = this.parseColorString(ColorInfo.fromName(t).toHex());
+				const colorTxt = t.toLowerCase() === 'transparent' ? t : ColorInfo.fromName(t).toHex();
+				const col = this.parseColorString(colorTxt);
 
 				if (col) {
 					result.push({
@@ -250,6 +251,9 @@ export class ColorPicker {
 		];
 
 
+		if (color.alpha === 0) {
+			return [ColorPresentation.create('transparent'), ...withAlpha];
+		}
 		return hasAlpha ? withAlpha : withoutAlpha;
 	}
 }
