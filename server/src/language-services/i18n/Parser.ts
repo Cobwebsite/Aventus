@@ -32,6 +32,7 @@ export class I18nParser {
 				if (!keyObj || !valueObj || valueObj.type !== "object") {
 					continue;
 				}
+				if (keyObj.value === '__proto__') continue;
 				const locales = valueObj.children ?? [];
 
 				const item: I18nParsedItem = {
