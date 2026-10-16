@@ -427,11 +427,12 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                         );
                                     }
                                     for (const attribute of Object.values(node.attributes)) {
+                                        const attributeType = getInjectionResultType(node.tagName, attribute.name);
                                         writeChanges(
                                             attribute.changes,
                                             attribute.value ?? '',
                                             attribute.valueStart + 1,
-                                            getInjectionResultType(node.tagName, attribute.name)
+                                            `string extends ${attributeType} ? Aventus.NotVoid : ${attributeType}`
                                         );
                                     }
                                     writeNodes(node.children);
