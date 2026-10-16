@@ -1,4 +1,5 @@
 import { JSONSchema } from 'vscode-json-languageservice';
+import { I18nParser } from '../i18n/Parser';
 
 export const AventusConfigSchema: JSONSchema = {
     "$schema": "foo://aventus/conf.json",
@@ -313,11 +314,12 @@ export const AventusConfigSchema: JSONSchema = {
                         properties: {
                             "locales": {
                                 type: "array",
-                                items: { type: "string" },
+                                items: { type: "string", not: { enum: I18nParser.reservedI18nLocales } },
                                 description: "Locales that is required inside your project"
                             },
                             "fallback": {
-                                type: "string"
+                                type: "string",
+                                not: { enum: I18nParser.reservedI18nLocales }
                             },
                             "autoRegister": {
                                 type: "boolean"
