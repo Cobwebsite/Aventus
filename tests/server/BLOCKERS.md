@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Script template supprimé alors qu'il est en cache
-
-- Reproduction automatisée : `template-cache-disappearance-round128.test.mjs` charge un `template.avt.ts`, supprime le fichier puis redemande le même script. `TemplateScript.create()` rejette avec `ENOENT` et conserve l'entrée en cache.
-- Cause : le chemin déjà présent dans `TemplateScript.memory` passe directement par `statSync(config)` sans gérer la disparition du fichier.
-- Décision à prendre : définir la réponse attendue pour un template supprimé, puis retirer son entrée du cache ou signaler proprement son indisponibilité avant un nouvel essai.
-
 ## État du build conservé après échec de validation pendant un rebuild
 
 - Reproduction automatisée : `build-rebuild-validation-recovery-round128.test.mjs` fait échouer la validation d'un style dans `Build.rebuildAll()`. La promesse rejette, puis `_allowBuild` reste à `false`, `insideRebuildAll` à `true`, et les services SCSS et HTML ne reçoivent pas leur réactivation. Une nouvelle tentative réussie rétablit ces états.
