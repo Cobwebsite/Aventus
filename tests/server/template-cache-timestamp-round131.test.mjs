@@ -10,7 +10,7 @@ const [{ TemplateScript }, { GenericServer }] = await loadServerModules([
     'files/Template.ts', 'GenericServer.ts',
 ]);
 
-test('template metadata cache retains the old script when edited content has an older timestamp', { timeout: 15_000 }, async () => {
+test('template metadata cache reloads edited content with an older timestamp', { timeout: 15_000 }, async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-older-mtime-'));
     const config = join(root, 'template.avt.ts');
     const base = pathToFileURL(resolve('lib/templateScript/AventusTemplate.ts')).href;
@@ -38,8 +38,8 @@ test('template metadata cache retains the old script when edited content has an 
         const older = new Date(originalTime.getTime() - 60_000);
         utimesSync(config, older, older);
         const second = await TemplateScript.create(config);
-        assert.equal(second, first);
-        assert.equal(second.name, 'Original');
+        assert.notEqual(second, first);
+        assert.equal(second.name, 'Edited');
     } finally {
         GenericServer.instance = previousServer;
         TemplateScript.memory = previousMemory;

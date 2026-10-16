@@ -79,7 +79,7 @@ export class TemplateScript {
 		let folderPath = dirname(config);
 		if (this.memory[config]) {
 			let lastModified = statSync(config).mtime
-			if (lastModified.getTime() > this.memory[config].lastModified.getTime()) {
+			if (lastModified.getTime() !== this.memory[config].lastModified.getTime()) {
 				const temp = new TemplateScript(config, folderPath);
 				await temp.postConstructor();
 				if (!temp.containsError) {
