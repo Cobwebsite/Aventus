@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Fichiers de traduction périmés après retrait d'une source ou d'une locale
-
-- Reproduction automatisée : `build-i18n-rebuild-lifecycle-round134.test.mjs` lance trois `Build.build()` successifs avec sorties `singleFile` et `oneToOne`. Une édition actualise bien les sorties encore ciblées. Après retrait d'une locale et d'un fichier i18n, les fichiers JSON correspondants restent sur disque ; le rétablissement de la locale ne retire toujours pas les fichiers de la source supprimée.
-- Cause : `writeBuildI18n()` écrit les sorties des locales et sources présentes, sans suivre ni supprimer les fichiers produits par les compilations précédentes.
-- Décision à prendre : déterminer si le build doit nettoyer uniquement ses propres anciennes sorties i18n lorsque les locales, sources ou modes changent ; préserver les fichiers extérieurs au build dans les mêmes répertoires.
-
 ## Alias Windows sensibles à la casse des chemins
 
 - Reproduction automatisée : `project-alias-case-round135.test.mjs` résout `@src/item` depuis `C:\\Workspace\\Project\\src`, puis depuis le même dossier écrit `c:\\workspace\\project\\src`. Le premier donne `./item` ; le second remonte inutilement l'arborescence avant de redescendre vers l'alias.
