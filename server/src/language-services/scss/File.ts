@@ -85,7 +85,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
         else {
             // it's a depend file like vars file
             for (let uri in this.usedBy) {
-                this.usedBy[uri].onSave();
+                await this.usedBy[uri].onSave();
             }
         }
     }
@@ -148,6 +148,9 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                     }
                 }
             }
+            else {
+                newCompiledTxt = "";
+            }
 
 
             if (newCompiledTxt != this.compiledTxt) {
@@ -192,9 +195,15 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             this.removeDependency(dependencyUri);
         }
         for (let usedByUri in this.usedBy) {
-            delete this.usedBy[usedByUri].dependencies[this.file.uri];
+            const consumer = this.usedBy[usedByUri];
+            delete consumer.dependencies[this.file.uri];
             delete this.usedBy[usedByUri];
-            await this.usedBy[usedByUri].onContentChange();
+            if (consumer.file.isDeleted) continue;
+            await consumer.validate();
+            await consumer.onSave();
+        }
+        if (this.build.scssFiles[this.file.uri] === this) {
+            delete this.build.scssFiles[this.file.uri];
         }
     }
     protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {

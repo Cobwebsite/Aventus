@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Suppression d'un partial SCSS importé
-
-- Reproduction automatisée : `scss-import-delete-lifecycle-round134.test.mjs` compile un composant avec un partial, vérifie qu'une édition sauvegardée modifie le CSS, puis supprime le partial. `triggerDelete()` rejette avec une `TypeError`, le CSS consommateur reste sur l'ancienne valeur et la dépendance supprimée reste dans `build.scssFiles`.
-- Cause : `AventusWebSCSSFile.onDelete()` supprime `usedBy[uri]` puis tente d'appeler `this.usedBy[uri].onContentChange()` sur l'entrée supprimée. La suppression ne déclenche donc pas de recompilation fiable des consommateurs.
-- Décision à prendre : définir la sortie attendue après disparition d'un import SCSS et garantir que la suppression libère les liens de dépendance, rafraîchit les diagnostics et ne conserve pas de CSS périmé.
-
 ## Fichiers de traduction périmés après retrait d'une source ou d'une locale
 
 - Reproduction automatisée : `build-i18n-rebuild-lifecycle-round134.test.mjs` lance trois `Build.build()` successifs avec sorties `singleFile` et `oneToOne`. Une édition actualise bien les sorties encore ciblées. Après retrait d'une locale et d'un fichier i18n, les fichiers JSON correspondants restent sur disque ; le rétablissement de la locale ne retire toujours pas les fichiers de la source supprimée.
