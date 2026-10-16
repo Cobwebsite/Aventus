@@ -7,7 +7,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { TemplateScript } = await loadServerModule('files/Template.ts');
 
-test('a cached template script throws ENOENT when its source file disappears', async () => {
+test('a missing template script is removed from cache and can be loaded again', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-disappearance-'));
     const config = join(root, 'template.avt.ts');
     writeFileSync(config, 'fixture');
@@ -21,8 +21,12 @@ test('a cached template script throws ENOENT when its source file disappears', a
         const first = await TemplateScript.create(config);
         assert.equal(first.name, 'Fixture');
         rmSync(config);
-        await assert.rejects(TemplateScript.create(config), error => error?.code === 'ENOENT');
-        assert.equal(TemplateScript.memory[config], first);
+        assert.equal(await TemplateScript.create(config), undefined);
+        assert.equal(TemplateScript.memory[config], undefined);
+        writeFileSync(config, 'fixture restored');
+        const restored = await TemplateScript.create(config);
+        assert.notEqual(restored, first);
+        assert.equal(restored.name, 'Fixture');
     } finally {
         TemplateScript.memory = previousMemory;
         TemplateScript.prototype.prepareScript = originalPrepare;

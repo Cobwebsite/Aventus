@@ -72,6 +72,10 @@ export class TemplateScript {
 	private static memory: { [key: string]: TemplateScript } = {}
 
 	public static async create(config: string): Promise<TemplateScript | undefined> {
+		if (!existsSync(config)) {
+			delete this.memory[config];
+			return undefined;
+		}
 		let folderPath = dirname(config);
 		if (this.memory[config]) {
 			let lastModified = statSync(config).mtime
