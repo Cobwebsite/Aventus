@@ -9,7 +9,7 @@ const [{ Build }, { GenericServer }] = await loadServerModules([
     'project/Build.ts', 'GenericServer.ts',
 ]);
 
-test('an older compilation completing last overwrites the output of a newer revision', async t => {
+test('overlapping compilations finish with the newest revision in the output', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-overlap-build-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'main.js');
@@ -27,7 +27,7 @@ test('an older compilation completing last overwrites the output of a newer revi
     const written = new Map();
     const build = Object.create(Build.prototype);
     Object.assign(build, {
-        initDone: true, _allowBuild: true, diagnostics: new Map(),
+        initDone: true, _allowBuild: true, buildRevision: 0, diagnostics: new Map(),
         buildConfig: {
             fullname: 'Demo@overlap', module: 'Demo',
             compile: [{
@@ -62,15 +62,16 @@ test('an older compilation completing last overwrites the output of a newer revi
     const firstBuild = build.build();
     await firstStarted;
     revision = 'Second';
+    const secondBuild = build.build();
     try {
-        await build.build();
-        assert.match(written.get(output), /class Second/);
+        assert.equal(written.has(output), false);
     } finally {
         releaseFirst();
         await firstBuild;
     }
 
-    assert.match(written.get(output), /class First/);
-    assert.doesNotMatch(written.get(output), /class Second/);
-    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 2);
+    await secondBuild;
+    assert.match(written.get(output), /class Second/);
+    assert.doesNotMatch(written.get(output), /class First/);
+    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 1);
 });
