@@ -43,7 +43,9 @@ export class AventusI18nFile extends AventusBaseFile {
 		try {
 			const parsed = JSON.parse(this.file.contentUser);
 			this.parsedSrc = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-			delete this.parsedSrc['__proto__'];
+			for (const key of Object.keys(this.parsedSrc)) {
+				if (I18nParser.isReservedI18nLocale(key)) delete this.parsedSrc[key];
+			}
 			this.parsed = I18nParser.parse(this.file.documentUser);
 			this.transformForExport();
 			if (this.file instanceof InternalAventusFile) {
@@ -66,7 +68,7 @@ export class AventusI18nFile extends AventusBaseFile {
 	}
 	public transformForExport() {
 		const result: AventusI18nExported = {};
-		const locales = this.build.buildConfig.i18n?.locales ?? [];
+		const locales = (this.build.buildConfig.i18n?.locales ?? []).filter(locale => !I18nParser.isReservedI18nLocale(locale));
 		for (let locale of locales) {
 			result[locale] = {};
 		}

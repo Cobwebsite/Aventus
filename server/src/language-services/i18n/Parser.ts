@@ -20,6 +20,10 @@ export type I18nParsedItemLocale = {
 
 
 export class I18nParser {
+	public static readonly reservedI18nLocales = Object.getOwnPropertyNames(Object.prototype);
+	public static isReservedI18nLocale(locale: string): boolean {
+		return this.reservedI18nLocales.includes(locale);
+	}
 	public static parse(document: TextDocument) {
 		const result: I18nParsed = {};
 		const languageService = getLanguageService({});
@@ -32,7 +36,7 @@ export class I18nParser {
 				if (!keyObj || !valueObj || valueObj.type !== "object") {
 					continue;
 				}
-				if (keyObj.value === '__proto__') continue;
+				if (this.isReservedI18nLocale(String(keyObj.value))) continue;
 				const locales = valueObj.children ?? [];
 
 				const item: I18nParsedItem = {
@@ -50,6 +54,7 @@ export class I18nParser {
 							continue;
 						}
 						const locale = localeKeyObj.value + '';
+						if (this.isReservedI18nLocale(locale)) continue;
 						const localeStart = localeKeyObj.offset;
 						const localeEnd = localeStart + localeKeyObj.length;
 						const value = localeValueObj.value + '';

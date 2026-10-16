@@ -39,6 +39,7 @@ import { OverrideViewDecorator } from '../language-services/ts/parser/decorators
 import { AventusI18nFile } from '../language-services/i18n/File';
 import { Store } from '../store/Store';
 import { SettingsManager } from '../settings/Settings';
+import { I18nParser } from '../language-services/i18n/Parser';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -1054,7 +1055,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
     }
 
     public async writeBuildI18n(outputs: AventusConfigBuildCompileOutputI18n[]) {
-        const locales = this.buildConfig.i18n?.locales ?? [];
+        const locales = (this.buildConfig.i18n?.locales ?? []).filter(locale => !I18nParser.isReservedI18nLocale(locale));
         for (let outputConfig of outputs) {
             for (let output of outputConfig.output) {
                 if (locales.length > 0 && !existsSync(output)) {
@@ -1954,7 +1955,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 if (this.buildConfig.i18n && this.buildConfig.i18n.autoRegister !== false) {
                     needI18n = false;
                     const output = compileConfig.i18n[0];
-                    codeModule += `Aventus.I18n.registerLocales(${JSON.stringify(this.buildConfig.i18n.locales)})` + EOL;
+                    codeModule += `Aventus.I18n.registerLocales(${JSON.stringify(this.buildConfig.i18n.locales.filter(locale => !I18nParser.isReservedI18nLocale(locale)))})` + EOL;
                     codeModule += `Aventus.I18n.registerFallback("${this.buildConfig.i18n.fallback}")` + EOL;
                     if (output.mode == "singleFile") {
                         const outputFile = (output.mount + "/" + "$locale.json").toLowerCase();
@@ -2018,7 +2019,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
             if (this.buildConfig.i18n && this.buildConfig.i18n.autoRegister !== false) {
                 needI18n = false;
                 const output = compileConfig.i18n[0];
-                codeModule += `Aventus.I18n.registerLocales(${JSON.stringify(this.buildConfig.i18n.locales)})` + EOL;
+                codeModule += `Aventus.I18n.registerLocales(${JSON.stringify(this.buildConfig.i18n.locales.filter(locale => !I18nParser.isReservedI18nLocale(locale)))})` + EOL;
                 codeModule += `Aventus.I18n.registerFallback("${this.buildConfig.i18n.fallback}")` + EOL;
                 if (output.mode == "singleFile") {
                     const outputFile = (output.mount + "/" + "$locale.json").toLowerCase();

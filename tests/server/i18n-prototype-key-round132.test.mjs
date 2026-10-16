@@ -34,7 +34,13 @@ test('une clé i18n __proto__ est refusée sans masquer les traductions valides'
     assert.deepEqual(diagnostics.map(item => item.message), ['Translation key __proto__ is not allowed']);
     assert.equal(source.documentUser.getText(diagnostics[0].range), '"__proto__"');
 
-    await source.triggerContentChange(TextDocument.create(uri, 'json', 3, '{"recovered":{"en":"Third","fr":"Troisième"}}'));
+    await source.triggerContentChange(TextDocument.create(uri, 'json', 3, '{"constructor":{"en":"Hidden","fr":"Caché"},"recovered":{"en":"Third","fr":"Troisième"}}'));
+    assert.deepEqual(translation.keys, ['recovered']);
+    assert.deepEqual(Object.keys(translation.parsed), ['recovered']);
+    assert.deepEqual((await source.validate(false)).map(item => item.message), ['Translation key constructor is not allowed']);
+    assert.equal(Object.hasOwn(translation.exported.en, 'constructor'), false);
+
+    await source.triggerContentChange(TextDocument.create(uri, 'json', 4, '{"recovered":{"en":"Third","fr":"Troisième"}}'));
     assert.deepEqual(await source.validate(false), []);
     assert.deepEqual(translation.keys, ['recovered']);
     assert.deepEqual(translation.exported.en, { recovered: 'Third' });

@@ -6,6 +6,7 @@ import { AventusI18nSchema } from './schema';
 import { AventusI18nFile, AventusI18nFileSrcParsed } from './File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { GenericServer } from '../../GenericServer';
+import { I18nParser } from './Parser';
 
 export class AventusI18nLanguageService {
 	public static readonly empty: string = "ⵌⵌ";
@@ -50,12 +51,22 @@ export class AventusI18nLanguageService {
 		}
 		try {
 			const parsed = file.parsed ?? {};
-			const locales = file.build.buildConfig.i18n?.locales ?? [];
+			const locales = (file.build.buildConfig.i18n?.locales ?? []).filter(locale => !I18nParser.isReservedI18nLocale(locale));
 			for (const property of jsonDoc.root.children ?? []) {
 				if (property.type !== 'property') continue;
 				const key = property.children?.[0];
-				if (key?.value === '__proto__') {
-					errors.push(createErrorI18nPos(document, 'Translation key __proto__ is not allowed', key.offset, key.offset + key.length));
+				if (key && I18nParser.isReservedI18nLocale(String(key.value))) {
+					errors.push(createErrorI18nPos(document, `Translation key ${key.value} is not allowed`, key.offset, key.offset + key.length));
+				}
+				if (property.children && property.children.length > 1) {
+					const children = property.children[1].children ?? [];
+					for (const localeProperty of children) {
+						if (localeProperty.type !== 'property') continue;
+						const locale = localeProperty.children[0];
+						if (locale && I18nParser.isReservedI18nLocale(String(locale.value))) {
+							errors.push(createErrorI18nPos(document, `Locale ${locale.value} is not allowed`, locale.offset, locale.offset + locale.length));
+						}
+					}
 				}
 			}
 
@@ -218,8 +229,9 @@ export class AventusI18nLanguageService {
 		}
 
 		const edits: TextEdit[] = [];
-		const locales = file.build.buildConfig.i18n?.locales ?? [];
+		const locales = (file.build.buildConfig.i18n?.locales ?? []).filter(locale => !I18nParser.isReservedI18nLocale(locale));
 		for (const property of root.properties) {
+			if (I18nParser.isReservedI18nLocale(String(property.keyNode.value))) continue;
 			const value = property.valueNode;
 			if (value?.type !== 'object') continue;
 
