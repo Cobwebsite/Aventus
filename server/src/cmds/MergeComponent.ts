@@ -26,6 +26,11 @@ export class MergeComponent {
 		let filename = splittedUri.pop();
 		let foldername = splittedUri.pop();
 		let newUri = splittedUri.join('/') + '/' + filename;
+		const destinationUri = newUri + AventusExtension.Component;
+		if (existsSync(uriToPath(destinationUri)) || FilesManager.getInstance().getByUri(destinationUri)) {
+			GenericServer.showErrorMessage("Cannot merge component because the destination already exists: " + destinationUri);
+			return;
+		}
 
 		let maxVersion = 0;
 		let jsDoc = FilesManager.getInstance().getByUri(fileUriNoExtension + AventusExtension.ComponentLogic);
@@ -79,7 +84,7 @@ export class MergeComponent {
 </style>
 `;
 		let compDoc = TextDocument.create(
-			newUri + AventusExtension.Component,
+			destinationUri,
 			AventusLanguageId.WebComponent,
 			maxVersion + 1,
 			mergeTxt

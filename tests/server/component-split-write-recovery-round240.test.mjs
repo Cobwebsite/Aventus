@@ -10,13 +10,14 @@ const [{ Commands }, { FilesManager }, { GenericServer }, { pathToUri, uriToPath
     'cmds/index.ts', 'files/FilesManager.ts', 'GenericServer.ts', 'tools.ts',
 ]);
 
-test('split retries after second output cannot be written', async t => {
+test('split refuses an occupied output path and succeeds after the obstruction is removed', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-split-write-recovery-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
-    const previous = { files: FilesManager.getInstance, notify: GenericServer.sendNotification };
+    const previous = { files: FilesManager.getInstance, notify: GenericServer.sendNotification, error: GenericServer.showErrorMessage };
     t.after(() => {
         FilesManager.getInstance = previous.files;
         GenericServer.sendNotification = previous.notify;
+        GenericServer.showErrorMessage = previous.error;
     });
 
     const folder = join(root, 'Card');
@@ -35,20 +36,24 @@ test('split retries after second output cannot be written', async t => {
     });
     const files = new Map([[sourceUri, asFile(TextDocument.create(sourceUri, 'Aventus WebComponent', 7, source))]]);
     const events = [];
+    const errors = [];
     FilesManager.getInstance = () => ({
         getByUri: uri => files.get(uri),
         onClose: document => files.delete(document.uri),
         registerFile: document => files.set(document.uri, asFile(document)),
     });
     GenericServer.sendNotification = (...event) => events.push(event);
+    GenericServer.showErrorMessage = message => errors.push(message);
 
     const split = () => Commands.allCommandes['aventus.component.split'].run(sourceUri);
-    await assert.rejects(split(), error => error?.code === 'EISDIR' || error?.code === 'EPERM');
-    assert.equal(readFileSync(stylePath, 'utf8'), '.card { color: red; }');
+    await split();
+    assert.equal(existsSync(stylePath), false);
     assert.equal(existsSync(logicPath), false);
     assert.equal(readFileSync(sourcePath, 'utf8'), source);
     assert.deepEqual([...files.keys()], [sourceUri]);
     assert.deepEqual(events, []);
+    assert.equal(errors.length, 1);
+    assert.match(errors[0], /Card\.wcv\.avt/);
 
     rmSync(viewPath, { recursive: true });
     await split();

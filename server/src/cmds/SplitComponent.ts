@@ -6,6 +6,7 @@ import { AventusWebComponentSingleFile } from '../language-services/ts/component
 import { CloseFile } from '../notification/CloseFile';
 import { OpenFile } from '../notification/OpenFile';
 import { unlinkSync, uriToPath } from '../tools';
+import { GenericServer } from '../GenericServer';
 
 export class SplitComponent {
 	static cmd: string = "aventus.component.split";
@@ -20,9 +21,27 @@ export class SplitComponent {
 		if (wcDoc) {
 
 			let newFolderPath = uriToPath(uri.replace(AventusExtension.Component, ""));
+			const newUri = uri.replace(AventusExtension.Component, "") + '/' + filename;
+			const destinations = [
+				newUri + AventusExtension.ComponentStyle,
+				newUri + AventusExtension.ComponentView,
+				newUri + AventusExtension.ComponentLogic,
+			];
+			
+			let conflict = false;
+			for(let destination of destinations) {
+				if(existsSync(uriToPath(destination)) || FilesManager.getInstance().getByUri(destination)) {
+					conflict = true;
+					break;
+				}
+			}
+
+			if (conflict) {
+				GenericServer.showErrorMessage("Cannot split component because the destination already exists: " + conflict);
+				return;
+			}
 			if (!existsSync(newFolderPath))
 				mkdirSync(newFolderPath);
-			const newUri = uri.replace(AventusExtension.Component, "") + '/' + filename;
 
 			let resultTemp = AventusWebComponentSingleFile.getRegion(wcDoc);
 			let scssUri = newUri + AventusExtension.ComponentStyle;
