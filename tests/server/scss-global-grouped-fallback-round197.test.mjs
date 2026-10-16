@@ -8,7 +8,7 @@ const [{ AventusGlobalSCSSLanguageService }, { AventusSCSSLanguageService }] = a
     'language-services/scss/LanguageService.ts',
 ]);
 
-test('grouped root declarations leave a cross-file consumer on the fallback until ungrouped', async () => {
+test('grouped root declarations are available to cross-file consumers and fall back after removal', async () => {
     const global = new AventusGlobalSCSSLanguageService();
     const local = new AventusSCSSLanguageService({ globalSCSSLanguageService: global });
     const primaryUri = 'file:///D:/round197/primary.scss.avt';
@@ -32,9 +32,9 @@ test('grouped root declarations leave a cross-file consumer on the fallback unti
         });
     };
 
-    load(primaryUri, 1, ':root, html { --accent: red; }');
+    const grouped = load(primaryUri, 1, ':root, html { --accent: red; }');
     const fallback = load(fallbackUri, 1, ':root { --accent: blue; }');
-    await check(fallbackUri, 'blue', fallback);
+    await check(primaryUri, 'red', grouped);
 
     const ungrouped = load(primaryUri, 2, ':root { --accent: red; }');
     await check(primaryUri, 'red', ungrouped);

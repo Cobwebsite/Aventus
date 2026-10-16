@@ -28,13 +28,14 @@ test('global variable index follows root declarations inside media rules and rem
     assert.equal(service.getDefinition('--replacement').value, 'white');
 });
 
-test('global variable index currently omits a root selector grouped with another selector', () => {
+test('global variable index includes a grouped root selector but ignores other selectors', () => {
     const service = new AventusGlobalSCSSLanguageService();
     const uri = 'file:///D:/round124-grouped.scss.avt';
-    load(service, uri, ':root, html { --accent: navy; }\n:root { --standalone: white; }');
+    load(service, uri, ':root, html { --accent: navy; }\n:root { --standalone: white; }\nhtml { --local: red; }');
 
     assert.equal(service.getDefinition('--standalone').value, 'white');
-    assert.equal(service.getDefinition('--accent'), undefined);
+    assert.equal(service.getDefinition('--accent').value, 'navy');
+    assert.equal(service.getDefinition('--local'), undefined);
 });
 
 test('global variable index keeps the first duplicate root declaration while CSS uses the last', () => {
