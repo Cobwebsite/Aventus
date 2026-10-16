@@ -6,7 +6,7 @@ const [{ GenericServer }, { SettingsManager }] = await loadServerModules([
     'GenericServer.ts', 'settings/Settings.ts',
 ]);
 
-test('older configuration response can overwrite a newer notification when client replies arrive out of order', async t => {
+test('older configuration response cannot overwrite a newer notification when client replies arrive out of order', async t => {
     const oldServer = GenericServer.instance;
     const oldSettings = SettingsManager.instance;
     t.after(() => {
@@ -16,10 +16,11 @@ test('older configuration response can overwrite a newer notification when clien
 
     const handlers = {};
     const pending = [];
+    const pendingHtml = [];
     const applied = [];
     const connection = new Proxy({
         getSettings: () => new Promise(resolve => pending.push(resolve)),
-        getSettingsHtml: async () => ({ customData: [] }),
+        getSettingsHtml: () => new Promise(resolve => pendingHtml.push(resolve)),
     }, {
         get(target, key) {
             if (key in target) return target[key];
@@ -29,8 +30,8 @@ test('older configuration response can overwrite a newer notification when clien
     const server = new GenericServer(connection);
     Object.defineProperty(server, 'logLevel', { value: 99 });
     SettingsManager.instance = {
-        initSettings: value => applied.push(value.logLevel),
-        setSettingsHtml: () => {},
+        initSettings: value => applied.push(['settings', value.logLevel]),
+        setSettingsHtml: value => applied.push(['html', value.customData]),
     };
 
     const firstRequest = handlers.onDidChangeConfiguration();
@@ -38,7 +39,15 @@ test('older configuration response can overwrite a newer notification when clien
     assert.equal(pending.length, 2);
     pending[1]({ logLevel: 1 });
     await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(applied, []);
+    pendingHtml[0]({ customData: ['new.json'] });
+    await secondRequest;
     pending[0]({ logLevel: 4 });
-    await Promise.all([firstRequest, secondRequest]);
-    assert.deepEqual(applied, [1, 4]);
+    await new Promise(resolve => setImmediate(resolve));
+    pendingHtml[1]({ customData: ['old.json'] });
+    await firstRequest;
+    assert.deepEqual(applied, [
+        ['settings', 1],
+        ['html', ['new.json']],
+    ]);
 });

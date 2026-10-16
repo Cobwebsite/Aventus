@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Réponse de configuration ancienne appliquée après une notification plus récente
-
-- Reproduction automatisée : `protocol-settings-race-round123.test.mjs` émet deux notifications de configuration, résout la seconde requête de paramètres avant la première, puis constate l'application des niveaux de journalisation dans l'ordre `1, 4`. La réponse ancienne écrase donc la configuration récente.
-- Cause : `onDidChangeConfiguration()` lance `loadSettings()` sans l'attendre ; plusieurs chargements peuvent se chevaucher sans numéro de génération ni annulation des réponses périmées.
-- Décision à prendre : sérialiser les rechargements ou ignorer les réponses d'une génération antérieure, en conservant un état cohérent entre paramètres généraux et HTML.
-
 ## Signatures Markdown de package inexactes pour les paramètres optionnels et variadiques
 
 - Reproduction automatisée : `manifest-package-parameters-round123.test.mjs` documente une fonction et une méthode `(prefix?: string, ...values: number[])`. Le Markdown affiche `prefix: string, values: number`, sans marqueur optionnel, préfixe variadique ni dimension de tableau.
