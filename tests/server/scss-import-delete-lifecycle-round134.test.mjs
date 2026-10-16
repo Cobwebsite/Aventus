@@ -3,16 +3,17 @@ import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ AventusWebSCSSFile }, { InternalAventusFile }, { FilesManager }, { AventusSCSSLanguageService }, { AventusGlobalSCSSLanguageService }, { GenericServer }] = await loadServerModules([
+const [{ AventusWebSCSSFile }, { InternalAventusFile }, { FilesManager }, { AventusSCSSLanguageService }, { AventusGlobalSCSSLanguageService }, { GenericServer }, { SettingsManager }] = await loadServerModules([
     'language-services/scss/File.ts',
     'files/AventusFile.ts',
     'files/FilesManager.ts',
     'language-services/scss/LanguageService.ts',
     'language-services/scss/GlobalLanguageService.ts',
     'GenericServer.ts',
+    'settings/Settings.ts',
 ]);
 
-test('SCSS imported partial edits propagate, then deletion leaves its consumer linked to a removed file', async t => {
+test('deleting an imported SCSS partial refreshes its consumer and clears stale CSS', async t => {
     const rootUri = 'file:///D:/round134/panel.wcs.avt';
     const partialUri = 'file:///D:/round134/_tokens.wcs.avt';
     const root = new InternalAventusFile(TextDocument.create(rootUri, 'scss', 1,
@@ -21,11 +22,15 @@ test('SCSS imported partial edits propagate, then deletion leaves its consumer l
     const byPath = new Map([root, partial].map(file => [file.path.replace(/\\/g, '/'), file]));
     const previousManager = FilesManager.getInstance;
     const previousServer = GenericServer.instance;
+    const previousSettings = SettingsManager.instance;
+    const diagnostics = [];
     FilesManager.getInstance = () => ({ getByPath: path => byPath.get(path.replace(/\\/g, '/')) });
-    GenericServer.instance = { logLevel: 0, connection: { sendDiagnostics() {} } };
+    GenericServer.instance = { logLevel: 0, connection: { sendDiagnostics: params => diagnostics.push(params) } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
     t.after(() => {
         FilesManager.getInstance = previousManager;
         GenericServer.instance = previousServer;
+        SettingsManager.instance = previousSettings;
         clearTimeout(root.delayValidate);
         clearTimeout(partial.delayValidate);
     });
@@ -51,8 +56,10 @@ test('SCSS imported partial edits propagate, then deletion leaves its consumer l
     assert.equal(component.compileResult, '.panel{color:blue}');
 
     byPath.delete(partial.path.replace(/\\/g, '/'));
-    await assert.rejects(partial.triggerDelete(), TypeError);
+    await partial.triggerDelete();
     assert.equal(partial.isDeleted, true);
-    assert.equal(component.compileResult, '.panel{color:blue}');
-    assert.ok(build.scssFiles[partialUri]);
+    assert.equal(component.compileResult, '');
+    assert.equal(build.scssFiles[partialUri], undefined);
+    assert.equal(Object.hasOwn(component.dependencies, partialUri), false);
+    assert.equal(diagnostics.some(item => item.uri === rootUri && item.diagnostics.some(diagnostic => diagnostic.message === "Can't load this file")), true);
 });
