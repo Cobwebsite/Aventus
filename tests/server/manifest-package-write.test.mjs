@@ -46,6 +46,42 @@ test('package manifest writes component snippets when forced and updates an exis
     }
 });
 
+test('package manifest keeps the default snippet when no component has a tag', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'aventus-package-manifest-empty-'));
+    const oldServer = GenericServer.instance;
+    const oldSettings = SettingsManager.instance;
+    const oldFiles = ManifestPackage.files;
+    const oldDone = ManifestPackage.done;
+    const uri = pathToFileURL(join(root, 'component.package.avt')).href;
+    const output = join(root, '.aventus', 'emmet', 'snippets.json');
+    GenericServer.instance = { workspaces: [pathToFileURL(root).href] };
+    SettingsManager.instance = { settings: { useStats: false } };
+    ManifestPackage.files = { [uri]: { file: { uri }, srcInfo: { available: [] } } };
+    ManifestPackage.done = false;
+    try {
+        await ManifestPackage.write(false);
+        assert.equal(existsSync(output), false);
+        assert.equal(ManifestPackage.done, true);
+
+        await ManifestPackage.write(true);
+        const initial = JSON.parse(readFileSync(output, 'utf8')).html.snippets;
+        assert.deepEqual(initial, { block: '<block name="${1}">${2}</block>' });
+
+        ManifestPackage.files[uri].srcInfo.available = [{ tagName: 'demo-card' }];
+        await ManifestPackage.write(false);
+        ManifestPackage.files[uri].srcInfo.available = [];
+        await ManifestPackage.write(false);
+        const updated = JSON.parse(readFileSync(output, 'utf8')).html.snippets;
+        assert.deepEqual(updated, { block: '<block name="${1}">${2}</block>' });
+    } finally {
+        GenericServer.instance = oldServer;
+        SettingsManager.instance = oldSettings;
+        ManifestPackage.files = oldFiles;
+        ManifestPackage.done = oldDone;
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
 test('package manifest registers each file once and refreshes after initialization', async () => {
     const oldFiles = ManifestPackage.files;
     const oldDone = ManifestPackage.done;
