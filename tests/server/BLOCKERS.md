@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Documentation Storybook interprétée comme une expression TypeScript
-
-- Reproduction automatisée : `storybook-description-interpolation-round130.test.mjs` parse une classe dont le JSDoc contient le texte littéral `${name}`. La story générée place ce texte dans un template TypeScript ; l'AST contient une interpolation de l'identifiant `name`, qui n'est pas défini dans la story.
-- Cause : `Storie.writeStory()` échappe les accents graves de la description, mais pas la séquence `${` avant de la placer dans `component: \`...\``.
-- Décision à prendre : encoder la description comme littéral TypeScript sûr ou échapper les caractères spéciaux des templates, puis vérifier que le texte rendu reste identique au JSDoc.
-
 ## Plusieurs templates d'environnement Storybook empêchent l'initialisation
 
 - Reproduction automatisée : `storybook-multiple-templates-round129.test.mjs` fournit deux dossiers sous `templates/storybook`. `Storie.readEnvStoryBook()` rejette avec la chaîne `TODO code multiple template` et ne copie aucun fichier vers le dossier de sortie.

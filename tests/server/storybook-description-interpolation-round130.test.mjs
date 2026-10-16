@@ -13,7 +13,7 @@ const [, { ParserTs }, { Storie }, { SettingsManager }, { GenericServer }] = awa
 ]);
 GenericServer.instance = { logLevel: 4 };
 
-test('Storybook turns literal JSDoc interpolation syntax into a generated template expression', async () => {
+test('Storybook keeps JSDoc interpolation syntax as literal description text', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-storybook-description-'));
     const previous = SettingsManager.instance;
     SettingsManager.instance = { settings: { useStats: false } };
@@ -26,20 +26,21 @@ test('Storybook turns literal JSDoc interpolation syntax into a generated templa
         const uri = `file:///${root.replaceAll('\\', '/')}/description.lib.avt`;
         const document = TextDocument.create(uri, 'typescript', 1, `
             namespace Catalog {
-                /** Shows the literal \${name} marker. */
+                /** Shows the literal \${name} marker and $& token. */
                 @Storybook({group:"Models"})
                 export class Item {}
             }
         `);
         const file = { uri, versionInternal: 1, documentUser: document, documentInternal: document };
         const parsed = ParserTs.parse(file, false, build);
-        assert.match(parsed.classes.Item.documentation.definitions.join(' '), /\$\{name\}/);
+        const description = parsed.classes.Item.documentation.definitions.join('\n');
+        assert.match(description, /\$\{name\}/);
         await new Storie(build, config).write({ [uri]: { fileParsed: parsed } }, true);
         const storyPath = join(root, 'auto', 'Catalog', 'Item.stories.ts');
         const output = readFileSync(storyPath, 'utf8');
         const source = ts.createSourceFile(storyPath, output, ts.ScriptTarget.Latest, true);
         assert.deepEqual(source.parseDiagnostics, []);
-        assert.match(output, /literal \$\{name\} marker/);
+        assert.match(output, /literal \$\{name\} marker and \$& token/);
         const template = source.statements
             .find(statement => ts.isVariableStatement(statement))
             ?.declarationList.declarations[0].initializer
@@ -48,8 +49,8 @@ test('Storybook turns literal JSDoc interpolation syntax into a generated templa
             ?.initializer.properties.find(property => property.name?.text === 'description')
             ?.initializer.properties.find(property => property.name?.text === 'component')
             ?.initializer;
-        assert.ok(ts.isTemplateExpression(template));
-        assert.equal(template.templateSpans[0].expression.getText(source), 'name');
+        assert.ok(ts.isStringLiteral(template));
+        assert.equal(template.text, description);
     } finally {
         SettingsManager.instance = previous;
         rmSync(root, { recursive: true, force: true });
