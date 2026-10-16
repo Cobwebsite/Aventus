@@ -11,7 +11,7 @@ import { InitStep } from '../notification/InitStep';
 import { GenericServer } from '../GenericServer';
 import { FilesWatcher } from './FilesWatcher';
 import { SettingsManager } from '../settings/Settings';
-import { normalize } from 'path';
+import { relative } from 'path';
 import { ProjectManager } from '../project/ProjectManager';
 import { Statistics } from '../notification/Statistics';
 
@@ -208,52 +208,46 @@ export class FilesManager {
         }
         let checkFile = (filePath: string) => true;
         if (readDirs.length > 0) {
-            let regexsDir: string[] = [];
-            const allowedDirs: string[] = [];
-            for (let dir of readDirs) {
-                let slash = "";
-                let allowPath = dir.replace(/\\/g, '/');
-                if (!allowPath.startsWith("/")) {
-                    slash = "/";
-                }
-                let splitedpath = allowPath.split("/");
-                if (splitedpath[splitedpath.length - 1] == "" || splitedpath[splitedpath.length - 1] == "*") {
-                    splitedpath[splitedpath.length - 1] = "*"
-                }
-                else if (splitedpath[splitedpath.length - 1].indexOf(".") == -1) {
-                    // its a folder but without end slash
-                    splitedpath.push("*");
-                }
-                allowPath = splitedpath.join("/");
-                let regTemp = normalize(uriToPath(workspace) + slash + allowPath).replace(/\\/g, '/');
-                regTemp = escapeRegex(regTemp, true).replace("*", ".*");
-                let splittedAllow = regTemp.split("/");
-                let currentPath = "";
-                for (let part of splittedAllow) {
-                    if (part == ".*") continue;
-                    if (currentPath == "") currentPath = part;
-                    else currentPath += "/" + part;
+            const patterns = readDirs.map(dir => {
+                const parts = dir.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').split('/');
+                const segments = parts.map(part => new RegExp('^' + escapeRegex(part, true).replace(/\*/g, '[^/]*') + '$'));
+                return { segments, isFile: parts[parts.length - 1].includes('.') };
+            });
+            const pathSegments = (path: string) => {
+                return relative(workspacePath, path).replace(/\\/g, '/').split('/').filter(Boolean);
+            }
 
-                    if (!allowedDirs.includes(currentPath)) {
-                        allowedDirs.push(currentPath);
+            const matchesPrefix = (path: string[], pattern: RegExp[]) => {
+                return path.every((segment, index) => pattern[index]?.test(segment) ?? false);
+            }
+            checkPath = (path: string) => {
+                const segments = pathSegments(path);
+                for (let pattern of patterns) {
+                    if (segments.length <= pattern.segments.length) {
+                        if (matchesPrefix(segments, pattern.segments)) {
+                            return true;
+                        }
+                    }
+                    else if (!pattern.isFile && matchesPrefix(segments.slice(0, pattern.segments.length), pattern.segments)) {
+                        return true;
                     }
                 }
-                regexsDir.push("(^" + regTemp + "$)");
-
-            }
-            let regexsDirJoin = regexsDir.join("|");
-            if (regexsDirJoin == "") {
-                regexsDirJoin = "(?!)";
-            }
-            const regex = new RegExp(regexsDirJoin);
-            checkFile = (filePath: string) => regex.test(filePath.replace(/\\/g, '/'));
-            checkPath = (workspacePathTemp: string) => {
-                // for the children
-                const resChildren = (workspacePathTemp + "/").match(regex) != null;
-                // for the parent
-                const resParent = allowedDirs.includes(workspacePathTemp);
-                return resChildren || resParent;
-            }
+                return false;
+            };
+            checkFile = (path: string) => {
+                const segments = pathSegments(path);
+                for (let pattern of patterns) {
+                    if (pattern.isFile) {
+                        if (segments.length === pattern.segments.length && matchesPrefix(segments, pattern.segments)) {
+                            return true;
+                        }
+                    }
+                    else if (segments.length > pattern.segments.length && matchesPrefix(segments.slice(0, pattern.segments.length), pattern.segments)) {
+                        return true;
+                    }
+                }
+                return false;
+            };
         }
 
         /**
