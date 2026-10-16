@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Conversion de composant écrasant une destination déjà présente
-
-- Reproduction automatisée : `component-destination-collision-round124.test.mjs` prépare un composant en fichier unique et trois fichiers de destination contenant déjà du texte. La commande `split` remplace les trois contenus, supprime la source et n'émet aucune erreur. Le parcours inverse `merge` remplace également un composant unique préexistant avant de supprimer les sources séparées.
-- Cause : `SplitComponent.run()` et `MergeComponent.run()` écrivent directement les destinations avec `writeFileSync()` sans vérifier si elles existent ni demander confirmation.
-- Décision à prendre : définir si l'écrasement est autorisé. Si oui, le rendre explicite et vérifier le traitement des fichiers déjà ouverts ou modifiés en mémoire ; sinon, refuser la conversion avant toute écriture ou suppression.
-
 ## Injection JavaScript par l'en-tête Host dans le script du serveur HTTP
 
 - Reproduction automatisée : `http-injected-host-round125.test.mjs` interroge le serveur HTTP réel avec `Host: localhost';globalThis.injectedHostMarker=true;//`. La réponse de `/?get_injected_code` contient `var address = 'ws://localhost';globalThis.injectedHostMarker=true;///ws';` : la valeur fournie par le client sort de la chaîne JavaScript.
@@ -316,12 +310,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `template-repeated-blocks-round196.test.mjs` génère un fichier avec deux blocs `#{{wrap}}...#{{wrap/}}` séparés par du texte. Le premier devient `[FIRST WIDGET]`, mais le second conserve ses marqueurs bruts (`#{{wrap}}second Widget#{{wrap/}}`). Les variables sont néanmoins substituées dans les deux blocs et le fichier est enregistré.
 - Cause observée : `AventusTemplate.replaceBlocks()` recherche globalement les correspondances dans le texte initial tout en remplaçant ce texte pendant l'itération ; l'index de recherche saute le second bloc après la première substitution.
 - Décision à prendre : traiter tous les blocs d'un même nom de façon indépendante, en préservant le texte intermédiaire et l'ordre des transformations.
-
-## Séparation de composant dans un dossier préexistant
-
-- Reproduction automatisée : `component-split-existing-folder-round173.test.mjs` sépare `Card.wc.avt` dans un dossier `Card` déjà présent avec `Card.wcs.avt` et un fichier étranger. Le style préexistant est écrasé sans avertissement ; le fichier étranger reste intact et la source unique est supprimée.
-- Cause : `SplitComponent.run()` crée seulement le dossier s'il manque, puis écrit directement les trois fichiers avec `writeFileSync` sans vérifier leur existence.
-- Décision à prendre : définir le comportement attendu en cas de conflit de nom et éviter une perte silencieuse du contenu préexistant avant de supprimer la source unique.
 
 ## Destruction incomplète du projet après échec d'un build
 

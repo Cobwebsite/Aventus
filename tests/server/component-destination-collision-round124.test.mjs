@@ -47,7 +47,7 @@ async function withFiles(callback) {
     }
 }
 
-test('split overwrites existing three-part files and leaves unrelated folder files', async () => {
+test('split refuses existing three-part files without changing source or destinations', async () => {
     await withFiles(async ({ root, files, notifications, errors }) => {
         const sourcePath = join(root, 'Button.wc.avt');
         const folderPath = join(root, 'Button');
@@ -62,17 +62,17 @@ test('split overwrites existing three-part files and leaves unrelated folder fil
 
         await commands['aventus.component.split'].run(sourceUri);
 
-        assert.equal(existsSync(sourcePath), false);
-        assert.equal(readFileSync(join(folderPath, 'Button.wcl.avt'), 'utf8'), 'export class Button {}');
-        assert.equal(readFileSync(join(folderPath, 'Button.wcv.avt'), 'utf8'), '<b>new</b>');
-        assert.equal(readFileSync(join(folderPath, 'Button.wcs.avt'), 'utf8'), 'b { color: red; }');
+        assert.equal(readFileSync(sourcePath, 'utf8'), source);
+        for (const path of oldPaths) assert.equal(readFileSync(path, 'utf8'), 'old content');
         assert.equal(readFileSync(join(folderPath, 'notes.txt'), 'utf8'), 'preserve');
-        assert.deepEqual(notifications.map(([channel]) => channel), ['aventus/closefile', 'aventus/openfile']);
-        assert.deepEqual(errors, []);
+        assert.deepEqual(notifications, []);
+        assert.deepEqual([...files.keys()], [sourceUri]);
+        assert.equal(errors.length, 1);
+        assert.match(errors[0], /Button\.wcs\.avt/);
     });
 });
 
-test('merge overwrites an existing single-file component before removing split sources', async () => {
+test('merge refuses an existing single-file component before removing sources', async () => {
     await withFiles(async ({ root, files, notifications, errors }) => {
         const folderPath = join(root, 'Button');
         mkdirSync(folderPath);
@@ -86,11 +86,46 @@ test('merge overwrites an existing single-file component before removing split s
 
         await commands['aventus.component.merge'].run(logicUri);
 
-        assert.match(readFileSync(destinationPath, 'utf8'), /export class Button/);
-        assert.equal(existsSync(logicPath), false);
-        assert.equal(existsSync(folderPath), false);
-        assert.deepEqual(notifications.map(([channel]) => channel), ['aventus/closefile', 'aventus/openfile']);
-        assert.deepEqual(errors, []);
-        assert.notEqual(readFileSync(destinationPath, 'utf8'), priorContent);
+        assert.equal(readFileSync(destinationPath, 'utf8'), priorContent);
+        assert.equal(readFileSync(logicPath, 'utf8'), 'export class Button {}');
+        assert.equal(existsSync(folderPath), true);
+        assert.deepEqual(notifications, []);
+        assert.deepEqual([...files.keys()], [logicUri]);
+        assert.equal(errors.length, 1);
+        assert.match(errors[0], /Button\.wc\.avt/);
+    });
+});
+
+test('split and merge also refuse destinations present only in the file cache', async () => {
+    await withFiles(async ({ root, files, notifications, errors }) => {
+        const sourcePath = join(root, 'Button.wc.avt');
+        const sourceUri = pathToUri(sourcePath);
+        const source = '<script>export class Button {}</script>';
+        writeFileSync(sourcePath, source);
+        files.set(sourceUri, file(sourceUri, source));
+        const styleUri = pathToUri(join(root, 'Button', 'Button.wcs.avt'));
+        files.set(styleUri, file(styleUri, 'unsaved style'));
+
+        await commands['aventus.component.split'].run(sourceUri);
+        assert.equal(readFileSync(sourcePath, 'utf8'), source);
+        assert.equal(existsSync(join(root, 'Button')), false);
+        assert.equal(files.get(styleUri).contentUser, 'unsaved style');
+
+        files.delete(styleUri);
+        const folderPath = join(root, 'Button');
+        mkdirSync(folderPath);
+        const logicPath = join(folderPath, 'Button.wcl.avt');
+        const logicUri = pathToUri(logicPath);
+        writeFileSync(logicPath, 'export class Button {}');
+        files.set(logicUri, file(logicUri, 'export class Button {}'));
+        rmSync(sourcePath);
+
+        await commands['aventus.component.merge'].run(logicUri);
+        assert.equal(readFileSync(logicPath, 'utf8'), 'export class Button {}');
+        assert.equal(existsSync(sourcePath), false);
+        assert.deepEqual(notifications, []);
+        assert.equal(errors.length, 2);
+        assert.match(errors[0], /Button\.wcs\.avt/);
+        assert.match(errors[1], /Button\.wc\.avt/);
     });
 });
