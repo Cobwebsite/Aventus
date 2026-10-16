@@ -12,7 +12,7 @@ const [{ ParserHtml }, { AventusSCSSLanguageService }, { AventusGlobalSCSSLangua
     'language-services/html/File.ts',
 ]);
 
-test('HTML style references after edits depend on whether attached TypeScript returns null or an empty list', async () => {
+test('HTML style references remain available when attached TypeScript returns an empty list', async () => {
     const base = `file:///D:/test/html-style-references-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const viewUri = `${base}.wcv.avt`;
     const styleUri = `${base}.wcs.avt`;
@@ -47,11 +47,11 @@ test('HTML style references after edits depend on whether attached TypeScript re
 
     update('<div class="card"></div><button class="card"></button>', '.card { color: red; }', 1);
     assert.deepEqual((await references('card', null)).map(item => item.uri), [styleUri]);
-    assert.deepEqual(await references('card', []), []);
+    assert.deepEqual((await references('card', [])).map(item => item.uri), [styleUri]);
 
     update('<div class="panel"></div><button class="panel"></button>', '.panel { color: blue; }', 2);
     assert.deepEqual((await references('panel', null)).map(item => style.file.documentUser.getText(item.range)), ['.panel']);
-    assert.deepEqual(await references('panel', []), []);
+    assert.deepEqual((await references('panel', [])).map(item => style.file.documentUser.getText(item.range)), ['.panel']);
     const tsReference = { uri: `${base}.wcl.avt`, range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } } };
     assert.deepEqual(await references('panel', [tsReference]), [tsReference]);
 });
