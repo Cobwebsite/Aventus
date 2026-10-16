@@ -184,8 +184,8 @@ export class AventusGlobalSCSSLanguageService {
                     nodeParent = nodeParent.parent;
                 }
                 if (nodeParent) {
-                    let selectorText = nodeParent["selectors"].getText();
-                    if (selectorText == ":root") {
+                    const selectors = nodeParent["selectors"] as Node;
+                    if (selectors.getChildren().some(selector => selector.getText().trim() === ":root")) {
                         let propertyNode = node.getChild(0);
                         let expressionNode = node.getChild(1);
                         if (propertyNode && expressionNode) {

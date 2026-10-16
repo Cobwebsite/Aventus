@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Variable CSS globale omise dans un sélecteur `:root` groupé
-
-- Reproduction automatisée : `scss-global-selector-scope-round124.test.mjs` charge `:root, html { --accent: navy; }` suivi d'une déclaration `:root` seule. L'index contient la seconde variable, mais `getDefinition('--accent')` ne trouve pas la première.
-- Portée entre fichiers : `scss-global-grouped-fallback-round197.test.mjs` charge d'abord `:root, html { --accent: red; }`, puis une autre feuille `:root { --accent: blue; }`. Le composant consommateur pointe vers la seconde feuille jusqu'au retrait de `html` dans la première ; un sélecteur `html` seul rétablit la seconde source, et sa suppression retire la définition.
-- Cause : `AventusGlobalSCSSLanguageService.loadVariables()` exige que le texte complet du sélecteur soit exactement `:root`. Un groupe contenant `:root` ne satisfait pas cette comparaison.
-- Décision à prendre : reconnaître `:root` parmi les sélecteurs d'une règle, sans traiter comme globale une variable déclarée seulement sous un autre sélecteur.
-
 ## Doublon de variable CSS globale pointant vers la première déclaration
 
 - Reproduction automatisée : `scss-global-selector-scope-round124.test.mjs` charge deux règles successives `:root` définissant `--accent` à `red`, puis `blue`. `getDefinition('--accent')` pointe sur la première déclaration et affiche `red`. Après retrait de celle-ci, l'index affiche `blue`.
