@@ -13,7 +13,7 @@ test('color picker finds hex, RGB and named colors in a multiline document', () 
     const colors = ColorPicker.onDocumentColor(document);
     assert.equal(colors.length, 3);
     assert.deepEqual(colors.map(item => item.color).map(({ red, green, blue }) => [red, green, blue]), [
-        [1, 0, 0], [0, 1, 0], [0, 0, 1],
+        [1, 0, 0], [0, 0, 1], [0, 1, 0],
     ]);
     assert.ok(colors.every(item => item.range.start.line === 1));
 });
