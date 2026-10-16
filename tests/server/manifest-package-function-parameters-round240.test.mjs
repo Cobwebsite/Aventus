@@ -31,12 +31,12 @@ test('package Markdown refreshes parsed optional, default and rest parameters af
 
     const first = render(1, '/** Original combination. */ export function combine(first?: string, suffix = "!", ...parts: number[]): string { return ""; }');
     assert.match(first, /Original combination/);
-    assert.match(first, /combine\(first: string, suffix: any, parts: number\)/);
-    assert.doesNotMatch(first, /first\?:|suffix =|\.\.\.parts|number\[\]/);
+    assert.match(first, /combine\(first\?: string, suffix: any, \.\.\.parts: number\[\]\)/);
+    assert.doesNotMatch(first, /suffix =/);
 
     const second = render(2, '/** Revised combination. */ export function combine(label: string, ...flags: boolean[]): number { return 1; }');
     assert.match(second, /Revised combination/);
-    assert.match(second, /combine\(label: string, flags: boolean\)/);
+    assert.match(second, /combine\(label: string, \.\.\.flags: boolean\[\]\)/);
     assert.match(second, /Return : number/);
     assert.doesNotMatch(second, /Original combination|first: string|suffix: any|parts: number/);
 

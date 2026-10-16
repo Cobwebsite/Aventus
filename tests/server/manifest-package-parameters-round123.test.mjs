@@ -5,12 +5,12 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { ManifestPackageMd } = await loadServerModule('manifest/ManifestPackage.ts');
 
-test('package Markdown signatures expose current optional and rest parameter rendering', () => {
+test('package Markdown preserves optional and rest parameters for generic functions and methods', () => {
     const source = ts.createSourceFile('parameters.ts', `
         export class Collector {
-            collect(prefix?: string, ...values: number[]): number { return values.length; }
+            collect<T extends number>(prefix?: string, ...values: T[]): number { return values.length; }
         }
-        export function combine(prefix?: string, ...values: number[]): number { return values.length; }
+        export function combine<T extends number>(prefix?: string, ...values: T[]): number { return values.length; }
     `, ts.ScriptTarget.Latest, true);
     const classNode = source.statements[0];
     const methodNode = classNode.members[0];
@@ -34,7 +34,6 @@ test('package Markdown signatures expose current optional and rest parameter ren
     };
 
     const markdown = new ManifestPackageMd(file).getContent();
-    assert.match(markdown, /## combine\(prefix: string, values: number\)/);
-    assert.match(markdown, /\| collect\(prefix: string, values: number\) \| number \|/);
-    assert.doesNotMatch(markdown, /prefix\?|\.\.\.values/);
+    assert.match(markdown, /## combine<T extends number>\(prefix\?: string, \.\.\.values: T\[\]\)/);
+    assert.match(markdown, /\| collect<T extends number>\(prefix\?: string, \.\.\.values: T\[\]\) \| number \|/);
 });

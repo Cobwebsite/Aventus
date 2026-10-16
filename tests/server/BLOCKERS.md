@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Signatures Markdown de package inexactes pour les paramètres optionnels et variadiques
-
-- Reproduction automatisée : `manifest-package-parameters-round123.test.mjs` documente une fonction et une méthode `(prefix?: string, ...values: number[])`. Le Markdown affiche `prefix: string, values: number`, sans marqueur optionnel, préfixe variadique ni dimension de tableau.
-- Cause : `ManifestPackageMd.loadFunction()` et `loadMethod()` ne recopient que le nom et le type du paramètre ; `TypeInfo.getFullTxt()` réduit ici `number[]` à `number`.
-- Décision à prendre : préserver la syntaxe optionnelle et variadique des paramètres ainsi que le type tableau dans les signatures Markdown, puis vérifier les mêmes cas pour les fonctions et méthodes génériques.
-
 ## Variable CSS globale omise dans un sélecteur `:root` groupé
 
 - Reproduction automatisée : `scss-global-selector-scope-round124.test.mjs` charge `:root, html { --accent: navy; }` suivi d'une déclaration `:root` seule. L'index contient la seconde variable, mais `getDefinition('--accent')` ne trouve pas la première.

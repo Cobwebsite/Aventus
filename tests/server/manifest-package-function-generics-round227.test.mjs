@@ -37,8 +37,7 @@ test('package Markdown replaces parsed generic function signatures and documenta
     const second = render(2, '/** Select a number. */ export function select<U extends number = number>(value: U, count: number): U[] { return [value]; }');
     assert.match(second, /select<U extends number = number>\(value: U, count: number\)/);
     assert.match(second, /Select a number/);
-    assert.match(second, /Return : U\b/);
-    assert.doesNotMatch(second, /Return : U\[\]/);
+    assert.match(second, /Return : U\[\]/);
     assert.doesNotMatch(second, /Select a string|item: T|extends string|Return : T/);
 
     const third = render(3, '/** Select a flag. */ export function select(enabled: boolean): boolean { return enabled; }');
