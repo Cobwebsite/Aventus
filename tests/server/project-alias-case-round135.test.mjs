@@ -4,13 +4,11 @@ import { loadServerModules } from './helpers/load-ts.mjs';
 
 const [{ Project }] = await loadServerModules(['project/Project.ts']);
 
-test('alias resolution treats differently cased Windows paths as distinct folders', () => {
+test('alias resolution treats differently cased Windows paths as the same folder', () => {
     const project = Object.create(Project.prototype);
     project.configFile = { folderPath: 'C:\\Workspace\\Project' };
     project.config = { aliases: { '@src': 'src' } };
 
     assert.equal(project.resolveAlias('@src/item', 'C:\\Workspace\\Project\\src'), './item');
-    const differentlyCased = project.resolveAlias('@src/item', 'c:\\workspace\\project\\src');
-    assert.notEqual(differentlyCased, './item');
-    assert.match(differentlyCased, /item$/);
+    assert.equal(project.resolveAlias('@src/item', 'c:\\workspace\\project\\src'), './item');
 });
