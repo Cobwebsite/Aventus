@@ -191,8 +191,7 @@ export class AventusGlobalSCSSLanguageService {
                         if (propertyNode && expressionNode) {
                             let propName = propertyNode.getText();
                             if (propName.startsWith("--")) {
-                                propertyNode.offset
-                                if (!result[propName]) {
+                                if (!result[propName] || document.offsetAt(result[propName].range.start) < propertyNode.offset) {
                                     result[propName] = {
                                         name: propName,
                                         uri: uri,
