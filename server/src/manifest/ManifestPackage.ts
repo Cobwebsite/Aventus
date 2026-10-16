@@ -38,14 +38,12 @@ export class ManifestPackage {
 				}
 			}
 		};
-		let canWrite: boolean = false;
 		for (const uri in this.files) {
 			const exports = this.files[uri].srcInfo.available;
 			for (const info of exports) {
 				if (info.tagName) {
 					const tag = info.tagName;
 					result.html.snippets[tag] = `<${tag}>\${1}</${tag}>`
-					canWrite = true;
 				}
 			}
 		}
@@ -53,11 +51,6 @@ export class ManifestPackage {
 		const dir = uriToPath(GenericServer.getWorkspaceUri());
 		const emmetPath = join(dir, ".aventus", "emmet");
 		const snippetPath = join(emmetPath, "snippets.json");
-		if (!canWrite) {
-			if (existsSync(snippetPath)) rmSync(snippetPath);
-			this.done = true;
-			return;
-		}
 		if (!force && !existsSync(snippetPath)) {
 			this.done = true;
 			return;
