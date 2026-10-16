@@ -343,7 +343,7 @@ export class AventusHTMLFile extends AventusBaseFile {
     }
     protected async onReferences(document: AventusFile, position: Position): Promise<Location[]> {
         let resultTemp = await this.tsFile?.doReferences(position)
-        if (resultTemp) {
+        if (resultTemp?.length) {
             return resultTemp;
         }
         return this.build.htmlLanguageService.getLinkToStyle(this, position);

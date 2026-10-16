@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Références d'une classe HTML masquées par une réponse TypeScript vide
-
-- Reproduction automatisée : `html-style-references-fallback-round129.test.mjs` lie une vue à une classe TS et à un style SCSS, puis modifie vue et style. Pour une classe présente dans le style, `onReferences()` renvoie le sélecteur si la recherche TS répond `null`, mais renvoie `[]` si elle répond `[]`. Une réponse TS non vide est renvoyée seule.
-- Cause : `AventusHTMLFile.onReferences()` teste la vérité de `resultTemp`. Un tableau vide est vrai en JavaScript, ce qui court-circuite `getLinkToStyle()`.
-- Décision à prendre : définir si les références HTML doivent agréger les résultats TS et SCSS ou utiliser le style seulement quand TS ne trouve rien ; couvrir ensuite la recherche et le renommage avec un vrai fichier TS lié.
-
 ## Fonctions de couleur CSS valides ignorées par le color picker
 
 - Reproduction automatisée : `color-picker-missing-functions-round130.test.mjs` confirme que le parseur CSS accepte `hwb(...)`, `lab(...)`, `lch(...)` et `color-mix(...)`, mais que `onDocumentColor()` ne renvoie aucune plage pour ces fonctions. Les couleurs hexadécimales et `rgb(...)` voisines restent reconnues ; les noms `red` et `blue` internes à `color-mix(...)` sont renvoyés séparément.
