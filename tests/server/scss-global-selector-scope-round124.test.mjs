@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { loadServerModule } from './helpers/load-ts.mjs';
+import { loadServerModules } from './helpers/load-ts.mjs';
 
-const { AventusGlobalSCSSLanguageService } = await loadServerModule('language-services/scss/GlobalLanguageService.ts');
+const [{ AventusGlobalSCSSLanguageService }, { AventusSCSSLanguageService }] = await loadServerModules([
+    'language-services/scss/GlobalLanguageService.ts',
+    'language-services/scss/LanguageService.ts',
+]);
 
 function load(service, uri, content, version = 1) {
     const documentUser = TextDocument.create(uri, 'scss', version, content);
@@ -38,16 +41,30 @@ test('global variable index includes a grouped root selector but ignores other s
     assert.equal(service.getDefinition('--local'), undefined);
 });
 
-test('global variable index keeps the first duplicate root declaration while CSS uses the last', () => {
+test('global variable navigation and hover follow the last root declaration in a file', async () => {
     const service = new AventusGlobalSCSSLanguageService();
+    const local = new AventusSCSSLanguageService({ globalSCSSLanguageService: service });
     const uri = 'file:///D:/round124-duplicate.scss.avt';
     const doc = load(service, uri, ':root { --accent: red; }\n:root { --accent: blue; }');
+    const consumerUri = 'file:///D:/round124-consumer.wcs.avt';
+    const consumer = { documentUser: TextDocument.create(consumerUri, 'scss', 1, '.card { color: var(--accent); }') };
+    const position = consumer.documentUser.positionAt(consumer.documentUser.getText().indexOf('--accent') + 3);
 
     const accent = service.getDefinition('--accent');
-    assert.equal(accent.value, 'red');
+    assert.equal(accent.value, 'blue');
     assert.equal(doc.getText(accent.range), '--accent');
-    assert.deepEqual(accent.range.start, { line: 0, character: 8 });
+    assert.deepEqual(accent.range.start, { line: 1, character: 8 });
+    assert.deepEqual((await local.findDefinition(consumer, position))?.[0], { uri, range: accent.range });
+    assert.equal((await local.doHover(consumer, position))?.contents.value, '--accent: blue');
 
-    load(service, uri, ':root { --accent: blue; }', 2);
+    load(service, uri, ':root { --accent: red; }', 2);
+    assert.equal(service.getDefinition('--accent').value, 'red');
+    assert.equal((await local.doHover(consumer, position))?.contents.value, '--accent: red');
+});
+
+test('conditional root declaration follows source order for navigation', () => {
+    const service = new AventusGlobalSCSSLanguageService();
+    const uri = 'file:///D:/round124-conditional.scss.avt';
+    load(service, uri, ':root { --accent: red; }\n@media (prefers-color-scheme: dark) { :root { --accent: blue; } }');
     assert.equal(service.getDefinition('--accent').value, 'blue');
 });

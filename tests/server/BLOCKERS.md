@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Doublon de variable CSS globale pointant vers la première déclaration
-
-- Reproduction automatisée : `scss-global-selector-scope-round124.test.mjs` charge deux règles successives `:root` définissant `--accent` à `red`, puis `blue`. `getDefinition('--accent')` pointe sur la première déclaration et affiche `red`. Après retrait de celle-ci, l'index affiche `blue`.
-- Cause : `AventusGlobalSCSSLanguageService.loadVariables()` ne remplace pas `result[propName]` lorsqu'une propriété de même nom a déjà été rencontrée dans le fichier.
-- Décision à prendre : définir si la navigation et le hover doivent viser la déclaration qui l'emporte selon la cascade CSS, en tenant compte aussi des règles conditionnelles et de plusieurs feuilles globales.
-
 ## Définition de composant ignorée dans le second build partageant une sortie
 
 - Reproduction automatisée : `project-shared-output-definition-round124.test.mjs` associe deux builds au même chemin de sortie. Le premier ne définit pas `x-second`, le second le définit ; `Project.getInternalWebComponentDefinition()` renvoie néanmoins `undefined` sans interroger le second. Avec des chemins distincts, la recherche atteint correctement le build correspondant.
