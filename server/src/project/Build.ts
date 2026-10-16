@@ -330,8 +330,26 @@ export class Build {
             await this.build();
         }
         else {
-            await this._build();
-
+            await this.queueBuild();
+        }
+    }
+    private currentBuild: Promise<void> | undefined;
+    private buildRevision = 0;
+    private nextBuildRevision(): number {
+        this.buildRevision = this.buildRevision + 1;
+        return this.buildRevision;
+    }
+    private async queueBuild(revision: number = this.nextBuildRevision()): Promise<void> {
+        const previous = this.currentBuild ?? Promise.resolve();
+        const current = previous.catch(() => { }).then(() => this._build(revision));
+        this.currentBuild = current;
+        try {
+            await current;
+        }
+        finally {
+            if (this.currentBuild === current) {
+                this.currentBuild = undefined;
+            }
         }
     }
     public async build() {
@@ -340,9 +358,10 @@ export class Build {
             return;
         }
         if (GenericServer.noBuild) return;
+        const revision = this.nextBuildRevision();
         let delay = GenericServer.delayBetweenBuild();
         if (delay == 0) {
-            await this._build();
+            await this.queueBuild(revision);
         }
         else {
             if (this.timerBuild) {
@@ -351,7 +370,7 @@ export class Build {
             this.timerBuild = setTimeout(async () => {
                 this.timerBuild = undefined;
                 if (this.destroyed) return;
-                await this._build();
+                await this.queueBuild(revision);
             }, delay)
         }
     }
@@ -387,11 +406,13 @@ export class Build {
             }
         }
     }
-    private ensureBuildActive() {
-        if (this.destroyed) throw new BuildCancelledError();
+    private ensureBuildActive(revision: number) {
+        if (this.destroyed || revision !== this.buildRevision) {
+            throw new BuildCancelledError();
+        }
     }
-    private async _build() {
-        if (this.destroyed || !this.allowBuild) {
+    private async _build(revision: number) {
+        if (this.destroyed || !this.allowBuild || revision !== this.buildRevision) {
             return
         }
         GenericServer.debug("building " + this.buildConfig.fullname);
@@ -403,15 +424,15 @@ export class Build {
             for (let compile of this.buildConfig.compile) {
                 if (compile.i18n) {
                     await this.writeBuildI18n(compile.i18n);
-                    this.ensureBuildActive();
+                    this.ensureBuildActive(revision);
                 }
                 let compilationInfo = await this.buildOrderCompilationInfo(compile);
-                this.ensureBuildActive();
+                this.ensureBuildActive(revision);
                 let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
-                this.ensureBuildActive();
+                this.ensureBuildActive(revision);
 
                 const outputErrors = await this.writeBuildCode(result, compilationInfo.libSrc, compile.output, compile.compressed);
-                this.ensureBuildActive();
+                this.ensureBuildActive(revision);
                 buildErrors.push(...outputErrors, ...compilationInfo.errors);
 
                 let srcInfo = {
@@ -420,30 +441,30 @@ export class Build {
                     existing: result.codeNotRenderInJs
                 }
                 await this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm);
-                this.ensureBuildActive();
+                this.ensureBuildActive(revision);
 
                 if (compile.outputNpm.live) {
                     await this.writeBuildNpm(compile.outputNpm, result);
-                    this.ensureBuildActive();
+                    this.ensureBuildActive(revision);
                 }
                 if (this.buildConfig.stories && this.buildConfig.stories.live) {
                     await this.stories.check();
-                    this.ensureBuildActive();
+                    this.ensureBuildActive(revision);
                     await this.writeBuildNpm({
                         path: [join(this.buildConfig.stories.output, "generated")],
                         packageJson: false,
                         npmName: '',
                         live: false
                     }, result);
-                    this.ensureBuildActive();
+                    this.ensureBuildActive(revision);
                     await this.stories.write(this.tsFiles);
-                    this.ensureBuildActive();
+                    this.ensureBuildActive(revision);
                 }
             }
 
-            this.ensureBuildActive();
-            await this.publishOutputs();
-            this.ensureBuildActive();
+            this.ensureBuildActive(revision);
+            await this.publishOutputs(revision);
+            this.ensureBuildActive(revision);
         } catch (error) {
             if (error instanceof BuildCancelledError) return;
             throw error;
@@ -1059,7 +1080,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                             const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
                             const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
 
-                           await this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                            await this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
                         }
                         for (let uri in this.i18nComponentsFiles) {
                             const file = this.i18nComponentsFiles[uri];
@@ -2468,11 +2489,11 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
             ) {
                 const edits = await this.tsLanguageService.onRenameFile(change.oldUri, change.newUri);
                 for (const uri in edits) {
-                    if(!result[uri]) {
+                    if (!result[uri]) {
                         result[uri] = [];
                     }
                     for (const edit of edits[uri]) {
-                        if (!result[uri].some(existing => 
+                        if (!result[uri].some(existing =>
                             existing.newText === edit.newText &&
                             existing.range.start.line === edit.range.start.line &&
                             existing.range.start.character === edit.range.start.character &&
@@ -2554,7 +2575,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
         await writeFile(output, content, "build", this.buildConfig.fullname);
     }
 
-    private async publishOutputs() {
+    private async publishOutputs(revision: number) {
         const outputs = this.pendingOutputs;
         const deletions = this.pendingDeletions;
         this.pendingOutputs = undefined;
@@ -2562,15 +2583,15 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 
         const written: { path: string, previous?: string }[] = [];
         try {
-            this.ensureBuildActive();
+            this.ensureBuildActive(revision);
             for (const [path, content] of outputs) {
-                this.ensureBuildActive();
+                this.ensureBuildActive(revision);
                 const previous = existsSync(path) ? readFileSync(path, 'utf8') : undefined;
                 written.push({ path, previous });
                 await this.writeFile(path, content);
-                this.ensureBuildActive();
+                this.ensureBuildActive(revision);
             }
-            this.ensureBuildActive();
+            this.ensureBuildActive(revision);
             for (const [path, expectedHash] of deletions ?? []) {
                 if (!existsSync(path)) continue;
                 const previous = readFileSync(path, 'utf8');

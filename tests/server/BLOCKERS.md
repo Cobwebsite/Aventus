@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Ancienne compilation écrivant après une nouvelle révision
-
-- Reproduction automatisée : `build-overlapping-revisions-round129.test.mjs` démarre une compilation du premier état, la suspend avant l'écriture, compile et écrit le second état, puis libère la première. La sortie contient finalement le premier état, malgré deux notifications de compilation réussie.
-- Cause : `Build.build()` avec délai nul lance directement `_build()` ; les exécutions simultanées du même build ne sont pas sérialisées et aucune vérification de révision ne précède l'écriture.
-- Décision à prendre : définir la politique de concurrence du build (sérialiser les compilations ou ignorer les résultats périmés) et garantir que la sortie finale correspond à la dernière révision.
-
 ## Mot clé CSS transparent ignoré par le color picker
 
 - Reproduction automatisée : `color-picker-transparent-round138.test.mjs` vérifie que le parseur CSS accepte `transparent` avec alpha nul. Dans une feuille de style, `ColorPicker.onDocumentColor()` ignore ce mot clé, alors que son remplacement par `rgba(0 0 0 / 0)` est détecté ; le retour à `transparent` fait disparaître l'information de couleur.
