@@ -118,7 +118,7 @@ export class Storie {
 					hasNoLive = true;
 				}
 			}
-			
+
 			return file instanceof AventusWebComponentLogicalFile &&
 				file.componentClassName == info.name &&
 				file.fileParsed?.classes[file.componentClassName] &&
@@ -235,7 +235,10 @@ export class Storie {
 		};
 		if (readdirSync(this.buildConfig.stories.output).length == 0) {
 			let projectsFolder = GenericServer.extensionPath + sep + "templates" + sep + "storybook";
-			let folders = readdirSync(projectsFolder);
+			let folders = readdirSync(projectsFolder, { withFileTypes: true })
+				.filter(entry => entry.isDirectory())
+				.map(entry => entry.name)
+				.sort();
 			let folderPath: string = "";
 
 			const _internalLoop = async (currentPath) => {
@@ -295,13 +298,24 @@ export class Storie {
 				}
 			}
 
-			if (folders.length == 1) {
-				folderPath = projectsFolder + sep + folders[0];
-				// cpSync(, this.buildConfig.stories.output, { force: true, recursive: true })
+			if (folders.length === 0) {
+				GenericServer.showErrorMessage(`No Storybook template found in ${projectsFolder}`);
+				return;
 			}
-			else {
-				throw 'TODO code multiple template'
+			let selectedFolder = folders[0];
+			if (folders.length > 1) {
+				const selection = await GenericServer.Select(
+					folders.map(label => ({ label })),
+					{ title: "Select a Storybook template" }
+				);
+				if (!selection) return;
+				if (!folders.includes(selection.label)) {
+					GenericServer.showErrorMessage(`Unknown Storybook template: ${selection.label}`);
+					return;
+				}
+				selectedFolder = selection.label;
 			}
+			folderPath = join(projectsFolder, selectedFolder);
 			await _internalLoop(folderPath);
 
 		}

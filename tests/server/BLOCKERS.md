@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Plusieurs templates d'environnement Storybook empêchent l'initialisation
-
-- Reproduction automatisée : `storybook-multiple-templates-round129.test.mjs` fournit deux dossiers sous `templates/storybook`. `Storie.readEnvStoryBook()` rejette avec la chaîne `TODO code multiple template` et ne copie aucun fichier vers le dossier de sortie.
-- Cause : la branche `folders.length != 1` interrompt systématiquement le traitement.
-- Décision à prendre : définir le choix du template (configuration explicite, défaut stable ou fusion) et renvoyer une erreur exploitable si ce choix est ambigu.
-
 ## Script template supprimé alors qu'il est en cache
 
 - Reproduction automatisée : `template-cache-disappearance-round128.test.mjs` charge un `template.avt.ts`, supprime le fichier puis redemande le même script. `TemplateScript.create()` rejette avec `ENOENT` et conserve l'entrée en cache.
