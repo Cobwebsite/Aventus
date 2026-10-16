@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Imports npm enregistrés pendant un build désactivé
-
-- Reproduction automatisée : `npm-disabled-registration-round133.test.mjs` enregistre un import dans `NpmBuilder` après `Build.disableBuild()`, puis appelle `Build.enableBuild()`. L'import reste stocké, mais `compile()` renvoie une sortie vide jusqu'à un appel manuel à `rebuildInfo()`.
-- Cause : `register()` appelle `rebuildInfo()`, qui retourne immédiatement lorsque `isBuildAllowed` est faux ; `enableBuild()` rétablit seulement le booléen et ne reconstruit pas l'index npm.
-- Décision à prendre : définir si `enableBuild()` doit reconstruire les imports npm enregistrés durant la pause. C'est notamment pertinent pour les transitions de fichiers de composant qui utilisent `disableBuild()` et `enableBuild()`.
-
 ## Sauvegarde acceptée sur un fichier déjà supprimé pendant l'arrêt
 
 - Reproduction automatisée : `files-delete-reregister-round133.test.mjs` suspend un callback de suppression lancé par `FilesManager.onShutdown()`, puis appelle `onSave()` pour le même URI. Le callback de sauvegarde s'exécute alors que `file.isDeleted` vaut `true`, avant le retrait final du cache.

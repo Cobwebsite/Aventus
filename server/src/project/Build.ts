@@ -228,7 +228,9 @@ export class Build {
     }
 
     public enableBuild() {
+        if (this._allowBuild) return;
         this.allowBuild = true;
+        this.npmBuilder.rebuildInfo();
     }
     public disableBuild() {
         this.allowBuild = false;
