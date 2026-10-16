@@ -8,7 +8,7 @@ const meta: Meta = {
         docs: {
             page: Template,
             description: {
-                component: \`$description$\`
+				component: $description$
             },
         }
     },
@@ -35,7 +35,7 @@ const meta: Meta = {
         docs: {
             page: Template,
             description: {
-                component: \`$description$\`
+				component: $description$
             },
         }
     },

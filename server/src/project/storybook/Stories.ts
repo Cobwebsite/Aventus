@@ -176,7 +176,7 @@ export class Storie {
 
 			template = this.replaceVariable(template, "name", name);
 			template = this.replaceVariable(template, "fullname", fullname);
-			template = this.replaceVariable(template, "description", info.documentation?.definitions.join("\n").replace(/`/g, '\\`') ?? '');
+			template = this.replaceVariable(template, "description", JSON.stringify(info.documentation?.definitions.join("\n") ?? ''));
 			template = this.replaceVariable(template, "aventus", "aventus: " + JSON.stringify(storieContent, null, 2) + ",");
 			template = this.replaceVariable(template, "defaultStory", hasDefaultStory ? "export const DefaultStory: Story = {}" : "");
 			if (file instanceof AventusWebComponentLogicalFile) {
@@ -334,7 +334,7 @@ export class Storie {
 
 	protected replaceVariable(src: string, variable: string, replace: string) {
 		let regex = new RegExp("\\$" + variable + "\\$", "g");
-		src = src.replace(regex, replace);
+		src = src.replace(regex, () => replace);
 		return src;
 	}
 
