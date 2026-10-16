@@ -9,7 +9,7 @@ const [{ Build }, { GenericServer }] = await loadServerModules([
     'project/Build.ts', 'GenericServer.ts',
 ]);
 
-test('successive builds refresh translations but retain removed locales and source artifacts', async t => {
+test('successive builds remove only unmodified i18n outputs they created', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-i18n-rebuild-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const previous = GenericServer.instance;
@@ -25,9 +25,12 @@ test('successive builds refresh translations but retain removed locales and sour
 
     const single = join(root, 'single');
     const separate = join(root, 'separate');
+    mkdirSync(separate);
+    writeFileSync(join(separate, 'legacy_fr.json'), '{"external":"before build"}');
+    writeFileSync(join(separate, 'unrelated.json'), '{"external":true}');
     const build = Object.create(Build.prototype);
     Object.assign(build, {
-        initDone: true, _allowBuild: true, diagnostics: new Map(),
+        initDone: true, _allowBuild: true, buildRevision: 0, diagnostics: new Map(),
         buildConfig: {
             fullname: 'Demo@web', module: 'Demo', i18n: { locales: ['en', 'fr'] },
             compile: [{
@@ -49,6 +52,10 @@ test('successive builds refresh translations but retain removed locales and sour
         i18nComponentsFiles: {}, tsFiles: {},
     });
     build.writeFile = async (path, content) => {
+        if (build.pendingOutputs) {
+            build.pendingOutputs.set(path, content);
+            return;
+        }
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, content);
     };
@@ -65,15 +72,18 @@ test('successive builds refresh translations but retain removed locales and sour
     assert.deepEqual(json(separate, 'shared_en.json'), { shared: 'First' });
     assert.deepEqual(json(separate, 'legacy_fr.json'), { legacy: 'Ancien' });
 
+    writeFileSync(output(separate, 'legacy_en.json'), '{"external":"edited"}');
     build.tsLanguageService.i18nFiles.shared.exported.en.shared = 'Updated';
     delete build.tsLanguageService.i18nFiles.legacy;
     build.buildConfig.i18n.locales = ['en'];
     await build.build();
     assert.deepEqual(json(single, 'en.json'), { shared: 'Updated' });
     assert.deepEqual(json(separate, 'shared_en.json'), { shared: 'Updated' });
-    assert.deepEqual(json(single, 'fr.json'), { shared: 'Premier', legacy: 'Ancien' });
-    assert.deepEqual(json(separate, 'legacy_en.json'), { legacy: 'Old' });
+    assert.equal(existsSync(output(single, 'fr.json')), false);
+    assert.equal(existsSync(output(separate, 'shared_fr.json')), false);
+    assert.deepEqual(json(separate, 'legacy_en.json'), { external: 'edited' });
     assert.equal(existsSync(output(separate, 'legacy_fr.json')), true);
+    assert.deepEqual(json(separate, 'unrelated.json'), { external: true });
     assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 2);
 
     build.buildConfig.i18n.locales = ['en', 'fr'];
@@ -81,5 +91,14 @@ test('successive builds refresh translations but retain removed locales and sour
     await build.build();
     assert.deepEqual(json(single, 'fr.json'), { shared: 'Mis à jour' });
     assert.deepEqual(json(separate, 'shared_fr.json'), { shared: 'Mis à jour' });
-    assert.equal(existsSync(output(separate, 'legacy_fr.json')), true);
+    assert.deepEqual(json(separate, 'legacy_fr.json'), { legacy: 'Ancien' });
+    assert.deepEqual(json(separate, 'legacy_en.json'), { external: 'edited' });
+
+    build.buildConfig.compile[0].i18n = [{ mode: 'singleFile', output: [single] }];
+    await build.build();
+    assert.equal(existsSync(output(separate, 'shared_en.json')), false);
+    assert.equal(existsSync(output(separate, 'shared_fr.json')), false);
+    assert.deepEqual(json(separate, 'legacy_en.json'), { external: 'edited' });
+    assert.deepEqual(json(separate, 'legacy_fr.json'), { legacy: 'Ancien' });
+    assert.deepEqual(json(separate, 'unrelated.json'), { external: true });
 });

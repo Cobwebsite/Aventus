@@ -130,6 +130,8 @@ export class Build {
     private _outputPathes: string[] = [];
     private pendingOutputs?: Map<string, string>;
     private pendingDeletions?: Map<string, string>;
+    private pendingI18nOutputs?: Map<string, string>;
+    private publishedI18nOutputs = new Map<string, { hash: string, canDelete: boolean }>();
 
     public readonly npmBuilder: NpmBuilder;
 
@@ -423,6 +425,8 @@ export class Build {
         let buildErrors: BuildErrors = []
         this.pendingOutputs = new Map();
         this.pendingDeletions = new Map();
+        this.pendingI18nOutputs = new Map();
+        this.publishedI18nOutputs ??= new Map();
         try {
             for (let compile of this.buildConfig.compile) {
                 if (compile.i18n) {
@@ -465,8 +469,21 @@ export class Build {
                 }
             }
 
+            const nextI18nOutputs = new Map<string, { hash: string, canDelete: boolean }>();
+            for (const [path, content] of this.pendingI18nOutputs) {
+                const previous = this.publishedI18nOutputs.get(path);
+                nextI18nOutputs.set(path, {
+                    hash: createHash('sha256').update(content.replace(/\r\n?/g, '\n')).digest('hex'),
+                    canDelete: previous?.canDelete ?? !existsSync(path),
+                });
+            }
+            for (const [path, previous] of this.publishedI18nOutputs) {
+                if (nextI18nOutputs.has(path) || this.pendingOutputs!.has(path)) continue;
+                if (previous.canDelete) this.pendingDeletions!.set(path, previous.hash);
+            }
             this.ensureBuildActive(revision);
             await this.publishOutputs(revision);
+            this.publishedI18nOutputs = nextI18nOutputs;
             this.ensureBuildActive(revision);
         } catch (error) {
             if (error instanceof BuildCancelledError) return;
@@ -474,6 +491,7 @@ export class Build {
         } finally {
             this.pendingOutputs = undefined;
             this.pendingDeletions = undefined;
+            this.pendingI18nOutputs = undefined;
         }
 
         Compiled.send(this.buildConfig.fullname, buildErrors);
@@ -1074,7 +1092,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                         }
                         const outputFile = join(output, locale + ".json").toLowerCase();
 
-                        await this.writeFile(outputFile, JSON.stringify(content, null, 4));
+                        await this.writeI18nFile(outputFile, JSON.stringify(content, null, 4));
                     }
                     else if (outputConfig.mode == "oneToOne") {
                         for (let uri in this.tsLanguageService.i18nFiles) {
@@ -1083,7 +1101,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                             const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
                             const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
 
-                            await this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                            await this.writeI18nFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
                         }
                         for (let uri in this.i18nComponentsFiles) {
                             const file = this.i18nComponentsFiles[uri];
@@ -1099,7 +1117,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                                 const name = file.file.name.replace(AventusExtension.I18n, "");
                                 const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
 
-                                await this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                                await this.writeI18nFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
                             }
                         }
                     }
@@ -1110,7 +1128,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                             const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
                             const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
 
-                            await this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                            await this.writeI18nFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
                         }
                         let content: { [key: string]: string } = {};
                         for (let uri in this.i18nComponentsFiles) {
@@ -1119,7 +1137,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                         }
 
                         const outputFile = join(output, "_components_" + locale + ".json").toLowerCase();
-                        await this.writeFile(outputFile, JSON.stringify(content, null, 4));
+                        await this.writeI18nFile(outputFile, JSON.stringify(content, null, 4));
                     }
                     else if (outputConfig.mode == "basedOnAttribute") {
 
@@ -1131,6 +1149,11 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 }
             }
         }
+    }
+
+    private async writeI18nFile(path: string, content: string) {
+        await this.writeFile(path, content);
+        this.pendingI18nOutputs?.set(path, content);
     }
 
     /**
@@ -2580,7 +2603,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 
     private async publishOutputs(revision: number) {
         const outputs = this.pendingOutputs;
-        const deletions = this.pendingDeletions;
+        const deletions = this.pendingDeletions ?? [];
         this.pendingOutputs = undefined;
         if (!outputs) return;
 
@@ -2595,7 +2618,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 this.ensureBuildActive(revision);
             }
             this.ensureBuildActive(revision);
-            for (const [path, expectedHash] of deletions ?? []) {
+            for (const [path, expectedHash] of deletions) {
                 if (!existsSync(path)) continue;
                 const previous = readFileSync(path, 'utf8');
                 const actualHash = createHash('sha256').update(previous.replace(/\r\n?/g, '\n')).digest('hex');
