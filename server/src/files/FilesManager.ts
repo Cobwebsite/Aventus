@@ -292,33 +292,55 @@ export class FilesManager {
     }
     public async loadAllAventusFiles(workspaces: string[]): Promise<void> {
         this.loadingInProgress = true;
-        let configFiles: TextDocument[] = [];
+        const configFiles: TextDocument[] = [];
         const seenUris = new Set<string>();
-        InitStep.send("$(loading~spin) Aventus : Loading files")
+        const failures: string[] = [];
+        const recordFailure = (uri: string, error: unknown) => {
+            failures.push(uri + ': ' + (error instanceof Error ? error.message : String(error)));
+        };
 
-        for (let i = 0; i < workspaces.length; i++) {
-            await this.parseWorkspace(workspaces[i], async (file, currentPath) => {
-                let uri = pathToUri(currentPath)
-                let extension = getLanguageIdByUri(uri);
-                if (file == AventusExtension.Config) {
-                    if (seenUris.has(uri)) return;
-                    seenUris.add(uri);
-                    configFiles.push(TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8')));
+        try {
+            InitStep.send("$(loading~spin) Aventus : Loading files");
+            for (let i = 0; i < workspaces.length; i++) {
+                try {
+                    await this.parseWorkspace(workspaces[i], async (file, currentPath) => {
+                        const uri = pathToUri(currentPath);
+                        if (seenUris.has(uri)) return;
+                        if (file != AventusExtension.Config && !file.endsWith(AventusExtension.Base)) return;
+                        seenUris.add(uri);
+                        try {
+                            const extension = getLanguageIdByUri(uri);
+                            const document = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
+                            if (file == AventusExtension.Config) {
+                                configFiles.push(document);
+                            }
+                            else {
+                                await this.registerFile(document);
+                            }
+                        } catch (error) {
+                            recordFailure(uri, error);
+                        }
+                    });
+                } catch (error) {
+                    recordFailure(workspaces[i], error);
                 }
-                else if (file.endsWith(AventusExtension.Base)) {
-                    if (seenUris.has(uri)) return;
-                    seenUris.add(uri);
-                    let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
-                    await this.registerFile(textDoc);
+            }
+            InitStep.send("$(loading~spin) Aventus : Register config");
+            this.loadingInProgress = false;
+            for (const configFile of configFiles) {
+                try {
+                    await this.registerFile(configFile);
+                } catch (error) {
+                    recordFailure(configFile.uri, error);
                 }
-            })
+            }
+        } finally {
+            this.loadingInProgress = false;
+            InitStep.sendDone();
         }
-        InitStep.send("$(loading~spin) Aventus : Register config");
-        this.loadingInProgress = false;
-        for (let configFile of configFiles) {
-            await this.registerFile(configFile);
+        if (failures.length > 0) {
+            GenericServer.showErrorMessage("Aventus could not load these files:\n" + failures.join("\n"));
         }
-        InitStep.sendDone();
     }
     public async onShutdown() {
         for (let fileUri in this.files) {
