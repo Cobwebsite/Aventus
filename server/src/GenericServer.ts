@@ -166,6 +166,7 @@ export class GenericServer {
 	private _template: TemplateFileManager | undefined;
 	private _localTemplate: LocalTemplateManager | undefined;
 	private _localProject: LocalProjectManager | undefined;
+	private settingsLoadGeneration = 0;
 
 	public constructor(connection: IConnection) {
 		GenericServer.instance = this;
@@ -409,16 +410,21 @@ export class GenericServer {
 		return false;
 	}
 	protected async loadSettings() {
+		this.settingsLoadGeneration++;
+		const generation = this.settingsLoadGeneration;
 		let result = await this.connection.getSettings();
 		if (!result) {
 			result = {};
 		}
-		SettingsManager.getInstance().initSettings(result);
 
 		let resultHtml = await this.connection.getSettingsHtml();
 		if (!resultHtml) {
 			resultHtml = {};
 		}
+		if (generation !== this.settingsLoadGeneration) {
+			return;
+		}
+		SettingsManager.getInstance().initSettings(result);
 		SettingsManager.getInstance().setSettingsHtml(resultHtml);
 	}
 

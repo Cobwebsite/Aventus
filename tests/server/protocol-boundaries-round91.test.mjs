@@ -88,8 +88,8 @@ test('failed HTML settings request prevents startup and can be retried without u
     await handlers.onInitialized();
     assert.equal(server.isLoading, false);
     assert.deepEqual(calls, [
-        'settings request', ['settings', { loadFiles: false }], 'html request',
-        'settings request', ['settings', { loadFiles: false }], 'html request',
-        ['html', { customData: ['ready.json'] }], 'start',
+        'settings request', 'html request',
+        'settings request', 'html request',
+        ['settings', { loadFiles: false }], ['html', { customData: ['ready.json'] }], 'start',
     ]);
 });
