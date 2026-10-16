@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Build différé exécuté après activation du mode global sans build
-
-- Reproduction automatisée : `build-pending-no-build-round131.test.mjs` programme un build avec délai, active `noBuild` avant l'expiration, puis constate la création de la sortie et la notification de compilation. Une nouvelle demande de build faite après l'activation est pourtant ignorée.
-- Cause : `Build.build()` vérifie `GenericServer.noBuild` avant de programmer le timer, mais le callback appelle `_build()` sans revérifier le mode global. `_build()` ne vérifie que `allowBuild`.
-- Décision à prendre : préciser si `noBuild` doit annuler les compilations déjà programmées. Si oui, invalider ou annuler ces timers lors de la transition et vérifier le mode avant l'exécution différée.
-
 ## Métadonnées de template périmées après remplacement par un fichier plus ancien
 
 - Reproduction automatisée : `template-cache-timestamp-round131.test.mjs` charge un vrai `template.avt.ts` nommé `Original`, remplace son contenu par `Edited` et recule son horodatage d'une minute. `TemplateScript.create()` rend toujours la même instance avec le nom `Original`.
