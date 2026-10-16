@@ -2,7 +2,7 @@ import connect from 'connect';
 import send from 'send';
 import * as url from 'url';
 import { createServer, Server, ServerResponse } from 'http';
-import { createServer as testPortServer } from 'net';
+import { createServer as testPortServer, isIP } from 'net';
 import { extname } from 'path';
 import { readFileSync } from 'fs';
 import { replace } from 'event-stream';
@@ -190,6 +190,19 @@ export class HttpServer {
 			staticHandler(req, res, next);
 		};
 	}
+
+	private isValidHostAuthority(authority: string): boolean {
+		const ipv6 = /^\[([^\]]+)\](?::(\d{1,5}))?$/.exec(authority);
+		if (ipv6) {
+			return isIP(ipv6[1]) === 6 && (!ipv6[2] || Number(ipv6[2]) <= 65535);
+		}
+		const match = /^([^:]+)(?::(\d{1,5}))?$/.exec(authority);
+		if (!match || (match[2] && Number(match[2]) > 65535)) return false;
+		const hostname = match[1];
+		if (hostname.length > 253) return false;
+		if (/^[\d.]+$/.test(hostname)) return isIP(hostname) === 4;
+		return hostname.replace(/\.$/, '').split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label));
+	}
 	private createStaticServer() {
 		return (req: connect.IncomingMessage, res: ServerResponse<connect.IncomingMessage>, next: connect.NextFunction) => {
 			if (req.method !== "GET" && req.method !== "HEAD") return next();
@@ -212,10 +225,15 @@ export class HttpServer {
 					}
 					host += ":" + this.port;
 				}
+				if (!this.isValidHostAuthority(host)) {
+					res.statusCode = 400;
+					res.end('Invalid host');
+					return;
+				}
 
 				let newUrl = 'ws://' + host + '/ws';
 				let manualCode = INJECTED_CODE.replace('<script type="text/javascript">', '');
-				manualCode = manualCode.replace("var address = protocol + window.location.host + window.location.pathname + '/ws';", "var address = '" + newUrl + "';")
+				manualCode = manualCode.replace("var address = protocol + window.location.host + window.location.pathname + '/ws';", "var address = " + JSON.stringify(newUrl) + ";")
 				manualCode = manualCode.replace('</script>', '');
 				res.setHeader('Content-Length', manualCode.length);
 				res.setHeader('Content-type', 'text/javascript');
