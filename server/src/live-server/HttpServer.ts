@@ -110,6 +110,10 @@ export class HttpServer {
 		}
 	}
 	public stop() {
+		if (this.reloadTimeout) {
+			clearTimeout(this.reloadTimeout);
+			this.reloadTimeout = undefined;
+		}
 		for (let client of this.clients) {
 			client.close();
 		}
@@ -158,6 +162,7 @@ export class HttpServer {
 			clearTimeout(this.reloadTimeout);
 		}
 		this.reloadTimeout = setTimeout(() => {
+			this.reloadTimeout = undefined;
 			this._reload();
 		}, this.config.delay)
 	}
