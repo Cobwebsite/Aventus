@@ -39,7 +39,7 @@ test('package Markdown derives visible instance and static members from parsed s
     }`);
     assert.match(first, /### JS Props[\s\S]*\| title \| string \| Caption/);
     assert.match(first, /### JS Props Static[\s\S]*\| count \| number \| Counter/);
-    assert.match(first, /### Methods[\s\S]*open\(force: boolean\)/);
+    assert.match(first, /### Methods[\s\S]*open\(force\?: boolean\)/);
     assert.match(first, /### Methods Static[\s\S]*create\(\)/);
     assert.doesNotMatch(first, /\bsecret\b|\breset\b/);
 

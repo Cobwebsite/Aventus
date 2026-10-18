@@ -9,7 +9,7 @@ const [{ Build }, { GenericServer }, { AventusTsFile }, { AventusPackageFile }, 
     'project/DependencyManager.ts',
 ]);
 
-test('changes to logic, style and view during compilation are reflected after build resumes', async t => {
+test('changes to logic, style and view cancel the in-flight revision and publish after build resumes', async t => {
     const root = mkdtempSync(join(import.meta.dirname, '.build-burst-round50-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'main.js');
@@ -33,6 +33,7 @@ test('changes to logic, style and view during compilation are reflected after bu
     Object.defineProperty(source, 'file', { value: { uri: 'file:///demo/src/widget.lib.avt' } });
     source.getDiagnostics = () => [];
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = {
@@ -75,17 +76,14 @@ test('changes to logic, style and view during compilation are reflected after bu
     await firstStarted;
     build._allowBuild = false;
     revision = { name: 'Second', style: '.second{color:blue}', view: '<p>second</p>', error: false };
-    await build.build();
+    const second = build.build();
     revision = { name: 'Final', style: '.final{color:green}', view: '<p>final</p>', error: false };
-    await build.build();
+    const third = build.build();
     assert.equal(builds, 1, 'disabled build requests do not start a new compilation');
 
     releaseFirst();
-    await first;
-    assert.match(readFileSync(output, 'utf8'), /class First/);
-    assert.deepEqual(diagnostics.at(-1), [{
-        uri: source.file.uri, diagnostics: [{ message: 'first revision error', severity: 1 }],
-    }, 'Demo@web']);
+    await Promise.all([first, second, third]);
+    assert.equal(builds, 1);
 
     build._allowBuild = true;
     await build.build();
@@ -102,7 +100,7 @@ test('changes to logic, style and view during compilation are reflected after bu
     assert.match(sections.jsDef, /export class Final/);
     assert.doesNotMatch(sections.jsDef, /export class First|export class Second/);
     assert.equal(builds, 2);
-    assert.deepEqual(diagnostics.at(-1), [{ uri: source.file.uri, diagnostics: [] }, 'Demo@web']);
+    assert.deepEqual(diagnostics, []);
     assert.equal(build.diagnostics.size, 0);
-    assert.equal(compiled.filter(([name]) => name === 'aventus/compiled').length, 2);
+    assert.equal(compiled.filter(([name]) => name === 'aventus/compiled').length, 1);
 });

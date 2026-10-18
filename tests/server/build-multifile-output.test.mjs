@@ -10,6 +10,7 @@ function fixture(t, npm = '') {
     const root = mkdtempSync(join(import.meta.dirname, '.build-multifile-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = { fullname: 'Demo@web', module: 'Demo' };
     build.npmBuilder = { compile: async () => ({ result: npm, errors: [] }) };
     build.writeFile = async (path, content) => {

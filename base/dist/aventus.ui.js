@@ -466,19 +466,18 @@ __as1(_, 'Style', Style);
 
 let setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
-    const val = (key) => {
-        if (obj instanceof Map) {
-            return obj.get(key);
-        }
-        return obj[key];
-    };
     let splitted = path.split(".");
     for (let i = 0; i < splitted.length - 1; i++) {
         let split = splitted[i];
-        let value = val(split);
+        let value = obj instanceof Map ? obj.get(split) : obj[split];
         if (!value) {
-            obj[split] = {};
-            value = obj[split];
+            value = {};
+            if (obj instanceof Map) {
+                obj.set(split, value);
+            }
+            else {
+                obj[split] = value;
+            }
         }
         obj = value;
     }

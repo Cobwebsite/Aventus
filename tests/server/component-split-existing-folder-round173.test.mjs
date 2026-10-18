@@ -58,5 +58,5 @@ test('split into an existing component folder preserves matching sibling and sou
     assert.deepEqual([...files.keys()], [sourceUri]);
     assert.deepEqual(events, []);
     assert.equal(errors.length, 1);
-    assert.match(errors[0], /Card\.wcs\.avt/);
+    assert.match(errors[0], /destination already exists: true/);
 });

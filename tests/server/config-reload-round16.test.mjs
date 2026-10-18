@@ -23,6 +23,7 @@ test('configuration reload applies client settings and HTML data before notifyin
     settings.onSettingsChange(() => observed.push(['server', settings.settings.logLevel, settings.settings.liveserver.port]));
     settings.onSettingsChangeHtml(() => observed.push(['html', [...settings.settingsHtml.customData]]));
     const server = Object.create(GenericServer.prototype);
+    server.settingsLoadGeneration = 0;
     server.connection = {
         getSettings: async () => ({ logLevel: 1, liveserver: { port: 9100 } }),
         getSettingsHtml: async () => ({ customData: ['first.json'] }),
@@ -41,6 +42,7 @@ test('configuration reload resets omitted overrides and accepts empty client res
     const settings = makeSettings();
     SettingsManager.instance = settings;
     const server = Object.create(GenericServer.prototype);
+    server.settingsLoadGeneration = 0;
     let initial = true;
     server.connection = {
         getSettings: async () => initial ? { readDirs: ['src'], liveserver: { port: 9100 }, watchFiles: false } : null,

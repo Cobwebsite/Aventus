@@ -24,6 +24,7 @@ test('a Storybook write failure leaves staged JS untouched and the same build re
 
     const output = join(root, 'app.js');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = {

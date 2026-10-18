@@ -24,6 +24,7 @@ test('package rebuild replaces visible, private and global declarations with mat
     });
 
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = {
         fullname: 'Cards@front', module: 'Cards', name: 'front', version: '1.0.0',
         rawDependencies: { Base: { uri: join(root, 'Base.package.avt'), version: '1.0.0' } },

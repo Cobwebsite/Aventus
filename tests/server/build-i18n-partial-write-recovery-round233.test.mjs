@@ -11,6 +11,7 @@ test('i18n publication resumes after its second locale fails and exposes the par
     const output = mkdtempSync(join(tmpdir(), 'aventus-i18n-write-recovery-'));
     t.after(() => rmSync(output, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = { i18n: { locales: ['en', 'fr'] } };
     build.i18nComponentsFiles = {};
     const translation = { exported: { en: { title: 'First' }, fr: { title: 'Premier' } } };

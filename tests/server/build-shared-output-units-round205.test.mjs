@@ -37,6 +37,7 @@ test('compile units sharing one JS destination overwrite in compile order across
     const first = unit('First');
     const second = unit('Second');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         initDone: true, _allowBuild: true,
         buildConfig: {

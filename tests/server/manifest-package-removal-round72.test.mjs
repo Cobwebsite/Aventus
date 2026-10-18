@@ -51,14 +51,15 @@ test('removing one of two package exports keeps only the remaining Emmet tag', a
         ['block', 'demo-beta']);
 });
 
-test('removing the last package tag deletes the generated snippets file', async t => {
+test('removing the last package tag retains the base block snippet', async t => {
     const { output, makeFile } = setup(t);
     const alpha = makeFile('alpha', 'demo-alpha');
     ManifestPackage.files[alpha.file.uri] = alpha;
     await ManifestPackage.write(true);
     delete ManifestPackage.files[alpha.file.uri];
     await ManifestPackage.write();
-    assert.equal(existsSync(output), false);
+    assert.equal(existsSync(output), true);
+    assert.deepEqual(Object.keys(JSON.parse(readFileSync(output, 'utf8')).html.snippets), ['block']);
 
     ManifestPackage.files[alpha.file.uri] = alpha;
     await ManifestPackage.write(true);

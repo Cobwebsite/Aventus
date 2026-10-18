@@ -31,6 +31,7 @@ test('generated package can switch between its local copy and an explicit extern
     const consumer = join(root, 'Consumer.package.avt');
     const write = async (name, output, dependencies, code) => {
         const build = Object.create(Build.prototype);
+        build.buildRevision = 0;
         build.buildConfig = {
             fullname: name, module: name, name: 'web', version: '1.0.0', rawDependencies: dependencies,
         };

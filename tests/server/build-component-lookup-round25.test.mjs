@@ -6,6 +6,7 @@ const { Build } = await loadServerModule('project/Build.ts');
 
 function buildWithComponents() {
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     const localClass = { fullName: 'Demo.Card', fileUri: 'file:///local.wc.avt' };
     const localFile = {
         fileParsed: { classes: { 'Demo.Card': localClass } },

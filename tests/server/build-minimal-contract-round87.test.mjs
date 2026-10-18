@@ -29,6 +29,7 @@ test('minimal full build writes each named output in npm, dependency, local orde
     const npmError = { message: 'npm import missing' };
     const dependencyError = { message: 'dependency unavailable' };
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.diagnostics = new Map();

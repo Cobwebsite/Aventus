@@ -7,6 +7,7 @@ GenericServer.instance = { isIDE: false };
 
 function build(config = {}) {
     const instance = Object.create(Build.prototype);
+    instance.buildRevision = 0;
     instance.buildConfig = {
         fullname: 'Demo@web', module: 'Demo', hideWarnings: false,
         nodeModulesDir: 'D:/demo/node_modules', compile: [],
@@ -16,6 +17,7 @@ function build(config = {}) {
     };
     instance.project = { isCoreBuild: false, getConfig: () => ({ aliases: { '@ui': 'src/ui' } }) };
     instance._allowBuild = true;
+    instance.npmBuilder = { rebuildInfo() {} };
     instance._outputPathes = ['D:/demo/out.package.avt'];
     instance.noNamespaceUri = {};
     instance.npmAliases = {};

@@ -27,6 +27,7 @@ test('a full rebuild adds, edits and removes generated JS, package definitions a
     const pkg = join(root, 'dist', 'Demo.package.avt');
     const npm = join(root, 'npm');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         initDone: true, _allowBuild: true,
         buildConfig: {

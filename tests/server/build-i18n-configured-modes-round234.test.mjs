@@ -14,6 +14,7 @@ test('configured attribute and include i18n modes write no translations while si
     const root = mkdtempSync(join(tmpdir(), 'aventus-i18n-modes-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = { i18n: { locales: ['en', 'fr'] } };
     build.tsLanguageService = { i18nFiles: {
         'file:///messages.i18n.avt': { exported: { en: { title: 'Hello' }, fr: { title: 'Bonjour' } } },

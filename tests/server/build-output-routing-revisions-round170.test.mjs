@@ -34,6 +34,7 @@ test('a full rebuild routes npm, library and module code across two output group
         outputNpm: { path: [], npmName: '@demo/web', packageJson: false, manifest: false, live: false },
     };
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         initDone: true, _allowBuild: true,
         buildConfig: { fullname: 'Demo@web', module: 'Demo', name: 'web', version: '1.0.0', rawDependencies: {}, compile: [unit] },

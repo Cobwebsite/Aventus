@@ -37,6 +37,7 @@ test('build and rebuild replace JavaScript and package outputs while preserving 
         outputNpm: { path: [], npmName: '', live: false },
     };
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = {

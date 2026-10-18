@@ -11,6 +11,7 @@ const [{ Build }, { GenericServer }, { DependencyManager }] = await loadServerMo
 
 function makeBuild(root, units) {
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         initDone: true, _allowBuild: true,
         buildConfig: {

@@ -30,6 +30,7 @@ test('destroy removes every registered file listener once, including i18n files'
         return { [uri]: listener };
     };
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         project: { getConfigFile: () => ({ path: '/project/aventus.conf.avt' }) },
         buildConfig: { fullname: 'Demo@main' },

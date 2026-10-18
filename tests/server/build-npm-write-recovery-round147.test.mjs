@@ -11,6 +11,7 @@ test('npm output can be retried after a source write fails', async t => {
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'dist');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = { fullname: 'Demo@web', module: 'Demo', name: 'web', version: '1.0.0' };
     build.project = { getConfigFile: () => ({ folderPath: root }) };
     build.tsFiles = {};

@@ -14,6 +14,8 @@ function manager() {
     instance.loadingInProgress = false;
     instance.onNewFileCb = {};
     instance.onFileRemoveCb = {};
+    instance.pendingTemplateInitializations = new Map();
+    instance.failedTemplateInitializations = new Set();
     return instance;
 }
 

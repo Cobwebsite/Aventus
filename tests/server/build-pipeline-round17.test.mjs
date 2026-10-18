@@ -17,6 +17,7 @@ function pipeline(t, compile) {
     };
     t.after(() => { GenericServer.instance = previous; });
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = { fullname: 'Demo@web', module: 'Demo', compile };

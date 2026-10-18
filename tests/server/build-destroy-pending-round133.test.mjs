@@ -19,6 +19,7 @@ test('destroying a build cancels an already scheduled compilation', async t => {
     };
     FilesManager.instance = { removeOnNewFile() {} };
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         initDone: true,
         project: { getConfigFile: () => ({ path: '/project/aventus.conf.avt' }) },

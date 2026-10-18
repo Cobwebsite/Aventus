@@ -22,6 +22,7 @@ test('delayed full build coalesces revisions, skips a disabled timer, then write
         },
     };
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     t.after(() => {
         clearTimeout(build.timerBuild);
         GenericServer.instance = previous;
@@ -37,7 +38,7 @@ test('delayed full build coalesces revisions, skips a disabled timer, then write
             outputNpm: { live: false },
         }],
     };
-    build.npmBuilder = { compile: async () => ({ result: '', errors: [] }) };
+    build.npmBuilder = { compile: async () => ({ result: '', errors: [] }), rebuildInfo() {} };
     build.buildOrderCompilationInfo = async () => ({ toCompile: [], libSrc: [], errors: [] });
     build.writeBuildDocumentation = async () => {};
     build.writeFile = async (path, content) => writeFileSync(path, content);

@@ -12,6 +12,7 @@ function setup() {
         triggerSave: async () => calls.push(`save:${name}`),
     });
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.scssLanguageService = { allowRebuildDefinition: value => calls.push(`scss:${value}`) };
     build.htmlLanguageService = { allowRebuildDefinition: value => calls.push(`html:${value}`) };
     build.tsLanguageService = { i18nFiles: { translation: file('translation') } };

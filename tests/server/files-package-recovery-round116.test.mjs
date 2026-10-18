@@ -3,13 +3,14 @@ import test from 'node:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
 const [{ FilesManager }, { GenericServer }, { FilesWatcher }, { pathToUri }] = await loadServerModules([
     'files/FilesManager.ts', 'GenericServer.ts', 'files/FilesWatcher.ts', 'tools.ts',
 ]);
 
-test('an external package missing at registration refreshes the same cached file when it appears', async () => {
+test('an external package missing at registration keeps its cache until a newer document arrives', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-package-recovery-'));
     const path = join(root, 'library.package.avt');
     const uri = pathToUri(path);
@@ -30,6 +31,9 @@ test('an external package missing at registration refreshes the same cached file
         writeFileSync(path, 'declare namespace Library { class Card {} }');
         const recovered = await manager.registerFilePackage(uri);
         assert.equal(recovered, missing);
+        assert.equal(recovered.contentUser, '');
+        await manager.onContentChange(TextDocument.create(uri, 'package', 1,
+            'declare namespace Library { class Card {} }'));
         assert.equal(recovered.contentUser, 'declare namespace Library { class Card {} }');
         assert.deepEqual(events, [
             ['watch', uri], ['new', ''],

@@ -66,7 +66,7 @@ test('template uninstall removes selected nested entry but keeps unselected entr
     writeFileSync(join(second, 'template.avt.ts'), 'second');
     const makeScript = (name, folder) => {
         const script = Object.create(TemplateScript.prototype);
-        script.name = name;
+        script.name = `group.${name}`;
         script.config = join(folder, 'template.avt.ts');
         return script;
     };
@@ -75,13 +75,14 @@ test('template uninstall removes selected nested entry but keeps unselected entr
     GenericServer.instance = {
         connection: {
             SelectMultiple: async items => {
-                assert.deepEqual(items.map(item => item.label), ['First', 'Second']);
+                assert.deepEqual(items.map(item => item.label), ['group.First', 'group.Second']);
                 return [items[0]];
             },
             showInformationMessage: message => messages.push(message),
         },
     };
     const manager = Object.create(TemplateManager.prototype);
+    manager.templatePath = [root];
     manager.loadedTemplates = { group: { First: makeScript('First', first), Second: makeScript('Second', second) } };
     manager.reloadTemplates = async () => { reloads++; };
     try {

@@ -13,6 +13,7 @@ test('one-to-one component translations leave the namespace folder empty across 
     const output = mkdtempSync(join(tmpdir(), 'aventus-i18n-component-namespace-'));
     t.after(() => rmSync(output, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = { i18n: { locales: ['en'] } };
     build.tsLanguageService = { i18nFiles: {} };
     build.writeFile = async (path, content) => writeFileSync(path, content);
@@ -45,6 +46,7 @@ test('one-to-one components with equal names in distinct namespaces overwrite th
     const output = mkdtempSync(join(tmpdir(), 'aventus-i18n-component-collision-'));
     t.after(() => rmSync(output, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = { i18n: { locales: ['en'] } };
     build.tsLanguageService = { i18nFiles: {} };
     build.tsFiles = {};

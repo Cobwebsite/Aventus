@@ -89,12 +89,16 @@ test('formatting continues after a file fails and writes the other formatted fil
     const previousServer = GenericServer.instance;
     const previousError = console.error;
     const errors = [];
+    const messages = [];
     let formatting;
     FilesManager.instance = {
         getUris: () => [firstUri, secondUri],
         getByUri: uri => ({ [firstUri]: first, [secondUri]: second })[uri],
     };
-    GenericServer.instance = { connection: { showLoadingMessage: (_message, action) => { formatting = action(); return formatting; } } };
+    GenericServer.instance = { connection: {
+        showLoadingMessage: (_message, action) => { formatting = action(); return formatting; },
+        showErrorMessage: message => messages.push(message),
+    } };
     console.error = error => errors.push(error);
     try {
         await commands['aventus.format'].run();
@@ -103,6 +107,9 @@ test('formatting continues after a file fails and writes the other formatted fil
         assert.equal(readFileSync(secondPath, 'utf8'), 'new');
         assert.equal(errors.length, 1);
         assert.match(errors[0].message, /format failure/);
+        assert.equal(messages.length, 1);
+        assert.match(messages[0], /Formatting failed for 1 file/);
+        assert.match(messages[0], /first\.wcl\.avt/);
     } finally {
         clearTimeout(first.delayValidate);
         clearTimeout(second.delayValidate);

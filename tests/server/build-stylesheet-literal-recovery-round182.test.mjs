@@ -13,6 +13,7 @@ test('stylesheet literals in JS output follow invalid, repaired and removed revi
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'main.js');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = { fullname: 'Demo@web', module: 'Demo' };
     build.npmBuilder = { compile: async () => ({ result: '', errors: [] }) };
     build.writeFile = async (path, content) => {

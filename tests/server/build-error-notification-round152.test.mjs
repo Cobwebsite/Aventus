@@ -27,6 +27,7 @@ test('full build publishes npm and source errors in compile order, then clears t
 
     const outputs = [join(root, 'first.js'), join(root, 'second.js')];
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         initDone: true, _allowBuild: true, diagnostics: new Map(),
         buildConfig: {

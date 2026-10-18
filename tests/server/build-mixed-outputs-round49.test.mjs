@@ -26,6 +26,7 @@ test('one build updates component logic, view, style, translations and routed de
     const pkg = join(root, 'dist', 'Demo.package.avt');
     const translations = join(root, 'dist', 'i18n');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = {

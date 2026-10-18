@@ -11,6 +11,7 @@ test('oneToOne global translations with the same basename overwrite each other a
     const output = mkdtempSync(join(tmpdir(), 'aventus-i18n-global-collision-'));
     t.after(() => rmSync(output, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = { i18n: { locales: ['en', 'fr'] } };
     build.i18nComponentsFiles = {};
     build.writeFile = async (path, content) => writeFileSync(path, content);
