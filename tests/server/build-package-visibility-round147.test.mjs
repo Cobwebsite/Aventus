@@ -15,6 +15,7 @@ test('package documentation preserves global declarations and hidden module decl
     DependencyManager.instance = { getPath: () => root };
     t.after(() => { DependencyManager.instance = previousManager; });
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = {
         fullname: 'Visibility@web', module: 'Visibility', name: 'web', version: '1.0.0',
         rawDependencies: {},

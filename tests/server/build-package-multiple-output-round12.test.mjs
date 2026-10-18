@@ -16,6 +16,7 @@ test('package generation synchronizes multiple configured outputs and its local 
     DependencyManager.instance = { getPath: () => root };
     SettingsManager.instance = { settings: { useStats: false } };
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = {
         fullname: 'Catalog@front', module: 'Catalog', name: 'front', version: '2.1.0',
         rawDependencies: {},

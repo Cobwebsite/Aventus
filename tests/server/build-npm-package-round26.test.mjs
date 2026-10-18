@@ -11,6 +11,7 @@ function fixture(t) {
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const outputs = [join(root, 'one'), join(root, 'two')];
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = {
         fullname: 'Demo@web', module: 'Demo', name: 'web', version: '2.3.4', organization: 'Example Org',
     };

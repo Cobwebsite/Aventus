@@ -30,6 +30,7 @@ test('a multi-output build publishes source diagnostics and clears them after a 
     Object.defineProperty(source, 'file', { value: { uri: 'file:///demo/src/component.lib.avt' } });
     source.getDiagnostics = () => [];
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = {

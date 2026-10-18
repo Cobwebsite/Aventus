@@ -35,6 +35,7 @@ test('real global SCSS files enter JS and package while local style stays out, t
     const main = join(root, 'dist', 'main.js');
     const pkg = join(root, 'dist', 'Demo.package.avt');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = {

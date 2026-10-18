@@ -42,11 +42,11 @@ test('package Markdown keeps generic class and method signatures, escaped unions
     assert.match(markdown, /\| \[Demo\.Card\]\(#pkg-demo-card\) \| Class \|/);
     assert.match(markdown, /<a id="pkg-demo-card"><\/a>\s*## Demo\.Card<T extends string = string>/);
     assert.match(markdown, /\[select\]\(#pkg-select\)/);
-    assert.match(markdown, /<a id="pkg-select"><\/a>\s*## select\(value: string\)/);
+    assert.match(markdown, /<a id="pkg-select"><\/a>\s*## select\(value\?: string\)/);
     assert.match(markdown, /## Demo\.Card<T extends string = string>/);
     assert.match(markdown, /Import : import \{ Card \} from "widgets:Demo\.package\.avt"/);
     assert.match(markdown, /\| choose<U extends number = number>\(value: U\) \| T &vert; U \| Chooses a value \|/);
-    assert.match(markdown, /## select\(value: string\)/);
+    assert.match(markdown, /## select\(value\?: string\)/);
     assert.match(markdown, /Return : string &vert; undefined/);
 });
 

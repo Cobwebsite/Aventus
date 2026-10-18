@@ -66,7 +66,7 @@ test('failed settings load does not start services and a later initialization ca
         await handlers.onInitialized();
         assert.equal(server.isLoading, false);
         assert.deepEqual(calls, ['node', 'settings request', 'node', 'settings request',
-            ['settings', {}], 'html request', ['html', {}], 'services']);
+            'html request', ['settings', {}], ['html', {}], 'services']);
     } finally {
         GenericServer.instance = oldServer;
         SettingsManager.instance = oldSettings;

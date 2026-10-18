@@ -8,6 +8,7 @@ test('a validation failure restores rebuild state before a later successful retr
     const calls = [];
     let failValidation = true;
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build.scssLanguageService = { allowRebuildDefinition: enabled => calls.push(`scss:${enabled}`) };
     build.htmlLanguageService = { allowRebuildDefinition: enabled => calls.push(`html:${enabled}`) };

@@ -35,6 +35,7 @@ test('real component compilation replaces JS and package declarations after sour
     const main = join(root, 'dist', 'main.js');
     const pkg = join(root, 'dist', 'Demo.package.avt');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         initDone: true, _allowBuild: true,
         buildConfig: {

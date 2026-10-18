@@ -878,6 +878,7 @@
 		"_package:cli": "rimraf cli/lib && rimraf cli/out && cross-env NODE_ENV=production rolldown -c ./cli/rolldown.config.mjs  && node ./cli/postBuild.mjs",
 		"test": "npm run test:server",
 		"test:server": "node --experimental-transform-types --test tests/server/*.test.mjs",
+		"test:server:coverage": "node tests/server/run-coverage.mjs",
 		"watch": "concurrently \"npm run dev:server\" \"npm run dev:client\" -n \"server,client\"",
 		"watch:cli": "concurrently \"npm run dev:server\" \"npm run dev:cli\" -n \"server,cli\""
 	},
@@ -905,6 +906,7 @@
 		"merge-options": "^3.0.4",
 		"node-machine-id": "^1.1.12",
 		"node-notifier-cli": "^2.0.0",
+		"nyc": "^18.0.0",
 		"postcss-scss": "^4.0.9",
 		"postcss-sorting": "^10.0.0",
 		"rimraf": "^6.1.3",

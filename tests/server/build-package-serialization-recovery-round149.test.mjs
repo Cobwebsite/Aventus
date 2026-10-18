@@ -31,6 +31,7 @@ test('a package serialization failure leaves staged JS and package outputs uncha
     const pkg = join(root, 'dist', 'Demo.package.avt');
     const local = join(root, '@locals', 'Demo@web.package.avt');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = {

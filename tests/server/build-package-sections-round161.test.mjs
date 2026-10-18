@@ -14,6 +14,7 @@ function setup(t, root) {
     DependencyManager.instance = { getPath: () => root };
     t.after(() => { DependencyManager.instance = oldDependency; });
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = {
         fullname: 'Catalog@web', module: 'Catalog', name: 'web', version: '3.2.1',
         rawDependencies: {},
@@ -81,4 +82,53 @@ test('package header and dependency section follow a changed build configuration
     assert.match(content, /\/\* description:A catalog package \*\//);
     assert.deepEqual(JSON.parse(sections(path).depsTxt), build.buildConfig.rawDependencies);
     assert.equal(readFileSync(join(root, '@locals', 'Catalog@web.package.avt'), 'utf8'), content);
+});
+
+test('multiple package destinations and local cache reflect the latest API sections', async t => {
+    const root = mkdtempSync(join(tmpdir(), 'aventus-package-multiple-destinations-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+    const build = setup(t, root);
+    const first = join(root, 'dist', 'first.package.avt');
+    const second = join(root, 'other', 'second.package.avt');
+    const srcA = { namespace: 'Catalog', available: [{ name: 'First' }], existing: [] };
+    const srcB = { namespace: 'Catalog', available: [{ name: 'Second' }], existing: [] };
+
+    await build.writeBuildDocumentation([first, '', second], result({
+        doc: ['export class First {}'],
+        docNoNamespace: ['declare const globalFirst: string;'],
+        docInvisible: ['export class InternalFirst {}'],
+    }), srcA, { path: [], npmName: '' });
+    assert.equal(readFileSync(first, 'utf8'), readFileSync(second, 'utf8'));
+    assert.deepEqual(JSON.parse(sections(first).jsSrc), srcA);
+    assert.match(sections(first).jsDef, /globalFirst/);
+    assert.match(sections(first).jsDef, /InternalFirst/);
+
+    await build.writeBuildDocumentation([first, '', second], result({
+        doc: ['export class Second {}'],
+    }), srcB, { path: [], npmName: '' });
+    const current = readFileSync(first, 'utf8');
+    assert.equal(readFileSync(second, 'utf8'), current);
+    assert.equal(readFileSync(join(root, '@locals', 'Catalog@web.package.avt'), 'utf8'), current);
+    assert.deepEqual(JSON.parse(sections(second).jsSrc), srcB);
+    assert.match(sections(second).jsDef, /Second/);
+    assert.doesNotMatch(sections(second).jsDef, /First|globalFirst|InternalFirst/);
+});
+
+test('default npm name follows the current module and build name across package writes', async t => {
+    const root = mkdtempSync(join(tmpdir(), 'aventus-package-default-npm-name-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+    const build = setup(t, root);
+    const path = join(root, 'dist', 'Catalog.package.avt');
+    const src = { namespace: 'Catalog', available: [], existing: [] };
+    await build.writeBuildDocumentation([path], result(), src, { path: [join(root, 'npm')], npmName: '' });
+    assert.match(readFileSync(path, 'utf8'), /^\/\/ npm:@catalog\/web$/m);
+
+    build.buildConfig.module = 'NewCatalog';
+    build.buildConfig.name = 'Mobile';
+    build.buildConfig.fullname = 'NewCatalog@Mobile';
+    await build.writeBuildDocumentation([path], result(), src, { path: [join(root, 'npm')], npmName: '' });
+    const current = readFileSync(path, 'utf8');
+    assert.match(current, /^\/\/ npm:@newcatalog\/mobile$/m);
+    assert.doesNotMatch(current, /@catalog\/web/);
+    assert.equal(readFileSync(join(root, '@locals', 'NewCatalog@Mobile.package.avt'), 'utf8'), current);
 });

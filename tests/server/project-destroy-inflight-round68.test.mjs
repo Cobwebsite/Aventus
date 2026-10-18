@@ -97,7 +97,7 @@ test('destroy during compilation prevents later output and completion notificati
 
     const build = Object.create(Build.prototype);
     Object.assign(build, {
-        initDone: true, _allowBuild: true,
+        initDone: true, _allowBuild: true, buildRevision: 0,
         buildConfig: { fullname: 'Demo@web', module: 'Demo', compile: [{
             package: [], outputNpm: { live: false }, output: [], compressed: false,
         }] },

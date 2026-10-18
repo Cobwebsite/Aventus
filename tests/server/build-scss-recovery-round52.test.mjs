@@ -51,6 +51,7 @@ test('Sass import error reaches diagnostics and corrected mixin replaces generat
     });
 
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = {

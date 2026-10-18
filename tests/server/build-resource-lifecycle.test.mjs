@@ -14,6 +14,7 @@ test('build destruction unsubscribes every registered file category and announce
         file: { removeOnDelete: id => calls.push(['delete', name, id]) },
     });
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.onNewFileUUID = 'new-file';
     build.onFileDeleteUUIDs = Object.fromEntries(['style', 'view', 'logic', 'translation', 'component-translation']
         .map(name => [name, `delete-${name}`]));
@@ -44,7 +45,9 @@ test('build destruction unsubscribes every registered file category and announce
 
 test('IDE build gate follows settings while CLI build gate follows explicit enablement', () => {
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build._allowBuild = true;
+    build.npmBuilder = { rebuildInfo() {} };
     SettingsManager.instance = { settings: { ideBuild: false } };
     GenericServer.instance = { isIDE: true };
     assert.equal(build.isBuildAllowed, false);
@@ -60,6 +63,7 @@ test('IDE build gate follows settings while CLI build gate follows explicit enab
 test('scheduled compilation is cancelled after build destruction', async t => {
     const calls = [];
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._build = async () => calls.push('compiled');
     build.onNewFileUUID = 'new-file';

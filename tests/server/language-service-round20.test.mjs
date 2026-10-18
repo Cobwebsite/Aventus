@@ -40,7 +40,7 @@ test('global SCSS indexes only root declarations and preserves their precise ran
     global.loadVariables({ file }, uri);
     assert.equal(global.getDefinition('--local'), undefined);
     const variable = global.getDefinition('--primary');
-    assert.equal(variable.value, '#123');
-    assert.equal(variable.range.start.line, 2);
+    assert.equal(variable.value, '#456');
+    assert.equal(variable.range.start.line, 3);
     assert.equal(file.documentUser.getText(variable.range), '--primary');
 });

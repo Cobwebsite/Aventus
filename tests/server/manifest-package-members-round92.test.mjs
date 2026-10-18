@@ -38,7 +38,7 @@ test('package Markdown separates public instance and static members, slots and C
     const markdown = new ManifestPackageMd(file).getContent();
     assert.match(markdown, /### JS Props[\s\S]*\| title \| string \| Docs for title \|/);
     assert.match(markdown, /### JS Props Static[\s\S]*\| count \| number \| Docs for count \|/);
-    assert.match(markdown, /### Methods[\s\S]*\| open\(force: boolean\) \| void \| Docs for open \|/);
+    assert.match(markdown, /### Methods[\s\S]*\| open\(force\?: boolean\) \| void \| Docs for open \|/);
     assert.match(markdown, /### Methods Static[\s\S]*\| create\(\) \| Card \| Docs for create \|/);
     assert.match(markdown, /### HTML Slots[\s\S]*\| body \| Body content \|/);
     assert.match(markdown, /### CSS Props[\s\S]*\| --tone \| <color> \| Card tone \|/);

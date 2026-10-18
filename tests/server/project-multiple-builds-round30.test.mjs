@@ -34,6 +34,7 @@ test('one project builds two overlapping source sets into distinct JavaScript an
         const pkg = join(root, 'dist', `${name}.package.avt`);
         const build = Object.create(Build.prototype);
         build.initDone = true;
+        build.buildRevision = 0;
         build._allowBuild = true;
         build.buildConfig = {
             fullname: `Demo@${name}`, module: 'Demo', name, version: '1.0.0',

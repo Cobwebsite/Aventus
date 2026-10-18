@@ -32,6 +32,7 @@ test('a full build preserves the compilation order of two parsed web components 
     const main = join(root, 'dist', 'main.js');
     const pkg = join(root, 'dist', 'Demo.package.avt');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = {

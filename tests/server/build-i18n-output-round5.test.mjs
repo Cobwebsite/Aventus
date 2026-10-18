@@ -10,6 +10,7 @@ function fixture(t) {
     const output = mkdtempSync(join(import.meta.dirname, '.i18n-output-round5-'));
     t.after(() => rmSync(output, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = { i18n: { locales: ['en', 'fr'] } };
     build.tsLanguageService = { i18nFiles: {
         'file:///shared.i18n.avt': { file: { name: '@shared.i18n.avt' }, exported: { en: { shared: 'Shared', collision: 'global' }, fr: { shared: 'Commun' } } },

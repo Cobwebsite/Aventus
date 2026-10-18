@@ -35,6 +35,7 @@ test('generated package revises transitive inclusion from none to need to full',
     const dependency = (name, include = 'full') => ({ uri: paths[name], version: '1.0.0', include });
     const write = async (name, dependencies, code) => {
         const build = Object.create(Build.prototype);
+        build.buildRevision = 0;
         build.buildConfig = {
             fullname: name, module: name, name: 'web', version: '1.0.0', rawDependencies: dependencies,
         };

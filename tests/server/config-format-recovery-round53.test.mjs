@@ -39,7 +39,7 @@ test('add config section recovers after JSON correction and preserves existing s
         assert.equal(errors.length, 1);
         assert.deepEqual(notifications, []);
 
-        const originalBuild = { name: 'Original', src: ['src'], compile: { output: './original.js' } };
+        const originalBuild = { name: 'Original', src: ['src'], compile: [{ output: './original.js' }] };
         const originalStatic = { name: 'Assets', input: './assets', output: './dist/assets' };
         writeFileSync(configPath, JSON.stringify({ module: 'Demo', build: [originalBuild], static: [originalStatic] }));
         await AddConfigSection.run(uri);
@@ -75,6 +75,7 @@ test('format continues with later files after one formatter rejects', async t =>
     const previousServer = GenericServer.instance;
     const previousError = console.error;
     const errors = [];
+    const messages = [];
     console.error = error => errors.push(error);
     FilesManager.instance = {
         getUris: () => [badUri, goodUri],
@@ -82,6 +83,7 @@ test('format continues with later files after one formatter rejects', async t =>
     };
     GenericServer.instance = { logLevel: 4, connection: {
         showLoadingMessage: async (_message, action) => action(),
+        showErrorMessage: message => messages.push(message),
     } };
     try {
         await Format.run();
@@ -89,6 +91,9 @@ test('format continues with later files after one formatter rejects', async t =>
         assert.equal(readFileSync(goodPath, 'utf8'), 'new');
         assert.equal(errors.length, 1);
         assert.match(errors[0].message, /formatter failed/);
+        assert.equal(messages.length, 1);
+        assert.match(messages[0], /Formatting failed for 1 file/);
+        assert.match(messages[0], /bad\.wcl\.avt/);
     } finally {
         clearTimeout(bad.delayValidate);
         clearTimeout(good.delayValidate);

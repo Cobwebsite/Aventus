@@ -12,6 +12,7 @@ const [{ Build }, { GenericServer }, { DependencyManager }, { AventusPackageFile
 
 test('buildLocalCode collects multiple global SCSS files in registration order and drops deleted entries', async () => {
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.noNamespaceUri = {};
     build.tsFiles = {};
     build.globalComponentSCSSFiles = {
@@ -46,6 +47,7 @@ test('build aggregates ordered global and component styles in JavaScript and pac
     const main = join(root, 'dist', 'main.js');
     const pkg = join(root, 'dist', 'Demo.package.avt');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.initDone = true;
     build._allowBuild = true;
     build.buildConfig = {

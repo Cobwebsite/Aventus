@@ -37,6 +37,7 @@ test('one full build combines two real component views and styles with npm outpu
     const dependency = join(root, 'local-dependency.js');
     writeFileSync(dependency, 'export const marker = "local npm dependency";');
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         initDone: false, _allowBuild: true,
         buildConfig: { fullname: 'Demo@web', module: 'Demo', name: 'web', version: '1.0.0',

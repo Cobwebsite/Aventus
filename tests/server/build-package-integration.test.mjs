@@ -15,6 +15,7 @@ function fixture(t) {
     DependencyManager.instance = { getPath: () => root };
     SettingsManager.instance = { settings: { useStats: false } };
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = {
         fullname: 'Demo@web', module: 'Demo', name: 'web', version: '1.2.3',
         description: 'Sample package', rawDependencies: { 'Shared@base': { version: '1.0.0' } },

@@ -33,6 +33,7 @@ test('two generated Aventus packages resolve a transitive import and run in depe
     const appPath = join(root, 'App.package.avt');
     const write = async (name, output, dependencies, code) => {
         const build = Object.create(Build.prototype);
+        build.buildRevision = 0;
         build.buildConfig = {
             fullname: name, module: name, name: 'web', version: '1.0.0',
             rawDependencies: dependencies,

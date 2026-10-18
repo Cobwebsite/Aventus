@@ -32,6 +32,7 @@ test('a rebuild tracks real source-file additions, edits and deletions in two np
     const npmRoots = [join(root, 'npm-a'), join(root, 'npm-b')];
 
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         initDone: true, _allowBuild: true,
         buildConfig: {

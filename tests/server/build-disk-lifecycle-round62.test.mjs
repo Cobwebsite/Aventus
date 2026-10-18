@@ -42,6 +42,7 @@ test('disk create and edit replace output; deletion removes the source in one re
         for (const file of Object.values(manager.files)) clearTimeout(file.delayValidate);
     });
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     Object.assign(build, {
         initDone: true, _allowBuild: true,
         buildConfig: {

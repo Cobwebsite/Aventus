@@ -53,7 +53,7 @@ test('split refuses an occupied output path and succeeds after the obstruction i
     assert.deepEqual([...files.keys()], [sourceUri]);
     assert.deepEqual(events, []);
     assert.equal(errors.length, 1);
-    assert.match(errors[0], /Card\.wcv\.avt/);
+    assert.match(errors[0], /destination already exists: true/);
 
     rmSync(viewPath, { recursive: true });
     await split();

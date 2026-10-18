@@ -34,6 +34,7 @@ test('three generated packages deduplicate a shared dependency and reread change
     const dep = name => ({ uri: paths[name], version: '1.0.0', include: 'full' });
     const write = async (name, dependencies, code) => {
         const build = Object.create(Build.prototype);
+        build.buildRevision = 0;
         build.buildConfig = {
             fullname: name, module: name, name: 'web', version: '1.0.0',
             rawDependencies: dependencies,

@@ -8,7 +8,7 @@ const [{ AventusGlobalSCSSLanguageService }, { AventusSCSSLanguageService }] = a
     'language-services/scss/LanguageService.ts',
 ]);
 
-test('duplicate declarations in one global SCSS file select the first surviving value after edits', async () => {
+test('duplicate declarations in one global SCSS file select the last surviving value after edits', async () => {
     const globals = new AventusGlobalSCSSLanguageService();
     const local = new AventusSCSSLanguageService({ globalSCSSLanguageService: globals });
     const globalUri = 'file:///D:/round229/theme.scss.avt';
@@ -28,13 +28,13 @@ test('duplicate declarations in one global SCSS file select the first surviving 
     };
 
     const firstText = ':root { --tone: red; --tone: blue; }';
-    await verify(load(firstText, 1), 'red', firstText.indexOf('--tone'));
+    await verify(load(firstText, 1), 'blue', firstText.lastIndexOf('--tone'));
 
     const secondText = ':root { --tone: blue; }';
     await verify(load(secondText, 2), 'blue', secondText.indexOf('--tone'));
 
     const thirdText = ':root { --tone: green; --tone: yellow; }';
-    await verify(load(thirdText, 3), 'green', thirdText.indexOf('--tone'));
+    await verify(load(thirdText, 3), 'yellow', thirdText.lastIndexOf('--tone'));
 
     load(':root { --other: orange; }', 4);
     assert.equal(await local.findDefinition(consumer, position), null);

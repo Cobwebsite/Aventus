@@ -10,6 +10,8 @@ test('concurrent first template completions wait for the same asynchronous save 
     const document = TextDocument.create(uri, 'typescript', 1, 'export default {}');
     const manager = Object.create(FilesManager.prototype);
     manager.files = {};
+    manager.pendingTemplateInitializations = new Map();
+    manager.failedTemplateInitializations = new Set();
     let releaseSave;
     const gate = new Promise(resolve => { releaseSave = resolve; });
     const events = [];
@@ -50,6 +52,8 @@ test('failed template initialization reaches the request and can be retried', as
     const document = TextDocument.create(uri, 'typescript', 1, 'export default {}');
     const manager = Object.create(FilesManager.prototype);
     manager.files = {};
+    manager.pendingTemplateInitializations = new Map();
+    manager.failedTemplateInitializations = new Set();
     let saves = 0;
     manager.registerFile = async input => {
         manager.files[input.uri] = {

@@ -76,6 +76,7 @@ test('explicit settings refresh replaces both settings categories in order and p
     settings.onSettingsChange(() => events.push(['live', settings.settings.logLevel, settings.settingsHtml.customData]));
     settings.onSettingsChangeHtml(() => events.push(['html', settings.settingsHtml.customData]));
     const server = Object.create(GenericServer.prototype);
+    server.settingsLoadGeneration = 0;
     server._noBuild = true;
     server.connection = {
         getSettings: async () => live,

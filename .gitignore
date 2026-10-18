@@ -7,6 +7,9 @@ cli/out
 cli/lib
 client/out
 server/out
+.coverage-bundle-*.cjs
+coverage/
+.nyc_output/
 *package-lock.json
 *tsconfig.tsbuildinfo
 *.vsix

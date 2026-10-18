@@ -3,13 +3,14 @@ import test from 'node:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
 const [{ FilesManager }, { SettingsManager }, { GenericServer }, { InitStep }, { pathToUri }] = await loadServerModules([
     'files/FilesManager.ts', 'settings/Settings.ts', 'GenericServer.ts', 'notification/InitStep.ts', 'tools.ts',
 ]);
 
-test('rediscovery updates a cached file, registers a new sibling, and preserves URI/path identity', async () => {
+test('rediscovery preserves a cached file until a newer document arrives and registers a new sibling', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-rediscovery-round92-'));
     const firstPath = join(root, 'first.wcl.avt');
     const secondPath = join(root, 'second.wcl.avt');
@@ -39,13 +40,15 @@ test('rediscovery updates a cached file, registers a new sibling, and preserves 
 
         assert.equal(manager.getByUri(firstUri), first);
         assert.equal(manager.getByPath(firstPath), first);
-        assert.equal(first.contentUser, 'class Updated {}');
+        assert.equal(first.contentUser, 'class First {}');
         assert.equal(manager.getByPath(secondPath), manager.getByUri(secondUri));
         assert.deepEqual(new Set(manager.getUris()), new Set([firstUri, secondUri]));
+        await manager.onContentChange(TextDocument.create(firstUri, 'typescript', 1, 'class Updated {}'));
+        assert.equal(first.contentUser, 'class Updated {}');
         assert.deepEqual(events, [
             ['new', firstUri, 'class First {}'],
-            ['change', firstUri, 'class Updated {}'],
             ['new', secondUri, 'class Second {}'],
+            ['change', firstUri, 'class Updated {}'],
         ]);
     } finally {
         for (const file of Object.values(manager.files)) clearTimeout(file.delayValidate);

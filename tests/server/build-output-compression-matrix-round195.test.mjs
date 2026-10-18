@@ -19,6 +19,7 @@ test('each routed output honors its compression override across a full output re
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const paths = Object.fromEntries(['main', 'vendor', 'npm'].map(name => [name, join(root, `${name}.js`)]));
     const build = Object.create(Build.prototype);
+    build.buildRevision = 0;
     build.buildConfig = { fullname: 'Demo@web', module: 'Demo' };
     let revision = 'First';
     build.npmBuilder = { compile: async () => ({ result: `globalThis.Npm${revision} = 123;\n`, errors: [] }) };
