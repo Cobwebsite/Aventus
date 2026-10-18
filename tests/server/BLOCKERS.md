@@ -2,6 +2,12 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
+## Couleur nommée détectée dans une URL CSS avec parenthèses imbriquées
+
+- Reproduction automatisée : `color-picker-nested-url-round294.test.mjs` trouve `blue` dans `url(data:image/svg+xml,(red)blue)` alors que `red` est correctement masqué ; après retrait de `blue` de l'URL, seule la couleur de la déclaration voisine est signalée.
+- Source : `ColorPicker.maskCommentsAndStrings()` ferme l'état `inUrl` au premier `)` sans compter les parenthèses imbriquées.
+- Décision à prendre : définir la prise en charge des URL non citées contenant des parenthèses, puis masquer l'URL complète jusqu'à sa fermeture réelle.
+
 ## Copie statique orpheline avec deux destinations alias
 
 - Reproduction automatisée : `static-normalized-destination-alias-round281.test.mjs` configure deux destinations textuellement différentes qui se normalisent vers le même dossier. Le premier export crée la copie, mais le second passage la classe comme préexistante (`canDelete: false`). Une révision met à jour cette copie ; la suppression de la source vide ensuite le suivi sans supprimer le fichier produit.
@@ -197,7 +203,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Une traduction i18n de type incorrect reste dans l'export
 
-- Reproduction automatisée : `i18n-invalid-value-recovery-round207.test.mjs` fournit une traduction numérique `12` dans un JSON valide avec une locale manquante. `i18n-mixed-value-recovery-round247.test.mjs` confirme le même comportement pour des valeurs tableau et objet simultanées. Les diagnostics de schéma signalent les types incorrects, mais l'export et l'action d'ajout de locale conservent ces valeurs alors que le contrat annonce des chaînes. Une édition qui remplace les valeurs par des chaînes rétablit diagnostics et exports attendus.
+- Reproduction automatisée : `i18n-invalid-value-recovery-round207.test.mjs` fournit une traduction numérique `12` dans un JSON valide avec une locale manquante. `i18n-mixed-value-recovery-round247.test.mjs` confirme le même comportement pour des valeurs tableau et objet simultanées. `i18n-invalid-values-revisions-round301.test.mjs` étend le constat aux booléens, à `null` et aux tableaux : les diagnostics ciblent chaque valeur, mais l'export les conserve ; deux éditions successives renouvellent correctement diagnostics et exports. Les diagnostics de schéma signalent les types incorrects, mais l'export et l'action d'ajout de locale conservent ces valeurs alors que le contrat annonce des chaînes. Une édition qui remplace les valeurs par des chaînes rétablit diagnostics et exports attendus.
 - Source : `AventusI18nFile.transformForExport()` copie les valeurs JSON sans contrôler leur type ; `actionImportMissingLocales()` recopie tout l'objet source.
 - Décision à prendre : déterminer si une valeur de type incorrect doit être exclue de l'export et de la correction, convertie en chaîne ou conservée tant que le diagnostic est visible.
 
@@ -295,7 +301,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Destination retirée d'un export statique laissée sur disque
 
-- Reproduction automatisée : `static-output-list-transition-round220.test.mjs` ajoute une deuxième destination à un export, puis retire la première et modifie le binaire source. La première copie conserve son ancien contenu tant que la source existe ; elle n'est supprimée qu'après disparition de cette source, même si la destination ne figure plus dans la configuration.
+- Reproduction automatisée : `static-output-list-transition-round220.test.mjs` ajoute une deuxième destination à un export, puis retire la première et modifie le binaire source. La première copie conserve son ancien contenu tant que la source existe ; elle n'est supprimée qu'après disparition de cette source, même si la destination ne figure plus dans la configuration. `static-output-folder-transition-round301.test.mjs` reproduit le même comportement lors d'un déplacement direct de la destination et vérifie que les deux copies sont finalement retirées avec la source.
 - Cause : `Static.export()` garde les sorties précédentes dans `exportedBySource` et ne nettoie cette collection que lorsque la source entière disparaît.
 - Décision à prendre : définir si le retrait d'une destination sur une instance d'export active doit supprimer aussitôt les sorties qu'elle a créées, en préservant celles déjà présentes ou modifiées hors du build.
 
@@ -600,3 +606,16 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 - Reproduction automatisée : `color-info-composition-round290.test.mjs` appelle `ColorInfo.multiply()` avec deux couleurs RGB valides. La méthode extrait `r1`, `g1`, `b1` et `r2`, `g2`, `b2` d'objets qui exposent `r`, `g`, `b` ; elle transmet donc `NaN` à `fromRgb()` et lève `Color values out of bounds`.
 - Décision à prendre : confirmer que la multiplication doit produire le produit canal par canal, puis lire les noms de propriétés réellement renvoyés par `toRgb()`.
+
+## Catégories serveur encore ouvertes dans TODO.md
+
+- **Création depuis un template (ligne 479)** : les tests cités vérifient des copies et substitutions précises, mais la conservation des octets binaires, les blocs conditionnels adjacents, les blocs répétés, les valeurs `$&` et l'URI réécrite par callback échouent ou divergent déjà dans `template-binary-round159.test.mjs`, `template-adjacent-conditions-round171.test.mjs`, `template-repeated-blocks-round196.test.mjs`, `template-dollar-variables-round210.test.mjs` et `template-callback-path-round228.test.mjs`. Décider les sorties attendues, puis corriger le code avant de déclarer la génération complète.
+- **Import et désinstallation des templates (ligne 480)** : `template-uninstall-response-round137.test.mjs` et `template-uninstall-forged-selection-round279.test.mjs` démontrent qu'une réponse de sélection non proposée peut supprimer un dossier. `quick-template-name-collision-round153.test.mjs` montre aussi deux choix homonymes routés vers le même chemin. Définir et appliquer la validation des choix avant de clore la catégorie.
+- **Conversions de composants (ligne 526)** : `component-merge-destination-race-round281.test.mjs` démontre l'écrasement d'une destination apparue durant l'attente ; `component-merge-reference-error-round248.test.mjs` démontre une édition de référence appliquée avant un échec ultérieur. Choisir les garanties d'atomicité et de préservation de destination, puis les implémenter.
+- **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.
+- **Commandes build, npm, Storybook et sortie statique (ligne 540)** : `build-command-unlisted-selection-round213.test.mjs` démontre que les quatre commandes acceptent une cible qui n'était pas dans les choix proposés. Définir si le choix doit être limité à la liste affichée et appliquer ce contrat aux quatre commandes.
+- **Exports Sharp/PHP (ligne 541)** : `converter-output-concurrency-round99.test.mjs` démontre que deux échecs laissent l'état client à `compiling`. Définir l'état terminal de chaque export et les conventions de sortie avant de considérer tous les échecs couverts.
+- **Quatre manifestes de composant (ligne 558)** : `manifest-tag-collision-round152.test.mjs` démontre que deux composants de même tag restent présents dans trois formats tandis qu'Emmet n'en conserve qu'un. Définir la politique de collision commune et la mettre en œuvre.
+- **Schémas et événements des manifestes (ligne 559)** : `manifest-signal-events-gap-round293.test.mjs` parse deux révisions d'une propriété `@Signal()` documentée ; `CustomElements.events` et `WebTypes.js.events` restent absents. Les générateurs portent encore les marqueurs `events // not ready`. Définir la correspondance entre signaux et événements et générer les entrées avant de clore ce point.
+- **Manifeste package et Markdown (ligne 561)** : `manifest-package-inheritance-round183.test.mjs` montre l'absence des interfaces `implements` ; `manifest-package-function-parameters-round240.test.mjs` et `manifest-package-inferred-signatures-round271.test.mjs` montrent la perte des types et valeurs par défaut inférés. Définir ces rendus et les implémenter.
+- **Stories et MDX (ligne 562)** : `storybook-description-interpolation-round130.test.mjs` démontre qu'un JSDoc contenant `${name}` devient une interpolation dans la story ; `storybook-alias-default-toggle-round251.test.mjs` montre la perte du JSDoc d'un alias. Échapper le texte utilisateur et définir sa publication avant de clore la génération complète.
