@@ -100,6 +100,11 @@ export class AventusJSONLanguageService {
     }
     public async validate(file: AventusFile): Promise<Diagnostic[]> {
         let document = file.documentUser;
+        if (document.uri.endsWith(AventusExtension.Config)) {
+            const errors: Diagnostic[] = [];
+            await this.getConfig(document, errors);
+            return errors;
+        }
         let jsonDoc = this.languageService.parseJSONDocument(document);
         let errors = await this.languageService.doValidation(document, jsonDoc);
         if (errors.length == 0) {
@@ -166,25 +171,26 @@ export class AventusJSONLanguageService {
     }
 
     //#region config
-    public async getConfig(file: AventusFile | TextDocument): Promise<AventusConfig | null> {
+    public async getConfig(file: AventusFile | TextDocument, diagnostics: Diagnostic[] = []): Promise<AventusConfig | null> {
         let document = 'documentUser' in file ? file.documentUser : file;
         let jsonDoc = this.languageService.parseJSONDocument(document);
         let errors = await this.languageService.doValidation(document, jsonDoc, undefined, AventusConfigSchema);
+        diagnostics.push(...errors.map(error => ({ ...error, severity: DiagnosticSeverity.Error })));
         if (errors.length == 0) {
             let configTxt = this.removeComments(document.getText());
             try {
                 let resultConfig: AventusConfig = JSON.parse(configTxt);
-                resultConfig = this.prepareConfigFile(document.uri, resultConfig);
-                return resultConfig;
+                resultConfig = this.prepareConfigFile(document.uri, resultConfig, document, jsonDoc.root, diagnostics);
+                return diagnostics.length === 0 ? resultConfig : null;
             }
             catch (e) {
-                errors.push(createErrorTs(document, "Can't parse the json", AventusErrorCode.ConfigJsonError))
+                diagnostics.push(createErrorTs(document, "Can't parse the json", AventusErrorCode.ConfigJsonError))
             }
         }
         return null;
     }
 
-    private prepareConfigFile(uri: string, config: AventusConfig): AventusConfig {
+    private prepareConfigFile(uri: string, config: AventusConfig, document: TextDocument, root: ASTNode | undefined, diagnostics: Diagnostic[]): AventusConfig {
         config = {
             ...this.defaultConfigValue(),
             ...config
@@ -199,8 +205,35 @@ export class AventusJSONLanguageService {
             }
         }
         let builds: AventusConfigBuild[] = [];
-        for (let build of config.build) {
-            builds.push(this.prepareBuild(uri, build, config));
+        const seenBuilds = new Set<string>();
+        let buildNodes: ASTNode | undefined = undefined;
+        if (root?.type == 'object') {
+            buildNodes = root.properties.find(item => item.keyNode.value === 'build')?.valueNode
+        }
+
+        for (let index = 0; index < config.build.length; index++) {
+            const build = this.prepareBuild(uri, config.build[index], config);
+
+            if (seenBuilds.has(build.fullname) && buildNodes?.type === 'array') {
+                let location: ASTNode | undefined = buildNodes.items[index];
+                if (location?.type === 'object') {
+                    const temp = location.properties.find(property => property.keyNode.value === 'name')?.valueNode;
+                    if (temp) {
+                        location = temp;
+                    }
+                }
+
+                if (location) {
+                    diagnostics.push({
+                        range: Range.create(document.positionAt(location.offset), document.positionAt(location.offset + location.length)),
+                        severity: DiagnosticSeverity.Error,
+                        source: 'Aventus',
+                        message: `Duplicate build: ${build.fullname}`,
+                    });
+                }
+            }
+            seenBuilds.add(build.fullname);
+            builds.push(build);
         }
         config.build = builds;
         if (config.static) {

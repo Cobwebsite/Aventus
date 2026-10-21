@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Déduplication incohérente des choix de builds homonymes
-
-- Reproduction automatisée : `project-manager-duplicate-choice-lifecycle-round274.test.mjs` inscrit deux builds de même nom dans un projet et un homonyme dans un second. `getAllBuildsWithStory()` ne présente qu'un choix par paire nom/URI, alors que `getAllBuilds()` et `getAllBuildsWithNpm()` présentent deux choix identiques pour le premier projet. Le retrait progressif du doublon actualise correctement les listes.
-- Source : seul `ProjectManager.getAllBuildsWithStory()` déduplique les choix par nom et URI ; les deux autres méthodes ajoutent chaque build directement.
-- Décision à prendre : décider si les listes de commandes doivent toutes dédupliquer les choix identiques et, si oui, selon quelle identité lorsqu'un projet contient réellement deux builds homonymes.
-
 ## Note hors périmètre des tests serveur
 
 - `client/src/cmds/Rename.ts` transmet `item.oldUri` dans le champ `newUri` de la commande `aventus.rename`. À traiter plus tard avec les tests du client VS Code ; ne pas modifier le client pendant cette passe.
