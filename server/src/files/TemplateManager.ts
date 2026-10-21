@@ -519,14 +519,7 @@ export class TemplateManager {
 		const result = await GenericServer.SelectMultiple(quickPicks, { title: "Select projects to remove" })
 		if (!result) return;
 
-		for (let item of result) {
-			if (item.detail) {
-				let folderPath = dirname(item.detail);
-				rmSync(folderPath, { recursive: true, force: true })
-			}
-		}
-
-		if (result.length > 0) {
+		if (this.removeSelectedInstallations(result, quickPicks, templates, () => this.getGeneralProjects(), this.projectPath) > 0) {
 			await this.reloadProjects();
 			GenericServer.showInformationMessage("Projects deleted");
 		}
@@ -557,27 +550,7 @@ export class TemplateManager {
 		const result = await GenericServer.SelectMultiple(quickPicks, { title: "Select templates to remove" })
 		if (!result) return;
 
-		let removed = 0;
-		const selected = new Set<TemplateScript>();
-		for (let item of result) {
-			const index = quickPicks.findIndex(choice => choice.label === item.label && choice.detail === item.detail);
-			if (index < 0) continue;
-
-			const template = templates[index];
-			if (selected.has(template) || getValueFromObject(template.name, this.getGeneralTemplates()) !== template) continue;
-			
-			const folderPath = resolve(dirname(template.config));
-			const insideTemplatePath = this.templatePath.some(root => {
-				const relativePath = relative(resolve(root), folderPath);
-				return relativePath !== '' && relativePath !== '..' && !relativePath.startsWith('..' + sep) && !isAbsolute(relativePath);
-			});
-			if (!insideTemplatePath || !existsSync(template.config)) continue;
-			selected.add(template);
-			rmSync(folderPath, { recursive: true, force: true });
-			removed++;
-		}
-
-		if (removed > 0) {
+		if (this.removeSelectedInstallations(result, quickPicks, templates, () => this.getGeneralTemplates(), this.templatePath) > 0) {
 			await this.reloadTemplates();
 			GenericServer.showInformationMessage("Templates deleted");
 		}
@@ -608,17 +581,34 @@ export class TemplateManager {
 		const result = await GenericServer.SelectMultiple(quickPicks, { title: "Select global templates to remove" })
 		if (!result) return;
 
-		for (let item of result) {
-			if (item.detail) {
-				let folderPath = dirname(item.detail);
-				rmSync(folderPath, { recursive: true, force: true })
-			}
-		}
-
-		if (result.length > 0) {
+		if (this.removeSelectedInstallations(result, quickPicks, templates, () => this.getGeneralGlobal(), this.globalPath) > 0) {
 			await this.reloadGlobal();
 			GenericServer.showInformationMessage("Global templates deleted");
 		}
+	}
+
+	private removeSelectedInstallations(result: SelectItem[], choices: SelectItem[], templates: TemplateScript[], currentTree: () => TemplatesByName, roots: string[]): number {
+		let removed = 0;
+		const selected = new Set<TemplateScript>();
+		for (const item of result) {
+			const index = choices.findIndex(choice => choice.label === item.label && choice.detail === item.detail);
+			if (index < 0) continue;
+
+			const template = templates[index];
+			if (selected.has(template) || getValueFromObject(template.name, currentTree()) !== template) continue;
+
+			const folderPath = resolve(dirname(template.config));
+			const insideRoot = roots.some(root => {
+				const relativePath = relative(resolve(root), folderPath);
+				return relativePath !== '' && relativePath !== '..' && !relativePath.startsWith('..' + sep) && !isAbsolute(relativePath);
+			});
+			if (!insideRoot || !existsSync(template.config)) continue;
+
+			selected.add(template);
+			rmSync(folderPath, { recursive: true, force: true });
+			removed++;
+		}
+		return removed;
 	}
 
 	private getSelectItem<T>(map: Map<SelectItem, T>, item: SelectItem) {
