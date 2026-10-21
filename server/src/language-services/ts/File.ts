@@ -61,7 +61,6 @@ export abstract class AventusTsFile extends AventusBaseFile {
     }
 
     protected async revalidateAfterDependencyChange(): Promise<void> {
-        delete ParserTs.parsedDoc[this.file.uri];
         this.refreshFileParsed();
         await this.file.validate();
     }

@@ -39,7 +39,6 @@ import { PropertyInfo } from './PropertyInfo';
 
 export class ParserTs {
     private static waitingUri: { [uri: string]: (() => void)[] } = {};
-    public static parsedDoc: { [uri: string]: { version: number, result: ParserTs } } = {};
     private static parsedByBuild = new WeakMap<Build, Map<string, { internal?: ParserTs, external?: ParserTs }>>();
     public static getCached(uri: string, build: Build, isExternal: boolean = false): ParserTs | undefined {
         const entry = this.parsedByBuild.get(build)?.get(uri);
@@ -47,8 +46,7 @@ export class ParserTs {
     }
     public static parse(document: AventusFile, isExternal: boolean, build: Build): ParserTs {
         const cached = this.getCached(document.uri, build, isExternal);
-        if (cached && cached.document.version === document.versionInternal) {
-            this.parsedDoc[document.uri] = { version: document.versionInternal, result: cached };
+        if (cached && cached.parsedVersion === document.versionInternal) {
             return cached;
         }
         return new ParserTs(document, isExternal, build);
@@ -82,8 +80,8 @@ export class ParserTs {
             this.currentParsingDoc.errors.push(error);
         }
     }
-    public static getBaseInfo(name: string, fromUri?: string): BaseInfo | null {
-        let currentDoc: ParserTs;
+    public static getBaseInfo(name: string, build: Build, fromUri?: string): BaseInfo | null {
+        let currentDoc: ParserTs | undefined;
         if (!fromUri) {
             if (!ParserTs.currentParsingDoc) {
                 return null;
@@ -91,7 +89,9 @@ export class ParserTs {
             currentDoc = ParserTs.currentParsingDoc;
         }
         else {
-            currentDoc = this.parsedDoc[fromUri]?.result;
+            let buildCache = ParserTs.parsedByBuild.get(build)?.get(fromUri);
+            let oldParser = buildCache?.internal ?? buildCache?.external;
+            currentDoc = oldParser;
         }
         if (!currentDoc) return null;
         if (currentDoc.internalObjects[name]) {
@@ -162,6 +162,7 @@ export class ParserTs {
     private content: string;
     public errors: Diagnostic[] = [];
     private _document: TextDocument;
+    private readonly parsedVersion: number;
     public get document() {
         return this._document;
     }
@@ -205,13 +206,10 @@ export class ParserTs {
     public deprecated: { start: number, end: number, msg: string }[] = [];
 
     private constructor(file: AventusFile, isExternal: boolean, build: Build) {
+        this.parsedVersion = file.versionInternal;
         this.build = build;
         this.build.npmBuilder.unregister(file.documentUser.uri);
         this.file = file;
-        ParserTs.parsedDoc[file.uri] = {
-            version: file.versionInternal,
-            result: this,
-        }
         let buildCache = ParserTs.parsedByBuild.get(build);
         if (!buildCache) {
             buildCache = new Map();

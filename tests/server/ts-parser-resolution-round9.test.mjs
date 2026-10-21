@@ -15,7 +15,7 @@ function parse(source, { external = false, build = createBuild() } = {}) {
     const uri = `file:///D:/test/resolution-round9-${++sequence}.lib.avt`;
     const document = TextDocument.create(uri, 'typescript', 1, source);
     const file = { uri, versionInternal: 1, documentUser: document, documentInternal: document };
-    return { uri, document, model: ParserTs.parse(file, external, build) };
+    return { uri, document, build, model: ParserTs.parse(file, external, build) };
 }
 function createBuild() {
     return {
@@ -40,11 +40,11 @@ test('external parser indexes fully qualified declarations from nested namespace
 test('getBaseInfo with a source URI sees local declarations and explicit imports only', () => {
     const foreign = parse('export class Foreign {}');
     const owner = parse('export class Owner {}');
-    assert.equal(ParserTs.getBaseInfo('Owner', owner.uri), owner.model.classes.Owner);
-    assert.equal(ParserTs.getBaseInfo('Foreign', owner.uri), null);
+    assert.equal(ParserTs.getBaseInfo('Owner', owner.build, owner.uri), owner.model.classes.Owner);
+    assert.equal(ParserTs.getBaseInfo('Foreign', owner.build, owner.uri), null);
     owner.model.importsLocal.Foreign = { info: foreign.model.classes.Foreign };
-    assert.equal(ParserTs.getBaseInfo('Foreign', owner.uri), foreign.model.classes.Foreign);
-    assert.equal(ParserTs.getBaseInfo('NoSuchDeclaration', owner.uri), null);
+    assert.equal(ParserTs.getBaseInfo('Foreign', owner.build, owner.uri), foreign.model.classes.Foreign);
+    assert.equal(ParserTs.getBaseInfo('NoSuchDeclaration', owner.build, owner.uri), null);
 });
 
 test('getBaseInfoFullName requires the complete namespace', () => {

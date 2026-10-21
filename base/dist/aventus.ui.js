@@ -13,7 +13,6 @@ var Aventus;
             }
             return Map.prototype._defaultHas.call(this, key);
         }
-
         Map.prototype.set = function (key, value) {
             if (Aventus.Watcher?.is(key)) {
                 return Map.prototype._defaultSet.call(this, key.getTarget(), value)
@@ -27,7 +26,8 @@ var Aventus;
             return Map.prototype._defaultGet.call(this, key);
         }
     }
-})();const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
+})();
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
 const moduleName = `Aventus`;
 const _ = {};
 

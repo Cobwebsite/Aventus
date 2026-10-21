@@ -5416,7 +5416,7 @@ let GenericRam=class GenericRam {
             let action = new ResultRamWithError();
             await action.runAsync(() => this.beforeGetAll());
             if (action.success) {
-                const result = Object.values(this.records);
+                const result = this.records.values().toArray();
                 action.result = result;
                 await action.runAsync(() => this.afterGetAll(result));
             }
