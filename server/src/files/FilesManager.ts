@@ -209,7 +209,7 @@ export class FilesManager {
         let checkFile = (filePath: string) => true;
         if (readDirs.length > 0) {
             const patterns = readDirs.map(dir => {
-                const parts = dir.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').split('/');
+                const parts = dir.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').split('/').filter((part, index) => part !== '.' || index !== 0);
                 const segments = parts.map(part => new RegExp('^' + escapeRegex(part, true).replace(/\*/g, '[^/]*') + '$'));
                 return { segments, isFile: parts[parts.length - 1].includes('.') };
             });

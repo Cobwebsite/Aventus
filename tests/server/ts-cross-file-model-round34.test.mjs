@@ -44,8 +44,7 @@ test('imports locaux aliasés : classe et interface gardent la déclaration sour
 }, (uris, build) => {
     const source = 'import { Parent as Base, Shape as Form } from "./base.lib.avt";\nexport class Child extends Base implements Form { size: number = 2; }';
     const owner = parse(uris['owner.lib.avt'], source, build);
-    const parsedBaseUri = Object.keys(ParserTs.parsedDoc).find(uri => uri.endsWith('/base.lib.avt') && uri.includes('round34'));
-    const base = ParserTs.parsedDoc[parsedBaseUri]?.result;
+    const base = owner.importsLocal.Base.info?.parserInfo;
     assert.ok(base);
     assert.equal(owner.importsLocal.Base.info, base.classes.Parent);
     assert.equal(owner.importsLocal.Form.info, base.classes.Shape);

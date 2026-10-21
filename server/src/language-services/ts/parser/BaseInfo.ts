@@ -228,7 +228,7 @@ export abstract class BaseInfo {
         else if (x.kind == SyntaxKind.PropertyAccessExpression) {
             let exp = (x as PropertyAccessExpression);
             let txt = exp.name.getText();
-            let baseInfo = ParserTs.getBaseInfo(txt);
+            let baseInfo = ParserTs.getBaseInfo(txt, this.build);
             if (baseInfo && exp.expression.getText() + "." + txt == baseInfo.fullName) {
                 // when static call on external class
                 this.addDependencyName(baseInfo.fullName, isStrongDependency, exp.getStart(), exp.getEnd());
@@ -260,7 +260,7 @@ export abstract class BaseInfo {
 
             let localClassName = x.getText();
             if (localClassName != 'this' && !localClassName.includes('.')) {
-                let baseInfo = ParserTs.getBaseInfo(localClassName);
+                let baseInfo = ParserTs.getBaseInfo(localClassName, this.build);
                 if (baseInfo) {
                     this.addDependencyName(localClassName, isStrongDependency, x.getStart(), x.getEnd());
                 }
@@ -1310,7 +1310,8 @@ export abstract class BaseInfo {
                     }
                 }
                 else {
-                    GenericServer.error("need implements for " + SyntaxKind[n.kind] + " " + from.fileUri);
+                    const position = from.document.positionAt(n.getStart());
+                    GenericServer.error("need implements for " + SyntaxKind[n.kind] + " " + from.fileUri + ":" + position.line + ":" + position.character);
                 }
             })
 

@@ -226,7 +226,7 @@ export class AventusSCSSLanguageService {
         this.externalDocumentation[uri] = doc;
         this.rebuildDefinition();
     }
-    public getExternalDefinition(uri: string): SCSSDoc|undefined {
+    public getExternalDefinition(uri: string): SCSSDoc | undefined {
         return this.externalDocumentation[uri];
     }
     public removeExternalDefinition(uri: string): void {
@@ -378,7 +378,8 @@ export class AventusSCSSLanguageService {
                             }
                             else {
                                 let txt = childNode.getText();
-                                GenericServer.warning("css node to implement");
+                                const position = file.documentUser.positionAt(realNode.offset)
+                                GenericServer.warning("css node to implement : " + file.documentUser.uri + ":" + position.line + ":" + position.character);
                             }
                         }
                         if (parentCheck && position) {

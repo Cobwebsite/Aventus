@@ -59,6 +59,23 @@ test('workspace discovery respects readDirs and ignores a sibling directory', as
     }
 });
 
+test('workspace discovery accepts a readDirs path starting with ./', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'aventus-readdirs-relative-'));
+    const oldSettings = SettingsManager.instance;
+    SettingsManager.instance = { settings: { readDirs: ['./Front'] } };
+    try {
+        mkdirSync(join(root, 'Front'), { recursive: true });
+        mkdirSync(join(root, 'Other'), { recursive: true });
+        writeFileSync(join(root, 'Front', 'aventus.conf.avt'), '{"module":"Included"}');
+        writeFileSync(join(root, 'Other', 'aventus.conf.avt'), '{"module":"Excluded"}');
+        const found = await manager().loadAllAventusConfigFiles([tools.pathToUri(root)]);
+        assert.deepEqual(found.map(file => file.contentUser), ['{"module":"Included"}']);
+    } finally {
+        SettingsManager.instance = oldSettings;
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
 test('filesystem create notification ignores an unknown extension', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-unknown-'));
     const path = join(root, 'readme.txt');

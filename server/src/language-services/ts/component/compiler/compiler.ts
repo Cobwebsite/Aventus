@@ -783,7 +783,7 @@ export class AventusWebcomponentCompiler {
                     control = type.value === "Time" ? "text" : "date";
                 }
                 else {
-                    let info = ParserTs.getBaseInfo(type.value, this.document.uri);
+                    let info = ParserTs.getBaseInfo(type.value, this.build, this.document.uri);
                     if (info && info instanceof AliasInfo) {
                         findType(info.type);
                     }
@@ -2184,7 +2184,7 @@ this.clearWatchHistory = () => {
                 return type;
             }
             else {
-                let info = ParserTs.getBaseInfo(type.value, currentDoc.uri);
+                let info = ParserTs.getBaseInfo(type.value, this.build, currentDoc.uri);
                 if (info && info instanceof AliasInfo) {
                     return this._validateTypeForProp(currentDoc, field, info.type);
                 }
