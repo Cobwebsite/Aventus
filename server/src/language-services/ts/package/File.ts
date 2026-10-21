@@ -380,6 +380,7 @@ export class AventusPackageFileTs extends AventusTsFile {
 				for (let _namespace in content) {
 					if (_namespace) {
 						const name = this.file.name.replace(AventusExtension.Package, "") + ":" + _namespace + AventusExtension.Package;
+						// TODO improve by selecting existing package and trigger an update on the content by creating a new TextDocument
 						this.packagesFiles.push(new AventusPackageNamespaceFileTs(content[_namespace], name, this.build, this))
 					}
 				}
@@ -460,13 +461,19 @@ export class AventusPackageNamespaceFileTs extends AventusTsFile {
 	public constructor(info: FileNamespaceInfo, uri: string, build: Build, packageFile: AventusPackageFileTs) {
 		const doc = TextDocument.create("file:///" + uri, AventusLanguageId.TypeScript, 1, info.text)
 		const file = new InternalAventusFile(doc)
-		file.triggerDelete();
 		super(file, build);
+		this.tsLanguageService.removeFile(this);
+		this.tsLanguageService.addFile(this);
 		this.info = info;
 		this.internalFile = file;
 		this._contentForLanguageService = info.text;
 		this.fileParsed = packageFile.fileParsed;
 		this.packageFile = packageFile;
+	}
+
+	protected mustBeAddedToLanguageService() {
+		// add by constructor to correctly remove file before
+		return false;
 	}
 
 	public async goToDefinition(range: Range): Promise<Location[] | null> {

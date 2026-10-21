@@ -1,7 +1,4 @@
 declare global {
-    var AvInstance: typeof Aventus.Instance;
-    
-
     declare namespace Aventus {
         interface WebComponent extends HTMLElement {
             shadowRoot: ShadowRoot;

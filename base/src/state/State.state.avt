@@ -1,4 +1,4 @@
-import type { Asyncable } from "Aventus@Main:Aventus.package.avt";
+import type { Asyncable } from "../lib/Promise.lib.avt";
 import type { StateManager } from "./StateManager.state.avt";
 
 @Storybook({
