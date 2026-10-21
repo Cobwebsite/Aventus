@@ -501,7 +501,21 @@ export class Build {
         }
         this.emitDiagnostics();
     }
-    private _buildStringModule(namespace: string, codeBefore: string[], code: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, codeAfter: string[], stylesheets: string[]) {
+    private _buildStringModule(
+        namespace: string,
+        codeBefore: string[],
+        code: string[],
+        classesName: {
+            [name: string]: {
+                type: InfoType,
+                isExported: boolean,
+                convertibleName: string
+            }
+        },
+        codeAfter: string[],
+        stylesheets: string[],
+        isMain: boolean,
+    ) {
         let finalTxt = '';
 
         let splittedNames = namespace.split(".");
@@ -550,6 +564,35 @@ export class Build {
             }
 
             finalTxt += "(function (" + splittedNames[0] + ") {" + EOL;
+            if (isMain) {
+                finalTxt += [
+                    '(() => {',
+                    '    if (!Map.prototype._aventusReady) {',
+                    '        Map.prototype._aventusReady = true;',
+                    '        Map.prototype._defaultHas = Map.prototype.has;',
+                    '        Map.prototype._defaultSet = Map.prototype.set;',
+                    '        Map.prototype._defaultGet = Map.prototype.get;',
+                    '        Map.prototype.has = function (key) {',
+                    '            if (Aventus.Watcher?.is(key)) {',
+                    '                return Map.prototype._defaultHas.call(this, key.getTarget())',
+                    '            }',
+                    '            return Map.prototype._defaultHas.call(this, key);',
+                    '        }',
+                    '        Map.prototype.set = function (key, value) {',
+                    '            if (Aventus.Watcher?.is(key)) {',
+                    '                return Map.prototype._defaultSet.call(this, key.getTarget(), value)',
+                    '            }',
+                    '            return Map.prototype._defaultSet.call(this, key, value);',
+                    '        }',
+                    '        Map.prototype.get = function (key) {',
+                    '            if (Aventus.Watcher?.is(key)) {',
+                    '                return Map.prototype._defaultGet.call(this, key.getTarget())',
+                    '            }',
+                    '            return Map.prototype._defaultGet.call(this, key);',
+                    '        }',
+                    '    }',
+                    '})();'].join(EOL) + EOL
+            }
             finalTxt += `const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }` + EOL;
             finalTxt += "const moduleName = `" + baseName + "`;" + EOL;
             finalTxt += "const _ = {};" + EOL;
@@ -645,6 +688,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 };
 `
             }
+            const isMain = false;
             let moduleTxt = this._buildStringModule(
                 this.buildConfig.module,
                 localCode.codeNoNamespaceBefore,
@@ -652,6 +696,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 localCode.classesName,
                 localCode.codeNoNamespaceAfter,
                 stylesheets,
+                isMain
             );
             let npmResult = await this.npmBuilder.compile();
             result = [...result, ...npmResult.errors];
@@ -1920,6 +1965,61 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
         // build code for each lib
         let libSrc: { lib: string, code: string }[] = []
         let needI18n = this.buildConfig.i18n && this.buildConfig.i18n.autoRegister !== false;
+        const writeI18n = (codeModule: string) => {
+            if (!this.buildConfig.i18n) return codeModule;
+            needI18n = false;
+            const output = compileConfig.i18n[0];
+            codeModule += `Aventus.I18n.registerLocales(${JSON.stringify(this.buildConfig.i18n.locales.filter(locale => !I18nParser.isReservedI18nLocale(locale)))})` + EOL;
+            codeModule += `Aventus.I18n.registerFallback("${this.buildConfig.i18n.fallback}")` + EOL;
+            if (output.mode == "singleFile") {
+                const outputFile = (output.mount + "/" + "$locale.json").toLowerCase();
+                codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
+            }
+            else if (output.mode == "oneToOne") {
+                for (let uri in this.tsLanguageService.i18nFiles) {
+                    const file = this.tsLanguageService.i18nFiles[uri];
+                    const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
+                    const outputFile = (output.mount + "/" + name + "_$locale.json").toLowerCase();
+                    codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
+                }
+                for (let uri in this.i18nComponentsFiles) {
+                    const file = this.i18nComponentsFiles[uri];
+                    const tsFile = this.tsFiles[uri.replace(AventusExtension.I18n, AventusExtension.ComponentLogic)];
+                    if (tsFile instanceof AventusWebComponentLogicalFile && tsFile.fileParsed) {
+                        const _class = tsFile.fileParsed.classes[tsFile.componentClassName];
+                        let folderName = _class.namespace.replace(/\./g, '/');
+                        if (folderName) {
+                            folderName + '/';
+                        }
+
+                        const name = file.file.name.replace(AventusExtension.I18n, "");
+                        const outputFile = (output.mount + "/" + folderName + name + "_$locale.json").toLowerCase();
+                        codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
+
+                    }
+                }
+            }
+            else if (output.mode == "groupComponent") {
+                for (let uri in this.tsLanguageService.i18nFiles) {
+                    const file = this.tsLanguageService.i18nFiles[uri];
+                    const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
+                    const outputFile = (output.mount + "/" + name + "_$locale.json").toLowerCase();
+                    codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
+                }
+                if (Object.keys(this.i18nComponentsFiles).length > 0) {
+                    const outputFile = (output.mount + "/_components_$locale.json").toLowerCase();
+                    codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
+                }
+            }
+            else if (output.mode == "basedOnAttribute") {
+
+            }
+            else if (output.mode == "include") {
+
+            }
+            codeModule += `Aventus.I18n.init()` + EOL; // TODO check if we need await => all scripts must be loaded as type="module"
+            return codeModule;
+        }
         for (let libUri of this.dependencyUris) {
             let libInfo: {
                 namespace: string,
@@ -1973,60 +2073,11 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 stylesheets.push(`Aventus.Style.store("${name}", \`${stylesheetsInfo[name]}\`)`);
             }
             // TODO correct use decorator for lib
-            let codeModule = this._buildStringModule(libInfo.namespace, libInfo.before, libInfo.code, libInfo.classesName, libInfo.after, stylesheets);
+            const isAventusMain = this.externalPackageInformation.getNameByUri(libUri) == "Aventus@Main"
+            let codeModule = this._buildStringModule(libInfo.namespace, libInfo.before, libInfo.code, libInfo.classesName, libInfo.after, stylesheets, isAventusMain);
             if (libInfo.namespace == "Aventus" && libInfo.classesName['I18n']) {
                 if (this.buildConfig.i18n && this.buildConfig.i18n.autoRegister !== false) {
-                    needI18n = false;
-                    const output = compileConfig.i18n[0];
-                    codeModule += `Aventus.I18n.registerLocales(${JSON.stringify(this.buildConfig.i18n.locales.filter(locale => !I18nParser.isReservedI18nLocale(locale)))})` + EOL;
-                    codeModule += `Aventus.I18n.registerFallback("${this.buildConfig.i18n.fallback}")` + EOL;
-                    if (output.mode == "singleFile") {
-                        const outputFile = (output.mount + "/" + "$locale.json").toLowerCase();
-                        codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
-                    }
-                    else if (output.mode == "oneToOne") {
-                        for (let uri in this.tsLanguageService.i18nFiles) {
-                            const file = this.tsLanguageService.i18nFiles[uri];
-                            const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
-                            const outputFile = (output.mount + "/" + name + "_$locale.json").toLowerCase();
-                            codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
-                        }
-                        for (let uri in this.i18nComponentsFiles) {
-                            const file = this.i18nComponentsFiles[uri];
-                            const tsFile = this.tsFiles[uri.replace(AventusExtension.I18n, AventusExtension.ComponentLogic)];
-                            if (tsFile instanceof AventusWebComponentLogicalFile && tsFile.fileParsed) {
-                                const _class = tsFile.fileParsed.classes[tsFile.componentClassName];
-                                let folderName = _class.namespace.replace(/\./g, '/');
-                                if (folderName) {
-                                    folderName + '/';
-                                }
-
-                                const name = file.file.name.replace(AventusExtension.I18n, "");
-                                const outputFile = (output.mount + "/" + folderName + name + "_$locale.json").toLowerCase();
-                                codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
-
-                            }
-                        }
-                    }
-                    else if (output.mode == "groupComponent") {
-                        for (let uri in this.tsLanguageService.i18nFiles) {
-                            const file = this.tsLanguageService.i18nFiles[uri];
-                            const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
-                            const outputFile = (output.mount + "/" + name + "_$locale.json").toLowerCase();
-                            codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
-                        }
-                        if (Object.keys(this.i18nComponentsFiles).length > 0) {
-                            const outputFile = (output.mount + "/_components_$locale.json").toLowerCase();
-                            codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
-                        }
-                    }
-                    else if (output.mode == "basedOnAttribute") {
-
-                    }
-                    else if (output.mode == "include") {
-
-                    }
-                    codeModule += `Aventus.I18n.init()` + EOL; // TODO check if we need await => all scripts must be loaded as type="module"
+                    codeModule = writeI18n(codeModule)
                 }
             }
 
@@ -2040,57 +2091,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
         if (needI18n) {
             let codeModule = "";
             if (this.buildConfig.i18n && this.buildConfig.i18n.autoRegister !== false) {
-                needI18n = false;
-                const output = compileConfig.i18n[0];
-                codeModule += `Aventus.I18n.registerLocales(${JSON.stringify(this.buildConfig.i18n.locales.filter(locale => !I18nParser.isReservedI18nLocale(locale)))})` + EOL;
-                codeModule += `Aventus.I18n.registerFallback("${this.buildConfig.i18n.fallback}")` + EOL;
-                if (output.mode == "singleFile") {
-                    const outputFile = (output.mount + "/" + "$locale.json").toLowerCase();
-                    codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
-                }
-                else if (output.mode == "oneToOne") {
-                    for (let uri in this.tsLanguageService.i18nFiles) {
-                        const file = this.tsLanguageService.i18nFiles[uri];
-                        const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
-                        const outputFile = (output.mount + "/" + name + "_$locale.json").toLowerCase();
-                        codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
-                    }
-                    for (let uri in this.i18nComponentsFiles) {
-                        const file = this.i18nComponentsFiles[uri];
-                        const tsFile = this.tsFiles[uri.replace(AventusExtension.I18n, AventusExtension.ComponentLogic)];
-                        if (tsFile instanceof AventusWebComponentLogicalFile && tsFile.fileParsed) {
-                            const _class = tsFile.fileParsed.classes[tsFile.componentClassName];
-                            let folderName = _class.namespace.replace(/\./g, '/');
-                            if (folderName) {
-                                folderName + '/';
-                            }
-
-                            const name = file.file.name.replace(AventusExtension.I18n, "");
-                            const outputFile = (output.mount + "/" + folderName + name + "_$locale.json").toLowerCase();
-                            codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
-
-                        }
-                    }
-                }
-                else if (output.mode == "groupComponent") {
-                    for (let uri in this.tsLanguageService.i18nFiles) {
-                        const file = this.tsLanguageService.i18nFiles[uri];
-                        const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
-                        const outputFile = (output.mount + "/" + name + "_$locale.json").toLowerCase();
-                        codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
-                    }
-                    if (Object.keys(this.i18nComponentsFiles).length > 0) {
-                        const outputFile = (output.mount + "/_components_$locale.json").toLowerCase();
-                        codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
-                    }
-                }
-                else if (output.mode == "basedOnAttribute") {
-
-                }
-                else if (output.mode == "include") {
-
-                }
-                codeModule += `Aventus.I18n.init()` + EOL; // TODO check if we need await => all scripts must be loaded as type="module"
+                codeModule = writeI18n(codeModule)
             }
             libSrc.push({
                 lib: "Aventus@I18n",

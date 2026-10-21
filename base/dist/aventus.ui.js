@@ -1,37 +1,33 @@
-if(!Object.hasOwn(window, "AvInstance")) {
-	Object.defineProperty(window, "AvInstance", {
-		get() {return Aventus?.Instance;}
-	});
-
-	(() => {
-		Map.prototype._defaultHas = Map.prototype.has;
-		Map.prototype._defaultSet = Map.prototype.set;
-		Map.prototype._defaultGet = Map.prototype.get;
-		Map.prototype.has = function(key) {
-			if(Aventus.Watcher?.is(key)) {
-				return Map.prototype._defaultHas.call(this,key.getTarget())
-			}
-			return Map.prototype._defaultHas.call(this,key);
-		}
-
-		Map.prototype.set = function(key, value) {
-			if(Aventus.Watcher?.is(key)) {
-				return Map.prototype._defaultSet.call(this, key.getTarget(), value)
-			}
-			return Map.prototype._defaultSet.call(this, key, value);
-		}
-		Map.prototype.get = function(key) {
-			if(Aventus.Watcher?.is(key)) {
-				return Map.prototype._defaultGet.call(this, key.getTarget())
-			}
-			return Map.prototype._defaultGet.call(this, key);
-		}
-	})();
-}
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
-const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
+(() => {
+    if (!Map.prototype._aventusReady) {
+        Map.prototype._aventusReady = true;
+        Map.prototype._defaultHas = Map.prototype.has;
+        Map.prototype._defaultSet = Map.prototype.set;
+        Map.prototype._defaultGet = Map.prototype.get;
+        Map.prototype.has = function (key) {
+            if (Aventus.Watcher?.is(key)) {
+                return Map.prototype._defaultHas.call(this, key.getTarget())
+            }
+            return Map.prototype._defaultHas.call(this, key);
+        }
+
+        Map.prototype.set = function (key, value) {
+            if (Aventus.Watcher?.is(key)) {
+                return Map.prototype._defaultSet.call(this, key.getTarget(), value)
+            }
+            return Map.prototype._defaultSet.call(this, key, value);
+        }
+        Map.prototype.get = function (key) {
+            if (Aventus.Watcher?.is(key)) {
+                return Map.prototype._defaultGet.call(this, key.getTarget())
+            }
+            return Map.prototype._defaultGet.call(this, key);
+        }
+    }
+})();const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
 const moduleName = `Aventus`;
 const _ = {};
 

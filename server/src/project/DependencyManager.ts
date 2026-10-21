@@ -270,19 +270,25 @@ export class DependencyManager {
 				}
 
 				for (let name in file.dependencies) {
-					let dep = file.dependencies[name];
-					if (typeof dep == 'string') {
-						dep = {
-							version: dep
+					let subDep = file.dependencies[name];
+					if (typeof subDep == 'string') {
+						subDep = {
+							version: subDep
 						}
 					}
+					if(dep.include == 'none') {
+						subDep.include = 'none'
+					}
 					// include if root package need include
-					let resultDep = await this.loadDependency(name, dep, config, build, result);
+					let resultDep = await this.loadDependency(name, subDep, config, build, result);
 					if (resultDep) {
 						const item = result[file.name].dependencies.find(p => p.name == resultDep.name);
 						let type: IncludeType = "need"
-						if (dep.subDependenciesInclude && dep.subDependenciesInclude[resultDep.name]) {
-							type = dep.subDependenciesInclude[resultDep.name]
+						if(dep.include == 'none') {
+							type = 'none';
+						}
+						if (subDep.subDependenciesInclude && subDep.subDependenciesInclude[resultDep.name]) {
+							type = subDep.subDependenciesInclude[resultDep.name]
 						}
 						if (!item) {
 							result[file.name].dependencies.push({ name: resultDep.name, include: type })
