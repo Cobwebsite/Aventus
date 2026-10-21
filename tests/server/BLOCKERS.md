@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Désinstallation de projet ou template global selon une réponse non proposée
-
-- Reproduction automatisée : `template-uninstall-forged-selection-round279.test.mjs` propose un seul projet ou template global installé, puis simule une réponse de sélection pointant vers un dossier étranger. Les méthodes de désinstallation suppriment ce dossier, rechargent le registre et annoncent la suppression ; une seconde réponse valide supprime ensuite l'installation prévue.
-- Source : `TemplateManager.selectProjectToUninstall()` et `selectGlobalToUninstall()` utilisent directement `item.detail` pour `rmSync`, sans vérifier que la sélection figure parmi les choix proposés ni que son chemin est dans une racine d'installation. `selectTemplateToUninstall()` possède une validation distincte.
-- Décision à prendre : aligner la validation des trois désinstallations et définir le traitement d'une réponse périmée ou altérée.
-
 ## Déduplication incohérente des choix de builds homonymes
 
 - Reproduction automatisée : `project-manager-duplicate-choice-lifecycle-round274.test.mjs` inscrit deux builds de même nom dans un projet et un homonyme dans un second. `getAllBuildsWithStory()` ne présente qu'un choix par paire nom/URI, alors que `getAllBuilds()` et `getAllBuildsWithNpm()` présentent deux choix identiques pour le premier projet. Le retrait progressif du doublon actualise correctement les listes.
@@ -598,7 +592,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 ## Catégories serveur encore ouvertes dans TODO.md
 
 - **Création depuis un template (ligne 479)** : les tests cités vérifient des copies et substitutions précises, mais la conservation des octets binaires, les blocs conditionnels adjacents, les blocs répétés, les valeurs `$&` et l'URI réécrite par callback échouent ou divergent déjà dans `template-binary-round159.test.mjs`, `template-adjacent-conditions-round171.test.mjs`, `template-repeated-blocks-round196.test.mjs`, `template-dollar-variables-round210.test.mjs` et `template-callback-path-round228.test.mjs`. Décider les sorties attendues, puis corriger le code avant de déclarer la génération complète.
-- **Import et désinstallation des templates (ligne 480)** : `template-uninstall-response-round137.test.mjs` et `template-uninstall-forged-selection-round279.test.mjs` démontrent qu'une réponse de sélection non proposée peut supprimer un dossier. `quick-template-name-collision-round153.test.mjs` montre aussi deux choix homonymes routés vers le même chemin. Définir et appliquer la validation des choix avant de clore la catégorie.
+- **Import et désinstallation des templates (ligne 480)** : `quick-template-name-collision-round153.test.mjs` montre deux choix homonymes routés vers le même chemin. Les collisions de destination et les sources modifiées pendant l'import restent aussi à décider avant de clore la catégorie.
 - **Conversions de composants (ligne 526)** : `component-merge-destination-race-round281.test.mjs` démontre l'écrasement d'une destination apparue durant l'attente ; `component-merge-reference-error-round248.test.mjs` démontre une édition de référence appliquée avant un échec ultérieur. Choisir les garanties d'atomicité et de préservation de destination, puis les implémenter.
 - **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.
 - **Commandes build, npm, Storybook et sortie statique (ligne 540)** : `build-command-unlisted-selection-round213.test.mjs` démontre que les quatre commandes acceptent une cible qui n'était pas dans les choix proposés. Définir si le choix doit être limité à la liste affichée et appliquer ce contrat aux quatre commandes.
