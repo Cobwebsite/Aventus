@@ -670,8 +670,10 @@ export class AventusJSONLanguageService {
                 outputPath = outputPath.slice(0, -1);
             }
 
-            outputPath = outputPath.replace(/\\/g, '/');
-            _static.outputPathFolder.push(outputPath);
+            outputPath = normalize(outputPath).replace(/\\/g, '/');
+            if (!_static.outputPathFolder.includes(outputPath)) {
+                _static.outputPathFolder.push(outputPath);
+            }
         }
 
         return _static;

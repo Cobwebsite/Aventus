@@ -9,7 +9,7 @@ const [{ Static }, { SettingsManager }, { HttpServer }, { GenericServer }] = awa
     'project/Static.ts', 'settings/Settings.ts', 'live-server/HttpServer.ts', 'GenericServer.ts',
 ]);
 
-test('static export leaves its own copy when two destination aliases normalize to one output', async t => {
+test('static export removes its own copy when two destination aliases normalize to one output', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-static-alias-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const input = join(root, 'input');
@@ -41,7 +41,7 @@ test('static export leaves its own copy when two destination aliases normalize t
     await exporter.export();
     assert.deepEqual(readFileSync(copy), Buffer.from([1, 2]));
     assert.equal(exporter.exportedBySource.get(source.replaceAll('\\', '/')).size, 1);
-    assert.equal([...exporter.exportedBySource.get(source.replaceAll('\\', '/')).values()][0].canDelete, false);
+    assert.equal([...exporter.exportedBySource.get(source.replaceAll('\\', '/')).values()][0].canDelete, true);
 
     writeFileSync(source, Buffer.from([3, 4, 5]));
     await exporter.export();
@@ -50,8 +50,7 @@ test('static export leaves its own copy when two destination aliases normalize t
 
     unlinkSync(source);
     await exporter.export();
-    assert.equal(existsSync(copy), true);
-    assert.deepEqual(readFileSync(copy), Buffer.from([3, 4, 5]));
+    assert.equal(existsSync(copy), false);
     assert.equal(exporter.exportedBySource.size, 0);
     assert.equal(reloads, 3);
 });

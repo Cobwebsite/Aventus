@@ -101,7 +101,8 @@ export class Static {
                 filePath = filePath.replace(/\\/g, '/');
                 const previousOutputs = this.exportedBySource.get(filePath);
                 const currentOutputs = new Map<string, { size: number, mtimeMs: number, canDelete: boolean }>();
-                for (let outputPathFolder of this.staticConfig.outputPathFolder) {
+                const outputFolders = new Set(this.staticConfig.outputPathFolder.map(path => normalize(path)));
+                for (let outputPathFolder of outputFolders) {
                     if (!this.isReady) return;
                     let resultPath = filePath.replace(this.staticConfig.inputPathFolder, outputPathFolder);
                     if (filePath.endsWith(AventusExtension.Base)) {

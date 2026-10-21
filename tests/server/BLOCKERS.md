@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Copie statique orpheline avec deux destinations alias
-
-- Reproduction automatisée : `static-normalized-destination-alias-round281.test.mjs` configure deux destinations textuellement différentes qui se normalisent vers le même dossier. Le premier export crée la copie, mais le second passage la classe comme préexistante (`canDelete: false`). Une révision met à jour cette copie ; la suppression de la source vide ensuite le suivi sans supprimer le fichier produit.
-- Source : `Static.export()` calcule `existedBefore` pour chaque destination, même lorsque plusieurs entrées désignent le même chemin normalisé ; `rememberOutput()` écrase alors le statut de propriété dans `currentOutputs` sans consulter l'entrée déjà créée dans ce même export.
-- Décision à prendre : dédupliquer les destinations normalisées ou conserver le statut de propriété du premier passage, puis définir la validation de doublons dans la configuration.
-
 ## Désinstallation de projet ou template global selon une réponse non proposée
 
 - Reproduction automatisée : `template-uninstall-forged-selection-round279.test.mjs` propose un seul projet ou template global installé, puis simule une réponse de sélection pointant vers un dossier étranger. Les méthodes de désinstallation suppriment ce dossier, rechargent le registre et annoncent la suppression ; une seconde réponse valide supprime ensuite l'installation prévue.
