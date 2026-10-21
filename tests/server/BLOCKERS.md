@@ -2,12 +2,6 @@
 
 Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des tests. Les changements de `server/src` pour ces points sont décidés avec l'utilisateur, un par un.
 
-## Couleur nommée détectée dans une URL CSS avec parenthèses imbriquées
-
-- Reproduction automatisée : `color-picker-nested-url-round294.test.mjs` trouve `blue` dans `url(data:image/svg+xml,(red)blue)` alors que `red` est correctement masqué ; après retrait de `blue` de l'URL, seule la couleur de la déclaration voisine est signalée.
-- Source : `ColorPicker.maskCommentsAndStrings()` ferme l'état `inUrl` au premier `)` sans compter les parenthèses imbriquées.
-- Décision à prendre : définir la prise en charge des URL non citées contenant des parenthèses, puis masquer l'URL complète jusqu'à sa fermeture réelle.
-
 ## Copie statique orpheline avec deux destinations alias
 
 - Reproduction automatisée : `static-normalized-destination-alias-round281.test.mjs` configure deux destinations textuellement différentes qui se normalisent vers le même dossier. Le premier export crée la copie, mais le second passage la classe comme préexistante (`canDelete: false`). Une révision met à jour cette copie ; la suppression de la source vide ensuite le suivi sans supprimer le fichier produit.

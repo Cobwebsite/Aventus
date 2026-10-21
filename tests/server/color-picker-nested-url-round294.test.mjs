@@ -5,14 +5,14 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { ColorPicker } = await loadServerModule('color-picker/ColorPicker.ts');
 
-test('a nested unquoted URL exposes a named color after its inner closing parenthesis', () => {
+test('a nested unquoted URL masks named colors until its matching closing parenthesis', () => {
     const uri = 'file:///nested-url.wcs.avt';
     const versions = [
         '.x { background: url(data:image/svg+xml,(red)blue); color: green; }',
         '.x { background: url(data:image/svg+xml,(red)); color: blue; }',
     ];
     const expected = [
-        ['blue', 'green'],
+        ['green'],
         ['blue'],
     ];
 

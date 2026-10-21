@@ -63,28 +63,30 @@ export class ColorPicker {
 		const masked = text.split('');
 		let state: 'code' | 'comment' | 'lineComment' | 'string' = 'code';
 		let quote = '';
-		let inUrl = false;
+		let urlDepth = 0;
 		for (let i = 0; i < text.length; i++) {
 			const current = text[i];
 			const next = text[i + 1];
 			if (state === 'code') {
-				if (!inUrl && text.slice(i, i + 4).toLowerCase() === 'url(' &&
+				if (urlDepth === 0 && text.slice(i, i + 4).toLowerCase() === 'url(' &&
 					(i === 0 || !/[\w-]/.test(text[i - 1]))) {
-					inUrl = true;
+					urlDepth = 1;
 					i += 3;
-				} else if (inUrl && current === ')') {
-					inUrl = false;
+				} else if (urlDepth > 0 && current === '(') {
+					urlDepth++;
+				} else if (urlDepth > 0 && current === ')') {
+					urlDepth--;
 				} else if (current === '/' && next === '*') {
 					state = 'comment';
 					masked[i] = masked[++i] = ' ';
-				} else if (languageId == AventusLanguageId.SCSS && !inUrl && current === '/' && next === '/' && text[i - 1] !== ':') {
+				} else if (languageId == AventusLanguageId.SCSS && urlDepth === 0 && current === '/' && next === '/' && text[i - 1] !== ':') {
 					state = 'lineComment';
 					masked[i] = masked[++i] = ' ';
 				} else if (current === '"' || current === "'") {
 					state = 'string';
 					quote = current;
 					masked[i] = ' ';
-				} else if (inUrl) {
+				} else if (urlDepth > 0) {
 					masked[i] = current === '\n' || current === '\r' ? current : ' ';
 				}
 			} else {
