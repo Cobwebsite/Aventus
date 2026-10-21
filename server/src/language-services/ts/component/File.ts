@@ -257,7 +257,10 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                             return 'Aventus.NotVoid';
                         }
                         let componentType = definition.class.fullName;
-                        if (definition.isLocal && definition.class.fileUri != this.file.uri) {
+                        if (definition.class.fileUri == this.file.uri) {
+                            componentType = definition.class.name;
+                        }
+                        else if (definition.isLocal) {
                             let moduleName = relative(
                                 dirname(uriToPath(this.file.uri)),
                                 uriToPath(definition.class.fileUri)
