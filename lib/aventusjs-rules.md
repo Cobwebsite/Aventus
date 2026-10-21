@@ -305,16 +305,19 @@ Identique au système C#, mais permet de lire vos modèles et routes PHP (Larave
 
 Tous les composants Aventus respectent les règles suivantes :
 
-- toutes les propriétés sont initialisées
+- les propriétés ordinaires sont initialisées ; les références affectées par Aventus peuvent utiliser `!`
 - les callbacks utilisent @BindThis
 - les styles résident dans `.wcs.avt`
 - les vues résident dans `.wcv.avt`
 - la logique réside dans `.wcl.avt`
+- le code source privilégie la lecture humaine : le compilateur se charge de la compression et de la suppression des commentaires inutiles
 
 ---
 
 ### Fichier Logique (`.wcl.avt`)
-La structure de la classe doit être organisée en blocs `#region` explicites. Tout attribut ou propriété **DOIT** posséder un initialiseur.
+La structure de la classe doit être organisée en blocs `#region` explicites, dans l'ordre `static`, `props`, `variables`, `events`, `constructor`, `methods`. Conserver chaque bloc, même vide. `props` contient uniquement les champs `@Property()` et `@Attribute()`. Dans `variables`, placer les champs `@ViewElement()` d'abord, puis `@Signal()`, puis `@Watch()`, puis les champs sans décorateur. `events` regroupe les `Aventus.Callback` et, si nécessaire, les événements personnalisés. Préférer les callbacks aux `CustomEvent` pour exposer un événement de composant ; utiliser un événement DOM lorsque son interopérabilité est nécessaire.
+
+Écrire chaque décorateur sur la ligne précédant sa déclaration. Aérer le TypeScript sur plusieurs lignes, y compris les conditions et les méthodes. Placer les redéfinitions de `postDestruction`, `postCreation`, `postConnect` et `postDisconnect` à la fin de `methods`. Ajouter au-dessus de chaque propriété et méthode `public` ou `protected` un commentaire qui explique son rôle ; ne commenter un membre `private` que si cela apporte une information utile. Initialiser les champs ordinaires ; les références renseignées par Aventus, telles que `@ViewElement()`, peuvent utiliser l'assertion d'affectation `!`.
 
 ```typescript
 export class MyButton extends Aventus.WebComponent implements Aventus.DefaultComponent {
@@ -322,39 +325,54 @@ export class MyButton extends Aventus.WebComponent implements Aventus.DefaultCom
     //#endregion
 
     //#region props
+    /** Texte affiché sur le bouton. */
     @Property()
-    public label: string = "Valider"; // Initialiseur obligatoire
+    public label: string = "Valider";
 
+    /** Désactive l'interaction et expose cet état au CSS. */
     @Attribute()
     public disabled: boolean = false;
     //#endregion
 
     //#region variables
+    /** Référence du bouton défini dans la vue. */
     @ViewElement()
     protected buttonEl!: HTMLButtonElement;
 
+    /** Données transmises lors de l'activation. */
     @Watch((target: MyButton, action: Aventus.WatchAction, path: string, value: any) => {
         console.log(`Donnée modifiée au chemin: ${path}`);
     })
     public data: any = {};
     //#endregion
 
+    //#region events
+    /** Abonnements à l'activation du bouton. */
+    public onSubmit: Aventus.Callback<(data: any) => void> = new Aventus.Callback();
+    //#endregion
+
     //#region constructor
     //#endregion
 
     //#region methods
+    /** Déclenche les abonnements si le bouton est actif. */
     @BindThis()
-    protected handleClick(event: PointerEvent) {
-        if (this.disabled) return;
-        this.dispatchEvent(new CustomEvent("submit", { detail: this.data }));
+    protected handleClick(event: PointerEvent): void {
+        if (this.disabled) {
+            return;
+        }
+
+        this.onSubmit.trigger(this.data);
     }
 
+    /** Termine l'initialisation après la création du composant. */
     protected override postCreation(): void {
-        // Appelé une fois que le composant est inséré dans le DOM
+        super.postCreation();
     }
 
+    /** Libère les ressources du composant avant sa destruction. */
     protected override postDestruction(): void {
-        // Nettoyage automatique des abonnements
+        super.postDestruction();
     }
     //#endregion
 }
@@ -371,6 +389,8 @@ export class MyButton extends Aventus.WebComponent implements Aventus.DefaultCom
 
 ### Fichier Vue (`.wcv.avt`)
 Le template HTML n'utilise pas de syntaxe complexe à base d'attributs de boucle (ex: `ngFor`, `v-for`). Il utilise directement la syntaxe **JavaScript native**.
+
+Écrire une seule balise HTML par ligne. Déployer également chaque `if`, `else` et `for` sur plusieurs lignes, avec leur contenu indenté. Pour un simple changement d'apparence, préférer un `@Attribute()` ciblé dans le style à une condition qui duplique ou remplace le HTML. Réserver les conditions de la vue aux changements de contenu ou de structure.
 
 ```html
 <div class="container">
@@ -409,7 +429,7 @@ Le template HTML n'utilise pas de syntaxe complexe à base d'attributs de boucle
 
 #### Directives et Liaisons Spécifiques :
 1. **Interpolation** : `{{ this.property }}`
-2. **Référence d'élément** : `@element="nameRef"` (exige `@ViewElement() protected nameRef!: HTMLElement` dans le fichier `.wcl.avt`).
+2. **Référence d'élément** : `@element="nameRef"` (exige un champ `protected nameRef!: HTMLElement` décoré par `@ViewElement()` sur la ligne précédente dans le fichier `.wcl.avt`).
 3. **Événements** : `@click="methodName"`. Supporte également les `Aventus.Callback` (le compilateur cherche une propriété `customClick`, `onCustomClick` ou `oncustomClick` sur l'enfant).
 4. **Liaison ascendante (One-way Injection)** : `:childProp="this.parentProp"`
 5. **Liaison bidirectionnelle (Two-way Binding)** :
@@ -419,7 +439,9 @@ Le template HTML n'utilise pas de syntaxe complexe à base d'attributs de boucle
    * `@bind_eventName:childProp="this.parentProp"` : Syntaxe complète pour spécifier à la fois la propriété de l'enfant et l'événement déclencheur.
 
 ### Fichier Style (`.wcs.avt`)
-Tous les styles d'un composant **doivent** être scopés dans le sélecteur `:host`.
+Tout bloc de règles d'un composant **doit** être ancré dans `:host`. Ne laisser aucune règle de style de composant au niveau racine sans `:host` : les sélecteurs descendants se placent dans un bloc `:host`, les variantes dans `:host([attribut])`, et les règles responsives dans un `@media` contenant lui-même un bloc `:host`. L'imbrication SCSS doit suivre la structure du HTML associé et cibler précisément les éléments concernés.
+
+Organiser le fichier dans cet ordre : un premier `:host` contenant uniquement les variables CSS privées `--_` qui exposent les paramètres de style du composant ; un second `:host` pour les règles générales ; les variantes `:host([attribut])` ; enfin les media queries. Nommer les variables publiques d'après le composant (par exemple `--example-background-color` pour `Example`) et leur donner une valeur de repli. Écrire une déclaration CSS par ligne. Si plusieurs sélecteurs partagent les mêmes déclarations, placer chaque sélecteur sur sa propre ligne, avec la virgule après chaque sélecteur sauf le dernier.
 
 > [!TIP]
 > **Déclaration des variables CSS** : Déclarez toujours les variables de variables CSS privées à votre composant (commençant par `--_`) au tout début du fichier dans un sélecteur `:host` distinct. Associez-les à des variables globales personnalisables (ex: `--_btn-bg-color: var(--btn-bg-color, var(--primary-color, #e5540e));`), puis implémentez le reste des styles et sélecteurs imbriqués dans un second sélecteur `:host` séparé.
@@ -449,6 +471,25 @@ Tous les styles d'un composant **doivent** être scopés dans le sélecteur `:ho
 :host([disabled]) {
     pointer-events: none;
     opacity: 0.5;
+}
+
+@media screen and (max-width: 800px) {
+    :host {
+        button {
+            width: 100%;
+        }
+    }
+}
+```
+
+Exemple de sélecteurs partageant une règle :
+
+```scss
+:host {
+    .my-div,
+    .my-div2 {
+        display: flex;
+    }
 }
 ```
 
