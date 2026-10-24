@@ -63,7 +63,7 @@ export class AventusI18nFile extends AventusBaseFile {
 			}
 		}
 		catch (e) {
-
+			// Keep the last valid translations while the user edits invalid JSON.
 		}
 	}
 	public transformForExport() {
