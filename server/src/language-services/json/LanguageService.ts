@@ -190,6 +190,45 @@ export class AventusJSONLanguageService {
         return null;
     }
 
+    private getConfigPathRange(document: TextDocument, root: ASTNode | undefined, path: string): Range {
+        const wholeDocument = Range.create(document.positionAt(0), document.positionAt(document.getText().length));
+        let node = root;
+        let remaining = path;
+        let first = true;
+        while (remaining.length > 0) {
+            if (remaining.startsWith('.')) {
+                if (first) return wholeDocument;
+                remaining = remaining.slice(1);
+                if (!remaining || remaining.startsWith('.') || remaining.startsWith('[')) return wholeDocument;
+            }
+            else if (!first && !remaining.startsWith('[')) return wholeDocument;
+            const index = /^\[(\d+)\]/.exec(remaining);
+            const quotedKey = /^\[("(?:\\.|[^"\\])*")\]/.exec(remaining);
+            const key = /^[^.[\]]+/.exec(remaining);
+            if (index) {
+                if (node?.type !== 'array') return wholeDocument;
+                node = node.items[Number(index[1])];
+                remaining = remaining.slice(index[0].length);
+            }
+            else if (quotedKey || key) {
+                if (node?.type !== 'object') return wholeDocument;
+                let name = key?.[0];
+                if (quotedKey) {
+                    try { name = JSON.parse(quotedKey[1]) as string; }
+                    catch { return wholeDocument; }
+                }
+                node = node.properties.find(property => property.keyNode.value === name)?.valueNode;
+                remaining = remaining.slice((quotedKey ?? key)![0].length);
+            }
+            else return wholeDocument;
+            if (!node) return wholeDocument;
+            first = false;
+        }
+        return node
+            ? Range.create(document.positionAt(node.offset), document.positionAt(node.offset + node.length))
+            : wholeDocument;
+    }
+
     private prepareConfigFile(uri: string, config: AventusConfig, document: TextDocument, root: ASTNode | undefined, diagnostics: Diagnostic[]): AventusConfig {
         config = {
             ...this.defaultConfigValue(),
@@ -204,38 +243,52 @@ export class AventusJSONLanguageService {
                 config.componentPrefix = 'av';
             }
         }
-        let builds: AventusConfigBuild[] = [];
-        const seenBuilds = new Set<string>();
-        let buildNodes: ASTNode | undefined = undefined;
-        if (root?.type == 'object') {
-            buildNodes = root.properties.find(item => item.keyNode.value === 'build')?.valueNode
-        }
 
-        for (let index = 0; index < config.build.length; index++) {
-            const build = this.prepareBuild(uri, config.build[index], config);
-
-            if (seenBuilds.has(build.fullname) && buildNodes?.type === 'array') {
-                let location: ASTNode | undefined = buildNodes.items[index];
-                if (location?.type === 'object') {
-                    const temp = location.properties.find(property => property.keyNode.value === 'name')?.valueNode;
-                    if (temp) {
-                        location = temp;
-                    }
-                }
-
-                if (location) {
-                    diagnostics.push({
-                        range: Range.create(document.positionAt(location.offset), document.positionAt(location.offset + location.length)),
-                        severity: DiagnosticSeverity.Error,
-                        source: 'Aventus',
-                        message: `Duplicate build: ${build.fullname}`,
-                    });
+        if (config.dependencies) {
+            for (let depName in config.dependencies) {
+                if (config.dependencies[depName].uri) {
+                    config.dependencies[depName].uri = this.replaceEnvVar(config.dependencies[depName].uri, getFolder(uri));
                 }
             }
+        }
+
+        const checkDependencyUris = (dependencies: { [name: string]: AventusConfigBuildDependencie } | undefined,
+            path: string, seen: Map<string, string>) => {
+            for (const [name, dependency] of Object.entries(dependencies ?? {})) {
+                if (typeof dependency !== 'object' || !dependency?.uri) continue;
+                if (seen.has(dependency.uri)) {
+                    diagnostics.push({
+                        range: this.getConfigPathRange(document, root, `${path}[${JSON.stringify(name)}].uri`),
+                        severity: DiagnosticSeverity.Error,
+                        source: 'Aventus',
+                        message: `Dependencies ${seen.get(dependency.uri)} and ${name} use the same URI: ${dependency.uri}`,
+                    });
+                }
+                else seen.set(dependency.uri, name);
+            }
+        };
+        const globalUris = new Map<string, string>();
+        checkDependencyUris(config.dependencies, 'dependencies', globalUris);
+
+        const builds: AventusConfigBuild[] = [];
+        const seenBuilds = new Set<string>();
+        for (let index = 0; index < config.build.length; index++) {
+            const build = this.prepareBuild(uri, config.build[index], config);
+            if (seenBuilds.has(build.fullname)) {
+                diagnostics.push({
+                    range: this.getConfigPathRange(document, root, `build[${index}].name`),
+                    severity: DiagnosticSeverity.Error,
+                    source: 'Aventus',
+                    message: `Duplicate build: ${build.fullname}`,
+                });
+            }
             seenBuilds.add(build.fullname);
+
+            checkDependencyUris(build.dependencies, `build[${index}].dependencies`, new Map(globalUris));
             builds.push(build);
         }
         config.build = builds;
+
         if (config.static) {
             let statics: AventusConfigStatic[] = []
             for (let _static of config.static) {
