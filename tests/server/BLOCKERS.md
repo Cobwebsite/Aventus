@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Éditions de renommage renvoyées après suppression d'un projet
-
-- Reproduction automatisée : `project-rename-delete-race-round249.test.mjs` suspend le renommage du premier projet, supprime celui-ci, puis reprend la demande. Les éditions du projet détruit sont tout de même renvoyées avec celles du projet encore actif. La suppression d'un projet qui n'a pas encore commencé son tour l'exclut correctement.
-- Source : `ProjectManager.onRename()` attend le résultat d'un projet déjà appelé sans vérifier qu'il est toujours inscrit dans `projects` avant d'ajouter ses éditions.
-- Décision à prendre : déterminer si une demande de renommage en cours doit conserver les éditions du projet supprimé ou les ignorer.
-
 ## Export i18n périmé pendant une édition JSON invalide
 
 - Reproduction automatisée : `i18n-invalid-export-round148.test.mjs` part d'une traduction `old` valide, édite le fichier en JSON incomplet contenant une nouvelle clé, puis vérifie que `keys` et `exported` conservent l'ancienne traduction pendant que la validation signale une erreur. Une correction valide remplace enfin l'export. Le consommateur du build peut donc lire des traductions périmées pendant une édition invalide. Décision attendue : conserver volontairement le dernier export valide ou vider les exports en cas d'erreur de parsing.

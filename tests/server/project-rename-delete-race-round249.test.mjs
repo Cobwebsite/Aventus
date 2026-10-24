@@ -40,7 +40,7 @@ test('deleting a later project during rename skips it and permits a retry', asyn
     assert.deepEqual(calls, ['first', 'destroy second', 'first']);
 });
 
-test('deleting a project already processing rename still returns its stale edits', async () => {
+test('deleting a project already processing rename discards its stale edits', async () => {
     const manager = Object.create(ProjectManager.prototype);
     const changes = [{ oldUri: 'file:///work/old.lib.avt', newUri: 'file:///work/new.lib.avt' }];
     const retiredConsumer = 'file:///work/retired.wc.avt';
@@ -68,7 +68,6 @@ test('deleting a project already processing rename still returns its stale edits
     releaseFirst();
 
     assert.deepEqual(await pending, {
-        [retiredConsumer]: [retiredEdit],
         [liveConsumer]: [liveEdit],
     });
     assert.deepEqual(calls, ['first', 'destroy first', 'second']);

@@ -88,7 +88,9 @@ export class ProjectManager {
     public async onRename(changes: { oldUri: string, newUri: string }[]): Promise<{ [uri: string]: TextEdit[] }> {
         let result: { [uri: string]: TextEdit[] } = {};
         for (let uri in this.projects) {
-            let temp = await this.projects[uri].onRename(changes);
+            const project = this.projects[uri];
+            const temp = await project.onRename(changes);
+            if (this.projects[uri] !== project) continue;
             for (let uri in temp) {
                 if (!result[uri]) {
                     result[uri] = []
