@@ -6,7 +6,7 @@ const [{ ProjectManager }, { Project }, { FilesManager }] = await loadServerModu
     'project/ProjectManager.ts', 'project/Project.ts', 'files/FilesManager.ts',
 ]);
 
-test('deleting a configuration during initialization leaves a stale callback able to remove its replacement', async t => {
+test('deleting a configuration during initialization does not subscribe its retired project', async t => {
     const previous = {
         files: FilesManager.instance,
         autoLoad: ProjectManager.autoLoad,
@@ -58,13 +58,13 @@ test('deleting a configuration during initialization leaves a stale callback abl
 
     finishFirst();
     await firstDiscovery;
-    assert.equal(deleteCallbacks.length, 1);
+    assert.equal(deleteCallbacks.length, 0);
 
     await manager.onNewFile(config);
     const replacement = manager.getProjectByUri(uri);
     assert.ok(replacement instanceof Project);
     assert.notEqual(replacement, first);
-    assert.equal(deleteCallbacks.length, 2);
+    assert.equal(deleteCallbacks.length, 1);
     assert.equal(subscriptions.size, 1);
 
     await deleteCallbacks[0](config);

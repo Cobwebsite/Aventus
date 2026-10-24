@@ -41,6 +41,7 @@ export class ProjectManager {
                     throw error;
                 }
 
+                if (this.projects[file.documentUser.uri] !== project) return;
                 file.onDelete(this.onDeleteFile.bind(this));
             }
             else {

@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Suppression d'une configuration pendant l'initialisation du projet
-
-- Reproduction automatisée : `project-discovery-delete-race-round159.test.mjs` suspend `Project.init()`, supprime la configuration, puis termine l'initialisation. `ProjectManager.onNewFile()` inscrit alors un callback de suppression sur l'ancien projet. Après redécouverte, ce callback périmé supprime le nouveau projet.
-- Cause : l'inscription de `onDelete` se fait après `await init()` sans vérifier que l'instance créée est toujours celle du registre.
-- Décision à prendre : invalider l'initialisation lors de la suppression et ne pas inscrire le callback d'une instance retirée ; vérifier ensuite la recréation et la suppression normale.
-
 ## Ressources binaires corrompues par la génération d'un template
 
 - Reproduction automatisée : `template-binary-round159.test.mjs` crée un template avec un texte Unicode et un fichier `icon.png` contenant des octets UTF-8 invalides. Le texte et ses variables sont corrects, mais le binaire généré diffère de la source et contient la séquence de remplacement UTF-8.
