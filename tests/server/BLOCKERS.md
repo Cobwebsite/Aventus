@@ -12,18 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Collision de tag entre deux composants dans les manifestes
-
-- Reproduction automatisée : `manifest-tag-collision-round152.test.mjs` enregistre deux composants distincts sous `demo-card`. Custom Elements, HTML Custom Data et Web Types contiennent chacun deux entrées portant le même tag ; Emmet conserve une seule clé. Retirer l'un des composants laisse correctement l'autre enregistré.
-- Cause : les générateurs conservent leurs contributions par URI et ne résolvent pas les collisions sur le nom du tag avant sérialisation.
-- Décision à prendre : définir si un tag doit être unique par build et, en cas de conflit, choisir le composant prioritaire ou produire un diagnostic au lieu de publier deux définitions ambiguës.
-
-## Création rapide : deux templates avec le même nom sélectionnent toujours le dernier
-
-- Reproduction automatisée : `quick-template-name-collision-round153.test.mjs` configure deux templates locaux de nom `Duplicate`, chacun avec un chemin et une description distincts. La sélection du premier élément affiché exécute le second template.
-- Cause : `QuickTemplate.run()` indexe les chemins par `template.name`, ce qui remplace le chemin du premier élément lorsque le second porte le même nom.
-- Décision à prendre : identifier les choix par chemin ou par identifiant unique afin que chaque sélection exécute le template affiché ; préciser si les noms identiques doivent être désambiguïsés dans la liste.
-
 ## Plages des expressions HTML décalées
 
 - Reproduction : les deux cas de `html-expression-identity-round62.test.mjs` trouvent les actions attendues, mais les plages découpent `"{{value}` ou ` {{value}` au lieu de `{{value}}`, y compris après édition. Ils sont temporairement ignorés pour préserver une suite exécutable.
@@ -565,12 +553,11 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 ## Catégories serveur encore ouvertes dans TODO.md
 
 - **Création depuis un template (ligne 479)** : les tests cités vérifient des copies et substitutions précises, mais la conservation des octets binaires, les blocs conditionnels adjacents, les blocs répétés, les valeurs `$&` et l'URI réécrite par callback échouent ou divergent déjà dans `template-binary-round159.test.mjs`, `template-adjacent-conditions-round171.test.mjs`, `template-repeated-blocks-round196.test.mjs`, `template-dollar-variables-round210.test.mjs` et `template-callback-path-round228.test.mjs`. Décider les sorties attendues, puis corriger le code avant de déclarer la génération complète.
-- **Import et désinstallation des templates (ligne 480)** : `quick-template-name-collision-round153.test.mjs` montre deux choix homonymes routés vers le même chemin. Les collisions de destination et les sources modifiées pendant l'import restent aussi à décider avant de clore la catégorie.
+- **Import et désinstallation des templates (ligne 480)** : les collisions de destination et les sources modifiées pendant l'import restent à décider avant de clore la catégorie.
 - **Conversions de composants (ligne 526)** : `component-merge-destination-race-round281.test.mjs` démontre l'écrasement d'une destination apparue durant l'attente ; `component-merge-reference-error-round248.test.mjs` démontre une édition de référence appliquée avant un échec ultérieur. Choisir les garanties d'atomicité et de préservation de destination, puis les implémenter.
 - **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.
 - **Commandes build, npm, Storybook et sortie statique (ligne 540)** : `build-command-unlisted-selection-round213.test.mjs` démontre que les quatre commandes acceptent une cible qui n'était pas dans les choix proposés. Définir si le choix doit être limité à la liste affichée et appliquer ce contrat aux quatre commandes.
 - **Exports Sharp/PHP (ligne 541)** : `converter-output-concurrency-round99.test.mjs` démontre que deux échecs laissent l'état client à `compiling`. Définir l'état terminal de chaque export et les conventions de sortie avant de considérer tous les échecs couverts.
-- **Quatre manifestes de composant (ligne 558)** : `manifest-tag-collision-round152.test.mjs` démontre que deux composants de même tag restent présents dans trois formats tandis qu'Emmet n'en conserve qu'un. Définir la politique de collision commune et la mettre en œuvre.
 - **Schémas et événements des manifestes (ligne 559)** : `manifest-signal-events-gap-round293.test.mjs` parse deux révisions d'une propriété `@Signal()` documentée ; `CustomElements.events` et `WebTypes.js.events` restent absents. Les générateurs portent encore les marqueurs `events // not ready`. Définir la correspondance entre signaux et événements et générer les entrées avant de clore ce point.
 - **Manifeste package et Markdown (ligne 561)** : `manifest-package-inheritance-round183.test.mjs` montre l'absence des interfaces `implements` ; `manifest-package-function-parameters-round240.test.mjs` et `manifest-package-inferred-signatures-round271.test.mjs` montrent la perte des types et valeurs par défaut inférés. Définir ces rendus et les implémenter.
 - **Stories et MDX (ligne 562)** : `storybook-description-interpolation-round130.test.mjs` démontre qu'un JSDoc contenant `${name}` devient une interpolation dans la story ; `storybook-alias-default-toggle-round251.test.mjs` montre la perte du JSDoc d'un alias. Échapper le texte utilisateur et définir sa publication avant de clore la génération complète.

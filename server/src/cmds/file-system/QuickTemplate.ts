@@ -44,6 +44,20 @@ export class QuickTemplate {
 		else {
 			const items: SelectItem[] = [];
 			const templatePathes: { [key: string]: string } = {}
+			const identitiesByName: { [key: string]: string } = {}
+			let duplicate: { first: string, second: string } | undefined;
+			const addTemplate = (template: TemplateScript, path: string) => {
+				const identity = template.folderPath ?? path;
+				const previous = identitiesByName[template.name];
+				if (previous && previous !== identity) {
+					duplicate = { first: previous, second: identity };
+					return;
+				}
+				if (previous) return;
+				identitiesByName[template.name] = identity;
+				items.push({ label: template.name, detail: template.description });
+				templatePathes[template.name] = path;
+			};
 
 			const templatesByUri: { [uri: string]: TemplateScript } = {};
 			const readRecu = (info: TemplateScript | TemplatesByName) => {
@@ -69,11 +83,7 @@ export class QuickTemplate {
 			for (let quickName of quickNames) {
 				if (templatesByUri[quickName]) {
 					const template = templatesByUri[quickName];
-					items.push({
-						label: template.name,
-						detail: template.description,
-					});
-					templatePathes[template.name] = quickName;
+					addTemplate(template, quickName);
 				}
 				else {
 
@@ -84,15 +94,15 @@ export class QuickTemplate {
 						// check local first
 						let template = await TemplateScript.create(quickName);
 						if (template) {
-							items.push({
-								label: template.name,
-								detail: template.description,
-							});
-							templatePathes[template.name] = quickName;
+							addTemplate(template, quickName);
 						}
 					}
 				}
 
+			}
+			if (duplicate) {
+				GenericServer.showErrorMessage("You have 2 templates with the same names : " + duplicate.first + " and " + duplicate.second);
+				return;
 			}
 			if (items.length == 0) {
 				GenericServer.showErrorMessage("No global template set as quick creation. Try to edit quick creation first");
