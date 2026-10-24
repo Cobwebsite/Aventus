@@ -24,6 +24,7 @@ export type WriteInfo = {
 	rawContent: string,
 	content: string,
 	isDir: boolean
+	isBinary?: boolean
 }
 export type WriteCallback = (info: WriteInfo) => void | boolean;
 
@@ -289,15 +290,21 @@ export abstract class AventusTemplate {
 						if (templatePath == this.templatePath + sep + AventusExtension.Template) {
 							continue;
 						}
-						let rawCtx = readFileSync(templatePath, 'utf-8');
-						this.variables["namespace"] = await this.runCommandWithAnswer("getNamespace", exportPath);
-						let ctx = this.replaceVariables(rawCtx);
-						ctx = this.replaceBlocks(ctx);
-						ctx = this.replaceIfs(ctx);
+						const rawBytes = readFileSync(templatePath);
+						const rawCtx = rawBytes.toString('utf-8');
+						const isBinary = rawBytes.includes(0) || !Buffer.from(rawCtx, 'utf-8').equals(rawBytes);
+						let ctx = '';
+						if (!isBinary) {
+							this.variables["namespace"] = await this.runCommandWithAnswer("getNamespace", exportPath);
+							ctx = this.replaceVariables(rawCtx);
+							ctx = this.replaceBlocks(ctx);
+							ctx = this.replaceIfs(ctx);
+						}
 						const writeInfo: WriteInfo = {
 							content: ctx,
 							isDir: false,
-							rawContent: rawCtx,
+							rawContent: isBinary ? '' : rawCtx,
+							isBinary,
 							templatePath: templatePath,
 							writePath: exportPath,
 							relativePath: relativePath
@@ -306,7 +313,7 @@ export abstract class AventusTemplate {
 
 						if (result === false) continue;
 						if (!configPattern.includes(file)) {
-							writeFileSync(exportPath, writeInfo.content);
+							writeFileSync(exportPath, isBinary ? rawBytes : writeInfo.content);
 							if (exportPath.endsWith(".avt")) {
 								filesPath.push(writeInfo.writePath);
 							}

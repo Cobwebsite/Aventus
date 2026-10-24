@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Ressources binaires corrompues par la génération d'un template
-
-- Reproduction automatisée : `template-binary-round159.test.mjs` crée un template avec un texte Unicode et un fichier `icon.png` contenant des octets UTF-8 invalides. Le texte et ses variables sont corrects, mais le binaire généré diffère de la source et contient la séquence de remplacement UTF-8.
-- Cause observée : les fichiers du template sont lus et réécrits comme du texte, même pour une ressource binaire.
-- Décision à prendre : copier les ressources binaires octet pour octet et réserver la substitution de variables aux fichiers texte ; préciser comment reconnaître un fichier texte ou exclure une ressource de la substitution.
-
 ## Classement de `@Property()` dans les manifestes de composants
 
 - Reproduction automatisée : `manifest-parsed-visibility-round161.test.mjs` analyse un composant réel avec `@Attribute()` et `@Property()`. Les deux membres apparaissent dans les attributs Custom Elements et Web Types ; `@Property()` n'apparaît pas dans les propriétés JavaScript Web Types. Ce classement suit les éditions de la source.
@@ -536,7 +530,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Catégories serveur encore ouvertes dans TODO.md
 
-- **Création depuis un template (ligne 479)** : les tests cités vérifient des copies et substitutions précises, mais la conservation des octets binaires, les blocs conditionnels adjacents, les blocs répétés, les valeurs `$&` et l'URI réécrite par callback échouent ou divergent déjà dans `template-binary-round159.test.mjs`, `template-adjacent-conditions-round171.test.mjs`, `template-repeated-blocks-round196.test.mjs`, `template-dollar-variables-round210.test.mjs` et `template-callback-path-round228.test.mjs`. Décider les sorties attendues, puis corriger le code avant de déclarer la génération complète.
+- **Création depuis un template (ligne 479)** : les tests cités vérifient des copies et substitutions précises, mais les blocs conditionnels adjacents, les blocs répétés, les valeurs `$&` et l'URI réécrite par callback échouent ou divergent déjà dans `template-adjacent-conditions-round171.test.mjs`, `template-repeated-blocks-round196.test.mjs`, `template-dollar-variables-round210.test.mjs` et `template-callback-path-round228.test.mjs`. Décider les sorties attendues, puis corriger le code avant de déclarer la génération complète.
 - **Import et désinstallation des templates (ligne 480)** : les collisions de destination et les sources modifiées pendant l'import restent à décider avant de clore la catégorie.
 - **Conversions de composants (ligne 526)** : `component-merge-destination-race-round281.test.mjs` démontre l'écrasement d'une destination apparue durant l'attente ; `component-merge-reference-error-round248.test.mjs` démontre une édition de référence appliquée avant un échec ultérieur. Choisir les garanties d'atomicité et de préservation de destination, puis les implémenter.
 - **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.

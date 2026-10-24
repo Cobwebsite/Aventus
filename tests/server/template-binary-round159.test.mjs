@@ -10,7 +10,7 @@ const [{ TemplateScript }, { GenericServer }, { ProjectManager }, { FilesManager
     'files/Template.ts', 'GenericServer.ts', 'project/ProjectManager.ts', 'files/FilesManager.ts',
 ]);
 
-test('real template preserves Unicode text but currently replaces invalid UTF-8 bytes in binary assets', { timeout: 15_000 }, async t => {
+test('real template substitutes Unicode text and copies binary assets byte for byte', { timeout: 15_000 }, async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-binary-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const templateDir = join(root, 'template');
@@ -20,14 +20,16 @@ test('real template preserves Unicode text but currently replaces invalid UTF-8 
     const unicode = 'Café ☕ ${{name}}';
     const binary = Buffer.from([0x00, 0xff, 0x89, 0x50, 0x4e, 0x47]);
     writeFileSync(join(templateDir, 'readme.txt'), unicode);
-    writeFileSync(join(templateDir, 'icon.png'), binary);
+    writeFileSync(join(templateDir, 'icon-${{name}}.png'), binary);
+    const binaryWithNull = Buffer.from('A\0${{name}}', 'utf8');
+    writeFileSync(join(templateDir, 'data.bin'), binaryWithNull);
     const config = join(templateDir, 'template.avt.ts');
     const base = pathToFileURL(resolve('lib/templateScript/AventusTemplate.ts')).href;
     writeFileSync(config, [
         `import { AventusTemplate } from '${base}';`,
         'export class Template extends AventusTemplate {',
         "  meta() { return { name: 'Binary fixture' }; }",
-        "  async run() { this.registerVar('name', 'Panel'); await this.writeFile(); }",
+        "  async run() { this.registerVar('name', 'Panel'); await this.writeFile(info => { if (info.isBinary) info.content = 'ignored'; return true; }); }",
         '}',
     ].join('\n'));
 
@@ -56,9 +58,8 @@ test('real template preserves Unicode text but currently replaces invalid UTF-8 
     await script.init(destination, root);
 
     assert.equal(readFileSync(join(destination, 'readme.txt'), 'utf8'), 'Café ☕ Panel');
-    const copiedBinary = readFileSync(join(destination, 'icon.png'));
-    assert.notDeepEqual(copiedBinary, binary);
-    assert.equal(copiedBinary.includes(Buffer.from([0xef, 0xbf, 0xbd])), true);
+    assert.deepEqual(readFileSync(join(destination, 'icon-Panel.png')), binary);
+    assert.deepEqual(readFileSync(join(destination, 'data.bin')), binaryWithNull);
     assert.deepEqual(registered, []);
     assert.deepEqual(errors, []);
 });
