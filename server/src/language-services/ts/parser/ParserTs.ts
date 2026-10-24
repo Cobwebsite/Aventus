@@ -3,6 +3,7 @@ import {
     forEachChild,
     SyntaxKind,
     ImportDeclaration,
+    ExportDeclaration,
     ModuleDeclaration,
     ClassDeclaration,
     EnumDeclaration,
@@ -334,6 +335,13 @@ export class ParserTs {
         forEachChild(node, x => {
             if (x.kind == SyntaxKind.ImportDeclaration) {
                 this.loadImport(x as ImportDeclaration);
+            }
+            else if (x.kind == SyntaxKind.ExportDeclaration) {
+                const declaration = x as ExportDeclaration;
+                if (declaration.moduleSpecifier) {
+                    ParserTs.addError(declaration.getStart(), declaration.getEnd(),
+                        "Re-exports from another file are not supported by Aventus");
+                }
             }
             else if (x.kind == SyntaxKind.ModuleDeclaration) {
                 this.loadNamespace(x as ModuleDeclaration);
