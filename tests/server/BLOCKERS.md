@@ -12,16 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Plages des expressions HTML décalées
-
-- Reproduction : les deux cas de `html-expression-identity-round62.test.mjs` trouvent les actions attendues, mais les plages découpent `"{{value}` ou ` {{value}` au lieu de `{{value}}`, y compris après édition. Ils sont temporairement ignorés pour préserver une suite exécutable.
-- Décision à prendre : corriger le calcul des positions dans le parseur HTML, puis réactiver les deux tests sans assouplir leurs assertions.
-
-## Nouvelle tentative de préparation d'un template après erreur
-
-- Reproduction : `template-shell-path-round112.test.mjs` provoque une erreur avec un chemin de sauvegarde contenant des espaces. Après changement vers un chemin simple, la nouvelle promesse se résout, alors que le test attendait une entrée de préparation bloquée. Ce cas est temporairement ignoré.
-- Décision à prendre : préciser si la nouvelle tentative doit réussir immédiatement ou si l'état de préparation doit rester bloqué ; adapter ensuite le test et vérifier la récupération complète.
-
 ## Suppression d'une configuration pendant l'initialisation du projet
 
 - Reproduction automatisée : `project-discovery-delete-race-round159.test.mjs` suspend `Project.init()`, supprime la configuration, puis termine l'initialisation. `ProjectManager.onNewFile()` inscrit alors un callback de suppression sur l'ancien projet. Après redécouverte, ce callback périmé supprime le nouveau projet.

@@ -20,7 +20,7 @@ function fixture(source) {
     };
 }
 
-test.skip('identical HTML expressions on distinct attributes retain their own typed actions and ranges after edit', () => {
+test('identical HTML expressions on distinct attributes retain their own typed actions and ranges after edit', () => {
     const original = '<demo-card title="{{value}}" count="{{value}}"></demo-card>';
     const updated = '<demo-card\n  title="{{value}}"\n  count="{{value}}"\n></demo-card>';
     const view = fixture(original);
@@ -40,7 +40,7 @@ test.skip('identical HTML expressions on distinct attributes retain their own ty
     }
 });
 
-test.skip('repeated expression on the same HTML attribute shares one action with two exact ranges', () => {
+test('repeated expression on the same HTML attribute shares one action with two exact ranges', () => {
     const source = '<demo-card title="{{value}} / {{value}}"></demo-card>';
     const actions = Object.values(fixture(source).parse().fcts);
     assert.equal(actions.length, 1);

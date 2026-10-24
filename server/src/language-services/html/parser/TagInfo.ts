@@ -514,6 +514,7 @@ export class AttributeInfo {
 
 
 	public setValue(value: string, valueStart: number, valueEnd: number) {
+		const hasOpeningDoubleQuote = value.startsWith('"');
 		value = value.replace(/"/g, "");
 		this.value = value;
 		this.valueStart = ParserHtml.fromCompiledToRaw(valueStart);
@@ -579,7 +580,7 @@ export class AttributeInfo {
 
 		}
 		else {
-			const expressionStart = ParserHtml.fromCompiledToRaw(valueStart + (value.startsWith('"') ? 1 : 0));
+			const expressionStart = ParserHtml.fromCompiledToRaw(valueStart + (hasOpeningDoubleQuote ? 1 : 0));
 			let result = parseTxt(value, expressionStart, this.tag.tagName, this.name);
 			this.changes = result.changes;
 			if (result.changes.length > 0) {
