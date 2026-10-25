@@ -369,22 +369,34 @@ export abstract class AventusTemplate {
 
 
 	protected replaceIfs(ctx: string) {
-		for (let ifName in this.ifs) {
-			const regex = new RegExp('#if\\{\\{' + ifName + '\\}\\}((\\s|\\S)*)#end\\{\\{' + ifName + '\\}\\}', 'gm');
-			if (this.ifs[ifName]) {
-				let m: RegExpExecArray | null;
-				while ((m = regex.exec(ctx)) !== null) {
-					if (m.index === regex.lastIndex) {
-						regex.lastIndex++;
-					}
-					ctx = ctx.replace(m[0], m[1]);
-				}
+		type Frame = { name?: string, start: number, cursor: number, parts: string[] };
+		const frames: Frame[] = [{ start: 0, cursor: 0, parts: [] }];
+		const marker = /#(if|end)\{\{([^{}]+)\}\}/g;
+		let match: RegExpExecArray | null;
+		while ((match = marker.exec(ctx)) !== null) {
+			const name = match[2];
+			if (!Object.prototype.hasOwnProperty.call(this.ifs, name)) continue;
+			const current = frames[frames.length - 1];
+			if (match[1] === 'if') {
+				current.parts.push(ctx.slice(current.cursor, match.index));
+				frames.push({ name, start: match.index, cursor: marker.lastIndex, parts: [] });
 			}
-			else {
-				ctx = ctx.replace(regex, "");
+			else if (current.name === name) {
+				current.parts.push(ctx.slice(current.cursor, match.index));
+				frames.pop();
+				const parent = frames[frames.length - 1];
+				if (this.ifs[name]) parent.parts.push(current.parts.join(''));
+				parent.cursor = marker.lastIndex;
 			}
 		}
-		return ctx;
+		while (frames.length > 1) {
+			const unfinished = frames.pop()!;
+			const parent = frames[frames.length - 1];
+			parent.parts.push(ctx.slice(unfinished.start));
+			parent.cursor = ctx.length;
+		}
+		const root = frames[0];
+		return root.parts.join('') + ctx.slice(root.cursor);
 	}
 	protected replaceBlocks(ctx: string) {
 		for (let blockName in this.blocks) {

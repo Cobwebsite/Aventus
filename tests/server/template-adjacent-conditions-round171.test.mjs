@@ -10,7 +10,7 @@ const [{ TemplateScript }, { GenericServer }, { ProjectManager }, { FilesManager
     'files/Template.ts', 'GenericServer.ts', 'project/ProjectManager.ts', 'files/FilesManager.ts',
 ]);
 
-test('real template processes separate conditional blocks in one file', { timeout: 15_000 }, async t => {
+test('real template processes repeated and nested conditions while preserving unclosed markers', { timeout: 15_000 }, async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-adjacent-ifs-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const source = join(root, 'template');
@@ -20,12 +20,14 @@ test('real template processes separate conditional blocks in one file', { timeou
     const config = join(source, 'template.avt.ts');
     const base = pathToFileURL(resolve('lib/templateScript/AventusTemplate.ts')).href;
     writeFileSync(join(source, 'Panel.wcl.avt'),
-        '#if{{optional}}before#end{{optional}}\nexport class Panel {}\n#if{{optional}}after#end{{optional}}');
+        '#if{{optional}}before#end{{optional}}\nexport class Panel {}\n#if{{optional}}after#end{{optional}}\n' +
+        '#if{{enabled}}A#if{{optional}}drop#end{{optional}}B#if{{enabled}}C#end{{enabled}}#end{{enabled}}\n' +
+        '#if{{unfinished}}keep');
     writeFileSync(config, [
         `import { AventusTemplate } from '${base}';`,
         'export class Template extends AventusTemplate {',
         "  meta() { return { name: 'Adjacent conditions', isProject: false }; }",
-        "  async run() { this.registerIf('optional', false); await this.writeFile(); }",
+        "  async run() { this.registerIf('optional', false); this.registerIf('enabled', true); this.registerIf('unfinished', false); await this.writeFile(); }",
         '}',
     ].join('\n'));
 
@@ -53,8 +55,8 @@ test('real template processes separate conditional blocks in one file', { timeou
     assert.ok(script, errors.join('\n'));
     await script.init(destination, root);
 
-    // The current greedy conditional parser consumes the text between both blocks.
-    assert.equal(readFileSync(join(destination, 'Panel.wcl.avt'), 'utf8'), '');
+    assert.equal(readFileSync(join(destination, 'Panel.wcl.avt'), 'utf8'),
+        '\nexport class Panel {}\n\nABC\n#if{{unfinished}}keep');
     assert.deepEqual(registered.map(uri => uri.replaceAll('\\', '/').split('/').at(-1)), ['Panel.wcl.avt']);
     assert.deepEqual(errors, []);
 });
