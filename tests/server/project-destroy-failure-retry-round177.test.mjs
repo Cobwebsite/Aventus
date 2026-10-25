@@ -2,15 +2,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Project }, { FilesManager }] = await loadServerModules([
-    'project/Project.ts', 'files/FilesManager.ts',
+const [{ Project }, { FilesManager }, { GenericServer }] = await loadServerModules([
+    'project/Project.ts', 'files/FilesManager.ts', 'GenericServer.ts',
 ]);
 
-test('a failed child build cleanup leaves project destruction terminal and remaining resources live', t => {
+test('a failed child build cleanup does not stop other resources and can be retried', t => {
     const oldFiles = FilesManager.instance;
+    const oldShowErrorMessage = GenericServer.showErrorMessage;
     const released = [];
+    const messages = [];
     FilesManager.instance = { removeOnNewFile: id => released.push(`file:${id}`) };
-    t.after(() => { FilesManager.instance = oldFiles; });
+    GenericServer.showErrorMessage = message => messages.push(message);
+    t.after(() => { FilesManager.instance = oldFiles; GenericServer.showErrorMessage = oldShowErrorMessage; });
 
     const project = Object.create(Project.prototype);
     project.onNewFileUUID = 'project-file';
@@ -30,19 +33,44 @@ test('a failed child build cleanup leaves project destruction terminal and remai
     ];
     project.statics = [{ destroy() { released.push('static'); } }];
 
-    assert.throws(() => project.destroy(), /first build cleanup failed/);
+    assert.doesNotThrow(() => project.destroy());
+    assert.equal(messages.length, 1);
+    assert.match(messages[0], /first build cleanup failed/);
     assert.deepEqual(released.slice(0, 7), [
         'file:project-file', ...configCallbacks.map(name => `${name}:config-${name}`),
     ]);
-    assert.equal(released.at(-1), 'first-build');
-    assert.equal(released.includes('second-build'), false);
-    assert.equal(released.includes('static'), false);
+    assert.deepEqual(released.slice(7), ['first-build', 'second-build', 'static']);
+    assert.equal(project.builds.length, 1);
+    assert.equal(project.statics.length, 0);
 
     firstFails = false;
     project.destroy();
-    assert.equal(released.filter(event => event === 'second-build').length, 0);
-    assert.equal(released.filter(event => event === 'static').length, 0);
-    assert.equal(released.filter(event => event === 'first-build').length, 1);
+    assert.equal(released.filter(event => event === 'second-build').length, 1);
+    assert.equal(released.filter(event => event === 'static').length, 1);
+    assert.equal(released.filter(event => event === 'first-build').length, 2);
     assert.equal(released.filter(event => event === 'file:project-file').length, 1);
+    assert.deepEqual(project.builds, []);
+    assert.deepEqual(project.statics, []);
     assert.equal(project.destroyed, true);
+    assert.equal(messages.length, 1);
+});
+
+test('project destruction reports every child cleanup failure in one message', t => {
+    const oldShowErrorMessage = GenericServer.showErrorMessage;
+    const messages = [];
+    GenericServer.showErrorMessage = message => messages.push(message);
+    t.after(() => { GenericServer.showErrorMessage = oldShowErrorMessage; });
+    const project = Object.create(Project.prototype);
+    const buildError = new Error('build cleanup failed');
+    const staticError = new Error('static cleanup failed');
+    project.destroyed = true;
+    project.builds = [{ destroy() { throw buildError; } }];
+    project.statics = [{ destroy() { throw staticError; } }];
+
+    assert.doesNotThrow(() => project.destroy());
+    assert.equal(messages.length, 1);
+    assert.match(messages[0], /Build: Error: build cleanup failed/);
+    assert.match(messages[0], /Static: Error: static cleanup failed/);
+    assert.equal(project.builds.length, 1);
+    assert.equal(project.statics.length, 1);
 });

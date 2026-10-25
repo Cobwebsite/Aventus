@@ -92,7 +92,7 @@ test('global build and static choices recover after one project changes module n
         choice(second, 'Beta@web')]);
     assert.deepEqual(manager.getAllStatics(), [choice(first, 'assets'), choice(second, 'assets')]);
 
-    await save(first, 2, 'Gamma', [npm, { ...story, disabled: true }], ['media']);
+    await save(first, 2, 'Gamma', [npm, { ...story, name: 'story', disabled: true }], ['media']);
     assert.deepEqual(manager.getAllBuilds(), [choice(first, 'Gamma@web'), choice(second, 'Beta@web')]);
     assert.deepEqual(manager.getAllBuildsWithStory(), []);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [choice(first, 'Gamma@web'),

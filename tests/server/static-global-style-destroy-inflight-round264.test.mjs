@@ -70,7 +70,8 @@ test('destroy during global style registration stops pending static publication 
     const newExporter = new Static(project, config);
     t.after(() => newExporter.destroy());
     await newExporter.export();
-    assert.deepEqual(added, outputs.map(path => [join(path, 'site.css').replaceAll('\\', '/'), 'assets']));
+    assert.deepEqual(added.map(([path, name]) => [path.replaceAll('\\', '/'), name]),
+        outputs.map(path => [join(path, 'site.css').replaceAll('\\', '/'), 'assets']));
     assert.equal(reloads, 1);
     assert.equal(newExporter.exportedBySource.size, 1);
 });

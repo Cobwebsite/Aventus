@@ -61,7 +61,9 @@ test('static reexport refreshes surviving resources and removes deleted binary, 
         assert.equal(existsSync(join(output, removed[2])), false);
     }
     assert.equal(pathsAdded.length, 2);
-    assert.deepEqual(pathsAdded.map(([path]) => path), outputs.map(output => join(output, 'nested', 'palette.css').replace(/\\/g, '/')));
-    assert.deepEqual(pathsRemoved.map(path => path.replace(/\\/g, '/')), pathsAdded.map(([path]) => path));
+    assert.deepEqual(pathsAdded.map(([path]) => path.replace(/\\/g, '/')),
+        outputs.map(output => join(output, 'nested', 'palette.css').replace(/\\/g, '/')));
+    assert.deepEqual(pathsRemoved.map(path => path.replace(/\\/g, '/')),
+        pathsAdded.map(([path]) => path.replace(/\\/g, '/')));
     assert.equal(reloads, 2);
 });

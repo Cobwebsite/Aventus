@@ -13,6 +13,7 @@ test('two JS output groups recover after a later destination rejects one revisio
     const first = join(root, 'first', 'main.js');
     const second = join(root, 'second', 'main.js');
     const build = Object.create(Build.prototype);
+    build.publishedJsOutputs = new Map();
     build.buildRevision = 0;
     build.buildConfig = { fullname: 'Demo@web', module: 'Demo' };
     let npmRevision = 0;

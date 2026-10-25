@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { loadServerModule } from './helpers/load-ts.mjs';
+import { loadServerModules } from './helpers/load-ts.mjs';
 
-const { AventusJSONLanguageService } = await loadServerModule('language-services/json/LanguageService.ts');
+const [{ AventusJSONLanguageService }, { SettingsManager }] = await loadServerModules([
+    'language-services/json/LanguageService.ts', 'settings/Settings.ts',
+]);
+SettingsManager.instance = { settings: { defaultHideWarnings: false } };
 const service = AventusJSONLanguageService.getInstance();
 
 function file(text, uri = 'file:///aventus.conf.avt') {

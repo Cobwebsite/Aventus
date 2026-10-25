@@ -46,7 +46,8 @@ test('static export registers a nested global style once and attaches every outp
     assert.equal(state.registered.length, 1);
     assert.match(state.registered[0].uri, /site\.gs\.avt$/);
     assert.equal(state.registered[0].getText(), ':root { --brand: blue; }');
-    assert.deepEqual(state.added, state.outputs.map(path => [join(path, 'theme', 'site.css').replace(/\\/g, '/'), 'assets']));
+    assert.deepEqual(state.added.map(([path, name]) => [path.replace(/\\/g, '/'), name]),
+        state.outputs.map(path => [join(path, 'theme', 'site.css').replace(/\\/g, '/'), 'assets']));
     assert.equal(state.reloads, 1);
     for (const output of state.outputs) {
         assert.equal(existsSync(join(output, 'theme', 'site.gs.avt')), false);

@@ -429,8 +429,8 @@ export class Build {
         this.pendingDeletions = new Map();
         this.pendingI18nOutputs = new Map();
         this.pendingJsOutputs = new Map();
-        this.publishedI18nOutputs = new Map();
-        this.publishedJsOutputs = new Map();
+        this.publishedI18nOutputs ??= new Map();
+        this.publishedJsOutputs ??= new Map();
         try {
             for (let compile of this.buildConfig.compile) {
                 if (compile.i18n) {

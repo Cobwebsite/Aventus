@@ -11,6 +11,7 @@ import { FilesManager } from '../files/FilesManager';
 import { AventusGlobalSCSSFile } from '../language-services/scss/GlobalFile';
 import { ClassInfo } from '../language-services/ts/parser/ClassInfo';
 import { Mutex } from '../Mutex';
+import { GenericServer } from '../GenericServer';
 
 export class Project {
     private configFile: AventusFile;
@@ -389,30 +390,46 @@ export class Project {
     }
 
     public destroy() {
-        if (this.destroyed) return;
-        this.destroyed = true;
-        FilesManager.getInstance().removeOnNewFile(this.onNewFileUUID);
-        this.configFile.removeOnSave(this.onSaveUUID);
-        this.configFile.removeOnValidate(this.onValidateUUID);
-        this.configFile.removeOnFormatting(this.onFormattingUUID);
-        this.configFile.removeOnCompletion(this.onCompletionUUID);
-        this.configFile.removeOnCompletionResolve(this.onCompletionResolveUUID);
-        this.configFile.removeOnHover(this.onHoverUUID);
+        if (!this.destroyed) {
+            this.destroyed = true;
+            FilesManager.getInstance().removeOnNewFile(this.onNewFileUUID);
+            this.configFile.removeOnSave(this.onSaveUUID);
+            this.configFile.removeOnValidate(this.onValidateUUID);
+            this.configFile.removeOnFormatting(this.onFormattingUUID);
+            this.configFile.removeOnCompletion(this.onCompletionUUID);
+            this.configFile.removeOnCompletionResolve(this.onCompletionResolveUUID);
+            this.configFile.removeOnHover(this.onHoverUUID);
 
-        for (const [uri, callbackId] of Object.entries(this.onFileDeleteUUIDs)) {
-            this.scssFiles[uri]?.file.removeOnDelete(callbackId);
+            for (const [uri, callbackId] of Object.entries(this.onFileDeleteUUIDs ?? {})) {
+                this.scssFiles?.[uri]?.file.removeOnDelete(callbackId);
+            }
+            this.onFileDeleteUUIDs = {};
+            this.scssFiles = {};
         }
-        this.onFileDeleteUUIDs = {};
-        this.scssFiles = {};
 
+        const errors: string[] = [];
+        const failedBuilds: Build[] = [];
         for (let build of this.builds) {
-            build.destroy();
+            try {
+                build.destroy();
+            } catch (error) {
+                failedBuilds.push(build);
+                errors.push(`Build: ${String(error)}`);
+            }
         }
+        this.builds = failedBuilds;
+        const failedStatics: Static[] = [];
         for (let _static of this.statics) {
-            _static.destroy();
+            try {
+                _static.destroy();
+            } catch (error) {
+                failedStatics.push(_static);
+                errors.push(`Static: ${String(error)}`);
+            }
         }
-        this.builds = [];
-        this.statics = [];
+        this.statics = failedStatics;
+
+        if (errors.length > 0) GenericServer.showErrorMessage(`Project cleanup failed:\n${errors.join('\n')}`);
     }
 
 
