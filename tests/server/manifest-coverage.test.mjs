@@ -54,8 +54,9 @@ test('Web Types includes slot and JavaScript property documentation', () => {
     assert.match(element.attributes[0].description, /Card size/);
     assert.deepEqual(element.attributes[0].values, [{ type: 'small' }, { type: 'large' }]);
     assert.equal(element.slots[0].description, 'Header content');
-    assert.equal(element.js.properties[0].name, 'active');
+    assert.deepEqual(element.js.properties.map(property => property.name), ['active', 'size']);
     assert.equal(element.js.properties[0].description, 'Is active');
+    assert.equal(element.js.properties[1].description, 'Card size');
 });
 
 test('HTML custom data and Emmet skip compilation results without a tag', () => {

@@ -114,7 +114,9 @@ export class WebTypes {
 
 		// properties
 		const props: JsProperty[] = []
-		for (let prop of info.props) {
+		const propsTemp = [...info.attributes, ...info.props];
+		propsTemp.sort((a, b) => a.name.localeCompare(b.name));
+		for (let prop of propsTemp) {
 			const temp: JsProperty = {};
 			temp.name = prop.name
 			if (prop.isAbstract) {

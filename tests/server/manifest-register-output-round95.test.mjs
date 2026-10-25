@@ -55,7 +55,7 @@ test('registering a parsed component propagates decorated attributes, CSS variab
         const emmet = json(join('emmet', 'snippets.json'));
         assert.equal(declaration.tagName, 'demo-card');
         assert.deepEqual(declaration.attributes.map(attribute => attribute.name), ['mode']);
-        assert.deepEqual(declaration.members.map(member => member.name), ['active']);
+        assert.deepEqual(declaration.members.map(member => member.name), ['active', 'mode']);
         assert.deepEqual(declaration.cssProperties, [{ name: '--card-color', default: 'red', description: 'Card color', syntax: '<color>' }]);
         assert.deepEqual(declaration.slots, [{ name: 'body' }]);
         assert.deepEqual(html.attributes[0].values, [{ name: 'small' }, { name: 'large' }]);

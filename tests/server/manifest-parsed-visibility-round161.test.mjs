@@ -55,7 +55,7 @@ test('parsed component manifest excludes private members and refreshes public st
     assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].js.properties.map(property => property.name), ['ready']);
 });
 
-test('parsed Property and Attribute decorators both appear as manifest attributes after edit', t => {
+test('parsed Property and Attribute decorators appear as HTML attributes and JavaScript properties after edit', t => {
     const previousServer = GenericServer.instance;
     t.after(() => { GenericServer.instance = previousServer; });
     GenericServer.instance = { logLevel: 4 };
@@ -81,7 +81,9 @@ test('parsed Property and Attribute decorators both appear as manifest attribute
         manifest.register(file);
         return {
             custom: manifest.customElements._package.modules[0].declarations[0],
+            html: manifest.htmlCustomData._package.tags[0],
             web: manifest.webTypes._package.contributions.html.elements[0],
+            snippets: manifest.emmetCustomData._package.html.snippets,
         };
     };
 
@@ -90,14 +92,20 @@ test('parsed Property and Attribute decorators both appear as manifest attribute
         @Property() public payload: string = '';
     }`);
     assert.deepEqual(first.custom.attributes.map(attribute => attribute.name), ['payload', 'tone']);
+    assert.deepEqual(first.custom.members.map(member => member.name), ['payload', 'tone']);
+    assert.deepEqual(first.html.attributes.map(attribute => attribute.name), ['payload', 'tone']);
     assert.deepEqual(first.web.attributes.map(attribute => attribute.name), ['payload', 'tone']);
-    assert.deepEqual(first.web.js?.properties ?? [], []);
+    assert.deepEqual(first.web.js.properties.map(property => property.name), ['payload', 'tone']);
+    assert.deepEqual(Object.keys(first.snippets), ['demo-badge']);
 
     const second = update(2, `export class Badge {
         @Attribute() public severity: 'low' | 'high' = 'low';
         @Property() public content: number = 1;
     }`);
     assert.deepEqual(second.custom.attributes.map(attribute => attribute.name), ['content', 'severity']);
+    assert.deepEqual(second.custom.members.map(member => member.name), ['content', 'severity']);
+    assert.deepEqual(second.html.attributes.map(attribute => attribute.name), ['content', 'severity']);
     assert.deepEqual(second.web.attributes.map(attribute => attribute.name), ['content', 'severity']);
-    assert.deepEqual(second.web.js?.properties ?? [], []);
+    assert.deepEqual(second.web.js.properties.map(property => property.name), ['content', 'severity']);
+    assert.deepEqual(Object.keys(second.snippets), ['demo-badge']);
 });

@@ -379,8 +379,8 @@ export class MyButton extends Aventus.WebComponent implements Aventus.DefaultCom
 ```
 
 #### Différences clés entre les Décorateurs Réactifs :
-* **`@Property()`** : Réactivité bidirectionnelle (Propriété <-> Vue). Limitée aux types primitifs (`string`, `number`, `boolean`, `Date`, `datetime`, littéraux). Ne se répercute pas sur l'attribut HTML dans le DOM par souci de performance.
-* **`@Attribute()`** : Similaire à `@Property()`, mais se synchronise activement avec l'attribut HTML dans le DOM (permettant le ciblage CSS via `:host([disabled])`).
+* **`@Property()`** : Crée un attribut HTML du composant, accessible depuis sa propriété JavaScript. Réactivité entre la propriété et la vue, avec la possibilité de recevoir un callback lorsque sa valeur change. Limitée aux types primitifs (`string`, `number`, `boolean`, `Date`, `datetime`, littéraux).
+* **`@Attribute()`** : Crée aussi un attribut HTML du composant, accessible depuis sa propriété JavaScript. Convient notamment aux états utilisés dans le CSS, par exemple avec `:host([disabled])`.
 * **`@Signal(cb?)`** : Réactivité de premier niveau uniquement. Si une propriété interne d'un objet signalisé change, la vue ne se mettra pas à jour. Le callback ne prend qu'un argument : `(target) => void`.
 * **`@Watch(cb?)`** : Observe en profondeur via des proxies JavaScript. Idéal pour les tableaux ou objets complexes. Détecte les modifications imbriquées. Callback complet : `(target, action, path, value) => void`.
 * **`@Injectable()`** : Permet à un attribut d'être injecté depuis la vue du composant parent (ex: `:myField="this.someData"`).

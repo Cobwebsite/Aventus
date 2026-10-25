@@ -49,9 +49,9 @@ test('Custom Elements emits only local members and preserves visibility, default
     const declaration = manifest.customElements._package.modules[0].declarations[0];
     assert.deepEqual(declaration.attributes.map(({ name, default: value }) => [name, value]), [['own', 'ready']]);
     assert.deepEqual(declaration.members.map(({ name, privacy, static: isStatic, default: value }) => [name, privacy, isStatic, value]), [
-        ['secret', 'protected', false, 'hidden'], ['cache', 'private', true, undefined], ['run', 'public', false, undefined],
+        ['own', 'public', false, 'ready'], ['secret', 'protected', false, 'hidden'], ['cache', 'private', true, undefined], ['run', 'public', false, undefined],
     ]);
-    assert.deepEqual(declaration.members[2].parameters, [
+    assert.deepEqual(declaration.members[3].parameters, [
         { name: 'label', type: { text: 'string' }, description: 'Label', default: '"now"' },
         { name: 'count', type: { text: 'number' }, optional: true },
     ]);
@@ -67,7 +67,7 @@ test('HTML and Web Types retain inherited attribute metadata while slots stay lo
     const web = manifest.webTypes._package.contributions.html.elements[0];
     assert.deepEqual(html.attributes.map(({ name }) => name), ['own', 'base']);
     assert.deepEqual(web.attributes.map(({ name }) => name), ['own', 'base']);
-    assert.deepEqual(web.js.properties.map(({ name }) => name), ['secret', 'inherited']);
+    assert.deepEqual(web.js.properties.map(({ name }) => name), ['base', 'inherited', 'own', 'secret']);
     assert.deepEqual(web.slots.map(({ name }) => name), ['own']);
     assert.equal(web.abstract, true);
 });

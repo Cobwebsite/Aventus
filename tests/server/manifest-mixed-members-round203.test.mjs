@@ -51,11 +51,11 @@ test('parsed mixed attributes, fields and methods refresh together across compon
     }`);
     assert.deepEqual(first.declaration.attributes.map(item => item.name), ['color']);
     assert.deepEqual(first.declaration.members.map(item => [item.kind, item.name, item.static]), [
-        ['field', 'count', false], ['method', 'label', true],
+        ['field', 'color', false], ['field', 'count', false], ['method', 'label', true],
     ]);
-    assert.equal(first.declaration.members[0].description, 'Counter field.');
-    assert.equal(first.declaration.members[1].description, 'Compute a label.');
-    assert.deepEqual(first.declaration.members[1].parameters, [{ name: 'prefix', type: { text: 'string' }, description: 'Label prefix.' }]);
+    assert.equal(first.declaration.members[1].description, 'Counter field.');
+    assert.equal(first.declaration.members[2].description, 'Compute a label.');
+    assert.deepEqual(first.declaration.members[2].parameters, [{ name: 'prefix', type: { text: 'string' }, description: 'Label prefix.' }]);
     assert.deepEqual(first.html.attributes[0].values, [{ name: 'red' }, { name: 'blue' }]);
     assert.deepEqual(first.web.attributes[0].values, [{ type: 'red' }, { type: 'blue' }]);
     assert.match(first.html.description, /Counter field/);
@@ -69,7 +69,7 @@ test('parsed mixed attributes, fields and methods refresh together across compon
     }`);
     assert.deepEqual(second.declaration.attributes.map(item => item.name), ['size']);
     assert.deepEqual(second.declaration.members.map(item => [item.kind, item.name, item.static]), [
-        ['field', 'enabled', false], ['method', 'reset', false],
+        ['field', 'enabled', false], ['field', 'size', false], ['method', 'reset', false],
     ]);
     assert.deepEqual(second.html.attributes.map(item => item.name), ['size']);
     assert.deepEqual(second.web.attributes.map(item => item.name), ['size']);

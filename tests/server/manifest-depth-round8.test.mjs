@@ -42,7 +42,7 @@ test('Custom Elements emits local instance and static fields with source metadat
     assert.equal(declaration.summary, 'Card docs');
     assert.deepEqual(declaration.attributes.map(({ name, type }) => [name, type.text]), [['mode', '"small"']]);
     assert.deepEqual(declaration.members.map(({ name, kind, static: isStatic }) => [name, kind, isStatic]), [
-        ['active', 'field', false], ['count', 'field', true], ['open', 'method', false], ['reset', 'method', true],
+        ['active', 'field', false], ['mode', 'field', false], ['count', 'field', true], ['open', 'method', false], ['reset', 'method', true],
     ]);
     assert.equal(module.exports[0].declaration.module, module.path);
 });
@@ -67,5 +67,5 @@ test('Web Types includes attributes and JS properties', () => {
     const element = manifest.webTypes._package.contributions.html.elements[0];
     assert.equal(info.attributes[0].name, 'mode');
     assert.equal(element.attributes[0].name, 'mode');
-    assert.deepEqual(element.js.properties.map(({ name, type }) => [name, type]), [['active', 'boolean']]);
+    assert.deepEqual(element.js.properties.map(({ name, type }) => [name, type]), [['active', 'boolean'], ['mode', '"small"']]);
 });

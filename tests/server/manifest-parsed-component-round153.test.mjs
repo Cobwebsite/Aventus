@@ -41,13 +41,13 @@ test('parsed component attributes and properties refresh all manifest formats af
     }`);
     const first = manifest.customElements._package.modules[0].declarations[0];
     assert.deepEqual(first.attributes.map(attribute => attribute.name), ['mode']);
-    assert.deepEqual(first.members.map(member => member.name), ['active', 'open']);
-    assert.deepEqual(first.members[1].parameters, [{ name: 'force', type: { text: 'boolean' }, optional: true }]);
-    assert.equal(first.members[1].return.type.text, 'string');
+    assert.deepEqual(first.members.map(member => member.name), ['active', 'mode', 'open']);
+    assert.deepEqual(first.members[2].parameters, [{ name: 'force', type: { text: 'boolean' }, optional: true }]);
+    assert.equal(first.members[2].return.type.text, 'string');
     assert.deepEqual(manifest.htmlCustomData._package.tags[0].attributes.map(attribute => attribute.name), ['mode']);
     assert.deepEqual(manifest.htmlCustomData._package.tags[0].attributes[0].values,
         [{ name: 'small' }, { name: 'large' }]);
-    assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].js.properties.map(property => property.name), ['active']);
+    assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].js.properties.map(property => property.name), ['active', 'mode']);
     assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].attributes[0].values,
         [{ type: 'small' }, { type: 'large' }]);
     assert.deepEqual(Object.keys(manifest.emmetCustomData._package.html.snippets), ['demo-card']);
@@ -59,13 +59,13 @@ test('parsed component attributes and properties refresh all manifest formats af
     }`);
     const second = manifest.customElements._package.modules[0].declarations[0];
     assert.deepEqual(second.attributes.map(attribute => attribute.name), ['size']);
-    assert.deepEqual(second.members.map(member => member.name), ['ready', 'close']);
-    assert.deepEqual(second.members[1].parameters, [{ name: 'reason', type: { text: 'string' } }]);
-    assert.equal(second.members[1].return.type.text, 'void');
+    assert.deepEqual(second.members.map(member => member.name), ['ready', 'size', 'close']);
+    assert.deepEqual(second.members[2].parameters, [{ name: 'reason', type: { text: 'string' } }]);
+    assert.equal(second.members[2].return.type.text, 'void');
     assert.deepEqual(manifest.htmlCustomData._package.tags[0].attributes.map(attribute => attribute.name), ['size']);
     assert.deepEqual(manifest.htmlCustomData._package.tags[0].attributes[0].values,
         [{ name: 'compact' }, { name: 'expanded' }]);
-    assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].js.properties.map(property => property.name), ['ready']);
+    assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].js.properties.map(property => property.name), ['ready', 'size']);
     assert.deepEqual(manifest.webTypes._package.contributions.html.elements[0].attributes[0].values,
         [{ type: 'compact' }, { type: 'expanded' }]);
     assert.match(second.summary, /Updated card/);
