@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Anciennes sorties JavaScript conservées après changement de routage
-
-- Reproduction automatisée : `build-output-routing-revisions-round170.test.mjs` produit deux groupes de sorties JS séparant code principal, bibliothèque et npm. Une nouvelle révision regroupe chaque groupe dans son fichier principal ; les fichiers `vendor-*.js` et `npm-*.js` de la première révision restent sur disque avec leur ancien contenu.
-- Décision à prendre : définir le nettoyage des sorties générées qui ne figurent plus dans la configuration, tout en préservant les fichiers modifiés hors du build ; vérifier ce nettoyage sur plusieurs groupes et destinations.
-
 ## Deux blocs conditionnels de template suppriment le contenu intermédiaire
 
 - Reproduction automatisée : `template-adjacent-conditions-round171.test.mjs` génère un fichier réel avec deux blocs `#if{{optional}}...#end{{optional}}` désactivés et une classe entre eux. Le fichier généré est vide et pourtant enregistré, au lieu de conserver la classe.

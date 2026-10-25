@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -24,6 +24,8 @@ test('a full rebuild routes npm, library and module code across two output group
 
     const destinations = Object.fromEntries(['main-a', 'vendor-a', 'npm-a', 'main-b', 'vendor-b', 'npm-b']
         .map(name => [name, join(root, 'dist', `${name}.js`)]));
+    mkdirSync(dirname(destinations['vendor-b']), { recursive: true });
+    writeFileSync(destinations['vendor-b'], 'preexisting content');
     const output = (suffix, separated) => ({
         '@default': { path: destinations[`main-${suffix}`] },
         Vendor: { path: separated ? destinations[`vendor-${suffix}`] : destinations[`main-${suffix}`] },
@@ -66,6 +68,7 @@ test('a full rebuild routes npm, library and module code across two output group
         assert.match(content(`npm-${suffix}`), /npm First/);
         assert.doesNotMatch(content(`npm-${suffix}`), /class First|vendor First/);
     }
+    writeFileSync(destinations['vendor-a'], 'manually edited vendor');
 
     revision = 'Second';
     unit.output = [output('a', false), output('b', false)];
@@ -73,9 +76,18 @@ test('a full rebuild routes npm, library and module code across two output group
     for (const suffix of ['a', 'b']) {
         assert.match(content(`main-${suffix}`), /npm Second[^]*vendor Second[^]*class Second/);
         assert.doesNotMatch(content(`main-${suffix}`), /First/);
-        // Changing the routing leaves the formerly separate generated outputs on disk.
-        assert.match(content(`vendor-${suffix}`), /vendor First/);
-        assert.match(content(`npm-${suffix}`), /npm First/);
+        assert.equal(existsSync(destinations[`npm-${suffix}`]), false);
     }
+    assert.equal(content('vendor-a'), 'manually edited vendor');
+    assert.match(content('vendor-b'), /vendor First/);
     assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 2);
+
+    const previousMain = content('main-a');
+    const validLocalCode = build.buildLocalCode;
+    build.buildLocalCode = async () => ({ ...await validLocalCode(), code: ['const =;'] });
+    unit.compressed = true;
+    await build.build();
+    assert.equal(content('main-a'), previousMain);
+    assert.match(content('main-b'), /class Second/);
+    assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 3);
 });
