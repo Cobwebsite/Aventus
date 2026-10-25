@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
+const [{ Build }, { GenericServer }, { DebugFileAdd }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts', 'notification/DebugFileAdd.ts']);
 
 test('a routed library minifier error leaves the other outputs current and the next revision repairs all three', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-routed-minifier-retry-'));
@@ -23,9 +23,12 @@ test('a routed library minifier error leaves the other outputs current and the n
     let revision = 1;
     build.npmBuilder = { compile: async () => ({ result: `globalThis.NpmRevision = ${revision};`, errors: [] }) };
     const previousError = GenericServer.error;
+    const previousDebugSend = DebugFileAdd.send;
     const errors = [];
+    const debugFiles = [];
     GenericServer.error = error => errors.push(error);
-    t.after(() => { GenericServer.error = previousError; });
+    DebugFileAdd.send = (uri, content) => debugFiles.push({ uri, content });
+    t.after(() => { GenericServer.error = previousError; DebugFileAdd.send = previousDebugSend; });
     const outputs = [{
         '@default': { path: main, compressed: true },
         Vendor: { path: library, compressed: true },
@@ -36,9 +39,11 @@ test('a routed library minifier error leaves the other outputs current and the n
         classesName: {}, codeNoNamespaceAfter: [], stylesheets: {}, useDecorator: false,
     }, [{ lib: 'Vendor', code: vendorCode }], outputs);
 
-    assert.deepEqual(await write('const =;'), []);
+    assert.deepEqual(await write('const =;'), [{ file: 'Demo@web_minificationErrors', title: 'Minification errors' }]);
     assert.equal(errors.length, 1);
-    assert.match(readFileSync(library, 'utf8'), /const =;/);
+    assert.equal(existsSync(library), false);
+    assert.equal(debugFiles.length, 1);
+    assert.match(debugFiles[0].content, /library\.js/);
     assert.match(readFileSync(main, 'utf8'), /CodeRevision=1/);
     assert.match(readFileSync(npm, 'utf8'), /NpmRevision=1/);
 

@@ -131,7 +131,9 @@ export class Build {
     private pendingOutputs?: Map<string, string>;
     private pendingDeletions?: Map<string, string>;
     private pendingI18nOutputs?: Map<string, string>;
+    private pendingJsOutputs?: Map<string, { hash: string, canDelete: boolean }>;
     private publishedI18nOutputs = new Map<string, { hash: string, canDelete: boolean }>();
+    private publishedJsOutputs = new Map<string, { hash: string, canDelete: boolean }>();
 
     public readonly npmBuilder: NpmBuilder;
 
@@ -426,7 +428,9 @@ export class Build {
         this.pendingOutputs = new Map();
         this.pendingDeletions = new Map();
         this.pendingI18nOutputs = new Map();
-        this.publishedI18nOutputs ??= new Map();
+        this.pendingJsOutputs = new Map();
+        this.publishedI18nOutputs = new Map();
+        this.publishedJsOutputs = new Map();
         try {
             for (let compile of this.buildConfig.compile) {
                 if (compile.i18n) {
@@ -478,12 +482,17 @@ export class Build {
                 });
             }
             for (const [path, previous] of this.publishedI18nOutputs) {
-                if (nextI18nOutputs.has(path) || this.pendingOutputs!.has(path)) continue;
-                if (previous.canDelete) this.pendingDeletions!.set(path, previous.hash);
+                if (nextI18nOutputs.has(path) || this.pendingOutputs.has(path) || this.pendingJsOutputs.has(path)) continue;
+                if (previous.canDelete) this.pendingDeletions.set(path, previous.hash);
+            }
+            for (const [path, previous] of this.publishedJsOutputs) {
+                if (this.pendingJsOutputs.has(path) || this.pendingOutputs.has(path) || nextI18nOutputs.has(path)) continue;
+                if (previous.canDelete) this.pendingDeletions.set(path, previous.hash);
             }
             this.ensureBuildActive(revision);
             await this.publishOutputs(revision);
             this.publishedI18nOutputs = nextI18nOutputs;
+            this.publishedJsOutputs = this.pendingJsOutputs;
             this.ensureBuildActive(revision);
         } catch (error) {
             if (error instanceof BuildCancelledError) return;
@@ -492,6 +501,7 @@ export class Build {
             this.pendingOutputs = undefined;
             this.pendingDeletions = undefined;
             this.pendingI18nOutputs = undefined;
+            this.pendingJsOutputs = undefined;
         }
 
         Compiled.send(this.buildConfig.fullname, buildErrors);
@@ -750,14 +760,23 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                         } catch (e) {
                             GenericServer.error(e);
                             minificationErrors.push(`${outputPath}: ${String(e)}`);
+                            const previous = this.publishedJsOutputs.get(outputPath);
+                            if (previous && !this.pendingJsOutputs?.has(outputPath)) {
+                                this.pendingJsOutputs?.set(outputPath, previous);
+                            }
                             continue;
                         }
                     }
+                    const canDelete = this.publishedJsOutputs.get(outputPath)?.canDelete ?? !existsSync(outputPath);
                     let folderPath = getFolder(outputPath.replace(/\\/g, "/"));
                     if (!existsSync(folderPath)) {
                         mkdirSync(folderPath, { recursive: true });
                     }
                     await this.writeFile(outputPath, outputInfo.code);
+                    this.pendingJsOutputs?.set(outputPath, {
+                        hash: createHash('sha256').update(outputInfo.code.replace(/\r\n?/g, '\n')).digest('hex'),
+                        canDelete,
+                    });
                 }
             }
         }
