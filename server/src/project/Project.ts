@@ -339,6 +339,7 @@ export class Project {
      * @param file 
      */
     private async onNewFile(file: AventusFile) {
+        if (this.destroyed) return;
         if (file.path.endsWith(AventusExtension.GlobalStyle)) {
             if (!this.scssFiles[file.uri]) {
                 this.scssFiles[file.uri] = new AventusGlobalSCSSFile(file, this);
@@ -347,10 +348,14 @@ export class Project {
         }
     }
     public registerOnFileDelete(file: AventusFile) {
+        if (this.destroyed) return;
         this.onFileDeleteUUIDs[file.uri] = file.onDelete(this.onFileDelete.bind(this));
     }
     public async onFileDelete(file: AventusFile) {
-        file.removeOnDelete(this.onFileDeleteUUIDs[file.uri]);
+        if (this.destroyed) return;
+        const callbackId = this.onFileDeleteUUIDs[file.uri];
+        if (!callbackId) return;
+        file.removeOnDelete(callbackId);
         delete this.onFileDeleteUUIDs[file.uri];
         // be sure to remove element
         if (file.uri.endsWith(AventusExtension.GlobalStyle)) {
@@ -393,6 +398,12 @@ export class Project {
         this.configFile.removeOnCompletion(this.onCompletionUUID);
         this.configFile.removeOnCompletionResolve(this.onCompletionResolveUUID);
         this.configFile.removeOnHover(this.onHoverUUID);
+
+        for (const [uri, callbackId] of Object.entries(this.onFileDeleteUUIDs)) {
+            this.scssFiles[uri]?.file.removeOnDelete(callbackId);
+        }
+        this.onFileDeleteUUIDs = {};
+        this.scssFiles = {};
 
         for (let build of this.builds) {
             build.destroy();
