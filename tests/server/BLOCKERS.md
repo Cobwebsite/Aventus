@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Collision des métadonnées lors du nettoyage des sorties statiques
-
-- Reproduction automatisée : `static-ownership-metadata-collision-round166.test.mjs` modifie les octets d'une sortie statique en conservant sa taille et force, dans l'état enregistré du test, le même horodatage que la sortie modifiée. Lorsque la source disparaît, `Static.export()` supprime cette sortie malgré son contenu changé.
-- Cause : l'appartenance d'une sortie est vérifiée uniquement avec sa taille et `mtimeMs`, sans empreinte du contenu. Le test contrôle explicitement l'égalité des métadonnées pour reproduire la collision sans dépendre de la précision d'horodatage du système de fichiers.
-- Décision à prendre : préciser si une sortie modifiée doit toujours être préservée et, dans ce cas, stocker une empreinte du contenu ou une autre preuve d'appartenance avant la suppression.
-
 ## Variable CSS globale introuvable après un saut de ligne initial
 
 - Reproduction automatisée : `scss-global-consumer-transition-round166.test.mjs` charge `:root { --tone: red; }`, puis édite la même source en ajoutant un saut de ligne avant `:root`. `getDefinition('--tone')` et la définition demandée depuis un composant deviennent absentes. Retirer le saut de ligne restaure la navigation. `scss-global-comment-prefix-round174.test.mjs` montre que des commentaires de bloc ou de ligne placés avant `:root` produisent la même perte, puis que définition et hover reviennent après retrait du préfixe.

@@ -9,6 +9,7 @@ const [{ Static }, { SettingsManager }, { HttpServer }, { GenericServer }] = awa
     'project/Static.ts', 'settings/Settings.ts', 'live-server/HttpServer.ts', 'GenericServer.ts',
 ]);
 
+// Accepted limit of metadata-only ownership checks: this test forces a collision without hashing every asset.
 test('static cleanup deletes an externally changed output when its recorded metadata matches', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-static-metadata-collision-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
