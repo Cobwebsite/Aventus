@@ -52,19 +52,20 @@ test('project uninstall removes multiple selected folders including a missing on
         writeFileSync(join(folder, 'template.avt.ts'), 'fixture');
     }
     const scripts = folders.map((folder, index) => Object.assign(Object.create(TemplateScript.prototype), {
-        name: ['First', 'Missing', 'Third', 'Keep'][index], config: join(folder, 'template.avt.ts'),
+        name: ['group.First', 'group.Missing', 'group.Third', 'group.Keep'][index], config: join(folder, 'template.avt.ts'),
     }));
     const notifications = [];
     let reloads = 0;
     GenericServer.instance = { connection: {
         SelectMultiple: async items => {
-            assert.deepEqual(items.map(item => item.label), ['First', 'Missing', 'Third', 'Keep']);
+            assert.deepEqual(items.map(item => item.label), ['group.First', 'group.Missing', 'group.Third', 'group.Keep']);
             return items.slice(0, 3);
         },
         showInformationMessage: message => notifications.push(message),
     } };
     const manager = Object.create(TemplateManager.prototype);
     manager.loadedProjects = { group: { First: scripts[0], Missing: scripts[1], Third: scripts[2], Keep: scripts[3] } };
+    manager.projectPath = [root];
     manager.reloadProjects = async () => { reloads++; };
     try {
         await manager.selectProjectToUninstall();

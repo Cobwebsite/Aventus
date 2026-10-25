@@ -70,13 +70,14 @@ test('project uninstall removes only the selected script from nested categories'
     let reloads = 0;
     GenericServer.instance = { connection: {
         SelectMultiple: async items => {
-            assert.deepEqual(items.map(item => item.label), ['First', 'Second']);
+            assert.deepEqual(items.map(item => item.label), ['Group.First', 'Group.Second']);
             return [items[1]];
         },
         showInformationMessage: message => messages.push(message),
     } };
     const manager = Object.create(TemplateManager.prototype);
-    manager.loadedProjects = { Group: { First: script('First', first), Second: script('Second', second) } };
+    manager.loadedProjects = { Group: { First: script('Group.First', first), Second: script('Group.Second', second) } };
+    manager.projectPath = [root];
     manager.reloadProjects = async () => { reloads++; };
     try {
         await manager.selectProjectToUninstall();

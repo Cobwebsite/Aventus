@@ -3,8 +3,8 @@ import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ ProjectManager }, { Project }, { FilesManager }] = await loadServerModules([
-    'project/ProjectManager.ts', 'project/Project.ts', 'files/FilesManager.ts',
+const [{ ProjectManager }, { Project }, { FilesManager }, { GenericServer }] = await loadServerModules([
+    'project/ProjectManager.ts', 'project/Project.ts', 'files/FilesManager.ts', 'GenericServer.ts',
 ]);
 
 test('a failed project initialization is cleaned up and can be retried on rediscovery', async t => {
@@ -13,7 +13,10 @@ test('a failed project initialization is cleaned up and can be retried on redisc
         autoLoad: ProjectManager.autoLoad,
         init: Project.prototype.init,
         loadFiles: Project.prototype.loadFiles,
+        showErrorMessage: GenericServer.showErrorMessage,
     };
+    const messages = [];
+    GenericServer.showErrorMessage = message => messages.push(message);
     const subscriptions = new Set();
     let nextId = 0;
     FilesManager.instance = {
@@ -37,6 +40,7 @@ test('a failed project initialization is cleaned up and can be retried on redisc
         ProjectManager.autoLoad = previous.autoLoad;
         Project.prototype.init = previous.init;
         Project.prototype.loadFiles = previous.loadFiles;
+        GenericServer.showErrorMessage = previous.showErrorMessage;
     });
 
     const uri = 'file:///workspace/aventus.conf.avt';
@@ -55,7 +59,9 @@ test('a failed project initialization is cleaned up and can be retried on redisc
     const manager = Object.create(ProjectManager.prototype);
     manager.projects = {};
 
-    await assert.rejects(manager.onNewFile(file), /transient initialization failure/);
+    await manager.onNewFile(file);
+    assert.equal(messages.length, 1);
+    assert.match(messages[0], /transient initialization failure/);
     assert.equal(manager.getProjectByUri(uri), undefined);
     assert.equal(onDelete, undefined);
     assert.equal(subscriptions.size, 0);
@@ -65,6 +71,7 @@ test('a failed project initialization is cleaned up and can be retried on redisc
     assert.ok(manager.getProjectByUri(uri) instanceof Project);
     assert.equal(subscriptions.size, 1);
     assert.equal(typeof onDelete, 'function');
+    assert.equal(messages.length, 1);
     await onDelete(file);
     assert.equal(subscriptions.size, 0);
 });

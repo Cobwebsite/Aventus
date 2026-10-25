@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Destruction incomplète du projet après échec d'un build
-
-- Reproduction automatisée : `project-destroy-failure-retry-round177.test.mjs` fait échouer `destroy()` du premier build. `Project.destroy()` marque d'abord le projet détruit, puis s'interrompt avant la destruction du second build et de la sortie statique. Un second appel ne nettoie rien : ces deux ressources restent actives.
-- Décision à prendre : poursuivre le nettoyage des autres ressources lorsqu'une destruction échoue, puis définir le résultat d'erreur et la possibilité d'une nouvelle tentative.
-
 ## CSS contenant un accent grave produit un JavaScript invalide
 
 - Reproduction automatisée : `build-stylesheet-literal-recovery-round182.test.mjs` écrit une sortie JS avec une feuille CSS valide contenant `content: "`"`. Le code inséré dans `Aventus.Style.store()` échoue à l'analyse JavaScript. Après édition du style puis retrait, les sorties redeviennent exécutables sans ancien contenu.

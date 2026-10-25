@@ -66,11 +66,12 @@ test('global template uninstall visits nested categories and removes only select
     const messages = [];
     let reloads = 0;
     GenericServer.instance = { connection: {
-        SelectMultiple: async items => { assert.deepEqual(items.map(item => item.label), ['First', 'Second']); return [items[1]]; },
+        SelectMultiple: async items => { assert.deepEqual(items.map(item => item.label), ['Nested.First', 'Nested.Second']); return [items[1]]; },
         showInformationMessage: message => messages.push(message),
     } };
     const manager = Object.create(TemplateManager.prototype);
-    manager.loadedGlobal = { Nested: { First: makeScript('First', first), Second: makeScript('Second', second) } };
+    manager.loadedGlobal = { Nested: { First: makeScript('Nested.First', first), Second: makeScript('Nested.Second', second) } };
+    manager.globalPath = [root];
     manager.reloadGlobal = async () => { reloads++; };
     try {
         await manager.selectGlobalToUninstall();

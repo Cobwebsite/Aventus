@@ -16,6 +16,7 @@ test('decorator helpers follow revisions across separate npm, library and module
         shared: { path: join(root, 'library.js') },
     };
     const build = Object.create(Build.prototype);
+    build.publishedJsOutputs = new Map();
     build.buildRevision = 0;
     build.buildConfig = { fullname: 'Demo@web', module: 'Demo' };
     build.npmBuilder = { compile: async () => ({ result: 'globalThis.NpmRevision = 1;\n', errors: [] }) };

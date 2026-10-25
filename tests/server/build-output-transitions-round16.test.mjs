@@ -11,6 +11,7 @@ function fixture(t) {
     const root = mkdtempSync(join(tmpdir(), 'aventus-build-transition-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
+    build.publishedJsOutputs = new Map();
     build.buildRevision = 0;
     build.buildConfig = { fullname: 'Demo@web', module: 'Demo' };
     build.npmBuilder = { compile: async () => ({ result: '/* npm */\n', errors: [] }) };

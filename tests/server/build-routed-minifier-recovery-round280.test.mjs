@@ -14,6 +14,7 @@ test('a routed library minifier error leaves the other outputs current and the n
     const library = join(root, 'library.js');
     const npm = join(root, 'npm.js');
     const build = Object.create(Build.prototype);
+    build.publishedJsOutputs = new Map();
     build.buildRevision = 0;
     build.buildConfig = { fullname: 'Demo@web', module: 'Demo' };
     build.writeFile = async (path, content) => {

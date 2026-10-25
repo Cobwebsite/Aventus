@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ ProjectManager }, { Project }, { FilesManager }] = await loadServerModules([
-    'project/ProjectManager.ts', 'project/Project.ts', 'files/FilesManager.ts',
+const [{ ProjectManager }, { Project }, { FilesManager }, { GenericServer }] = await loadServerModules([
+    'project/ProjectManager.ts', 'project/Project.ts', 'files/FilesManager.ts', 'GenericServer.ts',
 ]);
 
 test('concurrent notifications for one configuration create one project while initialization is pending', async t => {
@@ -73,6 +73,8 @@ test('failed project initialization removes the registry entry and its subscript
     const previousInit = Project.prototype.init;
     const previousLoadFiles = Project.prototype.loadFiles;
     const previousError = console.error;
+    const previousShowErrorMessage = GenericServer.showErrorMessage;
+    const messages = [];
     const subscriptions = new Set();
     let initCalls = 0;
     let deleteSubscriptions = 0;
@@ -85,12 +87,14 @@ test('failed project initialization removes the registry entry and its subscript
     Project.prototype.loadFiles = () => {};
     Project.prototype.init = async () => { initCalls++; throw new Error('initialization failed'); };
     console.error = () => {};
+    GenericServer.showErrorMessage = message => messages.push(message);
     t.after(() => {
         FilesManager.instance = previousFiles;
         ProjectManager.autoLoad = previousAutoLoad;
         Project.prototype.init = previousInit;
         Project.prototype.loadFiles = previousLoadFiles;
         console.error = previousError;
+        GenericServer.showErrorMessage = previousShowErrorMessage;
     });
 
     const uri = 'file:///workspace/app/aventus.conf.avt';
@@ -105,7 +109,9 @@ test('failed project initialization removes the registry entry and its subscript
     const manager = Object.create(ProjectManager.prototype);
     manager.projects = {};
 
-    await assert.rejects(manager.onNewFile(config), /initialization failed/);
+    await manager.onNewFile(config);
+    assert.equal(messages.length, 1);
+    assert.match(messages[0], /initialization failed/);
     assert.equal(manager.getProjectByUri(uri), undefined);
     assert.equal(initCalls, 1);
     assert.equal(deleteSubscriptions, 0);

@@ -4,6 +4,7 @@ import { AventusFile } from '../files/AventusFile';
 import { FilesManager } from '../files/FilesManager';
 import { Build } from './Build';
 import { Project } from "./Project";
+import { GenericServer } from '../GenericServer';
 
 export class ProjectManager {
     public static autoLoad: boolean = true;
@@ -38,7 +39,8 @@ export class ProjectManager {
                     if (this.projects[file.documentUser.uri] === project) {
                         delete this.projects[file.documentUser.uri];
                     }
-                    throw error;
+                    GenericServer.showErrorMessage(`Project initialization failed for ${file.documentUser.uri}: ${String(error)}`);
+                    return;
                 }
 
                 if (this.projects[file.documentUser.uri] !== project) return;

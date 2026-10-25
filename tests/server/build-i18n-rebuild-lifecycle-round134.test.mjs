@@ -29,6 +29,8 @@ test('successive builds remove only unmodified i18n outputs they created', async
     writeFileSync(join(separate, 'legacy_fr.json'), '{"external":"before build"}');
     writeFileSync(join(separate, 'unrelated.json'), '{"external":true}');
     const build = Object.create(Build.prototype);
+    build.publishedI18nOutputs = new Map();
+    build.publishedJsOutputs = new Map();
     Object.assign(build, {
         initDone: true, _allowBuild: true, buildRevision: 0, diagnostics: new Map(),
         buildConfig: {
