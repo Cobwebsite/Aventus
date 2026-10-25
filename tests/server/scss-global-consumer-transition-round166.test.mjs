@@ -40,19 +40,26 @@ test('deux composants suivent le remplacement de leur variable globale à des mo
     assert.equal(await local.findDefinition(badge, at(badge, '--tone')), null);
 });
 
-test('une déclaration globale précédée d’un saut de ligne devient introuvable jusqu’au retrait du préfixe', async () => {
+test('une déclaration globale reste trouvable après un saut de ligne initial', async () => {
     const global = new AventusGlobalSCSSLanguageService();
     const local = new AventusSCSSLanguageService({ globalSCSSLanguageService: global });
     const uri = 'file:///D:/round166/leading-newline.scss.avt';
     const consumer = { documentUser: TextDocument.create('file:///D:/round166/consumer.wcs.avt', 'scss', 1, '.card { color: var(--tone); }') };
     const position = consumer.documentUser.positionAt(consumer.documentUser.getText().indexOf('--tone') + 3);
-    const load = (version, text) => global.loadVariables({ file: { documentUser: TextDocument.create(uri, 'scss', version, text) } }, uri);
+    const load = (version, text) => {
+        const documentUser = TextDocument.create(uri, 'scss', version, text);
+        global.loadVariables({ file: { documentUser } }, uri);
+        return documentUser;
+    };
 
     load(1, ':root { --tone: red; }');
     assert.equal((await local.findDefinition(consumer, position))?.[0]?.uri, uri);
-    load(2, '\n:root { --tone: blue; }');
-    assert.equal(global.getDefinition('--tone'), undefined);
-    assert.equal(await local.findDefinition(consumer, position), null);
+    const prefixed = load(2, '\n:root { --tone: blue; }');
+    const definition = (await local.findDefinition(consumer, position))?.[0];
+    assert.equal(definition?.uri, uri);
+    assert.equal(definition.range.start.line, 1);
+    assert.equal(prefixed.getText(definition.range), '--tone');
+    assert.match((await local.doHover(consumer, position))?.contents?.value ?? '', /--tone: blue/);
     load(3, ':root { --tone: green; }');
     assert.equal((await local.findDefinition(consumer, position))?.[0]?.uri, uri);
 });

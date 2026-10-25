@@ -4,7 +4,7 @@ import * as postcssScss from 'postcss-scss';
 import { CSSFormatConfiguration, getSCSSLanguageService, LanguageService, TextDocument } from "vscode-css-languageservice";
 import { CodeAction, CodeActionContext, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { AventusFile } from '../../files/AventusFile';
-import { getNodePath, Node, NodeType } from './helper/CSSNode';
+import { Node, NodeType } from './helper/CSSNode';
 import { AventusGlobalSCSSFile } from './GlobalFile';
 import type { Build } from '../../project/Build';
 import type { Project } from '../../project/Project';
@@ -214,11 +214,8 @@ export class AventusGlobalSCSSLanguageService {
             }
         }
 
-        let doc = getSCSSLanguageService().parseStylesheet(document);
-        let path = getNodePath(doc as Node, 0);
-        for (let pathTemp of path) {
-            _loadCustomProperty(pathTemp);
-        }
+        const doc = getSCSSLanguageService().parseStylesheet(document);
+        _loadCustomProperty(doc as Node);
 
         this.variablesByUri[uri] = Object.values(result);
         this.reloadVariables();
