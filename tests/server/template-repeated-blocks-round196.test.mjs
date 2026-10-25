@@ -10,7 +10,7 @@ const [{ TemplateScript }, { GenericServer }, { ProjectManager }, { FilesManager
     'files/Template.ts', 'GenericServer.ts', 'project/ProjectManager.ts', 'files/FilesManager.ts',
 ]);
 
-test('real template currently transforms only the first repeated custom block', { timeout: 15_000 }, async t => {
+test('real template transforms every repeated custom block after a length-changing callback', { timeout: 15_000 }, async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-blocks-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const source = join(root, 'source');
@@ -32,7 +32,7 @@ test('real template currently transforms only the first repeated custom block', 
         "  meta() { return { name: 'Repeated blocks fixture' }; }",
         '  async run() {',
         "    this.registerVar('name', 'Widget');",
-        "    this.registerBlock('wrap', { before: () => '[', after: () => ']', custom: value => value.toUpperCase() });",
+        "    this.registerBlock('wrap', { before: () => '[', after: () => ']', custom: value => 'expanded-' + value.toUpperCase() });",
         '    await this.writeFile();',
         '  }',
         '}',
@@ -58,9 +58,9 @@ test('real template currently transforms only the first repeated custom block', 
 
     assert.equal(readFileSync(join(destination, 'Widget.lib.avt'), 'utf8'), [
         'before',
-        '[FIRST WIDGET]',
+        'expanded-[FIRST WIDGET]',
         'between',
-        '#{{wrap}}second Widget#{{wrap/}}',
+        'expanded-[SECOND WIDGET]',
         'after',
     ].join('\n'));
     assert.equal(registered.length, 1);

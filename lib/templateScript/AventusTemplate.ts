@@ -404,26 +404,7 @@ export abstract class AventusTemplate {
 			const block = this.blocks[blockName];
 			const contentBefore = block.before();
 			const contentAfter = block.after();
-
-			let m: RegExpExecArray | null;
-			while ((m = regex.exec(ctx)) !== null) {
-				// This is necessary to avoid infinite loops with zero-width matches
-				if (m.index === regex.lastIndex) {
-					regex.lastIndex++;
-				}
-
-				let main = m[0];
-
-				const replaceStart = new RegExp('#\\{\\{' + blockName + '\\}\\}', 'gm');
-				main = main.replace(replaceStart, contentBefore);
-
-				const replaceEnd = new RegExp('#\\{\\{' + blockName + '\\/\\}\\}', 'gm');
-				main = main.replace(replaceEnd, contentAfter);
-
-				main = block.custom(main);
-				ctx = ctx.replace(m[0], main);
-			}
-
+			ctx = ctx.replace(regex, (_match, content: string) => block.custom(contentBefore + content + contentAfter));
 		}
 		return ctx;
 	}
