@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Publication d'un JS invalide après échec de minification
-
-- Reproduction automatisée : `build-compression-recovery-round162.test.mjs` demande une sortie comprimée contenant `const =;`. Le minifieur signale une erreur, mais `Build.writeBuildCode()` écrit le code invalide brut à la destination. Une révision valide suivante est correctement minifiée sur la même instance.
-- Décision à prendre : définir si l'échec de minification doit empêcher la publication et préserver la dernière sortie valide, ou si une sortie brute reste souhaitée ; préciser le diagnostic envoyé au client et tester les autres destinations du build.
-
 ## Abonnement de suppression d'un style global conservé après destruction du projet
 
 - Reproduction automatisée : `project-global-style-destroy-round165.test.mjs` inscrit le callback de suppression d'un style global, puis détruit le projet. Les abonnements de configuration et de création de fichier sont retirés, mais le callback du style reste enregistré et modifie encore le projet lorsque le fichier est supprimé plus tard.
