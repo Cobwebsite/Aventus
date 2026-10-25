@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Abonnement de suppression d'un style global conservé après destruction du projet
-
-- Reproduction automatisée : `project-global-style-destroy-round165.test.mjs` inscrit le callback de suppression d'un style global, puis détruit le projet. Les abonnements de configuration et de création de fichier sont retirés, mais le callback du style reste enregistré et modifie encore le projet lorsque le fichier est supprimé plus tard.
-- Cause : `Project.destroy()` ne parcourt pas `onFileDeleteUUIDs` et ne retire pas ces callbacks des fichiers de style globaux.
-- Décision à prendre : retirer les abonnements aux suppressions et vider l'état des styles lors de la destruction ; vérifier aussi les callbacks en cours pendant cette opération.
-
 ## Collision des métadonnées lors du nettoyage des sorties statiques
 
 - Reproduction automatisée : `static-ownership-metadata-collision-round166.test.mjs` modifie les octets d'une sortie statique en conservant sa taille et force, dans l'état enregistré du test, le même horodatage que la sortie modifiée. Lorsque la source disparaît, `Static.export()` supprime cette sortie malgré son contenu changé.

@@ -6,7 +6,7 @@ const [{ Project }, { FilesManager }] = await loadServerModules([
     'project/Project.ts', 'files/FilesManager.ts',
 ]);
 
-test('destroyed project retains a global style deletion subscription until the file is removed', async t => {
+test('destroyed project removes global style deletion subscriptions and ignores stale callbacks', async t => {
     const previous = FilesManager.instance;
     const removed = [];
     FilesManager.instance = { removeOnNewFile: id => removed.push(['new', id]) };
@@ -33,13 +33,16 @@ test('destroyed project retains a global style deletion subscription until the f
 
     project.registerOnFileDelete(file);
     assert.equal(deleteCallbacks.size, 1);
+    const staleCallback = deleteCallbacks.get('style-listener');
     project.destroy();
-    assert.deepEqual(removed, [['new', 'new-listener']]);
+    assert.deepEqual(removed, [['new', 'new-listener'], ['delete', 'style-listener']]);
     assert.equal(configRemoved.length, 6);
-    assert.equal(deleteCallbacks.size, 1);
-    assert.equal(project.scssFiles[uri]?.file, file);
+    assert.equal(deleteCallbacks.size, 0);
+    assert.deepEqual(project.onFileDeleteUUIDs, {});
+    assert.deepEqual(project.scssFiles, {});
 
-    await deleteCallbacks.get('style-listener')(file);
+    await staleCallback(file);
+    await project.onNewFile({ uri, path: '/workspace/theme.gs.avt' });
     assert.equal(deleteCallbacks.size, 0);
     assert.equal(project.scssFiles[uri], undefined);
     assert.deepEqual(removed, [['new', 'new-listener'], ['delete', 'style-listener']]);
