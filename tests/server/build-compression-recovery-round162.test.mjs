@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
+const [{ Build }, { GenericServer }, { DebugFileAdd }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts', 'notification/DebugFileAdd.ts']);
 
 function setup(t) {
     const root = mkdtempSync(join(tmpdir(), 'aventus-build-compression-retry-'));
@@ -48,22 +48,52 @@ test('switching an output between compressed and plain form replaces its previou
     assert.doesNotMatch(restored, /First|Second/);
 });
 
-test('minifier failure reports the error and a later valid revision compacts successfully', async t => {
+test('minifier failure reports a build error and preserves the last valid output until recovery', async t => {
     const { root, build } = setup(t);
     const output = join(root, 'main.js');
     const oldError = GenericServer.error;
+    const oldDebugSend = DebugFileAdd.send;
     const errors = [];
+    const debugFiles = [];
     GenericServer.error = error => errors.push(error);
-    t.after(() => { GenericServer.error = oldError; });
+    DebugFileAdd.send = (uri, content) => debugFiles.push({ uri, content });
+    t.after(() => { GenericServer.error = oldError; DebugFileAdd.send = oldDebugSend; });
     const outputs = [{ '@default': { path: output, compressed: true } }];
 
-    await build.writeBuildCode(code('const =;'), [], outputs);
-    assert.equal(errors.length, 1);
-    assert.match(readFileSync(output, 'utf8'), /const =;/);
+    const initialResult = await build.writeBuildCode(code('globalThis.Initial = 1;'), [], outputs);
+    const previous = readFileSync(output, 'utf8');
+    assert.deepEqual(initialResult, []);
+    assert.match(previous, /globalThis\.Initial=1/);
 
-    await build.writeBuildCode(code('globalThis.Recovered = class Recovered { value = 7; };'), [], outputs);
+    const failedResult = await build.writeBuildCode(code('const =;'), [], outputs);
+    assert.equal(errors.length, 1);
+    assert.equal(readFileSync(output, 'utf8'), previous);
+    assert.deepEqual(failedResult, [{ file: 'Demo@web_minificationErrors', title: 'Minification errors' }]);
+    assert.equal(debugFiles.length, 1);
+    assert.equal(debugFiles[0].uri, failedResult[0].file);
+    assert.match(debugFiles[0].content, /main\.js/);
+
+    const recoveredResult = await build.writeBuildCode(code('globalThis.Recovered = class Recovered { value = 7; };'), [], outputs);
     const content = readFileSync(output, 'utf8');
     assert.match(content, /globalThis\.Recovered=class/);
     assert.doesNotMatch(content, /const =;|value = 7/);
     assert.equal(errors.length, 1);
+    assert.deepEqual(recoveredResult, []);
+});
+
+test('a failed compressed destination does not block another output from the same build', async t => {
+    const { root, build } = setup(t);
+    const main = join(root, 'main.js');
+    const vendor = join(root, 'vendor.js');
+    const oldError = GenericServer.error;
+    const oldDebugSend = DebugFileAdd.send;
+    GenericServer.error = () => {};
+    DebugFileAdd.send = () => {};
+    t.after(() => { GenericServer.error = oldError; DebugFileAdd.send = oldDebugSend; });
+    const outputs = [{ '@default': { path: main, compressed: false }, vendor: { path: vendor, compressed: true } }];
+
+    const result = await build.writeBuildCode(code('globalThis.Current = 2;'), [{ lib: 'vendor', code: 'const =;' }], outputs);
+    assert.match(readFileSync(main, 'utf8'), /globalThis\.Current = 2/);
+    assert.equal(existsSync(vendor), false);
+    assert.deepEqual(result, [{ file: 'Demo@web_minificationErrors', title: 'Minification errors' }]);
 });

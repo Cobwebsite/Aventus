@@ -645,6 +645,7 @@ export class Build {
         compressed?: boolean,
     ): Promise<BuildErrors> {
         let result: BuildErrors = []
+        const minificationErrors: string[] = [];
         if (outputs && outputs.length > 0) {
             let stylesheets: string[] = [];
             for (let name in localCode.stylesheets) {
@@ -732,10 +733,6 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 outputFiles[outputInfo['@default'].path].code += moduleTxt;
 
                 for (let outputPath in outputFiles) {
-                    let folderPath = getFolder(outputPath.replace(/\\/g, "/"));
-                    if (!existsSync(folderPath)) {
-                        mkdirSync(folderPath, { recursive: true });
-                    }
                     let outputInfo = outputFiles[outputPath];
 
                     if (outputInfo.compressed) {
@@ -752,11 +749,23 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                             outputInfo.code = resultTemp.code ?? '';
                         } catch (e) {
                             GenericServer.error(e);
+                            minificationErrors.push(`${outputPath}: ${String(e)}`);
+                            continue;
                         }
+                    }
+                    let folderPath = getFolder(outputPath.replace(/\\/g, "/"));
+                    if (!existsSync(folderPath)) {
+                        mkdirSync(folderPath, { recursive: true });
                     }
                     await this.writeFile(outputPath, outputInfo.code);
                 }
             }
+        }
+
+        if (minificationErrors.length > 0) {
+            const uri = this.buildConfig.fullname + "_minificationErrors";
+            DebugFileAdd.send(uri, minificationErrors.join(EOL));
+            result.push({ file: uri, title: "Minification errors" });
         }
 
         return result;
