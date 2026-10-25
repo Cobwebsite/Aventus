@@ -181,8 +181,9 @@ export class CustomElements {
 
 			members.push(member);
 		}
-		for (let prop of info.props) {
-			// TODO maybe remove attribues
+		const props = [...info.attributes, ...info.props];
+		props.sort((a, b) => a.name.localeCompare(b.name));
+		for (let prop of props) {
 			loadProperty(prop, false);
 		}
 		for (let prop of info.propsStatic) {

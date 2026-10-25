@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Classement de `@Property()` dans les manifestes de composants
-
-- Reproduction automatisée : `manifest-parsed-visibility-round161.test.mjs` analyse un composant réel avec `@Attribute()` et `@Property()`. Les deux membres apparaissent dans les attributs Custom Elements et Web Types ; `@Property()` n'apparaît pas dans les propriétés JavaScript Web Types. Ce classement suit les éditions de la source.
-- Cause : `Manifest` place les deux décorateurs dans la même liste d'attributs avant la génération des formats.
-- Décision à prendre : confirmer que `@Property()` doit être exposé comme attribut HTML, ou distinguer les propriétés JavaScript des attributs dans les manifestes ; vérifier ensuite les formats HTML Custom Data et Emmet avec la convention choisie.
-
 ## Publication d'un JS invalide après échec de minification
 
 - Reproduction automatisée : `build-compression-recovery-round162.test.mjs` demande une sortie comprimée contenant `const =;`. Le minifieur signale une erreur, mais `Build.writeBuildCode()` écrit le code invalide brut à la destination. Une révision valide suivante est correctement minifiée sur la même instance.
