@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Blocs personnalisés répétés dans un template : seul le premier est transformé
-
-- Reproduction automatisée : `template-repeated-blocks-round196.test.mjs` génère un fichier avec deux blocs `#{{wrap}}...#{{wrap/}}` séparés par du texte. Le premier devient `[FIRST WIDGET]`, mais le second conserve ses marqueurs bruts (`#{{wrap}}second Widget#{{wrap/}}`). Les variables sont néanmoins substituées dans les deux blocs et le fichier est enregistré.
-- Cause observée : `AventusTemplate.replaceBlocks()` recherche globalement les correspondances dans le texte initial tout en remplaçant ce texte pendant l'itération ; l'index de recherche saute le second bloc après la première substitution.
-- Décision à prendre : traiter tous les blocs d'un même nom de façon indépendante, en préservant le texte intermédiaire et l'ordre des transformations.
-
 ## Destruction incomplète du projet après échec d'un build
 
 - Reproduction automatisée : `project-destroy-failure-retry-round177.test.mjs` fait échouer `destroy()` du premier build. `Project.destroy()` marque d'abord le projet détruit, puis s'interrompt avant la destruction du second build et de la sortie statique. Un second appel ne nettoie rien : ces deux ressources restent actives.
@@ -491,7 +485,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Catégories serveur encore ouvertes dans TODO.md
 
-- **Création depuis un template (ligne 479)** : les tests cités vérifient des copies et substitutions précises, mais les blocs répétés, les valeurs `$&` et l'URI réécrite par callback échouent ou divergent déjà dans `template-repeated-blocks-round196.test.mjs`, `template-dollar-variables-round210.test.mjs` et `template-callback-path-round228.test.mjs`. Décider les sorties attendues, puis corriger le code avant de déclarer la génération complète.
+- **Création depuis un template (ligne 479)** : les tests cités vérifient des copies et substitutions précises, mais les valeurs `$&` et l'URI réécrite par callback échouent ou divergent déjà dans `template-dollar-variables-round210.test.mjs` et `template-callback-path-round228.test.mjs`. Décider les sorties attendues, puis corriger le code avant de déclarer la génération complète.
 - **Import et désinstallation des templates (ligne 480)** : les collisions de destination et les sources modifiées pendant l'import restent à décider avant de clore la catégorie.
 - **Conversions de composants (ligne 526)** : `component-merge-destination-race-round281.test.mjs` démontre l'écrasement d'une destination apparue durant l'attente ; `component-merge-reference-error-round248.test.mjs` démontre une édition de référence appliquée avant un échec ultérieur. Choisir les garanties d'atomicité et de préservation de destination, puis les implémenter.
 - **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.
