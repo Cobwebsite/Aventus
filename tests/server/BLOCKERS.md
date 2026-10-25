@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Variable CSS globale introuvable après un saut de ligne initial
-
-- Reproduction automatisée : `scss-global-consumer-transition-round166.test.mjs` charge `:root { --tone: red; }`, puis édite la même source en ajoutant un saut de ligne avant `:root`. `getDefinition('--tone')` et la définition demandée depuis un composant deviennent absentes. Retirer le saut de ligne restaure la navigation. `scss-global-comment-prefix-round174.test.mjs` montre que des commentaires de bloc ou de ligne placés avant `:root` produisent la même perte, puis que définition et hover reviennent après retrait du préfixe.
-- Décision à prendre : rendre l'indexation des déclarations `:root` indépendante des espaces et lignes qui précèdent la règle, puis vérifier également les commentaires initiaux et les sélecteurs groupés.
-
 ## Anciennes sorties JavaScript conservées après changement de routage
 
 - Reproduction automatisée : `build-output-routing-revisions-round170.test.mjs` produit deux groupes de sorties JS séparant code principal, bibliothèque et npm. Une nouvelle révision regroupe chaque groupe dans son fichier principal ; les fichiers `vendor-*.js` et `npm-*.js` de la première révision restent sur disque avec leur ancien contenu.

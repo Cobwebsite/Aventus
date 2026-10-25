@@ -25,17 +25,26 @@ test('une variable globale suit les revisions de commentaire initial sur la meme
     assert.equal(first.getText(global.getDefinition('--accent').range), '--accent');
     assert.equal((await local.findDefinition(consumer, position))?.[0]?.uri, uri);
 
-    load(2, '/* theme */:root { --accent: blue; }');
-    assert.equal(global.getDefinition('--accent'), undefined);
-    assert.equal(await local.findDefinition(consumer, position), null);
+    const blockComment = load(2, '/* theme */:root { --accent: blue; }');
+    const blockDefinition = (await local.findDefinition(consumer, position))?.[0];
+    assert.equal(blockDefinition?.uri, uri);
+    assert.equal(blockComment.getText(blockDefinition.range), '--accent');
 
-    load(3, '// theme\n:root { --accent: green; }');
-    assert.equal(global.getDefinition('--accent'), undefined);
-    assert.equal(await local.findDefinition(consumer, position), null);
+    const lineComment = load(3, '// theme\n:root { --accent: green; }');
+    const lineDefinition = (await local.findDefinition(consumer, position))?.[0];
+    assert.equal(lineDefinition?.uri, uri);
+    assert.equal(lineComment.getText(lineDefinition.range), '--accent');
+    assert.equal(lineDefinition.range.start.line, 1);
 
     const repaired = load(4, ':root { --accent: purple; }');
     const definition = (await local.findDefinition(consumer, position))?.[0];
     assert.equal(definition?.uri, uri);
     assert.equal(repaired.getText(definition.range), '--accent');
     assert.match((await local.doHover(consumer, position))?.contents?.value ?? '', /--accent: purple/);
+
+    const grouped = load(5, '.theme, :root { --accent: orange; }');
+    const groupedDefinition = (await local.findDefinition(consumer, position))?.[0];
+    assert.equal(groupedDefinition?.uri, uri);
+    assert.equal(grouped.getText(groupedDefinition.range), '--accent');
+    assert.match((await local.doHover(consumer, position))?.contents?.value ?? '', /--accent: orange/);
 });
