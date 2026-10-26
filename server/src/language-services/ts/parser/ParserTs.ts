@@ -384,6 +384,11 @@ export class ParserTs {
 
     private loadNamespace(node: ModuleDeclaration) {
         if (hasFlag(node.flags, NodeFlags.Namespace) && node.body) {
+            const exportModifier = node.modifiers?.find(modifier => modifier.kind === SyntaxKind.ExportKeyword);
+            if (exportModifier) {
+                ParserTs.addError(exportModifier.getStart(), exportModifier.getEnd(),
+                    "Aventus namespaces cannot be exported; export their members instead");
+            }
             this.namespaces.push(new NamespaceInfo(node));
             this.currentNamespace.push(node.name.getText());
             this.loadRoot(node);
