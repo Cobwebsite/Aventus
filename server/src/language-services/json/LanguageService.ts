@@ -190,8 +190,9 @@ export class AventusJSONLanguageService {
         return null;
     }
 
-    private getConfigPathRange(document: TextDocument, root: ASTNode | undefined, path: string): Range {
+    private getConfigPathRange(document: TextDocument, root: ASTNode | undefined, path: string, allowShorthand = false): Range {
         const wholeDocument = Range.create(document.positionAt(0), document.positionAt(document.getText().length));
+        const nodeRange = (node: ASTNode) => Range.create(document.positionAt(node.offset), document.positionAt(node.offset + node.length));
         let node = root;
         let remaining = path;
         let first = true;
@@ -206,27 +207,27 @@ export class AventusJSONLanguageService {
             const quotedKey = /^\[("(?:\\.|[^"\\])*")\]/.exec(remaining);
             const key = /^[^.[\]]+/.exec(remaining);
             if (index) {
-                if (node?.type !== 'array') return wholeDocument;
-                node = node.items[Number(index[1])];
+                if (node?.type === 'array') node = node.items[Number(index[1])];
+                else if (!allowShorthand || Number(index[1]) !== 0 || !node) return wholeDocument;
                 remaining = remaining.slice(index[0].length);
             }
             else if (quotedKey || key) {
-                if (node?.type !== 'object') return wholeDocument;
+                if (node?.type !== 'object') return allowShorthand && node ? nodeRange(node) : wholeDocument;
                 let name = key?.[0];
                 if (quotedKey) {
                     try { name = JSON.parse(quotedKey[1]) as string; }
                     catch { return wholeDocument; }
                 }
-                node = node.properties.find(property => property.keyNode.value === name)?.valueNode;
+                const child = node.properties.find(property => property.keyNode.value === name)?.valueNode;
+                if (!child) return allowShorthand ? nodeRange(node) : wholeDocument;
+                node = child;
                 remaining = remaining.slice((quotedKey ?? key)![0].length);
             }
             else return wholeDocument;
             if (!node) return wholeDocument;
             first = false;
         }
-        return node
-            ? Range.create(document.positionAt(node.offset), document.positionAt(node.offset + node.length))
-            : wholeDocument;
+        return node ? nodeRange(node) : wholeDocument;
     }
 
     private prepareConfigFile(uri: string, config: AventusConfig, document: TextDocument, root: ASTNode | undefined, diagnostics: Diagnostic[]): AventusConfig {
@@ -288,6 +289,47 @@ export class AventusJSONLanguageService {
             builds.push(build);
         }
         config.build = builds;
+
+        const seenOutput = new Map<string, string[][]>();
+        for (let buildIndex = 0; buildIndex < config.build.length; buildIndex++) {
+            const build = config.build[buildIndex];
+            if (build.disabled) continue;
+            for (let compileIndex = 0; compileIndex < build.compile.length; compileIndex++) {
+                for (let groupIndex = 0; groupIndex < build.compile[compileIndex].output.length; groupIndex++) {
+                    const group = build.compile[compileIndex].output[groupIndex];
+                    const paths: Map<string, string[]> = new Map<string, string[]>();
+                    for (const [library, output] of Object.entries(group)) {
+                        let configPath = `build[${buildIndex}].compile[${compileIndex}].output[${groupIndex}][${JSON.stringify(library)}].path`;
+                        const path = output.path.replace(/\\/g, '/').toLowerCase();
+                        if (!paths.has(path)) {
+                            paths.set(path, []);
+                        }
+                        paths.get(path)!.push(configPath);
+                    }
+
+                    for (let [path, configPaths] of paths.entries()) {
+                        if (!seenOutput.has(path)) {
+                            seenOutput.set(path, [])
+                        }
+                        seenOutput.get(path)!.push(configPaths);
+                    }
+                }
+            }
+        }
+        for (const [outputPath, configBuildPaths] of seenOutput.entries()) {
+            if (configBuildPaths.length > 1) {
+                for (let build of configBuildPaths) {
+                    for (let configPath of build) {
+                        diagnostics.push({
+                            range: this.getConfigPathRange(document, root, configPath, true),
+                            severity: DiagnosticSeverity.Error,
+                            source: 'Aventus',
+                            message: `Multiple active compilation units write the same JavaScript output: ${outputPath}`,
+                        });
+                    }
+                }
+            }
+        }
 
         if (config.static) {
             let statics: AventusConfigStatic[] = []

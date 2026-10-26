@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Deux unités de compilation écrivent la même sortie JS
-
-- Reproduction automatisée : `build-shared-output-units-round205.test.mjs` compile deux unités vers le même fichier JS. La seconde remplace entièrement le code de la première sans diagnostic ; inverser l'ordre au rebuild inverse le code conservé, toujours avec une notification de compilation réussie.
-- Source : `Build.build()` publie les unités successivement et `writeBuildCode()` écrit chaque sortie sans détecter une destination déjà utilisée par une unité précédente.
-- Décision à prendre : interdire les destinations JS communes entre unités de compilation, fusionner leurs contenus ou confirmer explicitement la règle « dernière unité gagnante ».
-
 ## Définition globale prioritaire sur une variable CSS locale de même nom
 
 - Reproduction automatisée : `scss-global-local-shadow-round206.test.mjs` charge `--accent` dans une feuille globale et le redéclare dans un composant. Les références de l'usage dans le composant contiennent sa déclaration locale et ses usages, mais « aller à la définition » mène à la feuille globale. Après retrait de la feuille globale, le même usage mène à la déclaration locale. Un autre composant sans déclaration locale mène correctement à la feuille globale avant son retrait.
