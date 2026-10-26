@@ -348,7 +348,7 @@ export abstract class AventusTemplate {
 		for (let varName in this.variables) {
 			const regex = new RegExp('\\$\\{\\{' + varName + '\\}\\}', 'gm');
 			const value = this.variables[varName] ?? ''
-			ctx = ctx.replace(regex, value);
+			ctx = ctx.replace(regex, () => value);
 		}
 		return ctx;
 	}
