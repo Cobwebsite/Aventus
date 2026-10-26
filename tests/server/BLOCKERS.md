@@ -12,23 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Réimport local d'un template ou projet dans un dossier déjà installé
-
-- Reproduction automatisée : `template-import-replace-round202.test.mjs` réimporte un projet puis un template vers un `installationFolder` déjà présent. Le dossier cible est entièrement supprimé avant la copie : le fichier de l'ancienne installation absent de la nouvelle source disparaît, tandis qu'un fichier voisin hors du dossier cible est conservé. Les deux commandes annoncent l'installation et rechargent le registre une fois.
-- Source : `TemplateManager.selectProjectToImport()` et `selectTemplateToImport()` appellent `rmSync(destPath, { recursive: true, force: true })` dès que la destination existe, avant `cpSync()`.
-- Décision à prendre : confirmer si le réimport doit remplacer intégralement et sans confirmation le dossier installé. Si oui, documenter cette politique et prévoir le sort des fichiers personnalisés placés dans ce dossier ; sinon, demander confirmation ou refuser le remplacement avant toute suppression.
-
-## Navigation sur un réexport étoile ambigu
-
-- Reproduction automatisée : `ts-star-reexport-collision-round202.test.mjs` part de deux exports distincts, puis ajoute un symbole `make` homonyme aux deux sources réexportées par `export *`. TypeScript signale la collision sur le barrel (`TS2308`), mais `findDefinition()` sur l'appel consommateur continue de pointer vers le premier fichier. Un réexport explicite depuis le second fichier lève le diagnostic et redirige la définition vers cette source.
-- Décision à prendre : déterminer si la navigation doit rester disponible vers le premier candidat pendant une collision signalée, ou si le serveur doit refuser la définition ambiguë. Le test garde le comportement actuel et vérifie la réparation explicite.
-
-## Ajout de section dans une configuration absente des projets proposés
-
-- Reproduction automatisée : `add-config-unlisted-selection-round204.test.mjs` propose deux configurations, puis simule une réponse de sélection contenant l'URI d'une troisième configuration existante. `aventus.addConfigSection` ajoute la section à cette troisième configuration et demande son ouverture ; les deux fichiers proposés restent intacts.
-- Source : `AddConfigSection.run()` reprend directement `result.label` comme URI sans vérifier son appartenance à la liste présentée.
-- Décision à prendre : limiter une réponse de sélection aux configurations proposées et définir le traitement d'une réponse périmée ou altérée avant toute écriture.
-
 ## Deux unités de compilation écrivent la même sortie JS
 
 - Reproduction automatisée : `build-shared-output-units-round205.test.mjs` compile deux unités vers le même fichier JS. La seconde remplace entièrement le code de la première sans diagnostic ; inverser l'ordre au rebuild inverse le code conservé, toujours avec une notification de compilation réussie.
