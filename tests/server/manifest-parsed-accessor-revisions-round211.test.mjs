@@ -55,7 +55,7 @@ test('parsed accessors refresh their declarations and documentation across revis
         /** Read the label. */ get label(): string { return this._value; }
         /** Write the label. */ set label(value: string) { this._value = value; }
     }`);
-    assert.deepEqual(second.declaration.members.filter(member => member.privacy === 'public').map(member => [member.name, member.type.text]), [['label', 'string'], ['label', 'notype']]);
+    assert.deepEqual(second.declaration.members.filter(member => member.privacy === 'public').map(member => [member.name, member.type.text]), [['label', 'string']]);
     assert.equal(second.declaration.members.find(member => member.name === 'label').description, 'Read the label.');
     assert.match(second.html.description, /Read the label/);
     assert.doesNotMatch(second.html.description, /Read the count/);
@@ -63,7 +63,14 @@ test('parsed accessors refresh their declarations and documentation across revis
     assert.doesNotMatch(second.web.description, /Read the count/);
     assert.deepEqual(Object.keys(second.snippets), ['demo-accessor']);
 
-    const third = update(3, '/** Plain component. */ export class Accessor {}');
+    const setterOnly = update(3, `export class Accessor {
+        private _value = '';
+        /** Write the label. */ set label(value: string) { this._value = value; }
+    }`);
+    assert.deepEqual(setterOnly.declaration.members.filter(member => member.privacy === 'public').map(member => [member.name, member.type.text]), [['label', 'string']]);
+    assert.equal(setterOnly.declaration.members.find(member => member.name === 'label').description, 'Write the label.');
+
+    const third = update(4, '/** Plain component. */ export class Accessor {}');
     assert.equal(third.declaration.members, undefined);
     assert.doesNotMatch(third.html.description, /Read the label|Read the count/);
     assert.doesNotMatch(third.web.description, /Read the label|Read the count/);

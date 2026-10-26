@@ -1,3 +1,4 @@
+import { TypeNode } from 'typescript';
 import { AventusExtension } from '../definition';
 import { AventusWebComponentLogicalFile } from '../language-services/ts/component/File';
 import { AventusTsFile } from '../language-services/ts/File';
@@ -175,18 +176,30 @@ export class CustomElements {
 				}
 			}
 
+			let setterType: TypeNode | undefined = undefined;
+			if (property.isSet && 'parameters' in property.prop) {
+				setterType = property.prop.parameters[0]?.type;
+			}
 			member.type = {
-				text: this.getTypeTxt(property.type)
+				text: this.getTypeTxt(setterType ? new TypeInfo(setterType) : property.type)
 			}
 
 			members.push(member);
 		}
 		const props = [...info.attributes, ...info.props];
 		props.sort((a, b) => a.name.localeCompare(b.name));
-		for (let prop of props) {
+		const uniqueProperties = (properties: (PropertyInfo & { local: boolean })[]) => {
+			const byName = new Map<string, PropertyInfo & { local: boolean }>();
+			for (const property of properties) {
+				const current = byName.get(property.name);
+				if (!current || property.isGet) byName.set(property.name, property);
+			}
+			return byName.values();
+		};
+		for (let prop of uniqueProperties(props)) {
 			loadProperty(prop, false);
 		}
-		for (let prop of info.propsStatic) {
+		for (let prop of uniqueProperties(info.propsStatic)) {
 			loadProperty(prop, true);
 		}
 		const loadMethod = (method: MethodInfo & { local: boolean }, isStatic: boolean) => {
