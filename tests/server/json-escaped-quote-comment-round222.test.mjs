@@ -18,14 +18,14 @@ test('escaped quote followed by slash text in a config string survives a later e
 
     const escaped = document(1, 'say " // keep');
     const escapedDiagnostics = await service.validate({ documentUser: escaped });
-    assert.ok(escapedDiagnostics.some(item => item.message.includes("Can't parse the json")));
-    assert.equal(await service.getConfig(escaped), null);
+    assert.deepEqual(escapedDiagnostics, []);
+    assert.equal((await service.getConfig(escaped)).description, 'say " // keep');
 
     const plain = document(2, 'say // keep');
     assert.deepEqual(await service.validate({ documentUser: plain }), []);
     assert.equal((await service.getConfig(plain)).description, 'say // keep');
 
     const escapedAgain = document(3, 'new " // value');
-    assert.ok((await service.validate({ documentUser: escapedAgain })).some(item => item.message.includes("Can't parse the json")));
-    assert.equal(await service.getConfig(escapedAgain), null);
+    assert.deepEqual(await service.validate({ documentUser: escapedAgain }), []);
+    assert.equal((await service.getConfig(escapedAgain)).description, 'new " // value');
 });

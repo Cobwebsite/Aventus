@@ -12,24 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Commentaire de bloc multiligne dans une configuration JSON
-
-- Reproduction automatisée : `json-multiline-comment-recovery-round219.test.mjs` soumet une configuration conforme au schéma avec un commentaire `/* ... */` sur deux lignes. La validation ajoute `Can't parse the json` et `getConfig()` retourne `null`. Après remplacement du commentaire par une version sur une ligne, puis retrait complet, la validation ne signale plus d'erreur et `getConfig()` renvoie à nouveau le projet.
-- Source : `AventusJSONLanguageService.removeComments()` utilise une expression régulière dont `.` ne couvre pas les sauts de ligne ; le commentaire multiligne reste présent avant `JSON.parse()`.
-- Décision à prendre : accepter les commentaires de bloc multilignes dans les configurations, puis les retirer correctement avant le parsing, ou les interdire explicitement avec un diagnostic cohérent.
-
-## Guillemets échappés et `//` dans une chaîne de configuration JSON
-
-- Reproduction automatisée : `json-escaped-quote-comment-round222.test.mjs` valide une configuration dont la description contient un guillemet échappé suivi de `//`. Le document est un JSON valide mais la validation ajoute `Can't parse the json` et `getConfig()` retourne `null`. Remplacer la description par une chaîne sans guillemet échappé restaure la lecture ; remettre le guillemet reproduit l'échec.
-- Source : `AventusJSONLanguageService.removeComments()` reconnaît les chaînes avec `".*?"` sans tenir compte des guillemets échappés. Il traite ensuite `//` comme un début de commentaire et retire le reste de la ligne avant `JSON.parse()`.
-- Décision à prendre : reconnaître les échappements et préserver le contenu des chaînes JSON lors de la suppression des commentaires.
-
-## Parenthèses dans un commentaire de ligne JSON
-
-- Reproduction automatisée : `json-line-comment-punctuation-round230.test.mjs` charge une configuration valide dont un commentaire de ligne contient `details (optional)`. La validation ajoute `Can't parse the json` et `getConfig()` retourne `null`. Le retrait des parenthèses rétablit validation et chargement.
-- Source : la classe de caractères de `AventusJSONLanguageService.removeComments()` pour `//` exclut aussi `(` et `)`, ce qui empêche de retirer ce commentaire avant `JSON.parse()`.
-- Décision à prendre : retirer le commentaire de ligne complet jusqu'au saut de ligne, y compris sa ponctuation, sans altérer les chaînes JSON.
-
 ## Sortie npm non suivie après échec partiel d'écriture
 
 - Reproduction automatisée : `npm-partial-write-recovery-round231.test.mjs` publie `Alpha.js`, puis échoue sur `index.d.ts` après avoir écrit `Beta.js`. Le manifeste de propriété reste celui d'Alpha. Un nouvel essai avec `Gamma.js` retire Alpha et publie Gamma, mais laisse `Beta.js` sur disque sans l'inscrire au manifeste.

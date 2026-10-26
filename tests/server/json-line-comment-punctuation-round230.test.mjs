@@ -21,9 +21,8 @@ test('configuration line comments with punctuation recover after editing', async
     assert.equal((await service.getConfig(simple)).module, 'Demo');
 
     const punctuation = document(2, 'details (optional)');
-    assert.ok((await service.validate({ documentUser: punctuation }))
-        .some(item => item.message.includes("Can't parse the json")));
-    assert.equal(await service.getConfig(punctuation), null);
+    assert.deepEqual(await service.validate({ documentUser: punctuation }), []);
+    assert.equal((await service.getConfig(punctuation)).module, 'Demo');
 
     const corrected = document(3, 'details optional');
     assert.deepEqual(await service.validate({ documentUser: corrected }), []);
