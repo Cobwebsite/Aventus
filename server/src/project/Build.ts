@@ -1184,6 +1184,14 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
     }
 
     public async writeBuildI18n(outputs: AventusConfigBuildCompileOutputI18n[]) {
+        const previousFiles = new Map<string, Buffer | undefined>();
+        const writeOutput = async (path: string, content: string) => {
+            if (!this.pendingOutputs && !previousFiles.has(path)) {
+                previousFiles.set(path, existsSync(path) ? readFileSync(path) : undefined);
+            }
+            await this.writeI18nFile(path, content);
+        };
+        try {
         const locales = (this.buildConfig.i18n?.locales ?? []).filter(locale => !I18nParser.isReservedI18nLocale(locale));
         for (let outputConfig of outputs) {
             for (let output of outputConfig.output) {
@@ -1203,7 +1211,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                         }
                         const outputFile = join(output, locale + ".json").toLowerCase();
 
-                        await this.writeI18nFile(outputFile, JSON.stringify(content, null, 4));
+                        await writeOutput(outputFile, JSON.stringify(content, null, 4));
                     }
                     else if (outputConfig.mode == "oneToOne") {
                         for (let uri in this.tsLanguageService.i18nFiles) {
@@ -1212,7 +1220,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                             const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
                             const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
 
-                            await this.writeI18nFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                            await writeOutput(outputFile, JSON.stringify(file.exported[locale], null, 4));
                         }
                         for (let uri in this.i18nComponentsFiles) {
                             const file = this.i18nComponentsFiles[uri];
@@ -1228,7 +1236,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                                 const name = file.file.name.replace(AventusExtension.I18n, "");
                                 const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
 
-                                await this.writeI18nFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                                await writeOutput(outputFile, JSON.stringify(file.exported[locale], null, 4));
                             }
                         }
                     }
@@ -1239,7 +1247,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                             const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
                             const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
 
-                            await this.writeI18nFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                            await writeOutput(outputFile, JSON.stringify(file.exported[locale], null, 4));
                         }
                         let content: { [key: string]: string } = {};
                         for (let uri in this.i18nComponentsFiles) {
@@ -1248,7 +1256,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                         }
 
                         const outputFile = join(output, "_components_" + locale + ".json").toLowerCase();
-                        await this.writeI18nFile(outputFile, JSON.stringify(content, null, 4));
+                        await writeOutput(outputFile, JSON.stringify(content, null, 4));
                     }
                     else if (outputConfig.mode == "basedOnAttribute") {
 
@@ -1259,6 +1267,17 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 
                 }
             }
+        }
+        } catch (error) {
+            for (const [path, previous] of [...previousFiles].reverse()) {
+                try {
+                    if (previous === undefined) rmSync(path, { force: true });
+                    else writeFileSync(path, previous);
+                } catch (rollbackError) {
+                    GenericServer.error(rollbackError);
+                }
+            }
+            throw error;
         }
     }
 

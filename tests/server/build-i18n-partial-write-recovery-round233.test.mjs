@@ -7,7 +7,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { Build } = await loadServerModule('project/Build.ts');
 
-test('i18n publication resumes after its second locale fails and exposes the partial first locale', async t => {
+test('i18n publication restores the first locale when the second fails', async t => {
     const output = mkdtempSync(join(tmpdir(), 'aventus-i18n-write-recovery-'));
     t.after(() => rmSync(output, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
@@ -32,7 +32,7 @@ test('i18n publication resumes after its second locale fails and exposes the par
     translation.exported = { en: { title: 'Second' }, fr: { title: 'Deuxième' } };
     failFrench = true;
     await assert.rejects(build.writeBuildI18n(options), /French output failed/);
-    assert.deepEqual(read('en'), { title: 'Second' });
+    assert.deepEqual(read('en'), { title: 'First' });
     assert.deepEqual(read('fr'), { title: 'Premier' });
 
     translation.exported = { en: { title: 'Third' }, fr: { title: 'Troisième' } };

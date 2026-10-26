@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Sorties i18n de révisions différentes après un échec d'écriture
-
-- Reproduction automatisée : `build-i18n-partial-write-recovery-round233.test.mjs` publie deux locales, puis échoue sur `fr.json` après avoir écrit la nouvelle version de `en.json`. La sortie anglaise est alors en nouvelle révision tandis que la sortie française conserve l'ancienne. Un nouvel appel sur le même build synchronise les deux fichiers.
-- Source : `Build.writeBuildI18n()` écrit les fichiers de locale successivement, sans restaurer les sorties déjà écrites si une écriture ultérieure échoue.
-- Décision à prendre : définir si les sorties i18n d'un build doivent être publiées ensemble ou si un état partiel est acceptable après une erreur signalée.
-
 ## Modes de sortie i18n configurables sans implémentation
 
 - Reproduction automatisée : `build-i18n-configured-modes-round234.test.mjs` utilise une traduction en anglais et en français. Les modes `basedOnAttribute` et `include` créent leur dossier de destination, mais aucun fichier ; `singleFile` produit bien les deux fichiers attendus avec le même build.
