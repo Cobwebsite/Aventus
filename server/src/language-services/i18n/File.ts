@@ -17,7 +17,17 @@ export class AventusI18nFile extends AventusBaseFile {
 
 	public parsedSrc: AventusI18nFileSrcParsed = {};
 	public parsed?: I18nParsed;
-	public exported: AventusI18nExported = {};
+	private _exported: AventusI18nExported = {};
+	private exportedLocales = '';
+	public get exported(): AventusI18nExported {
+		const locales = JSON.stringify(this.build.buildConfig.i18n?.locales ?? []);
+		if (locales !== this.exportedLocales) this.transformForExport();
+		return this._exported;
+	}
+	public set exported(value: AventusI18nExported) {
+		this._exported = value;
+		this.exportedLocales = JSON.stringify(this.build.buildConfig.i18n?.locales ?? []);
+	}
 
 	public get classInfo(): ClassInfo | undefined {
 		var tsFile = this.build.tsFiles[this.file.uri.replace(AventusExtension.I18n, AventusExtension.ComponentLogic)];
