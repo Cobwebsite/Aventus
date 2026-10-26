@@ -1103,7 +1103,20 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 finalPackage.displayName = packageJson.displayName;
                 finalPackage.version = packageJson.version;
                 finalPackage.dependencies = packageJson.dependencies;
-                await this.writeFile(packageJsonPath, JSON.stringify(finalPackage, null, 2));
+                let generatedPackage = !existsSync(packageJsonPath);
+                if (!generatedPackage) {
+                    const ownershipPath = join(outputPackage, manifestName);
+                    if (existsSync(ownershipPath)) {
+                        try {
+                            const previous = JSON.parse(readFileSync(ownershipPath, 'utf8'));
+                            generatedPackage = typeof previous?.['package.json'] === 'string' &&
+                                previous['package.json'] === hash(readFileSync(packageJsonPath, 'utf8'));
+                        } catch { }
+                    }
+                }
+                const content = JSON.stringify(finalPackage, null, 2);
+                if (generatedPackage) await writeGenerated(outputPackage, packageJsonPath, content);
+                else await this.writeFile(packageJsonPath, content);
             }
         }
 

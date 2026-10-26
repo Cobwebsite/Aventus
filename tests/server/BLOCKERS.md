@@ -12,17 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## `package.json` npm conservé quand sa génération est désactivée
-
-- Reproduction automatisée : `npm-config-toggle-round210.test.mjs` génère `package.json` et les points d'entrée dans deux destinations, désactive `packageJson` tout en changeant le nom, la version et l'export, puis le réactive. Les points d'entrée sont actualisés à chaque passage, mais les deux `package.json` gardent le nom et la version initiaux pendant la désactivation. La réactivation les actualise.
-- Source : `Build.writeBuildNpm()` ne suit pas `package.json` dans `.aventus-npm-generated.json` et ne le retire pas quand `outputNpm.packageJson` devient faux.
-- Décision à prendre : déterminer si la désactivation doit retirer un `package.json` précédemment généré, le conserver comme fichier utilisateur, ou signaler son état périmé.
-## Sortie statique partagée entre deux exports laissée après suppression des sources
-
-- Reproduction automatisée : `static-cross-export-ownership-round211.test.mjs` fait écrire deux exports distincts vers le même `shared.bin`. Après suppression de la première source, la copie du second export est préservée. Après suppression de la seconde source, cette copie reste sur disque alors qu'aucune des deux sources n'existe encore ; aucun diagnostic n'est transmis.
-- Cause : chaque instance `Static` tient son registre `exportedBySource` séparément. La seconde voit la sortie comme préexistante à son premier passage et fixe `canDelete` à `false`, sans distinguer une sortie créée par un autre export de celle appartenant à un processus externe.
-- Décision à prendre : définir la propriété et le nettoyage des sorties communes à plusieurs exports, ainsi que le diagnostic éventuel lorsqu'ils visent le même chemin.
-
 ## Accesseur avec getter et setter dupliqué dans le manifeste Custom Elements
 
 - Reproduction automatisée : `manifest-parsed-accessor-revisions-round211.test.mjs` parse trois révisions d'un composant. Quand un getter `label(): string` et un setter `label(value: string)` coexistent, Custom Elements produit deux champs publics `label`, le second de type `notype`. Le retrait des accesseurs supprime les deux entrées au passage suivant.
