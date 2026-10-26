@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Événements absents des manifestes de composants
-
-- Constat : `server/src/manifest/CustomElements.ts` laisse explicitement la génération des événements en attente (`// events // not ready`) ; `server/src/manifest/WebTypes.ts` comporte également une section événements vide. La couverture des événements de la ligne « Schémas valides » du `TODO.md` ne peut donc pas être finalisée avec un test positif sur le serveur actuel.
-- Décision à prendre : définir quels événements de composant doivent être exposés, leur nom, leur type et leur documentation dans Custom Elements et Web Types, puis ajouter un test sur une source réellement parsée et ses révisions.
-
 ## Import nommé d'un namespace local non résolu
 
 - Reproduction automatisée : `ts-local-namespace-alias-round199.test.mjs` analyse `export namespace Widgets`, puis `import { Widgets as UI }` depuis un second fichier. Le parseur crée l'alias local mais laisse `info` vide et émet `Can't load`. Après renommage coordonné du namespace et de l'alias, le diagnostic persiste ; le retrait de l'import le supprime.
@@ -465,6 +460,5 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.
 - **Commandes build, npm, Storybook et sortie statique (ligne 540)** : `build-command-unlisted-selection-round213.test.mjs` démontre que les quatre commandes acceptent une cible qui n'était pas dans les choix proposés. Définir si le choix doit être limité à la liste affichée et appliquer ce contrat aux quatre commandes.
 - **Exports Sharp/PHP (ligne 541)** : `converter-output-concurrency-round99.test.mjs` démontre que deux échecs laissent l'état client à `compiling`. Définir l'état terminal de chaque export et les conventions de sortie avant de considérer tous les échecs couverts.
-- **Schémas et événements des manifestes (ligne 559)** : `manifest-signal-events-gap-round293.test.mjs` parse deux révisions d'une propriété `@Signal()` documentée ; `CustomElements.events` et `WebTypes.js.events` restent absents. Les générateurs portent encore les marqueurs `events // not ready`. Définir la correspondance entre signaux et événements et générer les entrées avant de clore ce point.
 - **Manifeste package et Markdown (ligne 561)** : `manifest-package-function-parameters-round240.test.mjs` et `manifest-package-inferred-signatures-round271.test.mjs` montrent la perte des types et valeurs par défaut inférés. Définir ces rendus et les implémenter.
 - **Stories et MDX (ligne 562)** : `storybook-description-interpolation-round130.test.mjs` démontre qu'un JSDoc contenant `${name}` devient une interpolation dans la story ; `storybook-alias-default-toggle-round251.test.mjs` montre la perte du JSDoc d'un alias. Échapper le texte utilisateur et définir sa publication avant de clore la génération complète.
