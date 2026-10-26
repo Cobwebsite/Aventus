@@ -12,16 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Sorties JavaScript incohérentes après échec d'une destination
-
-- Reproduction automatisée : `build-multi-output-write-retry-round187.test.mjs` appelle `Build.writeBuildCode()` pour deux groupes de sorties. Quand l'écriture du second échoue, le premier contient déjà la nouvelle révision tandis que le second garde l'ancienne. Un nouvel essai réussit et resynchronise les deux fichiers.
-- Décision à prendre : définir si une publication de plusieurs groupes doit être atomique et, dans ce cas, préparer toutes les sorties avant écriture puis restaurer la révision précédente si une destination échoue. Vérifier également le chemin complet `Build.build()`.
-
-## Valeur par défaut d'attribut absente du manifeste Custom Elements
-
-- Reproduction automatisée : `manifest-parsed-attribute-docs-round191.test.mjs` analyse `@Attribute() mode: "small" | "large" = "small"`, puis remplace cet attribut par `density = "roomy"`. Les descriptions et valeurs littérales suivent l'édition dans les manifestes, mais `attributes[].default` reste absent dans Custom Elements pour les deux versions.
-- Décision à prendre : déterminer si la valeur initiale de `@Attribute()` doit être publiée dans `default` ; si oui, transmettre l'initialiseur parsé à la génération Custom Elements et vérifier les autres formats.
-
 ## Événements absents des manifestes de composants
 
 - Constat : `server/src/manifest/CustomElements.ts` laisse explicitement la génération des événements en attente (`// events // not ready`) ; `server/src/manifest/WebTypes.ts` comporte également une section événements vide. La couverture des événements de la ligne « Schémas valides » du `TODO.md` ne peut donc pas être finalisée avec un test positif sur le serveur actuel.

@@ -67,7 +67,7 @@ export class Manifest {
 			let classTemp: ClassInfo | null = _class;
 			while (classTemp && classTemp.fullName != 'Aventus.WebComponent') {
 				for (let name in classTemp.properties) {
-					const prop = { ...classTemp.properties[name] } as (PropertyInfo & { local: boolean });
+					const prop = { ...classTemp.properties[name], defaultValue: classTemp.properties[name].defaultValue } as (PropertyInfo & { local: boolean });
 					prop.local = classTemp == _class;
 					if (prop.isPrivate || prop.isProtected) continue;
 					const deco = prop.decorators.find(p => PropertyDecorator.is(p) || AttributeDecorator.is(p))
@@ -79,7 +79,7 @@ export class Manifest {
 					}
 				}
 				for (let name in classTemp.propertiesStatic) {
-					const prop = { ...classTemp.propertiesStatic[name] } as (PropertyInfo & { local: boolean });
+					const prop = { ...classTemp.propertiesStatic[name], defaultValue: classTemp.propertiesStatic[name].defaultValue } as (PropertyInfo & { local: boolean });
 					prop.local = classTemp == _class;
 					if (prop.isPrivate || prop.isProtected) continue;
 					propsStatic.push(prop);
