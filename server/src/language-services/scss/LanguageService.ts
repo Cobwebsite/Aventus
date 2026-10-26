@@ -100,6 +100,11 @@ export class AventusSCSSLanguageService {
     }
 
     public async doHover(file: AventusFile, position: Position): Promise<Hover | null> {
+        const stylesheet = this.languageService.parseStylesheet(file.documentUser);
+        const localDefinition = this.languageService.findDefinition(file.documentUser, position, stylesheet);
+        if (localDefinition?.uri === file.documentUser.uri) {
+            return this.languageService.doHover(file.documentUser, position, stylesheet);
+        }
         let element = this.getElementAtPosition(file, position);
         if (element?.type == NodeType.Identifier) {
             let def = this.build.globalSCSSLanguageService.getDefinition(element.getText());
@@ -112,10 +117,12 @@ export class AventusSCSSLanguageService {
                 }
             }
         }
-        return this.languageService.doHover(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser));
+        return this.languageService.doHover(file.documentUser, position, stylesheet);
     }
 
     public async findDefinition(file: AventusFile, position: Position): Promise<Location[] | null> {
+        const location = this.languageService.findDefinition(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser));
+        if (location?.uri === file.documentUser.uri) return [location];
         let element = this.getElementAtPosition(file, position);
         if (element?.type == NodeType.Identifier) {
             let def = this.build.globalSCSSLanguageService.getDefinition(element.getText());
@@ -126,7 +133,6 @@ export class AventusSCSSLanguageService {
                 }]
             }
         }
-        const location = this.languageService.findDefinition(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser))
         if (!location) return location;
         return [location];
     }
