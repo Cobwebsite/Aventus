@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Export npm conditionnel `node` prioritaire sur `types` pour les bibliothèques TypeScript
-
-- Reproduction automatisée : `ts-lib-conditional-priority-round209.test.mjs` crée un package dont `exports["."]` expose simultanément `node: ./index.js` et `types: ./index.d.ts`. `loadNodeModules()` charge le JavaScript et omet la déclaration, même si elle existe. Le retrait de `node` fait apparaître la déclaration ; son retrait sur disque puis sa recréation sont bien reflétés. Un `types` pointant vers un fichier absent ne se replie pas sur `default` existant.
-- Source : `libLoader.ts` choisit `node || import || types || require || default` avant de vérifier l'existence du fichier sélectionné.
-- Décision à prendre : pour le service TypeScript, privilégier `types` lorsqu'il est présent et définir si un chemin de déclaration absent doit permettre le repli vers `default` ou signaler seulement le package incomplet.
-
 ## Valeur de variable de template contenant `$&` réinjectée comme marqueur
 
 - Reproduction automatisée : `template-dollar-variables-round210.test.mjs` crée un vrai template dont le nom de fichier et le contenu contiennent `${{name}}`, avec la valeur `Cash$&Tail`. Le fichier produit s'appelle `Cash${{name}}Tail.lib.avt` et son contenu conserve également `${{name}}` au lieu d'insérer littéralement `Cash$&Tail` ; ce chemin est enregistré comme source Aventus.

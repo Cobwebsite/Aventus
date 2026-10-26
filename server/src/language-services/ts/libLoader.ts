@@ -156,8 +156,18 @@ export function loadNodeModules(nodeModulesPath: string): string[] {
 						}
 					}
 					else {
-						const newPath = exportPath.node || exportPath.import || exportPath.types || exportPath.require || exportPath.default;
-						loop(newPath);
+						const paths = [exportPath.types, exportPath.node, exportPath.import, exportPath.require, exportPath.default];
+						for (const path of paths) {
+							if (!path) continue;
+							if (typeof path === 'string') {
+								if (!existsSync(resolve(modulePath, path))) continue;
+								loop(path);
+								break;
+							}
+							const count = exports.length;
+							loop(path);
+							if (exports.length > count) break;
+						}
 					}
 				}
 				else {

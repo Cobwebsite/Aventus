@@ -22,7 +22,11 @@ test('conditional npm declarations follow export edits, missing files and recove
     writeFileSync(js, 'exports.value = 1;');
     writeFileSync(declaration, 'export declare const value: 1;');
     saveManifest({ node: './index.js', types: './index.d.ts' });
+    assert.deepEqual(loaded(), ['export declare const value: 1;']);
+
+    unlinkSync(declaration);
     assert.deepEqual(loaded(), ['exports.value = 1;']);
+    writeFileSync(declaration, 'export declare const value: 1;');
 
     saveManifest({ types: './index.d.ts' });
     assert.deepEqual(loaded(), ['export declare const value: 1;']);
@@ -33,7 +37,7 @@ test('conditional npm declarations follow export edits, missing files and recove
     assert.deepEqual(loaded(), ['export declare const value: 2;']);
 
     saveManifest({ types: './missing.d.ts', default: './index.js' });
-    assert.deepEqual(loadNodeModules(modules), []);
+    assert.deepEqual(loaded(), ['exports.value = 1;']);
     saveManifest({ types: './index.d.ts', default: './index.js' });
     assert.deepEqual(loaded(), ['export declare const value: 2;']);
 });
