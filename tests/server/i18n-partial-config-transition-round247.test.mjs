@@ -8,7 +8,7 @@ const [{ InternalAventusFile }, { AventusI18nFile }] = await loadServerModules([
     'files/AventusFile.ts', 'language-services/i18n/File.ts',
 ]);
 
-test('transition des locales de deux fichiers : diagnostics immédiats et exports après chaque édition', async t => {
+test('transition des locales de deux fichiers : diagnostics et exports actualisés sans éditer chaque fichier', async t => {
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
         tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
@@ -36,12 +36,13 @@ test('transition des locales de deux fichiers : diagnostics immédiats et export
     assert.deepEqual(await second.source.validate(false), []);
 
     build.buildConfig.i18n.locales = ['en', 'de'];
+    assert.deepEqual(second.translation.exported, { en: { second: 'Second' }, de: {} });
     await first.edit(2, '{"first":{"en":"First","de":"Erste"}}');
     assert.deepEqual(await first.source.validate(false), []);
     assert.deepEqual((await second.source.validate(false)).map(d => d.message),
         ['Locale not needed', 'Missing locales de']);
     assert.deepEqual(first.translation.exported, { en: { first: 'First' }, de: { first: 'Erste' } });
-    assert.deepEqual(second.translation.exported, { en: { second: 'Second' }, fr: { second: 'Deuxième' } });
+    assert.deepEqual(second.translation.exported, { en: { second: 'Second' }, de: {} });
     const action = (await second.source.getCodeAction({
         start: { line: 0, character: 1 }, end: { line: 0, character: 9 },
     }))[0];

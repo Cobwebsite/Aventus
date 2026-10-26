@@ -12,18 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Une traduction i18n de type incorrect reste dans l'export
-
-- Reproduction automatisée : `i18n-invalid-value-recovery-round207.test.mjs` fournit une traduction numérique `12` dans un JSON valide avec une locale manquante. `i18n-mixed-value-recovery-round247.test.mjs` confirme le même comportement pour des valeurs tableau et objet simultanées. `i18n-invalid-values-revisions-round301.test.mjs` étend le constat aux booléens, à `null` et aux tableaux : les diagnostics ciblent chaque valeur, mais l'export les conserve ; deux éditions successives renouvellent correctement diagnostics et exports. Les diagnostics de schéma signalent les types incorrects, mais l'export et l'action d'ajout de locale conservent ces valeurs alors que le contrat annonce des chaînes. Une édition qui remplace les valeurs par des chaînes rétablit diagnostics et exports attendus.
-- Source : `AventusI18nFile.transformForExport()` copie les valeurs JSON sans contrôler leur type ; `actionImportMissingLocales()` recopie tout l'objet source.
-- Décision à prendre : déterminer si une valeur de type incorrect doit être exclue de l'export et de la correction, convertie en chaîne ou conservée tant que le diagnostic est visible.
-
-## Les exports i18n d'un fichier non édité conservent les anciennes locales après une transition de configuration
-
-- Reproduction automatisée : `i18n-partial-config-transition-round247.test.mjs` crée deux fichiers globaux configurés pour `en,fr`, puis passe à `en,de` et n'édite que le premier. La validation et l'action d'import du second utilisent `de`, mais son export garde `fr` et n'expose pas `de` jusqu'à son édition suivante.
-- Source : `AventusI18nFile.transformForExport()` recalcule les locales pendant `onContentChange()`, tandis que la validation et l'action lisent la configuration à chaque appel.
-- Décision à prendre : préciser si un changement de configuration i18n doit actualiser tous les exports immédiatement, puis déclencher leur recalcul si cette synchronisation est attendue.
-
 ## Export npm conditionnel `node` prioritaire sur `types` pour les bibliothèques TypeScript
 
 - Reproduction automatisée : `ts-lib-conditional-priority-round209.test.mjs` crée un package dont `exports["."]` expose simultanément `node: ./index.js` et `types: ./index.d.ts`. `loadNodeModules()` charge le JavaScript et omet la déclaration, même si elle existe. Le retrait de `node` fait apparaître la déclaration ; son retrait sur disque puis sa recréation sont bien reflétés. Un `types` pointant vers un fichier absent ne se replie pas sur `default` existant.
