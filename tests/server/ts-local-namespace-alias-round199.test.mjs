@@ -8,7 +8,7 @@ const [, { ParserTs }, { GenericServer }] = await loadServerModules([
 ]);
 GenericServer.instance = { logLevel: 4 };
 
-test('un alias local de namespace reste non résolu après renommage de sa déclaration et de son import', () => {
+test('export namespace is diagnosed while local namespace members remain valid', () => {
     const folder = `file:///d:/test/local-namespace-alias-round199-${process.pid}`;
     const sourceUri = `${folder.replace('d:', 'd%3A')}/source`;
     const ownerUri = `${folder}/owner.lib.avt`;
@@ -22,12 +22,16 @@ test('un alias local de namespace reste non résolu après renommage de sa décl
         return ParserTs.parse({ uri, versionInternal: version, documentUser: document, documentInternal: document }, false, build);
     };
 
-    parse(sourceUri, 1, 'export namespace Widgets { export class Card {} }');
+    const source1 = parse(sourceUri, 1, 'export namespace Widgets { export class Card {} }');
+    assert.match(source1.errors.map(error => error.message).join('\n'), /namespaces cannot be exported/);
+    assert.deepEqual(source1.errors[0].range.start, { line: 0, character: 0 });
+    assert.deepEqual(source1.errors[0].range.end, { line: 0, character: 6 });
     const owner1 = parse(ownerUri, 1, 'import { Widgets as UI } from "./source";\nexport class Owner {}');
     assert.equal(owner1.importsLocal.UI.info, undefined);
     assert.match(owner1.errors.map(error => error.message).join('\n'), /Can't load .* Widgets /);
 
-    parse(sourceUri, 2, 'export namespace Controls { export class Card {} }');
+    const source2 = parse(sourceUri, 2, 'export namespace Controls { export class Card {} }');
+    assert.match(source2.errors.map(error => error.message).join('\n'), /namespaces cannot be exported/);
     const owner2 = parse(ownerUri, 2, 'import { Widgets as UI } from "./source";\nexport class Owner {}');
     assert.equal(owner2.importsLocal.UI.info, undefined);
     assert.match(owner2.errors.map(error => error.message).join('\n'), /Can't load .* Widgets /);
@@ -40,4 +44,8 @@ test('un alias local de namespace reste non résolu après renommage de sa décl
     const owner4 = parse(ownerUri, 4, 'export class Owner {}');
     assert.deepEqual(owner4.importsLocal, {});
     assert.deepEqual(owner4.errors, []);
+
+    const source3 = parse(sourceUri, 3, 'namespace Form { export abstract class ButtonElement {} }');
+    assert.deepEqual(source3.errors, []);
+    assert.equal(source3.classes.ButtonElement.fullName, 'Form.ButtonElement');
 });
