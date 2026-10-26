@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Sortie npm non suivie après échec partiel d'écriture
-
-- Reproduction automatisée : `npm-partial-write-recovery-round231.test.mjs` publie `Alpha.js`, puis échoue sur `index.d.ts` après avoir écrit `Beta.js`. Le manifeste de propriété reste celui d'Alpha. Un nouvel essai avec `Gamma.js` retire Alpha et publie Gamma, mais laisse `Beta.js` sur disque sans l'inscrire au manifeste.
-- Avec deux destinations, un échec sur la seconde après l'écriture de `Beta.js` laisse aussi une copie partielle dans la première. Les deux manifestes restent anciens ; la publication suivante retire Alpha mais laisse Beta orphelin dans les deux destinations.
-- Source : `Build.writeBuildNpm()` ne publie le manifeste des fichiers générés qu'après toutes les écritures ; les sorties déjà écrites lors d'un échec ne sont ni restaurées ni prises en compte au nouvel essai.
-- Décision à prendre : restaurer les sorties de la tentative échouée ou les inclure dans le nettoyage de la tentative suivante.
-
 ## Exports Sharp et PHP lancés malgré des métadonnées JSON invalides
 
 - Reproduction automatisée : `converter-invalid-config-recovery-round232.test.mjs` exécute l'export sur un `aventus.sharp.avt` incomplet. La lecture JSON échoue, mais le convertisseur est tout de même lancé et les états `compiling` puis `success` portent un nom de projet vide. Une correction du fichier rétablit le nom au prochain export.
