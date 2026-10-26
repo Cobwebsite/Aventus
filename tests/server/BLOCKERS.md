@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Modes de sortie i18n configurables sans implémentation
-
-- Reproduction automatisée : `build-i18n-configured-modes-round234.test.mjs` utilise une traduction en anglais et en français. Les modes `basedOnAttribute` et `include` créent leur dossier de destination, mais aucun fichier ; `singleFile` produit bien les deux fichiers attendus avec le même build.
-- Source : le schéma de configuration accepte ces deux modes, tandis que les branches correspondantes de `Build.writeBuildI18n()` sont vides.
-- Décision à prendre : implémenter ces modes ou les retirer des choix de configuration et signaler clairement leur indisponibilité.
-
 ## Dossier de namespace i18n créé mais inutilisé en mode `oneToOne`
 
 - Reproduction automatisée : `build-i18n-component-namespace-round235.test.mjs` publie puis révise la traduction d'un composant de namespace `Demo.Widgets`. Le dossier `Demo/Widgets` est créé mais reste vide ; `card_en.json` est écrit à la racine de sortie à chaque révision.

@@ -264,7 +264,8 @@ export const AventusConfigSchema: JSONSchema = {
                                             },
                                             "mode": {
                                                 type: "string",
-                                                enum: ['singleFile', 'oneToOne', 'groupComponent', 'basedOnAttribute', 'include'],
+                                                // enum: ['singleFile', 'oneToOne', 'groupComponent', 'basedOnAttribute', 'include'], TODO
+                                                enum: ['singleFile', 'oneToOne', 'groupComponent'],
                                                 default: "singleFile",
                                             }
                                         },
