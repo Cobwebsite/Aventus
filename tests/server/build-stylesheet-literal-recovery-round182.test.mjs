@@ -8,7 +8,7 @@ import { loadServerModules } from './helpers/load-ts.mjs';
 
 const [{ Build }] = await loadServerModules(['project/Build.ts']);
 
-test('stylesheet literals in JS output follow invalid, repaired and removed revisions', async t => {
+test('stylesheet literals in JS output preserve special characters across revisions', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-style-literal-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'main.js');
@@ -29,11 +29,14 @@ test('stylesheet literals in JS output follow invalid, repaired and removed revi
         return readFileSync(output, 'utf8');
     };
 
-    // A backtick is legal inside a CSS string, but the generated JS embeds it
-    // without escaping the surrounding template literal.
-    const broken = await write(1, { '@label': '.label::after { content: "`"; }' });
-    assert.match(broken, /Style\.store\("@label"/);
-    assert.throws(() => new Script(broken), SyntaxError);
+    const specialCss = '.label::after { content: "` ${name} \\ path"; }\n.label { color: red; }';
+    const generated = await write(1, { '@label': specialCss });
+    assert.doesNotThrow(() => new Script(generated));
+    const initialStores = [];
+    runInNewContext(generated, {
+        Aventus: { Style: { store: (name, css) => initialStores.push([name, css]) } },
+    });
+    assert.deepEqual(initialStores, [['@label', specialCss]]);
 
     const repaired = await write(2, { '@label': '.label::after { content: "ok"; }' });
     const stores = [];
