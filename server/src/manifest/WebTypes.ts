@@ -132,7 +132,8 @@ export class WebTypes {
 			element.js.properties = props;
 		}
 
-		// events		
+		// events
+		// TODO add a decorator @Event over Callback properties (only when returning void or Promise<void>) to add them into the Custom Elements json + send CustomEvent with details on the component
 		
 
 		this.elementsByUri.set(file.file.uri, element);
