@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Définition globale prioritaire sur une variable CSS locale de même nom
-
-- Reproduction automatisée : `scss-global-local-shadow-round206.test.mjs` charge `--accent` dans une feuille globale et le redéclare dans un composant. Les références de l'usage dans le composant contiennent sa déclaration locale et ses usages, mais « aller à la définition » mène à la feuille globale. Après retrait de la feuille globale, le même usage mène à la déclaration locale. Un autre composant sans déclaration locale mène correctement à la feuille globale avant son retrait.
-- Source : `AventusSCSSLanguageService.findDefinition()` consulte le registre global avant de demander la définition du document courant à `vscode-css-languageservice`.
-- Décision à prendre : donner la priorité à la déclaration locale lorsqu'elle est résolue dans le document, puis utiliser la variable globale en repli ; vérifier également les références et le survol après édition.
-
 ## Une traduction i18n de type incorrect reste dans l'export
 
 - Reproduction automatisée : `i18n-invalid-value-recovery-round207.test.mjs` fournit une traduction numérique `12` dans un JSON valide avec une locale manquante. `i18n-mixed-value-recovery-round247.test.mjs` confirme le même comportement pour des valeurs tableau et objet simultanées. `i18n-invalid-values-revisions-round301.test.mjs` étend le constat aux booléens, à `null` et aux tableaux : les diagnostics ciblent chaque valeur, mais l'export les conserve ; deux éditions successives renouvellent correctement diagnostics et exports. Les diagnostics de schéma signalent les types incorrects, mais l'export et l'action d'ajout de locale conservent ces valeurs alors que le contrat annonce des chaînes. Une édition qui remplace les valeurs par des chaînes rétablit diagnostics et exports attendus.

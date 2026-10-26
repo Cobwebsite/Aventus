@@ -21,7 +21,7 @@ const position = (entry, name, occurrence = 0) => {
     return entry.documentUser.positionAt(offset + 3);
 };
 
-test('a local custom property shadows a global one for references but not definition navigation', async () => {
+test('a local custom property shadows a global one for references, definition and hover', async () => {
     const project = { scssFiles: {}, getBuilds: () => [build] };
     const global = new AventusGlobalSCSSLanguageService(project);
     const build = { project, scssFiles: {}, globalSCSSLanguageService: global };
@@ -39,13 +39,18 @@ test('a local custom property shadows a global one for references but not defini
     assert.deepEqual(Object.keys(localRename.changes), [localUri]);
     assert.equal(localRename.changes[localUri].length, 2);
     assert.ok(localRename.changes[localUri].every(edit => edit.newText === '--local-tone'));
-    assert.equal((await local.findDefinition(card, cardUsage))?.[0]?.uri, sourceUri);
+    const cardDefinition = (await local.findDefinition(card, cardUsage))?.[0];
+    assert.equal(cardDefinition?.uri, localUri);
+    assert.equal(card.documentUser.getText(cardDefinition.range), '--accent');
+    assert.doesNotMatch(JSON.stringify(await local.doHover(card, cardUsage)), /red/);
     assert.equal((await local.findDefinition(badge, position(badge, '--accent')))?.[0]?.uri, sourceUri);
+    assert.match(JSON.stringify(await local.doHover(badge, position(badge, '--accent'))), /red/);
 
     card = file(localUri, 2, '.card { --accent: blue; color: var(--accent); border: var(--accent); }');
     const revisedReferences = await local.onReferences(card, position(card, '--accent', 2));
     assert.deepEqual(revisedReferences.map(({ uri }) => uri), [localUri, localUri, localUri]);
-    assert.equal((await local.findDefinition(card, position(card, '--accent', 2)))?.[0]?.uri, sourceUri);
+    assert.equal((await local.findDefinition(card, position(card, '--accent', 2)))?.[0]?.uri, localUri);
+    assert.doesNotMatch(JSON.stringify(await local.doHover(card, position(card, '--accent', 2))), /red/);
 
     global.removeVariables(sourceUri);
     const localDefinition = (await local.findDefinition(card, position(card, '--accent', 2)))?.[0];
