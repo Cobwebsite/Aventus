@@ -274,9 +274,7 @@ export class ClassInfo extends BaseInfo {
 		else if (node.token == SyntaxKind.ImplementsKeyword) {
 			forEachChild(node, x => {
 				if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
-					if (this.build.hasStories) {
-						this.implementsType.push(new TypeInfo(x as ExpressionWithTypeArguments));
-					}
+					this.implementsType.push(new TypeInfo(x as ExpressionWithTypeArguments));
 					this.addDependencyWaitName(x as ExpressionWithTypeArguments, true, (names) => {
 						if (names.length > 0) {
 							for (let name of names) {
