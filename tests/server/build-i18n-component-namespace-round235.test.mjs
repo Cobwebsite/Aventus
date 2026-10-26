@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -9,7 +9,7 @@ const [{ Build }, { AventusWebComponentLogicalFile }] = await loadServerModules(
     'project/Build.ts', 'language-services/ts/component/File.ts',
 ]);
 
-test('one-to-one component translations leave the namespace folder empty across revisions', async t => {
+test('one-to-one component translations include the namespace in the file name across revisions', async t => {
     const output = mkdtempSync(join(tmpdir(), 'aventus-i18n-component-namespace-'));
     t.after(() => rmSync(output, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
@@ -30,19 +30,18 @@ test('one-to-one component translations leave the namespace folder empty across 
     const options = [{ mode: 'oneToOne', output: [output] }];
 
     await build.writeBuildI18n(options);
-    const rootFile = join(output, 'card_en.json');
+    const rootFile = join(output, 'demo_widgets_card_en.json');
     const namespaceFolder = join(output, 'Demo', 'Widgets');
     assert.deepEqual(JSON.parse(readFileSync(rootFile, 'utf8')), { title: 'First' });
-    assert.equal(existsSync(namespaceFolder), true);
-    assert.deepEqual(readdirSync(namespaceFolder), []);
+    assert.equal(existsSync(namespaceFolder), false);
 
     translation.exported.en = { title: 'Second' };
     await build.writeBuildI18n(options);
     assert.deepEqual(JSON.parse(readFileSync(rootFile, 'utf8')), { title: 'Second' });
-    assert.deepEqual(readdirSync(namespaceFolder), []);
+    assert.equal(existsSync(namespaceFolder), false);
 });
 
-test('one-to-one components with equal names in distinct namespaces overwrite the same file', async t => {
+test('one-to-one components with equal names in distinct namespaces write separate files', async t => {
     const output = mkdtempSync(join(tmpdir(), 'aventus-i18n-component-collision-'));
     t.after(() => rmSync(output, { recursive: true, force: true }));
     const build = Object.create(Build.prototype);
@@ -66,8 +65,8 @@ test('one-to-one components with equal names in distinct namespaces overwrite th
     add('pages', 'Demo.Pages', 'Page');
 
     await build.writeBuildI18n([{ mode: 'oneToOne', output: [output] }]);
-    assert.deepEqual(JSON.parse(readFileSync(join(output, 'card_en.json'), 'utf8')),
+    assert.deepEqual(JSON.parse(readFileSync(join(output, 'demo_widgets_card_en.json'), 'utf8')),
+        { title: 'Widget' });
+    assert.deepEqual(JSON.parse(readFileSync(join(output, 'demo_pages_card_en.json'), 'utf8')),
         { title: 'Page' });
-    assert.deepEqual(readdirSync(join(output, 'Demo', 'Widgets')), []);
-    assert.deepEqual(readdirSync(join(output, 'Demo', 'Pages')), []);
 });

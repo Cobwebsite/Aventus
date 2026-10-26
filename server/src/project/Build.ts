@@ -1227,14 +1227,8 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                             const tsFile = this.tsFiles[uri.replace(AventusExtension.I18n, AventusExtension.ComponentLogic)];
                             if (tsFile instanceof AventusWebComponentLogicalFile && tsFile.fileParsed) {
                                 const _class = tsFile.fileParsed.classes[tsFile.componentClassName];
-                                const folderName = _class.namespace.replace(/\./g, sep);
-                                const fullPath = join(output, folderName);
-                                if (!existsSync(fullPath)) {
-                                    mkdirSync(fullPath, { recursive: true });
-                                }
-
                                 const name = file.file.name.replace(AventusExtension.I18n, "");
-                                const outputFile = join(output, name + "_" + locale + ".json").toLowerCase();
+                                const outputFile = join(output, this.componentI18nFileName(_class.namespace, name, locale));
 
                                 await writeOutput(outputFile, JSON.stringify(file.exported[locale], null, 4));
                             }
@@ -1284,6 +1278,10 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
     private async writeI18nFile(path: string, content: string) {
         await this.writeFile(path, content);
         this.pendingI18nOutputs?.set(path, content);
+    }
+    private componentI18nFileName(namespace: string, name: string, locale: string): string {
+        const prefix = namespace ? namespace.replace(/\./g, '_') + '_' : '';
+        return (prefix + name + '_' + locale + '.json').toLowerCase();
     }
 
     /**
@@ -2072,13 +2070,8 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                     const tsFile = this.tsFiles[uri.replace(AventusExtension.I18n, AventusExtension.ComponentLogic)];
                     if (tsFile instanceof AventusWebComponentLogicalFile && tsFile.fileParsed) {
                         const _class = tsFile.fileParsed.classes[tsFile.componentClassName];
-                        let folderName = _class.namespace.replace(/\./g, '/');
-                        if (folderName) {
-                            folderName + '/';
-                        }
-
                         const name = file.file.name.replace(AventusExtension.I18n, "");
-                        const outputFile = (output.mount + "/" + folderName + name + "_$locale.json").toLowerCase();
+                        const outputFile = (output.mount + "/" + this.componentI18nFileName(_class.namespace, name, '$locale')).toLowerCase();
                         codeModule += `Aventus.I18n.registerFile("${outputFile}", { load: false })` + EOL;
 
                     }

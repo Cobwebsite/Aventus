@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Dossier de namespace i18n créé mais inutilisé en mode `oneToOne`
-
-- Reproduction automatisée : `build-i18n-component-namespace-round235.test.mjs` publie puis révise la traduction d'un composant de namespace `Demo.Widgets`. Le dossier `Demo/Widgets` est créé mais reste vide ; `card_en.json` est écrit à la racine de sortie à chaque révision.
-- Deux composants `Card` dans `Demo.Widgets` et `Demo.Pages` écrivent tous deux ce même `card_en.json` ; la traduction du second écrase celle du premier, tandis que leurs deux dossiers de namespace restent vides.
-- Source : `Build.writeBuildI18n()` calcule et crée `fullPath` pour le namespace du composant, puis construit `outputFile` avec `output` au lieu de `fullPath`.
-- Décision à prendre : écrire les traductions de composants sous leur namespace ou supprimer la création de dossier si la sortie à la racine est voulue.
-
 ## Fichiers i18n globaux homonymes écrasés en mode `oneToOne`
 
 - Reproduction automatisée : `build-i18n-global-name-collision-round237.test.mjs` exporte deux fichiers `@common.i18n.avt` situés dans deux dossiers distincts, avec deux locales. Un seul `common_en.json` et un seul `common_fr.json` sont produits. Le second fichier écrase le premier ; inverser l'ordre des sources inverse le contenu retenu.
