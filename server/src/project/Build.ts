@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join, relative, resolve, sep } from "path";
 import { createHash } from "crypto";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
@@ -861,6 +861,14 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
      */
     public async writeBuildNpm(outputNpm: AventusConfigBuildCompileOutputNpm, result: LocalCodeResult) {
         const generated = new Map<string, Record<string, string>>();
+        const previousFiles = new Map<string, Buffer | undefined>();
+        const rememberFile = (file: string) => {
+            if (!previousFiles.has(file)) previousFiles.set(file, existsSync(file) ? readFileSync(file) : undefined);
+        };
+        const writeNpmFile = async (file: string, content: string) => {
+            rememberFile(file);
+            await this.writeFile(file, content);
+        };
         const hash = (content: string) => createHash('sha256').update(content.replace(/\r\n?/g, '\n')).digest('hex');
         const manifestName = '.aventus-npm-generated.json';
         const generatedPath = (root: string, file: string) => {
@@ -874,288 +882,305 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
             const path = generatedPath(root, file);
             if (!generated.has(root)) generated.set(root, Object.create(null));
             generated.get(root)![path] = hash(content);
-            await this.writeFile(file, content);
+            await writeNpmFile(file, content);
         };
-        let keys = Object.keys(result.npm);
-        if (!keys.includes("")) {
-            keys.push("");
-        }
-        for (let key of keys) {
-            let parts = key.split('.');
-            let current = '';
-            for (let part of parts) {
-                current = current ? `${current}.${part}` : part;
-                if (!keys.includes(current)) {
-                    keys.push(current);
-                }
+        try {
+            let keys = Object.keys(result.npm);
+            if (!keys.includes("")) {
+                keys.push("");
             }
-        }
-        keys.sort((a, b) => (a.match(/\./g) || []).length - (b.match(/\./g) || []).length)
-
-        const exportByNamespace: { [namespace: string]: { [uri: string]: string[] } } = {}
-        const manifest = outputNpm.manifest ? new Manifest(outputNpm.manifest, this) : null;
-
-        for (let path in result.npmsrc) {
-            let txt = "";
-            for (let uri in result.npmsrc[path].imports) {
-                const names = result.npmsrc[path].imports[uri];
-                if (names.length > 0) {
-                    txt += `import { ${names.join(", ")} } from "${uri}";` + EOL
-                }
-            }
-            if (txt != "") {
-                txt += EOL;
-            }
-            txt += result.npmsrc[path].content.join(EOL);
-            txt = AventusTsLanguageService.removeUnusedImport(txt, result.npmsrc[path].forcedDependencies);
-
-            if (manifest) {
-                for (let uri of result.npmsrc[path].sourceUri) {
-                    let file = this.tsFiles[uri];
-                    if (file) {
-                        manifest.register(file);
-                    }
-                }
-            }
-
-            for (let outputPackage of outputNpm.path) {
-                const folder = getFolder(path);
-                const outputDir = join(outputPackage, "__src", ...folder.split(sep))
-                const outputFile = join(outputPackage, "__src", ...path.split(sep))
-                if (!existsSync(outputDir)) {
-                    mkdirSync(outputDir, { recursive: true });
-                }
-                await writeGenerated(outputPackage, outputFile, txt);
-            }
-
-            // add into export 
-            for (let name of result.npmsrc[path].names) {
-                let splitted = name.split(".");
-                let realName = splitted.pop() ?? '';
-                let output: string[] = [];
-                for (let i = 0; i < splitted.length; i++) {
-                    output.push("..");
-                }
-                output = [...output, "__src", ...path.split(sep)];
-                let _namespace = splitted.join(".");
-                if (!exportByNamespace[_namespace]) {
-                    exportByNamespace[_namespace] = {};
-                }
-                let outputFile = output.join("/");
-                if (!exportByNamespace[_namespace][outputFile]) {
-                    exportByNamespace[_namespace][outputFile] = [];
-                }
-                exportByNamespace[_namespace][outputFile].push(realName);
-            }
-
-
-        }
-        const createFileDef = async (_namespace: string, content: { content: string[], imports: { [uri: string]: string[] } } | undefined) => {
-            if (!content) {
-                content = {
-                    content: [],
-                    imports: {}
-                };
-            }
-            let txt = "";
-            let txtEnd = "";
-            let namespaceNbDots = _namespace == "" ? 0 : _namespace.split(".").length;
-            let imported: string[] = [];
             for (let key of keys) {
-                if (key.startsWith(_namespace ? _namespace + "." : "") && key != _namespace) {
-                    let splittedKeys = key.split(".");
-                    let keyNbDots = splittedKeys.length;
-                    if (keyNbDots == namespaceNbDots + 1) {
-                        const name = splittedKeys[splittedKeys.length - 1];
-                        txt += `import * as ${name} from "./${name}";` + EOL;
-                        txtEnd += `export { ${name} };` + EOL
-                        imported.push(`./${name}`)
+                let parts = key.split('.');
+                let current = '';
+                for (let part of parts) {
+                    current = current ? `${current}.${part}` : part;
+                    if (!keys.includes(current)) {
+                        keys.push(current);
                     }
                 }
             }
-            for (let uri in content.imports) {
-                //if (imported.includes(uri)) continue;
-                const names = content.imports[uri];
-                if (names.length > 0) {
-                    txt += `import { ${names.join(", ")} } from "${uri}";` + EOL
+            keys.sort((a, b) => (a.match(/\./g) || []).length - (b.match(/\./g) || []).length)
+
+            const exportByNamespace: { [namespace: string]: { [uri: string]: string[] } } = {}
+            const manifest = outputNpm.manifest ? new Manifest(outputNpm.manifest, this) : null;
+
+            for (let path in result.npmsrc) {
+                let txt = "";
+                for (let uri in result.npmsrc[path].imports) {
+                    const names = result.npmsrc[path].imports[uri];
+                    if (names.length > 0) {
+                        txt += `import { ${names.join(", ")} } from "${uri}";` + EOL
+                    }
+                }
+                if (txt != "") {
+                    txt += EOL;
+                }
+                txt += result.npmsrc[path].content.join(EOL);
+                txt = AventusTsLanguageService.removeUnusedImport(txt, result.npmsrc[path].forcedDependencies);
+
+                if (manifest) {
+                    for (let uri of result.npmsrc[path].sourceUri) {
+                        let file = this.tsFiles[uri];
+                        if (file) {
+                            manifest.register(file);
+                        }
+                    }
+                }
+
+                for (let outputPackage of outputNpm.path) {
+                    const folder = getFolder(path);
+                    const outputDir = join(outputPackage, "__src", ...folder.split(sep))
+                    const outputFile = join(outputPackage, "__src", ...path.split(sep))
+                    if (!existsSync(outputDir)) {
+                        mkdirSync(outputDir, { recursive: true });
+                    }
+                    await writeGenerated(outputPackage, outputFile, txt);
+                }
+
+                // add into export 
+                for (let name of result.npmsrc[path].names) {
+                    let splitted = name.split(".");
+                    let realName = splitted.pop() ?? '';
+                    let output: string[] = [];
+                    for (let i = 0; i < splitted.length; i++) {
+                        output.push("..");
+                    }
+                    output = [...output, "__src", ...path.split(sep)];
+                    let _namespace = splitted.join(".");
+                    if (!exportByNamespace[_namespace]) {
+                        exportByNamespace[_namespace] = {};
+                    }
+                    let outputFile = output.join("/");
+                    if (!exportByNamespace[_namespace][outputFile]) {
+                        exportByNamespace[_namespace][outputFile] = [];
+                    }
+                    exportByNamespace[_namespace][outputFile].push(realName);
+                }
+
+
+            }
+            const createFileDef = async (_namespace: string, content: { content: string[], imports: { [uri: string]: string[] } } | undefined) => {
+                if (!content) {
+                    content = {
+                        content: [],
+                        imports: {}
+                    };
+                }
+                let txt = "";
+                let txtEnd = "";
+                let namespaceNbDots = _namespace == "" ? 0 : _namespace.split(".").length;
+                let imported: string[] = [];
+                for (let key of keys) {
+                    if (key.startsWith(_namespace ? _namespace + "." : "") && key != _namespace) {
+                        let splittedKeys = key.split(".");
+                        let keyNbDots = splittedKeys.length;
+                        if (keyNbDots == namespaceNbDots + 1) {
+                            const name = splittedKeys[splittedKeys.length - 1];
+                            txt += `import * as ${name} from "./${name}";` + EOL;
+                            txtEnd += `export { ${name} };` + EOL
+                            imported.push(`./${name}`)
+                        }
+                    }
+                }
+                for (let uri in content.imports) {
+                    //if (imported.includes(uri)) continue;
+                    const names = content.imports[uri];
+                    if (names.length > 0) {
+                        txt += `import { ${names.join(", ")} } from "${uri}";` + EOL
+                    }
+                }
+                txt += EOL + content.content.join(EOL) + EOL;
+                txt += txtEnd;
+
+                txt = txt.replaceAll("globalThis.Aventus.", "");
+                txt = txt.replaceAll("___Aventus.", "");
+                txt = AventusTsLanguageService.removeUnusedImport(txt, []);
+                for (let outputPackage of outputNpm.path) {
+                    const outputDir = join(outputPackage, ..._namespace.split("."))
+                    if (!existsSync(outputDir)) {
+                        mkdirSync(outputDir, { recursive: true });
+                    }
+                    let indexDTs = join(outputDir, "index.d.ts");
+                    await writeGenerated(outputPackage, indexDTs, txt);
                 }
             }
-            txt += EOL + content.content.join(EOL) + EOL;
-            txt += txtEnd;
 
-            txt = txt.replaceAll("globalThis.Aventus.", "");
-            txt = txt.replaceAll("___Aventus.", "");
-            txt = AventusTsLanguageService.removeUnusedImport(txt, []);
-            for (let outputPackage of outputNpm.path) {
-                const outputDir = join(outputPackage, ..._namespace.split("."))
-                if (!existsSync(outputDir)) {
-                    mkdirSync(outputDir, { recursive: true });
+            const createFileJs = async (_namespace: string) => {
+                let txt = "";
+                let txtEnd = "";
+                let namespaceNbDots = _namespace == "" ? 0 : _namespace.split(".").length;
+                for (let key of keys) {
+                    if (key.startsWith(_namespace ? _namespace + "." : "") && key != _namespace) {
+                        let splittedKeys = key.split(".");
+                        let keyNbDots = splittedKeys.length;
+                        if (keyNbDots == namespaceNbDots + 1) {
+                            const name = splittedKeys[splittedKeys.length - 1];
+                            txt += `import * as ${name} from "./${name}/index.js";` + EOL;
+                            txtEnd += `export { ${name} };` + EOL
+                        }
+                    }
                 }
-                let indexDTs = join(outputDir, "index.d.ts");
-                await writeGenerated(outputPackage, indexDTs, txt);
-            }
-        }
 
-        const createFileJs = async (_namespace: string) => {
-            let txt = "";
-            let txtEnd = "";
-            let namespaceNbDots = _namespace == "" ? 0 : _namespace.split(".").length;
+                const info = exportByNamespace[_namespace];
+                if (info) {
+                    for (let uri in info) {
+                        let names = info[uri].join(", ");
+                        txt += `export { ${names} } from "${uri}"` + EOL;
+                    }
+                }
+                txt += txtEnd;
+                txt = AventusTsLanguageService.removeUnusedImport(txt, []);
+                for (let outputPackage of outputNpm.path) {
+                    const outputDir = join(outputPackage, ..._namespace.split("."))
+                    if (!existsSync(outputDir)) {
+                        mkdirSync(outputDir, { recursive: true });
+                    }
+                    let indexDTs = join(outputDir, "index.js");
+                    await writeGenerated(outputPackage, indexDTs, txt);
+                }
+            }
             for (let key of keys) {
-                if (key.startsWith(_namespace ? _namespace + "." : "") && key != _namespace) {
-                    let splittedKeys = key.split(".");
-                    let keyNbDots = splittedKeys.length;
-                    if (keyNbDots == namespaceNbDots + 1) {
-                        const name = splittedKeys[splittedKeys.length - 1];
-                        txt += `import * as ${name} from "./${name}/index.js";` + EOL;
-                        txtEnd += `export { ${name} };` + EOL
-                    }
-                }
+                await createFileDef(key, result.npm[key])
+                await createFileJs(key)
             }
 
-            const info = exportByNamespace[_namespace];
-            if (info) {
-                for (let uri in info) {
-                    let names = info[uri].join(", ");
-                    txt += `export { ${names} } from "${uri}"` + EOL;
-                }
-            }
-            txt += txtEnd;
-            txt = AventusTsLanguageService.removeUnusedImport(txt, []);
-            for (let outputPackage of outputNpm.path) {
-                const outputDir = join(outputPackage, ..._namespace.split("."))
-                if (!existsSync(outputDir)) {
-                    mkdirSync(outputDir, { recursive: true });
-                }
-                let indexDTs = join(outputDir, "index.js");
-                await writeGenerated(outputPackage, indexDTs, txt);
-            }
-        }
-        for (let key of keys) {
-            await createFileDef(key, result.npm[key])
-            await createFileJs(key)
-        }
 
-
-        // create package.json
-        if (outputNpm.packageJson) {
-            const packageJsonPath = join(this.project.getConfigFile().folderPath, "package.json");
-            let realPackageJson: any = {};
-            if (existsSync(packageJsonPath)) {
-                realPackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-            }
-            const dependencies: any = {};
-            for (let uri of this.externalPackageInformation.filesUri) {
-                let file = this.externalPackageInformation.getByUri(uri);
-                if (!file) continue;
-                if (!file.npmUri) continue;
-                // avoid add self dependency
-                if (file.name == this.buildConfig.fullname) continue
-
-                if (realPackageJson.dependencies && realPackageJson.dependencies[file.npmUri]) {
-                    dependencies[file.npmUri] = realPackageJson.dependencies[file.npmUri]
-                }
-                else {
-                    dependencies[file.npmUri] = '^' + file.versionTxt;
-                }
-            }
-
-            let description = "Aventus build for " + "@" + this.buildConfig.module;
-            let displayName = this.buildConfig.module;
-            if (this.buildConfig.name) {
-                description += "/" + this.buildConfig.name
-                displayName += " " + this.buildConfig.name
-            }
-
-            let packageJson: { [key: string]: any } = {
-                name: outputNpm.npmName == '' ? ("@" + this.buildConfig.module + "/" + this.buildConfig.name).toLowerCase() : outputNpm.npmName,
-                displayName,
-                description,
-                version: this.buildConfig.version,
-                type: "module",
-                main: "index.js",
-                types: "index.d.ts",
-                dependencies
-            }
-            if (this.buildConfig.organization) {
-                packageJson.author = {
-                    name: this.buildConfig.organization,
-                };
-            }
-            else if (Store.isConnected) {
-                packageJson.author = {
-                    name: Store.settings.username,
-                };
-            }
-
-            for (let outputPackage of outputNpm.path) {
-                if (!existsSync(outputPackage)) {
-                    mkdirSync(outputPackage, { recursive: true });
-                }
-                const packageJsonPath = join(outputPackage, "package.json");
-                let oldPackage: any = {};
+            // create package.json
+            if (outputNpm.packageJson) {
+                const packageJsonPath = join(this.project.getConfigFile().folderPath, "package.json");
+                let realPackageJson: any = {};
                 if (existsSync(packageJsonPath)) {
-                    try {
-                        oldPackage = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-                    } catch { }
+                    realPackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
                 }
-                const finalPackage = { ...packageJson, ...oldPackage };
-                finalPackage.name = packageJson.name;
-                finalPackage.displayName = packageJson.displayName;
-                finalPackage.version = packageJson.version;
-                finalPackage.dependencies = packageJson.dependencies;
-                let generatedPackage = !existsSync(packageJsonPath);
-                if (!generatedPackage) {
-                    const ownershipPath = join(outputPackage, manifestName);
-                    if (existsSync(ownershipPath)) {
+                const dependencies: any = {};
+                for (let uri of this.externalPackageInformation.filesUri) {
+                    let file = this.externalPackageInformation.getByUri(uri);
+                    if (!file) continue;
+                    if (!file.npmUri) continue;
+                    // avoid add self dependency
+                    if (file.name == this.buildConfig.fullname) continue
+
+                    if (realPackageJson.dependencies && realPackageJson.dependencies[file.npmUri]) {
+                        dependencies[file.npmUri] = realPackageJson.dependencies[file.npmUri]
+                    }
+                    else {
+                        dependencies[file.npmUri] = '^' + file.versionTxt;
+                    }
+                }
+
+                let description = "Aventus build for " + "@" + this.buildConfig.module;
+                let displayName = this.buildConfig.module;
+                if (this.buildConfig.name) {
+                    description += "/" + this.buildConfig.name
+                    displayName += " " + this.buildConfig.name
+                }
+
+                let packageJson: { [key: string]: any } = {
+                    name: outputNpm.npmName == '' ? ("@" + this.buildConfig.module + "/" + this.buildConfig.name).toLowerCase() : outputNpm.npmName,
+                    displayName,
+                    description,
+                    version: this.buildConfig.version,
+                    type: "module",
+                    main: "index.js",
+                    types: "index.d.ts",
+                    dependencies
+                }
+                if (this.buildConfig.organization) {
+                    packageJson.author = {
+                        name: this.buildConfig.organization,
+                    };
+                }
+                else if (Store.isConnected) {
+                    packageJson.author = {
+                        name: Store.settings.username,
+                    };
+                }
+
+                for (let outputPackage of outputNpm.path) {
+                    if (!existsSync(outputPackage)) {
+                        mkdirSync(outputPackage, { recursive: true });
+                    }
+                    const packageJsonPath = join(outputPackage, "package.json");
+                    let oldPackage: any = {};
+                    if (existsSync(packageJsonPath)) {
                         try {
-                            const previous = JSON.parse(readFileSync(ownershipPath, 'utf8'));
-                            generatedPackage = typeof previous?.['package.json'] === 'string' &&
-                                previous['package.json'] === hash(readFileSync(packageJsonPath, 'utf8'));
+                            oldPackage = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
                         } catch { }
                     }
+                    const finalPackage = { ...packageJson, ...oldPackage };
+                    finalPackage.name = packageJson.name;
+                    finalPackage.displayName = packageJson.displayName;
+                    finalPackage.version = packageJson.version;
+                    finalPackage.dependencies = packageJson.dependencies;
+                    let generatedPackage = !existsSync(packageJsonPath);
+                    if (!generatedPackage) {
+                        const ownershipPath = join(outputPackage, manifestName);
+                        if (existsSync(ownershipPath)) {
+                            try {
+                                const previous = JSON.parse(readFileSync(ownershipPath, 'utf8'));
+                                generatedPackage = typeof previous?.['package.json'] === 'string' &&
+                                    previous['package.json'] === hash(readFileSync(packageJsonPath, 'utf8'));
+                            } catch { }
+                        }
+                    }
+                    const content = JSON.stringify(finalPackage, null, 2);
+                    if (generatedPackage) await writeGenerated(outputPackage, packageJsonPath, content);
+                    else await writeNpmFile(packageJsonPath, content);
                 }
-                const content = JSON.stringify(finalPackage, null, 2);
-                if (generatedPackage) await writeGenerated(outputPackage, packageJsonPath, content);
-                else await this.writeFile(packageJsonPath, content);
             }
-        }
 
-        if (manifest) {
-            for (let outputPackage of outputNpm.path) {
-                if (!existsSync(outputPackage)) {
-                    mkdirSync(outputPackage, { recursive: true });
+            if (manifest) {
+                for (let outputPackage of outputNpm.path) {
+                    if (!existsSync(outputPackage)) {
+                        mkdirSync(outputPackage, { recursive: true });
+                    }
+                    for (const name of ['custom-elements.json', 'vscode.html-custom-data.json', 'web-types.json', join('emmet', 'snippets.json')]) {
+                        rememberFile(join(outputPackage, name));
+                    }
+                    await manifest.write(outputPackage);
                 }
-                await manifest.write(outputPackage);
             }
-        }
 
-        for (const outputPackage of outputNpm.path) {
-            const manifestPath = join(outputPackage, manifestName);
-            const current = generated.get(outputPackage) ?? Object.create(null);
-            let previous: Record<string, string> = Object.create(null);
-            if (existsSync(manifestPath)) {
+            for (const outputPackage of outputNpm.path) {
+                const manifestPath = join(outputPackage, manifestName);
+                const current = generated.get(outputPackage) ?? Object.create(null);
+                let previous: Record<string, string> = Object.create(null);
+                if (existsSync(manifestPath)) {
+                    try {
+                        const parsed = JSON.parse(readFileSync(manifestPath, 'utf8'));
+                        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) previous = parsed;
+                    } catch { }
+                }
+                for (const [path, oldHash] of Object.entries(previous)) {
+                    if (Object.hasOwn(current, path) || typeof oldHash !== 'string') continue;
+                    const file = resolve(outputPackage, path);
+                    if (path.startsWith('/') || path.split('/').includes('..') || !existsSync(file)) continue;
+                    try {
+                        if (generatedPath(outputPackage, file) !== path) continue;
+                    } catch {
+                        continue;
+                    }
+                    if (hash(readFileSync(file, 'utf8')) === oldHash) {
+                        if (this.pendingDeletions) this.pendingDeletions.set(file, oldHash);
+                        else {
+                            rememberFile(file);
+                            rmSync(file);
+                        }
+                    }
+                }
+                await writeNpmFile(manifestPath, JSON.stringify(current, null, 2));
+            }
+        } catch (error) {
+            for (const [file, previous] of [...previousFiles].reverse()) {
                 try {
-                    const parsed = JSON.parse(readFileSync(manifestPath, 'utf8'));
-                    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) previous = parsed;
-                } catch { }
-            }
-            for (const [path, oldHash] of Object.entries(previous)) {
-                if (Object.hasOwn(current, path) || typeof oldHash !== 'string') continue;
-                const file = resolve(outputPackage, path);
-                if (path.startsWith('/') || path.split('/').includes('..') || !existsSync(file)) continue;
-                try {
-                    if (generatedPath(outputPackage, file) !== path) continue;
-                } catch {
-                    continue;
-                }
-                if (hash(readFileSync(file, 'utf8')) === oldHash) {
-                    if (this.pendingDeletions) this.pendingDeletions.set(file, oldHash);
-                    else rmSync(file);
+                    if (previous === undefined) rmSync(file, { force: true });
+                    else writeFileSync(file, previous);
+                } catch (rollbackError) {
+                    GenericServer.error(rollbackError);
                 }
             }
-            await this.writeFile(manifestPath, JSON.stringify(current, null, 2));
+            throw error;
         }
-
     }
 
     public async writeBuildI18n(outputs: AventusConfigBuildCompileOutputI18n[]) {

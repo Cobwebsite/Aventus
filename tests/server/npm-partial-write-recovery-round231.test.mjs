@@ -17,7 +17,7 @@ function result(names) {
     };
 }
 
-test('npm publication retries after a partial write and exposes untracked output from the failed attempt', async t => {
+test('npm publication restores previous outputs after a partial write', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-partial-retry-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'npm');
@@ -37,7 +37,8 @@ test('npm publication retries after a partial write and exposes untracked output
 
     failAt = join(output, 'index.d.ts');
     await assert.rejects(build.writeBuildNpm(options, result(['Beta'])), /simulated write failure/);
-    assert.equal(existsSync(join(output, '__src', 'Beta.js')), true);
+    assert.equal(existsSync(join(output, '__src', 'Beta.js')), false);
+    assert.equal(existsSync(join(output, '__src', 'Alpha.js')), true);
     assert.equal(readFileSync(ownership, 'utf8'), baseline);
 
     failAt = null;
@@ -45,12 +46,12 @@ test('npm publication retries after a partial write and exposes untracked output
     const current = JSON.parse(readFileSync(ownership, 'utf8'));
     assert.equal(existsSync(join(output, '__src', 'Alpha.js')), false);
     assert.equal(existsSync(join(output, '__src', 'Gamma.js')), true);
-    assert.equal(existsSync(join(output, '__src', 'Beta.js')), true);
+    assert.equal(existsSync(join(output, '__src', 'Beta.js')), false);
     assert.equal(Object.hasOwn(current, '__src/Beta.js'), false);
     assert.equal(Object.hasOwn(current, '__src/Gamma.js'), true);
 });
 
-test('npm publication to two destinations leaves partial sources in both when the second fails', async t => {
+test('npm publication to two destinations restores both when the second fails', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-two-destinations-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const first = join(root, 'first');
@@ -67,16 +68,16 @@ test('npm publication to two destinations leaves partial sources in both when th
 
     failAt = join(second, 'index.d.ts');
     await assert.rejects(build.writeBuildNpm(options, result(['Beta'])), /second destination failed/);
-    assert.equal(existsSync(join(first, '__src', 'Beta.js')), true);
+    assert.equal(existsSync(join(first, '__src', 'Beta.js')), false);
     assert.equal(existsSync(join(first, '__src', 'Alpha.js')), true);
     assert.equal(existsSync(join(second, '__src', 'Alpha.js')), true);
-    assert.equal(existsSync(join(second, '__src', 'Beta.js')), true);
+    assert.equal(existsSync(join(second, '__src', 'Beta.js')), false);
 
     failAt = null;
     await build.writeBuildNpm(options, result(['Gamma']));
-    assert.equal(existsSync(join(first, '__src', 'Beta.js')), true);
+    assert.equal(existsSync(join(first, '__src', 'Beta.js')), false);
     assert.equal(existsSync(join(second, '__src', 'Alpha.js')), false);
     assert.equal(existsSync(join(first, '__src', 'Gamma.js')), true);
     assert.equal(existsSync(join(second, '__src', 'Gamma.js')), true);
-    assert.equal(existsSync(join(second, '__src', 'Beta.js')), true);
+    assert.equal(existsSync(join(second, '__src', 'Beta.js')), false);
 });
