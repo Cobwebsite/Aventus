@@ -39,7 +39,7 @@ try {
 }
 const [{ Commands }, { GenericServer }] = modules;
 
-test('Sharp export continues after invalid config JSON and recovers its project name after correction', async t => {
+test('Sharp export stops on invalid config JSON and recovers after correction', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-sharp-config-recovery-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const path = join(root, 'aventus.sharp.avt');
@@ -60,20 +60,19 @@ test('Sharp export continues after invalid config JSON and recovers its project 
 
     writeFileSync(path, '{"csProj":');
     await Commands.allCommandes['aventus.sharp.export'].run(uri);
-    assert.equal(commandsRun.length, 1);
-    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling').map(([, payload]) => payload), [
-        ['', 'compiling', undefined], ['', 'success', undefined],
-    ]);
+    assert.equal(commandsRun.length, 0);
+    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling'), []);
+    assert.match(events.find(([name]) => name === 'error')?.[1] ?? '', /Invalid Sharp project configuration/);
 
     writeFileSync(path, '{"csProj":"Recovered.csproj"}');
     await Commands.allCommandes['aventus.sharp.export'].run(uri);
-    assert.equal(commandsRun.length, 2);
-    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling').map(([, payload]) => payload).slice(2), [
+    assert.equal(commandsRun.length, 1);
+    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling').map(([, payload]) => payload), [
         ['Recovered.csproj', 'compiling', undefined], ['Recovered.csproj', 'success', undefined],
     ]);
 });
 
-test('PHP export continues after invalid composer JSON and recovers its project name after correction', async t => {
+test('PHP export stops on invalid composer JSON and recovers after correction', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-php-composer-recovery-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const path = join(root, 'aventus.php.avt');
@@ -96,15 +95,14 @@ test('PHP export continues after invalid composer JSON and recovers its project 
 
     writeFileSync(composer, '{"name":');
     await Commands.allCommandes['aventus.php.export'].run(uri);
-    assert.equal(commandsRun.length, 1);
-    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling').map(([, payload]) => payload), [
-        ['', 'compiling', undefined], ['', 'success', undefined],
-    ]);
+    assert.equal(commandsRun.length, 0);
+    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling'), []);
+    assert.match(events.find(([name]) => name === 'error')?.[1] ?? '', /Invalid composer\.json/);
 
     writeFileSync(composer, '{"name":"vendor/recovered"}');
     await Commands.allCommandes['aventus.php.export'].run(uri);
-    assert.equal(commandsRun.length, 2);
-    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling').map(([, payload]) => payload).slice(2), [
+    assert.equal(commandsRun.length, 1);
+    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling').map(([, payload]) => payload), [
         ['vendor/recovered', 'compiling', undefined], ['vendor/recovered', 'success', undefined],
     ]);
 });

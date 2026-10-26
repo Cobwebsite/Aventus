@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Exports Sharp et PHP lancés malgré des métadonnées JSON invalides
-
-- Reproduction automatisée : `converter-invalid-config-recovery-round232.test.mjs` exécute l'export sur un `aventus.sharp.avt` incomplet. La lecture JSON échoue, mais le convertisseur est tout de même lancé et les états `compiling` puis `success` portent un nom de projet vide. Une correction du fichier rétablit le nom au prochain export.
-- Le même test reproduit ce comportement pour PHP avec un `composer.json` invalide : `php-converter` est lancé sous un nom vide, puis la correction rétablit `vendor/recovered` au prochain export.
-- Source : `SharpExport.run()` et `PhpExport.run()` interceptent l'erreur de lecture/parsing, puis continuent vers `execAsync()` avec le nom de projet initialisé à une chaîne vide.
-- Décision à prendre : arrêter l'export et signaler l'erreur de configuration avant de lancer le convertisseur, ou définir explicitement un comportement de reprise.
-
 ## Sorties i18n de révisions différentes après un échec d'écriture
 
 - Reproduction automatisée : `build-i18n-partial-write-recovery-round233.test.mjs` publie deux locales, puis échoue sur `fr.json` après avoir écrit la nouvelle version de `en.json`. La sortie anglaise est alors en nouvelle révision tandis que la sortie française conserve l'ancienne. Un nouvel appel sur le même build synchronise les deux fichiers.

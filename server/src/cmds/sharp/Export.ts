@@ -77,6 +77,8 @@ export class SharpExport {
 		}
 		catch (e) {
 			GenericServer.error(e);
+			GenericServer.showErrorMessage(`Invalid Sharp project configuration: ${e}`);
+			return;
 		}
 		this.isCompiling = true;
 		Compiling.send(csProjName, 'compiling');

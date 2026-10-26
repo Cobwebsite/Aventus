@@ -84,6 +84,8 @@ export class PhpExport {
 		}
 		catch (e) {
 			GenericServer.error(e);
+			GenericServer.showErrorMessage(`Invalid composer.json: ${e}`);
+			return;
 		}
 		this.isCompiling = true;
 		Compiling.send(phpProjName, 'compiling');
