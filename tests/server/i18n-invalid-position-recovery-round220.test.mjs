@@ -7,12 +7,12 @@ const [{ InternalAventusFile }, { AventusI18nFile }] = await loadServerModules([
     'files/AventusFile.ts', 'language-services/i18n/File.ts',
 ]);
 
-test('une recherche de clé i18n après une édition JSON invalide conserve la clé précédente puis récupère', async t => {
+test('une recherche de clé i18n ignore les positions périmées pendant une édition invalide', async t => {
     const uri = 'file:///D:/round220/position.i18n.avt';
     const source = new InternalAventusFile(TextDocument.create(uri, 'json', 1, '{"old":{"en":"Old","fr":"Ancien"}}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => { clearTimeout(source.delayValidate); await source.triggerDelete(); });
@@ -21,7 +21,7 @@ test('une recherche de clé i18n après une édition JSON invalide conserve la c
 
     await source.triggerContentChange(TextDocument.create(uri, 'json', 2, '{"new":'));
     assert.ok((await source.validate(false)).length > 0);
-    assert.equal(translation.getKeyFromLocation([position, position]), 'old');
+    assert.equal(translation.getKeyFromLocation([position, position]), null);
 
     await source.triggerContentChange(TextDocument.create(uri, 'json', 3, '{"new":{"en":"New","fr":"Nouveau"}}'));
     assert.deepEqual(await source.validate(false), []);

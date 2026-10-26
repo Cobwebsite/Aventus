@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Recherche i18n par position périmée pendant une édition JSON invalide
-
-- Reproduction automatisée : `i18n-invalid-position-recovery-round220.test.mjs` part de la clé `old`, puis remplace le document par `{"new":` (JSON invalide). `getKeyFromLocation()` renvoie encore `old` pour une position située dans la nouvelle clé. Après correction vers une traduction `new` valide, la recherche et les exports reviennent à jour.
-- Cause : `AventusI18nFile.onContentChange()` conserve `parsed` et `parsedSrc` après l'échec de `JSON.parse()`, alors que `getKeyFromLocation()` convertit la position dans le document courant avant de consulter les plages anciennes.
-
 ## Diagnostic i18n de doublon conservé par un autre fichier pendant une édition invalide
 
 - Reproduction automatisée : `i18n-cross-file-invalid-recovery-round222.test.mjs` crée deux fichiers globaux ayant la clé `shared`. Après remplacement du second par un JSON incomplet, le premier continue de signaler un doublon avec l'ancienne clé du second. Une correction vers `replacement` retire le diagnostic et actualise les exports.

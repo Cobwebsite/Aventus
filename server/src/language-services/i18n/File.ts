@@ -17,6 +17,7 @@ export class AventusI18nFile extends AventusBaseFile {
 
 	public parsedSrc: AventusI18nFileSrcParsed = {};
 	public parsed?: I18nParsed;
+	private parsedVersion = -1;
 	private _exported: AventusI18nExported = {};
 	private exportedLocales = '';
 	public get exported(): AventusI18nExported {
@@ -57,6 +58,7 @@ export class AventusI18nFile extends AventusBaseFile {
 				if (I18nParser.isReservedI18nLocale(key)) delete this.parsedSrc[key];
 			}
 			this.parsed = I18nParser.parse(this.file.documentUser);
+			this.parsedVersion = this.file.documentUser.version;
 			this.transformForExport();
 			if (this.file instanceof InternalAventusFile) {
 				if (this.isGlobal) {
@@ -175,7 +177,7 @@ export class AventusI18nFile extends AventusBaseFile {
 
 
 	public getKeyFromLocation(range: [Position, Position]): string | null {
-		if (!this.parsed) return null;
+		if (!this.parsed || this.parsedVersion !== this.file.documentUser.version) return null;
 
 		const start = this.file.documentUser.offsetAt(range[0]);
 		const end = this.file.documentUser.offsetAt(range[1]);
