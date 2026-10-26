@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Accesseur avec getter et setter dupliqué dans le manifeste Custom Elements
-
-- Reproduction automatisée : `manifest-parsed-accessor-revisions-round211.test.mjs` parse trois révisions d'un composant. Quand un getter `label(): string` et un setter `label(value: string)` coexistent, Custom Elements produit deux champs publics `label`, le second de type `notype`. Le retrait des accesseurs supprime les deux entrées au passage suivant.
-- Source : `ClassInfo` conserve le setter comme propriété distincte sous la clé interne `°set°label`, tandis que `CustomElements.register()` sérialise les deux propriétés avec leur nom public `label`. Le setter n'a pas de type de retour explicite et devient `notype`.
-- Décision à prendre : fusionner les deux accesseurs en un seul champ public, ou définir une représentation propre au setter dans le manifeste.
-
 ## Commentaire de bloc multiligne dans une configuration JSON
 
 - Reproduction automatisée : `json-multiline-comment-recovery-round219.test.mjs` soumet une configuration conforme au schéma avec un commentaire `/* ... */` sur deux lignes. La validation ajoute `Can't parse the json` et `getConfig()` retourne `null`. Après remplacement du commentaire par une version sur une ligne, puis retrait complet, la validation ne signale plus d'erreur et `getConfig()` renvoie à nouveau le projet.
