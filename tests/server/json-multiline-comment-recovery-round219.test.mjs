@@ -10,15 +10,15 @@ const service = AventusJSONLanguageService.getInstance();
 const uri = 'file:///round219/aventus.conf.avt';
 const document = (text, version) => TextDocument.create(uri, 'json', version, text);
 
-test('configuration parser recovers after a multiline block comment is replaced', async t => {
+test('configuration parser accepts multiline block comments across revisions', async t => {
     const previousSettings = SettingsManager.instance;
     SettingsManager.instance = { settings: { defaultHideWarnings: false } };
     t.after(() => { SettingsManager.instance = previousSettings; });
     const multiline = document('{"module":"Demo", /* first line\n second line */ "build":[{"src":[]}]}', 1);
     const multilineFile = { documentUser: multiline };
     const diagnostics = await service.validate(multilineFile);
-    assert.ok(diagnostics.some(item => item.message.includes("Can't parse the json")), JSON.stringify(diagnostics));
-    assert.equal(await service.getConfig(multiline), null);
+    assert.deepEqual(diagnostics, []);
+    assert.equal((await service.getConfig(multiline)).module, 'Demo');
 
     const compact = document('{"module":"Demo", /* one line */ "build":[{"src":[]}]}', 2);
     assert.deepEqual(await service.validate({ documentUser: compact }), []);
