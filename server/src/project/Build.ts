@@ -659,7 +659,7 @@ export class Build {
         if (outputs && outputs.length > 0) {
             let stylesheets: string[] = [];
             for (let name in localCode.stylesheets) {
-                stylesheets.push(`Aventus.Style.store("${name}", \`${localCode.stylesheets[name]}\`)`)
+                stylesheets.push(`Aventus.Style.store(${JSON.stringify(name)}, ${JSON.stringify(localCode.stylesheets[name])})`)
             }
             let decoratorTxt = ''
             if (localCode.useDecorator) {
@@ -2098,7 +2098,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
             let stylesheetsInfo = this.externalPackageInformation.getStyleByUri(libUri);
             let stylesheets: string[] = [];
             for (let name in stylesheetsInfo) {
-                stylesheets.push(`Aventus.Style.store("${name}", \`${stylesheetsInfo[name]}\`)`);
+                stylesheets.push(`Aventus.Style.store(${JSON.stringify(name)}, ${JSON.stringify(stylesheetsInfo[name])})`);
             }
             // TODO correct use decorator for lib
             const isAventusMain = this.externalPackageInformation.getNameByUri(libUri) == "Aventus@Main"
