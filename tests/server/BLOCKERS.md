@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Valeur de variable de template contenant `$&` réinjectée comme marqueur
-
-- Reproduction automatisée : `template-dollar-variables-round210.test.mjs` crée un vrai template dont le nom de fichier et le contenu contiennent `${{name}}`, avec la valeur `Cash$&Tail`. Le fichier produit s'appelle `Cash${{name}}Tail.lib.avt` et son contenu conserve également `${{name}}` au lieu d'insérer littéralement `Cash$&Tail` ; ce chemin est enregistré comme source Aventus.
-- Source : `AventusTemplate.replaceVariables()` passe la valeur comme chaîne de remplacement à `String.replace()`, qui interprète `$&` comme la correspondance complète.
-- Décision à prendre : traiter les valeurs de variables comme du texte littéral dans les chemins et contenus, notamment pour `$&`, `$'`, `$\`` et `$$`.
-
 ## `package.json` npm conservé quand sa génération est désactivée
 
 - Reproduction automatisée : `npm-config-toggle-round210.test.mjs` génère `package.json` et les points d'entrée dans deux destinations, désactive `packageJson` tout en changeant le nom, la version et l'export, puis le réactive. Les points d'entrée sont actualisés à chaque passage, mais les deux `package.json` gardent le nom et la version initiaux pendant la désactivation. La réactivation les actualise.
@@ -402,7 +396,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Catégories serveur encore ouvertes dans TODO.md
 
-- **Création depuis un template (ligne 479)** : les tests cités vérifient des copies et substitutions précises, mais les valeurs `$&` et l'URI réécrite par callback échouent ou divergent déjà dans `template-dollar-variables-round210.test.mjs` et `template-callback-path-round228.test.mjs`. Décider les sorties attendues, puis corriger le code avant de déclarer la génération complète.
+- **Création depuis un template (ligne 479)** : l'URI réécrite par callback diverge encore dans `template-callback-path-round228.test.mjs`. Décider la sortie attendue, puis corriger le code avant de déclarer la génération complète.
 - **Import et désinstallation des templates (ligne 480)** : les collisions de destination et les sources modifiées pendant l'import restent à décider avant de clore la catégorie.
 - **Conversions de composants (ligne 526)** : `component-merge-destination-race-round281.test.mjs` démontre l'écrasement d'une destination apparue durant l'attente ; `component-merge-reference-error-round248.test.mjs` démontre une édition de référence appliquée avant un échec ultérieur. Choisir les garanties d'atomicité et de préservation de destination, puis les implémenter.
 - **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.
