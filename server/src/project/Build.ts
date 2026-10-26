@@ -2327,8 +2327,11 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
             if (file.name.startsWith("@")) {
                 if (!this.tsLanguageService.i18nFiles[file.uri]) {
                     this.tsLanguageService.i18nFiles[file.uri] = new AventusI18nFile(file, true, this);
-                    if (!isInit)
-                        await this.tsLanguageService.i18nFiles[file.uri].validate();
+                    if (!isInit) {
+                        for (const translation of Object.values(this.tsLanguageService.i18nFiles)) {
+                            await translation.validate();
+                        }
+                    }
                     this.registerOnFileDelete(file);
                 }
             }
@@ -2367,6 +2370,17 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
         }
         else if (file.uri.endsWith(AventusExtension.Component)) {
             delete this.wcFiles[file.uri];
+        }
+        else if (file.uri.endsWith(AventusExtension.I18n)) {
+            if (file.name.startsWith("@")) {
+                delete this.tsLanguageService.i18nFiles[file.uri];
+                for (const translation of Object.values(this.tsLanguageService.i18nFiles)) {
+                    await translation.validate();
+                }
+            }
+            else {
+                delete this.i18nComponentsFiles[file.uri];
+            }
         }
         else {
             delete this.tsFiles[file.uri];

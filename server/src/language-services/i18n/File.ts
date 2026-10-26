@@ -60,7 +60,7 @@ export class AventusI18nFile extends AventusBaseFile {
 			this.transformForExport();
 			if (this.file instanceof InternalAventusFile) {
 				if (this.isGlobal) {
-					const values = this.keys.map(key => `${JSON.stringify(key)}: string`).join(","+EOL)
+					const values = this.keys.map(key => `${JSON.stringify(key)}: string`).join("," + EOL)
 					const content = `declare global {
 	namespace Aventus { 
 		interface AventusI18n {
@@ -113,6 +113,20 @@ export class AventusI18nFile extends AventusBaseFile {
 	}
 	protected async onValidate(): Promise<Diagnostic[]> {
 		const diags: Diagnostic[] = await AventusI18nLanguageService.getInstance().validate(this);
+		if (this.isGlobal) {
+			const name = this.file.name.toLowerCase();
+			const duplicates: AventusI18nFile[] = [];
+			for (const file of Object.values(this.build.tsLanguageService.i18nFiles)) {
+				if (file != this && file.isGlobal && file.file.name.toLowerCase() == name) {
+					duplicates.push(file);
+				}
+			}
+			if (duplicates.length > 0) {
+				const duplicatesUri = duplicates.map(other => other.file.uri).join(', ');
+				const errorTxt = 'Global i18n files need distinct names. ' + name + ' is also used by ' + duplicatesUri;
+				diags.push(createErrorI18n(this.file.documentUser, errorTxt));
+			}
+		}
 		if (!this.isGlobal && !this.classInfo) {
 			diags.push(createErrorI18n(this.file.documentUser, "No matching component class found for this translation file"));
 		}
@@ -168,7 +182,7 @@ export class AventusI18nFile extends AventusBaseFile {
 
 		for (let key in this.parsed) {
 			const info = this.parsed[key];
-			if(info.keyStart <= start && info.keyEnd >= end) {
+			if (info.keyStart <= start && info.keyEnd >= end) {
 				return key;
 			}
 		}
