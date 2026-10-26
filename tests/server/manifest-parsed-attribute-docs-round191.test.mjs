@@ -44,7 +44,7 @@ test('parsed attribute defaults and documentation are refreshed without stale ma
         /** Initial display mode. */ @Attribute() mode: "small" | "large" = "small";
     }`);
     assert.deepEqual(first.declaration.attributes.map(item => item.name), ['mode']);
-    assert.equal(first.declaration.attributes[0].default, undefined);
+    assert.equal(first.declaration.attributes[0].default, '"small"');
     assert.equal(first.declaration.attributes[0].description, 'Initial display mode.');
     assert.deepEqual(first.html.attributes[0].values, [{ name: 'small' }, { name: 'large' }]);
     assert.match(first.html.attributes[0].description, /Initial display mode/);
@@ -56,7 +56,7 @@ test('parsed attribute defaults and documentation are refreshed without stale ma
         /** Current density. */ @Attribute() density: "compact" | "roomy" = "roomy";
     }`);
     assert.deepEqual(second.declaration.attributes.map(item => item.name), ['density']);
-    assert.equal(second.declaration.attributes[0].default, undefined);
+    assert.equal(second.declaration.attributes[0].default, '"roomy"');
     assert.equal(second.declaration.attributes[0].description, 'Current density.');
     assert.deepEqual(second.html.attributes.map(item => item.name), ['density']);
     assert.deepEqual(second.html.attributes[0].values, [{ name: 'compact' }, { name: 'roomy' }]);
