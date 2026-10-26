@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Interfaces implémentées absentes de la documentation package
-
-- Reproduction automatisée : `manifest-package-inheritance-round183.test.mjs` analyse une classe réelle qui étend une base et implémente `Clickable`, puis une autre base et `Selectable`. La documentation Markdown met à jour la ligne `Parent`, mais n'émet jamais de ligne `Implements` ; le retrait final de l'héritage efface correctement le parent.
-- Décision à prendre : transmettre les interfaces implémentées depuis le parseur jusqu'au modèle du manifeste package et vérifier leur rendu après édition.
-
 ## Sorties JavaScript incohérentes après échec d'une destination
 
 - Reproduction automatisée : `build-multi-output-write-retry-round187.test.mjs` appelle `Build.writeBuildCode()` pour deux groupes de sorties. Quand l'écriture du second échoue, le premier contient déjà la nouvelle révision tandis que le second garde l'ancienne. Un nouvel essai réussit et resynchronise les deux fichiers.
@@ -481,5 +476,5 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - **Commandes build, npm, Storybook et sortie statique (ligne 540)** : `build-command-unlisted-selection-round213.test.mjs` démontre que les quatre commandes acceptent une cible qui n'était pas dans les choix proposés. Définir si le choix doit être limité à la liste affichée et appliquer ce contrat aux quatre commandes.
 - **Exports Sharp/PHP (ligne 541)** : `converter-output-concurrency-round99.test.mjs` démontre que deux échecs laissent l'état client à `compiling`. Définir l'état terminal de chaque export et les conventions de sortie avant de considérer tous les échecs couverts.
 - **Schémas et événements des manifestes (ligne 559)** : `manifest-signal-events-gap-round293.test.mjs` parse deux révisions d'une propriété `@Signal()` documentée ; `CustomElements.events` et `WebTypes.js.events` restent absents. Les générateurs portent encore les marqueurs `events // not ready`. Définir la correspondance entre signaux et événements et générer les entrées avant de clore ce point.
-- **Manifeste package et Markdown (ligne 561)** : `manifest-package-inheritance-round183.test.mjs` montre l'absence des interfaces `implements` ; `manifest-package-function-parameters-round240.test.mjs` et `manifest-package-inferred-signatures-round271.test.mjs` montrent la perte des types et valeurs par défaut inférés. Définir ces rendus et les implémenter.
+- **Manifeste package et Markdown (ligne 561)** : `manifest-package-function-parameters-round240.test.mjs` et `manifest-package-inferred-signatures-round271.test.mjs` montrent la perte des types et valeurs par défaut inférés. Définir ces rendus et les implémenter.
 - **Stories et MDX (ligne 562)** : `storybook-description-interpolation-round130.test.mjs` démontre qu'un JSDoc contenant `${name}` devient une interpolation dans la story ; `storybook-alias-default-toggle-round251.test.mjs` montre la perte du JSDoc d'un alias. Échapper le texte utilisateur et définir sa publication avant de clore la génération complète.

@@ -8,7 +8,7 @@ const [, { ParserTs }, { ManifestPackageMd }, { GenericServer }] = await loadSer
     'manifest/ManifestPackage.ts', 'GenericServer.ts',
 ]);
 
-test('package Markdown updates parsed class parent after edits', t => {
+test('package Markdown updates parsed class parent and implemented interfaces after edits', t => {
     const previousServer = GenericServer.instance;
     t.after(() => { GenericServer.instance = previousServer; });
     GenericServer.instance = { logLevel: 4, _extensionPath: process.cwd() };
@@ -37,7 +37,7 @@ test('package Markdown updates parsed class parent after edits', t => {
         }
     `);
     assert.match(first, /## Card[\s\S]* - Parent : BaseCard/);
-    assert.doesNotMatch(first, / - Implements : Clickable/);
+    assert.match(first, / - Implements : Clickable/);
 
     const second = render(2, `
         interface Selectable { select(): void; }
@@ -47,7 +47,7 @@ test('package Markdown updates parsed class parent after edits', t => {
         }
     `);
     assert.match(second, /## Card[\s\S]* - Parent : NewBase/);
-    assert.doesNotMatch(second, / - Implements : Selectable/);
+    assert.match(second, / - Implements : Selectable/);
     assert.doesNotMatch(second, /BaseCard|Clickable|click\(\)/);
 
     const third = render(3, `/** Plain card. */ export class Card { open(): void {} }`);
