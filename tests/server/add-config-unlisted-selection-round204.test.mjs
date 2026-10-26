@@ -10,7 +10,7 @@ const [{ Commands }, { ProjectManager }, { GenericServer }] = await loadServerMo
     'cmds/index.ts', 'project/ProjectManager.ts', 'GenericServer.ts',
 ]);
 
-test('add config section accepts a selected URI absent from discovered projects', async t => {
+test('add config section rejects a selected URI absent from discovered projects', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-config-unlisted-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const paths = ['first.conf.avt', 'second.conf.avt', 'unlisted.conf.avt'].map(name => join(root, name));
@@ -27,6 +27,7 @@ test('add config section accepts a selected URI absent from discovered projects'
     ProjectManager.getInstance = () => ({ getAllConfigFiles: () => uris.slice(0, 2) });
     const prompts = [];
     const notifications = [];
+    const errors = [];
     GenericServer.instance = { connection: {
         Select: async (items, options) => {
             prompts.push([options.title, items.map(item => item.label)]);
@@ -35,18 +36,13 @@ test('add config section accepts a selected URI absent from discovered projects'
         },
         Input: async () => 'Outside selection',
         sendNotification: (...args) => notifications.push(args),
+        showErrorMessage: message => errors.push(message),
     } };
 
     await Commands.allCommandes['aventus.addConfigSection'].run();
 
-    assert.deepEqual(prompts, [
-        ['Select a project to add section', uris.slice(0, 2)],
-        ['Section type', ['Build', 'Static']],
-    ]);
-    assert.deepEqual(paths.slice(0, 2).map(path => readFileSync(path, 'utf8')), [original, original]);
-    assert.deepEqual(JSON.parse(readFileSync(paths[2], 'utf8')), {
-        module: 'Demo', build: [],
-        static: [{ name: 'Outside selection', input: '', output: '' }],
-    });
-    assert.deepEqual(notifications, [['aventus/openfile', [uris[2]]]]);
+    assert.deepEqual(prompts, [['Select a project to add section', uris.slice(0, 2)]]);
+    assert.deepEqual(paths.map(path => readFileSync(path, 'utf8')), [original, original, original]);
+    assert.deepEqual(notifications, []);
+    assert.deepEqual(errors, ['The selected Aventus configuration is no longer available.']);
 });

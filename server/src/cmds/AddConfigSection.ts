@@ -34,6 +34,10 @@ export class AddConfigSection {
 					if (!result) {
 						return;
 					}
+					if (!items.some(item => item.label === result.label)) {
+						GenericServer.showErrorMessage("The selected Aventus configuration is no longer available.");
+						return;
+					}
 					uri = result.label;
 				}
 				else {
