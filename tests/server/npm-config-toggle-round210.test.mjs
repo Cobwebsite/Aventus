@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -22,7 +22,7 @@ function result(name, value) {
     };
 }
 
-test('npm package metadata toggle keeps entry points current across two outputs', async t => {
+test('disabling npm package metadata removes only an unchanged generated package', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-toggle-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const previous = GenericServer.instance;
@@ -46,6 +46,8 @@ test('npm package metadata toggle keeps entry points current across two outputs'
         assert.equal(JSON.parse(readFileSync(join(output, 'package.json'), 'utf8')).name, '@demo/first');
         assert.match(readFileSync(join(output, 'Demo', 'index.js'), 'utf8'), /Old/);
     }
+    const modifiedPackage = join(outputs[1], 'package.json');
+    writeFileSync(modifiedPackage, readFileSync(modifiedPackage, 'utf8') + '\n');
 
     options.packageJson = false;
     options.npmName = '@demo/second';
@@ -56,12 +58,10 @@ test('npm package metadata toggle keeps entry points current across two outputs'
         assert.match(entry, /New/);
         assert.doesNotMatch(entry, /Old/);
         assert.match(readFileSync(join(output, '__src', 'entry.js'), 'utf8'), /New = 2/);
-        assert.deepEqual(
-            { name: JSON.parse(readFileSync(join(output, 'package.json'), 'utf8')).name,
-                version: JSON.parse(readFileSync(join(output, 'package.json'), 'utf8')).version },
-            { name: '@demo/first', version: '1.0.0' },
-        );
     }
+    assert.equal(existsSync(join(outputs[0], 'package.json')), false);
+    assert.equal(existsSync(modifiedPackage), true);
+    assert.equal(JSON.parse(readFileSync(modifiedPackage, 'utf8')).name, '@demo/first');
 
     options.packageJson = true;
     await build.writeBuildNpm(options, result('Newest', 3));
