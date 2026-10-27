@@ -10,7 +10,7 @@ const [{ TemplateScript }, { GenericServer }, { ProjectManager }, { FilesManager
     'files/Template.ts', 'GenericServer.ts', 'project/ProjectManager.ts', 'files/FilesManager.ts',
 ]);
 
-test('real template callback path change is reflected in registration but not in disk output', { timeout: 15_000 }, async t => {
+test('real template callback path change is used for disk output and registration', { timeout: 15_000 }, async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-callback-path-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const templateDir = join(root, 'template');
@@ -28,7 +28,7 @@ test('real template callback path change is reflected in registration but not in
         "    this.registerVar('name', 'Panel');",
         '    await this.writeFile(info => {',
         '      if (!info.isDir) {',
-        "        info.writePath = info.writePath.replace('Original.lib.avt', 'Renamed.lib.avt');",
+        "        info.writePath = info.writePath.replace('Original.lib.avt', 'nested/Renamed.lib.avt');",
         "        info.content += '\\n// callback';",
         '      }',
         '      return true;',
@@ -61,9 +61,9 @@ test('real template callback path change is reflected in registration but not in
     assert.ok(script, errors.join('\n'));
     await script.init(destination, root);
 
-    assert.equal(readFileSync(join(destination, 'Original.lib.avt'), 'utf8'), 'export class Panel {}\n// callback');
-    assert.equal(existsSync(join(destination, 'Renamed.lib.avt')), false);
+    assert.equal(existsSync(join(destination, 'Original.lib.avt')), false);
+    assert.equal(readFileSync(join(destination, 'nested', 'Renamed.lib.avt'), 'utf8'), 'export class Panel {}\n// callback');
     assert.equal(registered.length, 1);
-    assert.ok(registered[0].endsWith('/output/Renamed.lib.avt'), registered[0]);
+    assert.ok(registered[0].endsWith('/output/nested/Renamed.lib.avt'), registered[0]);
     assert.deepEqual(errors, []);
 });
