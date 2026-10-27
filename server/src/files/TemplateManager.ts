@@ -1,4 +1,4 @@
-import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'fs';
+import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync } from 'fs';
 import { GenericServer } from '../GenericServer';
 import { dirname, isAbsolute, join, normalize, posix, relative, resolve, sep, win32 } from 'path';
 import { SelectItem } from '../IConnection';
@@ -27,6 +27,18 @@ function copyTemplateTree(templates: TemplatesByName): TemplatesByName {
 }
 
 export class TemplateManager {
+	private static resolveExistingPath(path: string): string {
+		let existing = resolve(path);
+		const missing: string[] = [];
+		while (!existsSync(existing)) {
+			const parent = dirname(existing);
+			if (parent === existing) return existing;
+			missing.unshift(existing.slice(parent.length + (parent.endsWith(sep) ? 0 : 1)));
+			existing = parent;
+		}
+		return resolve(realpathSync(existing), ...missing);
+	}
+
 	public static getInstallationPath(root: string, folder: string): string | null {
 		if (!folder || /^[\\/]/.test(folder) || win32.isAbsolute(folder) || /^[A-Za-z]:/.test(folder)) {
 			return null;
@@ -34,6 +46,12 @@ export class TemplateManager {
 		const destination = resolve(root, folder.replace(/[\\/]/g, sep));
 		const pathFromRoot = relative(resolve(root), destination);
 		if (!pathFromRoot || pathFromRoot === '..' || pathFromRoot.startsWith('..' + sep)) {
+			return null;
+		}
+		const realRoot = this.resolveExistingPath(root);
+		const realDestination = this.resolveExistingPath(destination);
+		const pathFromRealRoot = relative(realRoot, realDestination);
+		if (!pathFromRealRoot || pathFromRealRoot === '..' || pathFromRealRoot.startsWith('..' + sep) || isAbsolute(pathFromRealRoot)) {
 			return null;
 		}
 		return destination;
