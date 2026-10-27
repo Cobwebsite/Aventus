@@ -12,16 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Écriture partielle pendant la séparation d'un composant
-
-- Reproduction automatisée : `component-split-write-recovery-round240.test.mjs` place un dossier au chemin attendu pour `Card.wcv.avt`. `SplitComponent.run()` écrit d'abord `Card.wcs.avt`, puis échoue en écrivant la vue. Le composant unique et le cache restent présents, sans notification, mais le style partiel demeure sur disque. Après retrait du dossier bloquant, une seconde séparation réussit.
-- Décision à prendre : définir si la séparation doit nettoyer les sorties partielles lorsqu'une écriture échoue, afin de rendre l'opération atomique.
-
-## Fichier HTTP accessible hors de la racine via une jonction
-
-- Reproduction automatisée : `http-junction-root-round241.test.mjs` configure une racine HTTP `public`, crée sous celle-ci une jonction `linked` vers un dossier `private` voisin, puis obtient le contenu de `private/secret.txt` par `GET /linked/secret.txt` avec un statut 200.
-- Décision à prendre : préciser si la racine HTTP doit délimiter les chemins réels accessibles. Dans ce cas, refuser les cibles dont le chemin réel sort de la racine avant de les servir.
-
 ## Lien de répertoire dans le chemin d'installation d'un template
 
 - Reproduction automatisée : `template-installation-link-round237.test.mjs` crée une jonction `installed/linked` vers un dossier extérieur. `TemplateManager.getInstallationPath(installed, 'linked/new-template')` accepte le chemin, puis un import local réel copie `content.txt` dans `outside/new-template` et annonce l'installation réussie.
