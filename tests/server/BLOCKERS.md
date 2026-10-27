@@ -12,20 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Ajout de section après une édition concurrente de la configuration
-
-- Reproduction automatisée : `add-config-concurrent-file-edit-round243.test.mjs` modifie le fichier de configuration pendant que la commande attend le nom d'une section Static. La commande écrit ensuite la version lue avant cette saisie, effaçant le nouveau module, la section statique et le champ personnalisé ajoutés entre-temps. Une édition survenue pendant la sélection du type de section est, elle, conservée.
-- Cause : `AddConfigSection.run()` lit et parse le fichier après la sélection du type, puis conserve cet objet en mémoire pendant `GenericServer.Input()` avant de réécrire le fichier entier.
-- Décision à prendre : relire et valider la configuration après la saisie du nom, ou refuser l'écriture si le fichier a changé pendant l'interaction, afin d'éviter la perte silencieuse d'éditions concurrentes.
-
-## Import multiple de templates partiellement appliqué en cas d'échec
-
-- Reproduction automatisée : `template-import-partial-retry-round244.test.mjs` sélectionne deux templates locaux. Le premier dossier est copié ; la seconde copie échoue parce que son dossier parent est un fichier. L'appel rejette sans recharger le registre ni annoncer l'installation, mais le premier dossier reste sur disque. Après réparation du chemin, un nouvel essai installe les deux et recharge une fois.
-- Cause : `TemplateManager.selectTemplateToImport()` copie chaque sélection immédiatement et ne lance `reloadTemplates()` qu'après la boucle entière ; une erreur de `cpSync()` interrompt cette boucle sans annuler les copies précédentes.
-- Décision à prendre : définir si l'import multiple doit être atomique ou, en cas d'échec partiel, recharger le registre et signaler précisément les éléments déjà installés.
-
-## Alias npm non échappé dans la sortie JavaScript
-
 ## Réimport local après disparition de la source
 
 - Reproduction automatisée : `template-import-source-disappears-round246.test.mjs` retire le dossier source d'un projet ou template local après l'affichage de la sélection. Le réimport supprime d'abord l'ancienne installation, puis `cpSync()` échoue ; aucun rechargement ni message de réussite ne suit. Restaurer la source permet un nouvel essai réussi.

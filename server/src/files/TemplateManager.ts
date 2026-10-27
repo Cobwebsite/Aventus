@@ -15,7 +15,7 @@ import { Store } from '../store/Store';
 
 export type TemplatesByName = { [name: string]: TemplateScript | TemplatesByName }
 
-export class NoTemplatesAvailableError extends Error {}
+export class NoTemplatesAvailableError extends Error { }
 
 function copyTemplateTree(templates: TemplatesByName): TemplatesByName {
 	const copy: TemplatesByName = {};
@@ -388,28 +388,39 @@ export class TemplateManager {
 			});
 
 			if (result) {
-				let installed = false;
+				const installed: string[] = [];
+				const failed: string[] = [];
 				for (let item of result) {
 					let path = this.getSelectItem(quickPicks, item);
 
 					if (path) {
+						const name = scripts[path].name;
 						const folderName = scripts[path].installationFolder ?? path.split(sep).pop()!;
 						const destPath = TemplateManager.getInstallationPath(this.templatePath[0], folderName);
 						if (!destPath) {
-							GenericServer.showErrorMessage("Invalid installation folder");
+							failed.push(`Template ${name} failed: invalid installation folder`);
 							continue;
 						}
-						if (existsSync(destPath)) {
-							rmSync(destPath, { recursive: true, force: true })
+						try {
+							if (existsSync(destPath)) {
+								rmSync(destPath, { recursive: true, force: true })
+							}
+							cpSync(path, destPath, { force: true, recursive: true })
+							installed.push(name);
+						} catch (error) {
+							failed.push(`Template ${name} failed: ${String(error)}`);
 						}
-						cpSync(path, destPath, { force: true, recursive: true })
-						installed = true;
 					}
 				}
-				if (installed) {
-					GenericServer.showInformationMessage("Templates installed");
+				if (installed.length > 0) {
 					await this.reloadTemplates();
+					let msg = "Templates installed";
+					if (failed.length > 0) {
+						msg += installed.join(', ')
+					}
+					GenericServer.showInformationMessage(msg);
 				}
+				for (const message of failed) GenericServer.showErrorMessage(message);
 			}
 		}
 		else if (sourceResult.label == "Git") {
