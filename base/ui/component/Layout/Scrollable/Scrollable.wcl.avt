@@ -1,31 +1,10 @@
-import { NormalizedEvent, PressManager } from "Aventus@Main:Aventus.package.avt";
-import { TouchRecord, Tracker } from "./Touch.lib.avt";
+import { DragAndDrop } from "Aventus@Main:Aventus.package.avt";
 
 namespace Layout {
-    /**
-     * A highly customizable and interactive scroll container web component. It supports advanced features like zooming, pinch-to-zoom, custom scrollbars, auto-hide scrollbars, momentum scrolling, mouse-dragging for scrolling, and auto-scrolling.
-     */
     export class Scrollable extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
-        /**
-         * Locks scrolling for a Scrollable component that is a parent of the given element.
-         */
-        public static lock(element: Aventus.WebComponent) {
-            const container = element.findParentByType(Scrollable);
-            if(container) {
-                container.disable = true;
-            }
-        }
-        /**
-         * Unlocks scrolling for a Scrollable component that is a parent of the given element.
-         */
-        public static unlock(element: Aventus.WebComponent) {
-            const container = element.findParentByType(Scrollable);
-            if(container) {
-                container.disable = false;
-            }
-        }
+
         //#endregion
 
 
@@ -37,17 +16,6 @@ namespace Layout {
             target.changeZoom();
         })
         public zoom: number = 1;
-        /**
-         * The minimum allowed zoom level for the content.
-         */
-        @Attribute()
-        public min_zoom: number = 1;
-        /**
-         * The maximum allowed zoom level for the content.
-         */
-        @Attribute()
-        public max_zoom!: number;
-
         /**
          * Reflects whether the vertical scrollbar is currently visible.
          */
@@ -85,34 +53,22 @@ namespace Layout {
         public auto_hide!: boolean;
 
         /**
-         * Controls the decay rate of momentum scrolling (value between 0 and 1).
-         */
-        @Attribute()
-        public break: number = 0.1;
-
-        /**
-         * If true, disables all user interaction (scrolling, zooming, dragging) with the component.
-         */
+        * If true, disables all user interaction (scrolling, zooming, dragging) with the component.
+        */
         @Attribute()
         public disable!: boolean;
 
         /**
-         * Internal property to prevent user text selection during drag interactions.
-         */
+        * Internal property to prevent user text selection during drag interactions.
+        */
         @Attribute()
         private no_user_select!: boolean;
 
         /**
-         * If true, allows scrolling by dragging with the mouse.
-         */
+        * If true, allows scrolling by dragging with the mouse.
+        */
         @Attribute()
         public mouse_drag!: boolean;
-
-        /**
-         * If true, enables pinch-to-zoom functionality for touch devices.
-         */
-        @Attribute()
-        public pinch!: boolean;
 
         /**
          * If true, sets the internal content containers to display: flex and flex-direction: column, useful for allowing content to take up remaining space.
@@ -123,7 +79,6 @@ namespace Layout {
 
 
         //#region variables
-
         /**
          * Reference to the internal DIV element that wraps the actual scrollable content.
          */
@@ -173,23 +128,20 @@ namespace Layout {
         private horizontalScroller!: HTMLDivElement;
 
 
-
         /**
          * An instance of Aventus.ResizeObserver to detect size changes of the component and its content.
          */
         private observer?: Aventus.ResizeObserver;
+        /**
+         * Stores the actual dimensions (offsetWidth, offsetHeight) of the content wrapper.
+         */
+        private contentWrapperSize: { x: number, y: number; } = { x: 0, y: 0 };
 
         /**
-         * Stores the current visible dimensions (width, height) of the content area.
-         */
+        * Stores the current visible dimensions (width, height) of the content area.
+        */
         private display: { x: number, y: number; } = { x: 0, y: 0 };
-        /**
-         * Stores the maximum scrollable distance (width, height) in pixels.
-         */
-        private max: { x: number, y: number; } = {
-            x: 0,
-            y: 0
-        };
+
         /**
          * Stores the calculated margin adjustments due to scrollbar presence.
          */
@@ -197,22 +149,6 @@ namespace Layout {
             x: 0,
             y: 0
         };
-        /**
-         * Stores the current scroll position (x, y) in pixels.
-         */
-        private position: { x: number, y: number; } = {
-            x: 0,
-            y: 0
-        };
-        /**
-         * Stores the current momentum (velocity) for momentum scrolling.
-         */
-        private momentum: { x: number, y: number; } = { x: 0, y: 0 };
-
-        /**
-         * Stores the actual dimensions (offsetWidth, offsetHeight) of the content wrapper.
-         */
-        private contentWrapperSize: { x: number, y: number; } = { x: 0, y: 0 };
 
         /**
          * Utility object to access horizontal/vertical scroller elements.
@@ -236,25 +172,12 @@ namespace Layout {
             };
 
         /**
-         * Utility object to access horizontal/vertical scroller container elements.
+         * Stores the maximum scrollable distance (width, height) in pixels.
          */
-        private scrollerContainer: {
-            x: () => HTMLDivElement,
-            y: () => HTMLDivElement,
-        } = {
-                x: () => {
-                    if(!this.horizontalScrollerContainer) {
-                        throw 'can\'t find the horizontalScrollerContainer';
-                    }
-                    return this.horizontalScrollerContainer;
-                },
-                y: () => {
-                    if(!this.verticalScrollerContainer) {
-                        throw 'can\'t find the verticalScrollerContainer';
-                    }
-                    return this.verticalScrollerContainer;
-                }
-            };
+        private max: { x: number, y: number; } = {
+            x: 0,
+            y: 0
+        };
 
         /**
          * Stores setTimeout IDs for auto-hiding scrollbars.
@@ -262,55 +185,18 @@ namespace Layout {
         private hideDelay: { x: number, y: number; } = { x: 0, y: 0 };
 
         /**
-         * An instance of TouchRecord to track touch events for multi-touch and pinch gestures.
-         */
-        private touchRecord: TouchRecord;
-        /**
-         * The number of active pointers (touches/mouse buttons).
-         */
-        private pointerCount: number = 0;
-        /**
-         * Flag indicating if the component has been rendered at least once.
-         */
-        private loadedOnce: boolean = false;
-        /**
-         * Stores the scroll position as a percentage during reloads or size changes.
-         */
-        private savedPercent?: { x: number, y: number; };
-        /**
-         * Flag indicating if the user is currently dragging a custom scrollbar.
-         */
-        private isDragScroller: boolean = false;
-        /**
-         * Cached SVG element used for DOMMatrix creation.
-         */
-        private cachedSvg?: SVGSVGElement;
-        /**
-         * Stores the midpoint between two touch points for pinch gestures.
-         */
-        private previousMidPoint?: { x: number, y: number; };
-        /**
-         * Stores the distance between two touch points for pinch gestures.
-         */
-        private previousDistance?: number;
-        /**
-         * Stores the initial translation during a pinch gesture.
-         */
-        private startTranslate: { x: number, y: number; } = { x: 0, y: 0 };
-
-
-        /**
          * Getter for the current horizontal scroll position.
          */
         public get x(): number {
-            return this.position.x;
+            return this.contentHidder.scrollLeft;
         }
         /**
          * Getter for the current vertical scroll position.
          */
         public get y(): number {
-            return this.position.y;
+            return this.contentHidder.scrollTop;
         }
+
         /**
          * Getter for the maximum horizontal scroll position.
          */
@@ -323,25 +209,21 @@ namespace Layout {
         public get yMax(): number {
             return this.max.y;
         }
+
+        private scrollTimeout: number = 0;
+
+        @Signal((target: Scrollable) => {
+            if(target.allowResizeObserver) {
+                target.dimensionRefreshed();
+            }
+        })
+        public allowResizeObserver: boolean = true;
+
         //#endregion
 
 
         //#region constructor
-        /**
-         * Initializes a new instance of the Scrollable component, binding event handlers and setting up the animation instance.
-         */
-        public constructor() {
-            super();
-            this.renderAnimation = this.createAnimation();
-            this.onWheel = this.onWheel.bind(this);
-            this.onTouchStart = this.onTouchStart.bind(this);
-            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);
-            this.onTouchMove = this.onTouchMove.bind(this);
-            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);
-            this.onTouchEnd = this.onTouchEnd.bind(this);
-            this.onTouchEndPointer = this.onTouchEndPointer.bind(this);
-            this.touchRecord = new TouchRecord();
-        }
+
         //#endregion
 
         //#region events
@@ -358,729 +240,6 @@ namespace Layout {
         //#endregion
 
         //#region methods
-
-        //#region render
-        /**
-         * The animation instance responsible for smooth momentum scrolling.
-         */
-        private renderAnimation: Aventus.Animation;
-        /**
-         * Creates and configures the Aventus.Animation instance for momentum scrolling.
-         */
-        private createAnimation(): Aventus.Animation {
-            return new Aventus.Animation({
-                fps: 60,
-                animate: () => {
-                    const nextX = this.nextPosition('x');
-                    const nextY = this.nextPosition('y');
-
-                    this.momentum.x = nextX.momentum;
-                    this.momentum.y = nextY.momentum;
-
-                    this.scrollDirection('x', nextX.position);
-                    this.scrollDirection('y', nextY.position);
-
-                    if(!this.momentum.x && !this.momentum.y) {
-                        this.renderAnimation.stop();
-                    }
-                },
-                stopped: () => {
-                    if(this.momentum.x || this.momentum.y) {
-                        this.renderAnimation.start();
-                    }
-                }
-            });
-        }
-
-        /**
-         * Calculates the next scroll position and remaining momentum for a given direction.
-         */
-        private nextPosition(direction: 'x' | 'y'): { momentum: number, position: number; } {
-            const current = this.position[direction];
-            const remain = this.momentum[direction];
-            let result = {
-                momentum: 0,
-                position: 0,
-            };
-            if(Math.abs(remain) <= 0.1) {
-                result.position = current + remain;
-            }
-            else {
-                const _break = this.pointerCount > 0 ? 0.5 : this.break;
-                let nextMomentum = remain * (1 - _break);
-                nextMomentum |= 0;
-                result.momentum = nextMomentum;
-                result.position = current + remain - nextMomentum;
-            }
-
-            let correctPosition = this.correctScrollValue(result.position, direction);
-
-            if(correctPosition != result.position) {
-                result.position = correctPosition;
-                result.momentum = 0;
-            }
-
-
-
-
-            return result;
-        }
-        //#endregion
-
-        //#region scroll action
-        /**
-         * Applies the calculated scroll position for a given direction, updates the scroller element's transform, manages auto-hide for scrollbars, and triggers the onScrollChange callback.
-         */
-        private scrollDirection(direction: 'x' | 'y', value: number) {
-            const max = this.max[direction];
-
-            if(max != 0) {
-                this.position[direction] = this.correctScrollValue(value, direction);
-            }
-            else {
-                this.position[direction] = 0;
-            }
-            let container = this.scrollerContainer[direction]();
-            let scroller = this.scroller[direction]();
-            if(this.auto_hide) {
-                container.classList.remove("hide");
-                clearTimeout(this.hideDelay[direction]);
-                this.hideDelay[direction] = setTimeout(() => {
-                    container.classList.add("hide");
-                }, 1000);
-            }
-            let containerSize = direction == 'y' ? container.offsetHeight : container.offsetWidth;
-            if(this.contentWrapperSize[direction] != 0) {
-                let scrollPosition = this.div(this.position[direction], this.contentWrapperSize[direction]) * containerSize;
-                scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
-                this.contentWrapper!.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
-            }
-            this.triggerScrollChange();
-        }
-        /**
-         * Scrolls the content to a specified percentage of the total scrollable distance.
-         */
-        private scrollDirectionPercent(direction: 'x' | 'y', percent: number) {
-            const max = this.max[direction];
-            this.scrollDirection(direction, max * percent / 100);
-        }
-
-        /**
-         * Ensures that the scroll value remains within the valid bounds (0 to max[direction]).
-         */
-        private correctScrollValue(value: number, direction: 'x' | 'y'): number {
-            if(value < 0) {
-                value = 0;
-            }
-            else if(value > this.max[direction]) {
-                value = this.max[direction];
-            }
-            return value;
-        }
-
-        /**
-         * Triggers the onScrollChange callback with the current x and y scroll positions.
-         */
-        private triggerScrollChange() {
-            this.onScrollChange.trigger(this.x, this.y);
-        }
-
-
-        /**
-         * Scrolls the content to a specific absolute (x, y) pixel position.
-         */
-        public scrollToPosition(x: number, y: number) {
-            this.scrollDirection('x', x);
-            this.scrollDirection('y', y);
-        }
-        /**
-         * Scrolls the content horizontally to a specific absolute pixel position.
-         */
-        public scrollX(x: number) {
-            this.scrollDirection('x', x);
-        }
-        /**
-         * Scrolls the content horizontally to a specific percentage of its total width.
-         */
-        public scrollXPercent(x: number) {
-            this.scrollDirectionPercent('x', x);
-        }
-        /**
-         * Scrolls the content vertically to a specific absolute pixel position.
-         */
-        public scrollY(y: number) {
-            this.scrollDirection('y', y);
-        }
-        /**
-         * Scrolls the content vertically to a specific percentage of its total height.
-         */
-        public scrollYPercent(y: number) {
-            this.scrollDirectionPercent('y', y);
-        }
-        /**
-         * Stores setInterval IDs for active auto-scrolling directions.
-         */
-        private autoScrollInterval: { top: number, left: number, right: number, bottom: number; } = {
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-        };
-        /**
-         * Stores the calculated pixel speed for auto-scrolling in each direction.
-         */
-        private autoScrollSpeed: { top: number, left: number, right: number, bottom: number; } = {
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-        };
-        /**
-         * Initiates auto-scrolling to the right.
-         */
-        private startAutoScrollRight() {
-            if(!this.autoScrollInterval.right) {
-                this.stopAutoScrollLeft();
-                this.autoScrollInterval.right = setInterval(() => {
-                    if(this.x == this.max.x) {
-                        this.stopAutoScrollRight();
-                        return;
-                    }
-                    this.addDelta({
-                        x: this.autoScrollSpeed.right,
-                        y: 0
-                    });
-                }, 100);
-            }
-        }
-        /**
-         * Starts auto-scrolling the content to the right with a specified speed percentage.
-         */
-        public autoScrollRight(percent: number = 50) {
-            let slow = this.max.x * 1 / 100;
-            let fast = this.max.x * 10 / 100;
-            this.autoScrollSpeed.right = (fast - slow) * (percent / 100) + slow;
-            this.startAutoScrollRight();
-        }
-        /**
-         * Stops any active auto-scrolling to the right.
-         */
-        public stopAutoScrollRight() {
-            if(this.autoScrollInterval.right) {
-                clearInterval(this.autoScrollInterval.right);
-                this.autoScrollInterval.right = 0;
-            }
-        }
-
-        /**
-         * Initiates auto-scrolling to the left.
-         */
-        private startAutoScrollLeft() {
-            if(!this.autoScrollInterval.left) {
-                this.stopAutoScrollRight();
-                this.autoScrollInterval.left = setInterval(() => {
-                    if(this.x == 0) {
-                        this.stopAutoScrollLeft();
-                        return;
-                    }
-                    this.addDelta({
-                        x: this.autoScrollSpeed.left * -1,
-                        y: 0
-                    });
-                }, 100);
-            }
-        }
-        /**
-         * Starts auto-scrolling the content to the left with a specified speed percentage.
-         */
-        public autoScrollLeft(percent: number = 50) {
-            let slow = this.max.x * 1 / 100;
-            let fast = this.max.x * 10 / 100;
-            this.autoScrollSpeed.left = (fast - slow) * (percent / 100) + slow;
-            this.startAutoScrollLeft();
-        }
-        /**
-         * Stops any active auto-scrolling to the left.
-         */
-        public stopAutoScrollLeft() {
-            if(this.autoScrollInterval.left) {
-                clearInterval(this.autoScrollInterval.left);
-                this.autoScrollInterval.left = 0;
-            }
-        }
-
-        /**
-         * Initiates auto-scrolling upwards.
-         */
-        private startAutoScrollTop() {
-            if(!this.autoScrollInterval.top) {
-                this.stopAutoScrollBottom();
-                this.autoScrollInterval.top = setInterval(() => {
-                    if(this.y == 0) {
-                        this.stopAutoScrollTop();
-                        return;
-                    }
-                    this.addDelta({
-                        x: 0,
-                        y: this.autoScrollSpeed.top * -1
-                    });
-                }, 100);
-            }
-        }
-        /**
-         * Starts auto-scrolling the content upwards with a specified speed percentage.
-         */
-        public autoScrollTop(percent: number = 50) {
-            let slow = this.max.y * 1 / 100;
-            let fast = this.max.y * 10 / 100;
-            this.autoScrollSpeed.top = (fast - slow) * (percent / 100) + slow;
-            this.startAutoScrollTop();
-        }
-        /**
-         * Stops any active auto-scrolling upwards.
-         */
-        public stopAutoScrollTop() {
-            if(this.autoScrollInterval.top) {
-                clearInterval(this.autoScrollInterval.top);
-                this.autoScrollInterval.top = 0;
-            }
-        }
-
-        /**
-         * Initiates auto-scrolling downwards.
-         */
-        private startAutoScrollBottom() {
-            if(!this.autoScrollInterval.bottom) {
-                this.stopAutoScrollTop();
-                this.autoScrollInterval.bottom = setInterval(() => {
-                    if(this.y == this.max.y) {
-                        this.stopAutoScrollBottom();
-                        return;
-                    }
-                    this.addDelta({
-                        x: 0,
-                        y: this.autoScrollSpeed.bottom
-                    });
-                }, 100);
-            }
-        }
-        /**
-         * Starts auto-scrolling the content downwards with a specified speed percentage.
-         */
-        public autoScrollBottom(percent: number = 50) {
-            let slow = this.max.y * 1 / 100;
-            let fast = this.max.y * 10 / 100;
-            this.autoScrollSpeed.bottom = (fast - slow) * (percent / 100) + slow;
-            this.startAutoScrollBottom();
-        }
-        /**
-         * Stops any active auto-scrolling downwards.
-         */
-        public stopAutoScrollBottom() {
-            if(this.autoScrollInterval.bottom) {
-                clearInterval(this.autoScrollInterval.bottom);
-                this.autoScrollInterval.bottom = 0;
-            }
-        }
-
-        /**
-         * Creates a new SVG DOMMatrix for transformations.
-         */
-        private createMatrix(): DOMMatrix {
-            if(!this.cachedSvg) {
-                this.cachedSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            }
-            return this.cachedSvg.createSVGMatrix();
-        }
-        /**
-         * Calculates the midpoint between two touch trackers.
-         */
-        private getMidPoint(a: Tracker, b: Tracker) {
-            return {
-                x: (a.lastPosition.x + b.lastPosition.x) / 2,
-                y: (a.lastPosition.y + b.lastPosition.y) / 2,
-            };
-        }
-        /**
-         * Calculates the distance between two touch trackers.
-         */
-        private getDistance(a: Tracker, b: Tracker) {
-            return Math.sqrt((b.lastPosition.x - a.lastPosition.x) ** 2 + (b.lastPosition.y - a.lastPosition.y) ** 2);
-        }
-
-        /**
-         * Zooms the content around a specific client coordinate.
-         */
-        public zoomOnPoint(clientX: number, clientY: number, newZoom: number) {
-            let targetCoordinates = this.getBoundingClientRect();
-            let mousePositionRelativeToTarget = {
-                x: targetCoordinates.x - clientX,
-                y: targetCoordinates.y - clientY
-            };
-
-            let oldScale = this.zoom;
-            let newScale: number;
-            if(this.max_zoom > 0) {
-                newScale = Math.max(this.min_zoom, Math.min(this.max_zoom, newZoom));
-            }
-            else {
-                newScale = Math.max(this.min_zoom, newZoom);
-            }
-            let scaleDiff = this.div(newScale, oldScale);
-            const matrix = this.createMatrix()
-                .translate(this.x, this.y)
-                .translate(mousePositionRelativeToTarget.x, mousePositionRelativeToTarget.y)
-                .scale(scaleDiff)
-                .translate(-mousePositionRelativeToTarget.x, -mousePositionRelativeToTarget.y)
-                .scale(this.zoom);
-
-            const newZoomFinal = matrix.a || 1;
-            const newX = matrix.e || 0;
-            const newY = matrix.f || 0;
-
-            this.zoom = newZoomFinal;
-            this.onZoomChange.trigger(newZoomFinal);
-            this.scrollDirection('x', newX);
-            this.scrollDirection('y', newY);
-        }
-
-        /**
-         * Handles the logic for pinch-to-zoom gestures.
-         */
-        private pinchAction() {
-            const touches = this.touchRecord.getTouches();
-            if(touches.length == 2) {
-                const newMidpoint = this.getMidPoint(touches[0], touches[1]);
-                const prevMidpoint = this.previousMidPoint ?? newMidpoint;
-                const positioningElRect = this.getBoundingClientRect();
-
-                const originX = (positioningElRect.left + this.x - this.startTranslate.x) - prevMidpoint.x;
-                const originY = (positioningElRect.top + this.y - this.startTranslate.y) - prevMidpoint.y;
-
-                const newDistance = this.getDistance(touches[0], touches[1]);
-                const prevDistance = this.previousDistance;
-
-                let scaleDiff = prevDistance ? this.div(newDistance, prevDistance) : 1;
-                const panX = prevMidpoint.x - newMidpoint.x;
-                const panY = prevMidpoint.y - newMidpoint.y;
-
-                let oldScale = this.zoom;
-                let newScale: number;
-                if(this.max_zoom > 0) {
-                    newScale = Math.max(this.min_zoom, Math.min(this.max_zoom, oldScale * scaleDiff));
-                }
-                else {
-                    newScale = Math.max(this.min_zoom, oldScale * scaleDiff);
-                }
-                scaleDiff = this.div(newScale, oldScale);
-
-                const matrix = this.createMatrix()
-                    .translate(panX, panY)
-                    .translate(originX, originY)
-                    .translate(this.x, this.y)
-                    .scale(scaleDiff)
-                    .translate(-originX, -originY)
-                    .scale(this.zoom);
-
-                const newZoom = matrix.a || 1;
-                const newX = matrix.e || 0;
-                const newY = matrix.f || 0;
-
-                this.zoom = newZoom;
-                this.onZoomChange.trigger(newZoom);
-                this.scrollDirection('x', newX);
-                this.scrollDirection('y', newY);
-
-                this.previousMidPoint = newMidpoint;
-                this.previousDistance = newDistance;
-            }
-            return null;
-        }
-        //#endregion
-
-        //#region events
-        /**
-         * Manages press, drag, and touch events for the scrollable component.
-         */
-        private pressManager!: PressManager;
-        /**
-         * Attaches primary event listeners for wheel, touch (via PressManager), and pointer events.
-         */
-        private addAction() {
-            this.addEventListener("wheel", this.onWheel, { passive: false });
-            this.pressManager = new PressManager({
-                element: this,
-                offsetDrag: 0,
-                onPressStart: (e) => {
-                    this.touchRecord.track(e.event);
-                    this.pointerCount = this.touchRecord.getNbOfTouches();
-                },
-                onPressEnd: (e) => {
-                    this.touchRecord.release(e.event);
-                    this.pointerCount = this.touchRecord.getNbOfTouches();
-                },
-                onDragStart: (e) => {
-                    if(!this.pinch && !this.x_scroll_visible && !this.y_scroll_visible) {
-                        return false;
-                    }
-                    return this.onTouchStartPointer(e);
-                },
-                onDrag: (e) => {
-                    this.onTouchMovePointer(e);
-                },
-                onDragEnd: (e) => {
-                    this.onTouchEndPointer(e);
-                }
-            });
-            // this.addEventListener("touchstart", this.onTouchStart);
-            // this.addEventListener("trigger_pointer_pressstart", this.onTouchStartPointer);
-
-            if(this.mouse_drag) {
-                // this.addEventListener("mousedown", this.onTouchStart);
-            }
-            this.addScrollDrag('x');
-            this.addScrollDrag('y');
-        }
-        /**
-         * Attaches event listeners to document.body for move-related touch/pointer events.
-         */
-        private addActionMove() {
-            // document.body.addEventListener("touchmove", this.onTouchMove);
-            // document.body.addEventListener("trigger_pointer_pressmove", this.onTouchMovePointer);
-            // document.body.addEventListener("touchcancel", this.onTouchEnd);
-            // document.body.addEventListener("touchend", this.onTouchEnd);
-            // document.body.addEventListener("trigger_pointer_pressend", this.onTouchEndPointer);
-            if(this.mouse_drag) {
-                // document.body.addEventListener("mousemove", this.onTouchMove);
-                // document.body.addEventListener("mouseup", this.onTouchEnd);
-            }
-        }
-        /**
-         * Removes event listeners from document.body for move-related touch/pointer events.
-         */
-        private removeActionMove() {
-            // document.body.removeEventListener("touchmove", this.onTouchMove);
-            // document.body.removeEventListener("trigger_pointer_pressmove", this.onTouchMovePointer);
-            // document.body.removeEventListener("touchcancel", this.onTouchEnd);
-            // document.body.removeEventListener("touchend", this.onTouchEnd);
-            // document.body.removeEventListener("trigger_pointer_pressend", this.onTouchEndPointer);
-            // document.body.removeEventListener("mousemove", this.onTouchMove);
-            // document.body.removeEventListener("mouseup", this.onTouchEnd);
-        }
-
-        /**
-         * Adds drag-and-drop functionality to the custom scrollbar elements (horizontal or vertical).
-         */
-        private addScrollDrag(direction: 'x' | 'y') {
-            let scroller = this.scroller[direction]();
-
-            let startPosition = 0;
-            new Aventus.DragAndDrop({
-                element: scroller,
-                applyDrag: false,
-                usePercent: true,
-                offsetDrag: 0,
-                isDragEnable: () => !this.disable,
-                onStart: (e) => {
-                    this.isDragScroller = true;
-                    this.no_user_select = true;
-                    scroller.classList.add("active");
-                    startPosition = this.position[direction];
-                },
-                onMove: (e, position) => {
-                    let delta = position[direction] / 100 * this.contentWrapperSize[direction];
-                    let value = startPosition + delta;
-                    this.scrollDirection(direction, value);
-                },
-                onStop: () => {
-                    this.no_user_select = false;
-                    scroller.classList.remove("active");
-                    this.isDragScroller = false;
-                }
-            });
-        }
-
-        /**
-         * Determines whether a scroll event should stop propagation based on scroll boundaries.
-         */
-        private shouldStopPropagation(e: Event, delta: { x: number, y: number; }) {
-            if(!this.y_scroll && this.x_scroll) {
-                if(
-                    (delta.x > 0 && this.x != this.max.x) ||
-                    (delta.x <= 0 && this.x != 0)
-                ) {
-                    e.stopPropagation();
-                }
-            }
-            else {
-                if(
-                    (delta.y > 0 && this.y != this.max.y) ||
-                    (delta.y <= 0 && this.y != 0)
-                ) {
-                    e.stopPropagation();
-                }
-            }
-        }
-        /**
-         * Adds a delta value to the current momentum and starts the rendering animation.
-         */
-        private addDelta(delta: { x: number, y: number; }) {
-            if(this.disable) {
-                return;
-            }
-            this.momentum.x += delta.x;
-            this.momentum.y += delta.y;
-            this.renderAnimation?.start();
-        }
-        /**
-         * Event handler for wheel events, managing scrolling and pinch-to-zoom (with Ctrl key).
-         */
-        private onWheel(e: WheelEvent) {
-            if(e.ctrlKey) {
-                e.preventDefault();
-                e.stopPropagation();
-                if(this.pinch) {
-                    let factor = 0.9;
-                    if(e.deltaY < 0) {
-                        factor = 1.1;
-                    }
-                    this.zoomOnPoint(e.clientX, e.clientY, this.zoom * factor);
-                }
-                return;
-            }
-            const DELTA_MODE = [1.0, 28.0, 500.0];
-            const mode = DELTA_MODE[e.deltaMode] || DELTA_MODE[0];
-            let newValue = {
-                x: 0,
-                y: e.deltaY * mode,
-            };
-            if(!this.y_scroll && this.x_scroll) {
-                newValue = {
-                    x: e.deltaY * mode,
-                    y: 0,
-                };
-            }
-            else if(this.x_scroll && e.altKey) {
-                newValue = {
-                    x: e.deltaY * mode,
-                    y: 0,
-                };
-            }
-            this.shouldStopPropagation(e, newValue);
-            this.addDelta(newValue);
-        }
-
-        /**
-         * Handles the start of a touch or pointer event, initiating tracking.
-         */
-        private onTouchStartPointer(e: NormalizedEvent) {
-            const ev = e.event;
-            if('TouchEvent' in window && ev instanceof TouchEvent) {
-                this.onTouchStart(ev);
-                return true;
-            }
-            else if(ev instanceof PointerEvent) {
-                if(this.mouse_drag || ev.pointerType == "touch") {
-                    this.onTouchStart(ev);
-                    return true;
-                }
-            }
-            return false;
-        }
-        /**
-         * General handler for touch/pointer/mouse start events, resetting momentum and tracking touches.
-         */
-        private onTouchStart(e: TouchEvent | PointerEvent | MouseEvent) {
-            if(this.isDragScroller) return;
-            this.touchRecord.track(e);
-
-            this.momentum = {
-                x: 0,
-                y: 0
-            };
-
-            if(this.pointerCount === 0) {
-                this.addActionMove();
-            }
-            this.pointerCount = this.touchRecord.getNbOfTouches();
-
-            if(this.pinch && this.pointerCount == 2) {
-                this.startTranslate = { x: this.x, y: this.y };
-            }
-        }
-
-        /**
-         * Handles move events for touch or pointer, updating touch tracking.
-         */
-        private onTouchMovePointer(e: NormalizedEvent) {
-            const ev = e.event;
-            if('TouchEvent' in window && ev instanceof TouchEvent) {
-                this.onTouchMove(ev);
-            }
-            else if(ev instanceof PointerEvent) {
-                if(this.mouse_drag || ev.pointerType == "touch") {
-                    this.onTouchMove(ev);
-                }
-            }
-        }
-        /**
-         * General handler for touch/pointer/mouse move events, processing pinch-to-zoom or scrolling.
-         */
-        private onTouchMove(e: TouchEvent | PointerEvent | MouseEvent) {
-            if(this.isDragScroller) return;
-            this.touchRecord.update(e);
-
-            if(this.pinch && this.pointerCount == 2) {
-                // zoom
-                e.stopPropagation();
-                this.renderAnimation?.stop();
-                this.pinchAction();
-            }
-            else {
-                const delta = this.touchRecord.getDelta();
-                this.shouldStopPropagation(e, delta);
-                this.addDelta(delta);
-            }
-        }
-        /**
-         * Handles end events for touch or pointer, releasing touch tracking.
-         */
-        private onTouchEndPointer(e: NormalizedEvent) {
-            const ev = e.event;
-            if('TouchEvent' in window && ev instanceof TouchEvent) {
-                this.onTouchEnd(ev);
-            }
-            else if(ev instanceof PointerEvent) {
-                if(this.mouse_drag || ev.pointerType == "touch") {
-                    this.onTouchEnd(ev);
-                }
-
-            }
-        }
-        /**
-         * General handler for touch/pointer/mouse end events, applying easing momentum and cleaning up.
-         */
-        private onTouchEnd(e: TouchEvent | PointerEvent | MouseEvent) {
-            if(this.isDragScroller) return;
-            const delta = this.touchRecord.getEasingDistance(this.break);
-            this.shouldStopPropagation(e, delta);
-            this.addDelta(delta);
-            this.touchRecord.release(e);
-            this.pointerCount = this.touchRecord.getNbOfTouches();
-
-            if(this.pointerCount === 0) {
-                this.removeActionMove();
-            }
-            if(this.pointerCount < 2) {
-                this.previousMidPoint = undefined;
-                this.previousDistance = undefined;
-            }
-
-        }
-
-        //#endregion
-
-        //#region position
         /**
          * Calculates the actual offsetWidth and offsetHeight of the content area, accounting for zoom, and determines if dimensions have changed.
          */
@@ -1190,8 +349,6 @@ namespace Layout {
             this.max[direction] = maxScrollContent + this.margin[direction];
         }
 
-        //#endregion
-
         /**
          * Applies the zoom transformation to contentZoom and triggers a dimension refresh.
          */
@@ -1204,20 +361,6 @@ namespace Layout {
          * Recalculates and updates all scroll-related dimensions and positions. Manages scrollbar visibility and ensures correct layout after size changes.
          */
         private dimensionRefreshed(force: boolean = false) {
-            if(this.contentWrapper.offsetHeight > 0 && this.contentWrapper.offsetWidth > 0) {
-                this.loadedOnce = true;
-                if(this.savedPercent) {
-                    this.position.x = this.contentWrapper.offsetWidth * this.savedPercent.x;
-                    this.position.y = this.contentWrapper.offsetHeight * this.savedPercent.y;
-                    this.savedPercent = undefined;
-                }
-            }
-            else if(this.loadedOnce) {
-                this.savedPercent = {
-                    x: this.div(this.position.x, this.contentWrapperSize.x),
-                    y: this.div(this.position.y, this.contentWrapperSize.y)
-                };
-            }
             if(!this.calculateRealSize() && !force) {
                 return;
             }
@@ -1227,13 +370,11 @@ namespace Layout {
                     this.calculatePositionScrollerContainer('y');
                 }
                 this.calculateSizeScroller('y');
-                this.scrollDirection('y', this.y);
             }
             else if(this.y_scroll_visible) {
                 this.y_scroll_visible = false;
                 this.calculatePositionScrollerContainer('y');
                 this.calculateSizeScroller('y');
-                this.scrollDirection('y', 0);
             }
 
             if(this.contentWrapperSize.x - this.display.x > 0) {
@@ -1242,13 +383,11 @@ namespace Layout {
                     this.calculatePositionScrollerContainer('x');
                 }
                 this.calculateSizeScroller('x');
-                this.scrollDirection('x', this.x);
             }
             else if(this.x_scroll_visible) {
                 this.x_scroll_visible = false;
                 this.calculatePositionScrollerContainer('x');
                 this.calculateSizeScroller('x');
-                this.scrollDirection('x', 0);
             }
 
 
@@ -1263,6 +402,7 @@ namespace Layout {
                     if(inProgress) {
                         return;
                     }
+                    if(!this.allowResizeObserver) return;
                     inProgress = true;
                     this.dimensionRefreshed();
                     inProgress = false;
@@ -1281,6 +421,88 @@ namespace Layout {
             this.observer.observe(this.contentWrapper);
             this.observer.observe(this);
         }
+
+        protected onScrollEvent(e: Event) {
+            this.calculatePosition();
+            window.dispatchEvent(new CustomEvent("scroll", { detail: { source: this } }));
+        }
+
+        /**
+         * 
+         */
+        protected calculatePosition() {
+            if(!this.hasAttribute('is-scrolling')) {
+                this.setAttribute('is-scrolling', '');
+            }
+            const container = this.contentHidder;
+
+            // Calcul de la position verticale
+            if(this.y_scroll_visible) {
+                const scrollTop = container.scrollTop;
+                const scrollHeight = container.scrollHeight;
+                const clientHeight = container.clientHeight;
+
+                // Ratio de déplacement (0 à 1)
+                const scrollPercentY = scrollTop / (scrollHeight - clientHeight);
+
+                // Taille disponible dans le conteneur de la scrollbar
+                const trackHeight = this.verticalScrollerContainer.offsetHeight;
+                const thumbHeight = this.verticalScroller.offsetHeight;
+                const maxMoveY = trackHeight - thumbHeight;
+
+                // Application de la transformation
+                const translateY = scrollPercentY * maxMoveY;
+                this.verticalScroller.style.transform = `translateY(${translateY}px)`;
+
+                if(this.auto_hide) {
+                    this.verticalScrollerContainer.classList.remove("hide");
+                    clearTimeout(this.hideDelay['y']);
+                    this.hideDelay['y'] = setTimeout(() => {
+                        this.verticalScrollerContainer.classList.add("hide");
+                    }, 1000);
+                }
+            }
+
+            // Calcul de la position horizontale
+            if(this.x_scroll_visible) {
+                const scrollLeft = container.scrollLeft;
+                const scrollWidth = container.scrollWidth;
+                const clientWidth = container.clientWidth;
+
+                const scrollPercentX = scrollLeft / (scrollWidth - clientWidth);
+
+                const trackWidth = this.horizontalScrollerContainer.offsetWidth;
+                const thumbWidth = this.horizontalScroller.offsetWidth;
+                const maxMoveX = trackWidth - thumbWidth;
+
+                const translateX = scrollPercentX * maxMoveX;
+                this.horizontalScroller.style.transform = `translateX(${translateX}px)`;
+
+                if(this.auto_hide) {
+                    this.horizontalScrollerContainer.classList.remove("hide");
+                    clearTimeout(this.hideDelay['x']);
+                    this.hideDelay['x'] = setTimeout(() => {
+                        this.horizontalScrollerContainer.classList.add("hide");
+                    }, 1000);
+                }
+            }
+
+            this.triggerScrollChange();
+
+            clearTimeout(this.scrollTimeout);
+            this.scrollTimeout = setTimeout(() => {
+                this.removeAttribute('is-scrolling');
+            }, 150);
+        }
+
+        /**
+         * Triggers the onScrollChange callback with the current x and y scroll positions.
+         */
+        private triggerScrollChange() {
+            this.onScrollChange.trigger(this.x, this.y);
+        }
+
+
         /**
          * Helper function for safe division, returning nb1 if nb2 is zero or falsy.
          */
@@ -1288,15 +510,172 @@ namespace Layout {
             if(!nb2) return nb1;
             return nb1 / nb2;
         }
+
+        private applyAutoHide() {
+            if(this.auto_hide) {
+                this.horizontalScrollerContainer.classList.remove("hide");
+                clearTimeout(this.hideDelay['x']);
+                this.hideDelay['x'] = setTimeout(() => {
+                    this.horizontalScrollerContainer.classList.add("hide");
+                }, 1000);
+
+                this.verticalScrollerContainer.classList.remove("hide");
+                clearTimeout(this.hideDelay['y']);
+                this.hideDelay['y'] = setTimeout(() => {
+                    this.verticalScrollerContainer.classList.add("hide");
+                }, 1000);
+            }
+        }
+
+        private addScrollDrag(direction: 'x' | 'y') {
+            let scroller = this.scroller[direction]();
+            let startScroll = 0;
+
+            const drag = new DragAndDrop({
+                element: scroller,
+                applyDrag: false,
+                usePercent: true,
+                offsetDrag: 0,
+                isDragEnable: () => !this.disable,
+                onStart: (e) => {
+                    this.no_user_select = true;
+                    scroller.classList.add("active");
+                    if(direction === 'y') {
+                        startScroll = this.contentHidder.scrollTop;
+                    } else {
+                        startScroll = this.contentHidder.scrollLeft;
+                    }
+                },
+                onMove: (e, position) => {
+                    const scrollDelta = (position[direction] / 100) * this.contentWrapperSize[direction];
+
+                    if(direction === 'y') {
+                        this.contentHidder.scrollTop = startScroll + scrollDelta;
+                    } else {
+                        this.contentHidder.scrollLeft = startScroll + scrollDelta;
+                    }
+                },
+                onStop: () => {
+                    this.no_user_select = false;
+                    scroller.classList.remove("active");
+                }
+            });
+        }
+
+        public scrollX(x: number) {
+            this.contentHidder.scrollLeft = x;
+            this.calculatePositionScrollerContainer('x');
+        }
+        public scrollY(y: number) {
+            this.contentHidder.scrollTop = y;
+            this.calculatePositionScrollerContainer('y');
+        }
+
+        private addAction() {
+            if(this.mouse_drag) {
+                let startScrollX = 0;
+                let startScrollY = 0;
+                let posX = 0;
+                let posY = 0;
+
+                this.addEventListener("pointerdown", (e) => {
+                    if(!this.x_scroll_visible && !this.y_scroll_visible) {
+                        return;
+                    }
+                    startScrollX = this.contentHidder.scrollLeft;
+                    startScrollY = this.contentHidder.scrollTop;
+                    posX = e.pageX;
+                    posY = e.pageY;
+                    this.no_user_select = true;
+                });
+                this.addEventListener("pointermove", (e) => {
+                    if(this.x_scroll_visible) {
+                        this.contentHidder.scrollLeft = startScrollX + (posX - e.pageX);
+                    }
+                    if(this.y_scroll_visible) {
+                        this.contentHidder.scrollTop = startScrollY + (posY - e.pageY);
+                    }
+                });
+                this.addEventListener("pointerup", (e) => {
+                    this.no_user_select = false;
+                });
+                this.addEventListener("pointercancel", (e) => {
+                    this.no_user_select = false;
+                });
+
+                // new PressManager({
+                //     element: this,
+                //     offsetDrag: 0,
+                //     onDragStart: (e) => {
+                //         if(!this.x_scroll_visible && !this.y_scroll_visible) {
+                //             return false;
+                //         }
+                //         if(e.event instanceof PointerEvent) {
+                //             startScrollX = this.contentHidder.scrollLeft;
+                //             startScrollY = this.contentHidder.scrollTop;
+                //             posX = e.event.pageX;
+                //             posY = e.event.pageY;
+                //             this.no_user_select = true;
+                //             return true;
+                //         }
+                //         return false;
+                //     },
+                //     onDrag: (e) => {
+                //         if(e.event instanceof PointerEvent) {
+
+                //         }
+                //     },
+                //     onDragEnd: (e) => {
+                //         this.no_user_select = false;
+                //     }
+                // });
+            }
+            this.addScrollDrag('x');
+            this.addScrollDrag('y');
+        }
+
+        protected focusElementByAnchor() {
+            const id = window.location.hash.substring(1);
+            if(id) {
+                const elements = this.getElementsInSlot();
+                for(let element of elements) {
+                    const target = element.id == id ? element : element.querySelector("#" + id);
+                    if(target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }
+            }
+        }
+
+        protected addHashWatch() {
+            window.addEventListener("hashchange", () => {
+                if(this.offsetHeight > 0 && this.offsetWidth > 0) {
+                    this.focusElementByAnchor();
+                }
+            });
+            this.addEventListener("hashcheck", () => {
+                if(this.offsetHeight > 0 && this.offsetWidth > 0) {
+                    this.focusElementByAnchor();
+                }
+            });
+        }
+
         /**
          * Lifecycle hook called after the component is created. Initializes dimensions, sets up resize observers, and adds interaction actions.
          */
         protected override postCreation(): void {
             this.dimensionRefreshed();
             this.addResizeObserver();
+            this.applyAutoHide();
             this.addAction();
+            this.focusElementByAnchor();
+            this.addHashWatch();
         }
+
         //#endregion
 
-    }
+        }
 }

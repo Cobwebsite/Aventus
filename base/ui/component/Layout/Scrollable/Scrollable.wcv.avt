@@ -1,6 +1,6 @@
 <div class="scroll-main-container" @element="mainContainer">
     <div class="content-zoom" @element="contentZoom">
-        <div class="content-hidder" @element="contentHidder">
+        <div class="content-hidder" @element="contentHidder" @scroll="onScrollEvent">
             <div class="content-wrapper" @element="contentWrapper" part="content-wrapper">
                 <slot></slot>
             </div>
