@@ -7,7 +7,7 @@ const [{ AventusGlobalSCSSLanguageService }] = await loadServerModules([
     'language-services/scss/GlobalLanguageService.ts',
 ]);
 
-test('une URL https dans une règle masque les références CSS qui la suivent sur la ligne', () => {
+test('une URL https ne masque pas les références CSS qui la suivent sur la ligne', () => {
     const globalUri = 'file:///D:/round246/tokens.scss.avt';
     const consumerUri = 'file:///D:/round246/card.wcs.avt';
     const globalsDoc = TextDocument.create(globalUri, 'scss', 1, ':root { --tone: red; }');
@@ -21,11 +21,11 @@ test('une URL https dans une règle masque les références CSS qui la suivent s
     const references = service.getGlobalReferences(globalsDoc, definitionPosition);
 
     assert.equal(service.getDefinition('--tone')?.uri, globalUri);
-    assert.deepEqual(references?.map(location => location.uri), [globalUri]);
+    assert.deepEqual(references?.map(location => location.uri), [globalUri, consumerUri]);
     assert.deepEqual(Object.keys(service.onRename(globalsDoc, definitionPosition, '--shade')?.changes ?? {}),
-        [globalUri]);
+        [globalUri, consumerUri]);
 
-    consumerDoc.update([{ text: '.card { background-image: url("data:image/svg+xml;base64,aA=="); color: var(--tone); }' }], 2);
+    consumerDoc.update([{ text: '.card { background-image: url(https://example.test/image.svg); color: var(--tone); }' }], 2);
     const restored = service.getGlobalReferences(globalsDoc, definitionPosition);
     assert.deepEqual(restored?.map(location => location.uri), [globalUri, consumerUri]);
     assert.equal(consumerDoc.getText(restored[1].range), '--tone');

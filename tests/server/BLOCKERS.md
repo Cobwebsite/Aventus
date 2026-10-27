@@ -12,18 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Référence SCSS masquée par une URL `https://` sur la même ligne
-
-- Reproduction automatisée : `scss-global-url-comment-reference-round246.test.mjs` définit `--tone` dans `:root` et l'utilise après `url("https://example.test/image.svg")` sur la même ligne. La recherche de références et le renommage ne voient que la déclaration. Remplacer l'URL par une URL `data:` révèle aussi l'usage, sans changer la variable.
-- Cause : `AventusGlobalSCSSLanguageService.getGlobalReferences()` appelle `withoutComments()`, dont l'expression `//[^\r\n]*` traite le `//` d'une chaîne URL comme un commentaire et masque la suite de la ligne.
-- Décision à prendre : utiliser une analyse qui distingue les commentaires des chaînes et URL avant de collecter les références CSS et les éditions de renommage.
-
-## Chaîne CSS comptée comme référence de variable globale
-
-- Reproduction automatisée : `scss-global-quoted-reference-round270.test.mjs` définit `--tone`, puis place `content: "var(--tone)"` et un vrai `color: var(--tone)` dans un consommateur. La recherche renvoie les deux occurrences et le renommage propose aussi une édition de la chaîne littérale. Après retrait du texte de la chaîne, seule la vraie référence reste.
-- Cause : la collecte des références cherche `var(` par expression régulière dans le texte du document, sans exclure les chaînes CSS.
-- Décision à prendre : confirmer que les chaînes littérales doivent être exclues des références et du renommage ; dans ce cas, analyser les nœuds CSS ou ignorer explicitement les plages de chaînes.
-
 ## Copie statique orpheline après changement du dossier source
 
 - Reproduction automatisée : `static-input-folder-transition-round247.test.mjs` exporte `first/asset.bin`, change `inputPathFolder` vers `second` contenant un autre `asset.bin`, puis supprime ce second fichier. La nouvelle copie remplace l'ancienne, mais reste dans la destination alors que le registre de suivi est vide.
