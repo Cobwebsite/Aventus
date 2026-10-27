@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Enregistrement concurrent d'un fichier et échec tardif du callback initial
-
-- Reproduction automatisée : `files-concurrent-registration-failure-round243.test.mjs` suspend le callback d'ouverture d'une URI, puis enregistre une deuxième version de la même URI. Le deuxième appel renvoie bien un fichier contenant cette version. Quand le premier callback échoue, le gestionnaire déclenche sa suppression et retire l'URI de son registre, malgré la réussite du deuxième appel. Une troisième ouverture rétablit le fichier.
-- Cause : `triggerOnNewFile()` publie l'objet dans `files` avant d'attendre les callbacks ; `registerFile()` concurrent traite alors la deuxième version comme une mise à jour de cet objet. Le rollback du premier appel supprime ensuite le même objet.
-- Décision à prendre : déterminer si les enregistrements d'une même URI doivent être sérialisés ou si un échec de callback initial doit préserver une version reçue et validée pendant son attente.
-
 ## Ajout de section après une édition concurrente de la configuration
 
 - Reproduction automatisée : `add-config-concurrent-file-edit-round243.test.mjs` modifie le fichier de configuration pendant que la commande attend le nom d'une section Static. La commande écrit ensuite la version lue avant cette saisie, effaçant le nouveau module, la section statique et le champ personnalisé ajoutés entre-temps. Une édition survenue pendant la sélection du type de section est, elle, conservée.
