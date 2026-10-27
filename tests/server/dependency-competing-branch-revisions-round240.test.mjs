@@ -6,7 +6,7 @@ const [{ DependencyManager }, { ManifestPackage }] = await loadServerModules([
     'project/DependencyManager.ts', 'manifest/ManifestPackage.ts',
 ]);
 
-test('competing package versions recompute both transitive branches after edits', async t => {
+test('competing package versions retain only the selected transitive branch after edits', async t => {
     const previous = { files: ManifestPackage.files, done: ManifestPackage.done };
     ManifestPackage.files = {};
     ManifestPackage.done = false;
@@ -48,7 +48,7 @@ test('competing package versions recompute both transitive branches after edits'
     const initial = await resolve();
     assert.equal(initial.cycle, undefined);
     assert.ok(selected(initial).endsWith('SharedExact.package.avt'));
-    assert.ok(names(initial).includes('LooseLeaf1'));
+    assert.ok(!names(initial).includes('LooseLeaf1'));
     assert.ok(names(initial).includes('ExactLeaf1'));
 
     packages.SharedLoose.dependencies = { LooseLeaf2: { uri: '/LooseLeaf2.package.avt' } };
@@ -56,7 +56,7 @@ test('competing package versions recompute both transitive branches after edits'
     const edited = await resolve();
     assert.equal(edited.cycle, undefined);
     assert.ok(selected(edited).endsWith('SharedExact.package.avt'));
-    assert.ok(names(edited).includes('LooseLeaf2'));
+    assert.ok(!names(edited).includes('LooseLeaf2'));
     assert.ok(names(edited).includes('ExactLeaf2'));
     assert.ok(!names(edited).includes('LooseLeaf1'));
     assert.ok(!names(edited).includes('ExactLeaf1'));
@@ -71,7 +71,7 @@ test('competing package versions recompute both transitive branches after edits'
     config.dependencies.Exact = { uri: '/Exact.package.avt' };
     const restored = await resolve();
     assert.ok(selected(restored).endsWith('SharedExact.package.avt'));
-    assert.ok(names(restored).includes('LooseLeaf2'));
+    assert.ok(!names(restored).includes('LooseLeaf2'));
     assert.ok(names(restored).includes('ExactLeaf2'));
     assert.equal(restored.dependencyUris.length, restored.files.length);
 });

@@ -81,10 +81,12 @@ export class DependencyManager {
 		};
 		let loopResult: DependencyLoop = {};
 		let includeNames: { [name: string]: IncludeType } = {};
+		const rootNames = new Set<string>();
 		for (let name in config.dependencies) {
 			const dep = config.dependencies[name];
 			let tempDep = await this.loadDependency(name, dep, config, build, loopResult);
 			if (tempDep) {
+				rootNames.add(tempDep.name);
 				includeNames[tempDep.name] = dep.include ?? "need";
 			}
 		}
@@ -105,7 +107,8 @@ export class DependencyManager {
 				subDependenciesInclude: { ['*']: 'need' }
 			}, config, build, loopResult)
 		}
-		if (build?.buildConfig.i18n !== undefined && !loopResult["Aventus@I18n"]) {
+		if (loopResult["Aventus@Main"]) rootNames.add("Aventus@Main");
+		if (build.buildConfig.i18n !== undefined && !loopResult["Aventus@I18n"]) {
 			await this.loadDependency("Aventus@I18n", {
 				uri: "",
 				npm: "",
@@ -113,6 +116,22 @@ export class DependencyManager {
 				include: 'need',
 				subDependenciesInclude: { ['*']: 'need' }
 			}, config, build, loopResult)
+		}
+		if (build.buildConfig.i18n !== undefined && loopResult["Aventus@I18n"]) rootNames.add("Aventus@I18n");
+
+		const reachable = new Set<string>();
+		const visit = (name: string) => {
+			if (reachable.has(name) || !loopResult[name]) return;
+			reachable.add(name);
+			for (const dependency of loopResult[name].dependencies) {
+				visit(dependency.name);
+			}
+		};
+		for (const name of rootNames) {
+			visit(name);
+		}
+		for (const name of Object.keys(loopResult)) {
+			if (!reachable.has(name)) delete loopResult[name];
 		}
 
 
@@ -276,7 +295,7 @@ export class DependencyManager {
 							version: subDep
 						}
 					}
-					if(dep.include == 'none') {
+					if (dep.include == 'none') {
 						subDep.include = 'none'
 					}
 					// include if root package need include
@@ -284,7 +303,7 @@ export class DependencyManager {
 					if (resultDep) {
 						const item = result[file.name].dependencies.find(p => p.name == resultDep.name);
 						let type: IncludeType = "need"
-						if(dep.include == 'none') {
+						if (dep.include == 'none') {
 							type = 'none';
 						}
 						if (subDep.subDependenciesInclude && subDep.subDependenciesInclude[resultDep.name]) {
