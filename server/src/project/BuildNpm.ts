@@ -70,9 +70,26 @@ export class NpmBuilder {
 		if (!this.storedInfo[uriFrom]) {
 			this.storedInfo[uriFrom] = [];
 		}
+		const alias = info.alias || info.libName;
+		const existings = Object.values(this.storedInfo).flat();
+		const errors: Diagnostic[] = [];
+		const reported = new Set<string>();
+		for (const existing of existings) {
+			const alias2 = existing.alias || existing.libName;
+			if (existing.uri === info.uri && alias2 == alias && existing.libName !== info.libName && !reported.has(existing.libName)) {
+				reported.add(existing.libName);
+				errors.push({
+					range: range ?? Range.create(0, 0, 0, 0),
+					severity: DiagnosticSeverity.Error,
+					source: AventusLanguageId.TypeScript,
+					message: `The npm alias ${alias} for ${info.uri} is used by both ${existing.libName} and ${info.libName}`,
+				})
+			}
+		}
+
 		this.storedInfo[uriFrom].push(info);
 		this.rebuildInfo();
-		return [];
+		return errors;
 	}
 	public unregister(uriFrom: string) {
 		if (this.storedInfo[uriFrom]) {

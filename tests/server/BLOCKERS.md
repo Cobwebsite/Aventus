@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Collision d'alias entre deux exports d'un même package npm
-
-- Reproduction automatisée : `npm-same-alias-revision-round239.test.mjs` enregistre `first` et `second` du même package sous l'alias `shared`. Le bundle expose `second` sous cet alias, quel que soit l'ordre d'enregistrement. Le retrait de `second` révèle `first`, et son retour remplace de nouveau `first`, sans diagnostic.
-- Cause : `NpmBuilder.writeFileToCompile()` trie les noms d'exports puis affecte chaque valeur au même champ `npmCompilation[hash]['shared']` ; la dernière affectation l'emporte.
-- Décision à prendre : déterminer si une collision d'alias doit être signalée, ou si l'écrasement déterministe est un comportement accepté.
-
 ## Cache npm après exception du bundler concurrent
 
 - Reproduction automatisée : `npm-concurrent-error-recovery-round242.test.mjs` lance deux appels `NpmBuilder.compile()` sur les mêmes imports. Une exception transitoire d'esbuild rejette les deux appels. Un troisième appel identique renvoie une sortie vide sans relancer esbuild ; un import supplémentaire force une nouvelle compilation réussie.

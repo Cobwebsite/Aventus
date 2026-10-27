@@ -16,7 +16,7 @@ function exportedValue(result) {
     return Object.values(context.npmCompilation)[0].shared;
 }
 
-test('same npm alias from two exports follows sorted export names and recovers after removing the collision', async t => {
+test('same npm alias from two exports emits a diagnostic and recovers after removing the collision', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-same-alias-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const previousServer = GenericServer.instance;
@@ -35,7 +35,8 @@ test('same npm alias from two exports follows sorted export names and recovers a
     const first = { uri: 'alias-fixture', libName: 'first', alias: 'shared' };
     const second = { uri: 'alias-fixture', libName: 'second', alias: 'shared' };
     assert.deepEqual(builder.register('file:///first.lib.avt', first), []);
-    assert.deepEqual(builder.register('file:///second.lib.avt', second), []);
+    assert.match(builder.register('file:///second.lib.avt', second)[0].message,
+        /npm alias shared.*alias-fixture.*first.*second/);
     const collision = await builder.compile();
     assert.deepEqual(collision.errors, []);
     assert.equal(exportedValue(collision.result), 29);
@@ -45,16 +46,31 @@ test('same npm alias from two exports follows sorted export names and recovers a
     assert.deepEqual(recovered.errors, []);
     assert.equal(exportedValue(recovered.result), 11);
 
-    builder.register('file:///second.lib.avt', second);
+    assert.match(builder.register('file:///second.lib.avt', second)[0].message, /npm alias shared/);
     const restored = await builder.compile();
     assert.deepEqual(restored.errors, []);
     assert.equal(exportedValue(restored.result), 29);
 
     builder.unregister('file:///first.lib.avt');
     builder.unregister('file:///second.lib.avt');
-    builder.register('file:///second.lib.avt', second);
-    builder.register('file:///first.lib.avt', first);
+    assert.deepEqual(builder.register('file:///second.lib.avt', second), []);
+    assert.match(builder.register('file:///first.lib.avt', first)[0].message,
+        /npm alias shared.*alias-fixture.*second.*first/);
     const reversed = await builder.compile();
     assert.deepEqual(reversed.errors, []);
     assert.equal(exportedValue(reversed.result), 29);
+    builder.unregister('file:///first.lib.avt');
+    assert.deepEqual(builder.register('file:///same-export.lib.avt', second), []);
+});
+
+test('repeated registrations of one export produce one diagnostic for a conflicting export', () => {
+    const builder = new NpmBuilder({ isBuildAllowed: true });
+    const first = { uri: 'alias-fixture', libName: 'first', alias: 'shared' };
+    assert.deepEqual(builder.register('file:///one.lib.avt', first), []);
+    assert.deepEqual(builder.register('file:///two.lib.avt', first), []);
+    const diagnostics = builder.register('file:///three.lib.avt', {
+        uri: 'alias-fixture', libName: 'second', alias: 'shared',
+    });
+    assert.equal(diagnostics.length, 1);
+    assert.match(diagnostics[0].message, /first.*second/);
 });
