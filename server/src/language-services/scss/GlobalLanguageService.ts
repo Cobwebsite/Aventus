@@ -18,8 +18,54 @@ export type GlobalCSSVariable = {
     value: string
 }
 
-function withoutComments(text: string): string {
-    return text.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, comment => comment.replace(/[^\r\n]/g, ' '));
+function withoutCommentsAndStrings(text: string): string {
+    const result = text.split('');
+    const hide = (index: number) => {
+        if (text[index] !== '\r' && text[index] !== '\n') result[index] = ' ';
+    };
+    let state: 'normal' | 'block' | 'line' | 'string' | 'url' = 'normal';
+    let quote = '';
+    let stringReturn: 'normal' | 'url' = 'normal';
+    let urlDepth = 0;
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+        if (state === 'normal') {
+            if (char === '/' && next === '*') {
+                hide(i); hide(++i); state = 'block';
+            } else if (char === '/' && next === '/') {
+                hide(i); hide(++i); state = 'line';
+            } else if (char === '"' || char === "'") {
+                quote = char; stringReturn = 'normal'; hide(i); state = 'string';
+            } else if ((char === 'u' || char === 'U') && (i === 0 || !/[\w-]/.test(text[i - 1]))) {
+                const urlStart = /^url\s*\(/i.exec(text.slice(i));
+                if (urlStart) {
+                    i += urlStart[0].length - 1;
+                    state = 'url';
+                    urlDepth = 1;
+                }
+            }
+        } else if (state === 'block') {
+            hide(i);
+            if (char === '*' && next === '/') { hide(++i); state = 'normal'; }
+        } else if (state === 'line') {
+            if (char === '\r' || char === '\n') state = 'normal';
+            else hide(i);
+        } else if (state === 'string') {
+            hide(i);
+            if (char === '\\' && next !== undefined) hide(++i);
+            else if (char === quote) state = stringReturn;
+        } else {
+            if (char === '"' || char === "'") {
+                quote = char; stringReturn = 'url'; hide(i); state = 'string';
+            } else if (char === '(') {
+                urlDepth++; hide(i);
+            } else if (char === ')') {
+                urlDepth--; if (urlDepth === 0) state = 'normal'; else hide(i);
+            } else hide(i);
+        }
+    }
+    return result.join('');
 }
 
 export class AventusGlobalSCSSLanguageService {
@@ -98,7 +144,7 @@ export class AventusGlobalSCSSLanguageService {
 
     public getGlobalReferences(document: TextDocument, position: Position, build?: Build): Location[] | null {
         const offset = document.offsetAt(position);
-        const source = withoutComments(document.getText());
+        const source = withoutCommentsAndStrings(document.getText());
         const token = /--[a-zA-Z0-9_-]+/g;
         let match: RegExpExecArray | null;
         let name: string | undefined;
@@ -126,7 +172,7 @@ export class AventusGlobalSCSSLanguageService {
         }
         documents.set(document.uri, document);
         for (const current of documents.values()) {
-            const text = withoutComments(current.getText());
+            const text = withoutCommentsAndStrings(current.getText());
             const uses = /var\(\s*(--[a-zA-Z0-9_-]+)/g;
             let use: RegExpExecArray | null;
             while (use = uses.exec(text)) {
