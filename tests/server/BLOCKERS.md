@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Type inféré d'un paramètre avec valeur par défaut absent du manifeste package
-
-- Reproduction automatisée : `manifest-package-function-parameters-round240.test.mjs` analyse `combine(first?: string, suffix = "!", ...parts: number[])`. Le Markdown préserve `first?: string` et `...parts: number[]`, mais représente `suffix = "!"` par `suffix: any` et omet sa valeur par défaut.
-- Reproduction complémentaire : `manifest-package-inferred-signatures-round271.test.mjs` alterne sur trois révisions des signatures inférées et explicites d'une fonction et d'une méthode. Les paramètres sans annotation et les retours inférés sont rendus comme `any`, même quand l'initialiseur ou le corps détermine un type simple ; les types explicitement annotés sont actualisés correctement.
-- Cause : `ManifestPackageMd.getParameter()` utilise `any` en l'absence d'annotation de type et ne reprend pas l'initialiseur du paramètre.
-- Décision à prendre : définir si le Markdown doit inférer les types des paramètres et retours, et montrer les valeurs par défaut des paramètres.
-
 ## Métadonnées périmées sur un package chargé en cache
 
 - Reproduction automatisée : `dependency-cached-metadata-round242.test.mjs` résout plusieurs fois le même objet package. Un override npm prend effet, son retrait révèle le nouvel en-tête, mais le retrait ultérieur des en-têtes npm et description laisse `npmUri` et `description` à leurs anciennes valeurs.
@@ -234,5 +227,4 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.
 - **Commandes build, npm, Storybook et sortie statique (ligne 540)** : `build-command-unlisted-selection-round213.test.mjs` démontre que les quatre commandes acceptent une cible qui n'était pas dans les choix proposés. Définir si le choix doit être limité à la liste affichée et appliquer ce contrat aux quatre commandes.
 - **Exports Sharp/PHP (ligne 541)** : `converter-output-concurrency-round99.test.mjs` démontre que deux échecs laissent l'état client à `compiling`. Définir l'état terminal de chaque export et les conventions de sortie avant de considérer tous les échecs couverts.
-- **Manifeste package et Markdown (ligne 561)** : `manifest-package-function-parameters-round240.test.mjs` et `manifest-package-inferred-signatures-round271.test.mjs` montrent la perte des types et valeurs par défaut inférés. Définir ces rendus et les implémenter.
 - **Stories et MDX (ligne 562)** : `storybook-description-interpolation-round130.test.mjs` démontre qu'un JSDoc contenant `${name}` devient une interpolation dans la story ; `storybook-alias-default-toggle-round251.test.mjs` montre la perte du JSDoc d'un alias. Échapper le texte utilisateur et définir sa publication avant de clore la génération complète.

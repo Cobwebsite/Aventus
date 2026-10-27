@@ -13,7 +13,7 @@ import { PropertyInfo } from '../language-services/ts/parser/PropertyInfo';
 import { MethodInfo } from '../language-services/ts/parser/MethodInfo';
 import { SCSSDoc } from '../language-services/scss/helper/CSSCustomNode';
 import { TypeInfo } from '../language-services/ts/parser/TypeInfo';
-import { ParameterDeclaration, TypeNode } from 'typescript';
+import { createCompilerHost, createProgram, ParameterDeclaration, ScriptTarget, SignatureDeclaration, TypeChecker, TypeNode } from 'typescript';
 import { DocumentationInfo } from '../language-services/ts/parser/DocumentationInfo';
 
 export class ManifestPackage {
@@ -132,6 +132,7 @@ type ManifestVariable = ManifestRoot & {
 
 export class ManifestPackageMd {
 	private file: AventusPackageFile;
+	private checker?: TypeChecker;
 
 	private content: string[] = [];
 
@@ -189,11 +190,33 @@ export class ManifestPackageMd {
 		result = result.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\|/g, "&vert;")
 		return result;
 	}
+	private getChecker(): TypeChecker {
+		if (!this.checker) {
+			const source = this.file.fileParsed!.srcFile;
+			const options = { target: ScriptTarget.ESNext, noEmit: true, skipLibCheck: true };
+			const host = createCompilerHost(options);
+			const originalGetSourceFile = host.getSourceFile;
+			host.getSourceFile = (fileName, languageVersion, onError, shouldCreateNewSourceFile) => {
+				if (fileName === source.fileName)
+					return source;
+				return originalGetSourceFile(fileName, languageVersion, onError, shouldCreateNewSourceFile);
+			}
+			this.checker = createProgram([source.fileName], options, host).getTypeChecker();
+		}
+		return this.checker;
+	}
+	private getReturnType(node: SignatureDeclaration): string {
+		if (node.type) return this.getType(node.type);
+		const signature = this.getChecker().getSignatureFromDeclaration(node);
+		return signature ? this.getChecker().typeToString(this.getChecker().getReturnTypeOfSignature(signature)) : 'any';
+	}
 	private getParameter(param: ParameterDeclaration): string {
 		const dots = param.dotDotDotToken ? '...' : '';
 		const question = param.questionToken ? '?' : '';
 		const name = `${dots}${param.name.getText()}${question}`;
-		return `${name}: ${param.type ? this.getType(param.type) : 'any'}`;
+		const type = param.type ? this.getType(param.type) : this.getChecker().typeToString(this.getChecker().getTypeAtLocation(param));
+		const initializer = param.initializer ? ` = ${param.initializer.getText().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\|/g, '&vert;')}` : '';
+		return `${name}: ${type}${initializer}`;
 	}
 	private loadFunction(info: AventusPackageTsFileExport): void {
 		const _function = this.file.fileParsed!.functions[info.fullName];
@@ -226,7 +249,7 @@ export class ManifestPackageMd {
 		const temp: ManifestFunction = {
 			name: name,
 			anchor: this.anchorFor(_function.fullName),
-			result: _function.node.type ? this.getType(_function.node.type) : "any",
+			result: this.getReturnType(_function.node),
 			description: _function.documentation?.definitions.join(EOL) ?? "",
 			isAbstract: false
 		};
@@ -424,7 +447,7 @@ export class ManifestPackageMd {
 		name += `(${parameters.join(", ")})`
 		return {
 			name: name,
-			result: method.node.type ? this.getType(method.node.type) : "any",
+			result: this.getReturnType(method.node),
 			description: method.documentation?.definitions.join(EOL) ?? "",
 			isAbstract: method.isAbstract
 		};

@@ -41,9 +41,9 @@ test('package Markdown renews inferred and explicit function and method signatur
             public apply(input = true) { return input; }
         }
     `);
-    assert.match(first, /convert\(value: any\)/);
-    assert.match(first, /Return : any/);
-    assert.match(first, /\| apply\(input: any\) \| any \| Initial method\. \|/);
+    assert.match(first, /convert\(value: number = 1\)/);
+    assert.match(first, /Return : number/);
+    assert.match(first, /\| apply\(input: boolean = true\) \| boolean \| Initial method\. \|/);
 
     const second = render(2, `
         /** Explicit conversion. */ export function convert(value: string): string { return value; }
@@ -55,7 +55,7 @@ test('package Markdown renews inferred and explicit function and method signatur
     assert.match(second, /convert\(value: string\)/);
     assert.match(second, /Return : string/);
     assert.match(second, /\| apply\(input: number\) \| number \| Explicit method\. \|/);
-    assert.doesNotMatch(second, /Initial conversion|Initial method|value: any|input: any/);
+    assert.doesNotMatch(second, /Initial conversion|Initial method|value: number|input: boolean/);
 
     const third = render(3, `
         /** Final conversion. */ export function convert(value = false) { return value; }
@@ -65,8 +65,8 @@ test('package Markdown renews inferred and explicit function and method signatur
         }
     `);
     assert.match(third, /Final conversion/);
-    assert.match(third, /convert\(value: any\)/);
-    assert.match(third, /Return : any/);
-    assert.match(third, /\| apply\(input: any\) \| any \| Final method\. \|/);
+    assert.match(third, /convert\(value: boolean = false\)/);
+    assert.match(third, /Return : boolean/);
+    assert.match(third, /\| apply\(input: string = 'x'\) \| string \| Final method\. \|/);
     assert.doesNotMatch(third, /Explicit conversion|Explicit method|value: string|input: number/);
 });
