@@ -46,7 +46,9 @@ for (const kind of ['templates', 'projects']) {
             assert.equal(existsSync(escaped), false);
             assert.equal(existsSync(join(destination, 'outside')), false);
             assert.equal(existsSync(join(destination, 'nested')), false);
-            assert.deepEqual(errors, ['Invalid installation folder']);
+            assert.deepEqual(errors, [kind === 'templates'
+                ? 'Template Sample failed: invalid installation folder'
+                : 'Invalid installation folder']);
             assert.equal(messages.length, 0);
         } finally {
             TemplateScript.create = previousCreate;

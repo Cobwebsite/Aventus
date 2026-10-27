@@ -69,5 +69,5 @@ test('local template import rejects a junction outside the installation root', a
     assert.equal(existsSync(join(root, 'linked', 'new-template')), false);
     assert.equal(reloads, 0);
     assert.deepEqual(messages, []);
-    assert.deepEqual(errors, ['Invalid installation folder']);
+    assert.deepEqual(errors, ['Template Sample failed: invalid installation folder']);
 });

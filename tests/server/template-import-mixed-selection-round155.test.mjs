@@ -66,8 +66,10 @@ for (const kind of ['projects', 'templates']) {
         else await manager.selectTemplateToImport();
 
         assert.deepEqual(selected, ['Invalid', 'Valid']);
-        assert.deepEqual(errors, ['Invalid installation folder']);
-        assert.deepEqual(messages, [kind === 'projects' ? 'Projects installed' : 'Templates installed']);
+        assert.deepEqual(errors, [kind === 'projects'
+            ? 'Invalid installation folder'
+            : 'Template Invalid failed: invalid installation folder']);
+        assert.deepEqual(messages, [kind === 'projects' ? 'Projects installed' : 'Templates installed: Valid']);
         assert.equal(reloads, 1);
         assert.equal(readFileSync(join(outside, 'sentinel.txt'), 'utf8'), 'preserve');
         assert.equal(existsSync(join(outside, 'content.txt')), false);

@@ -9,11 +9,11 @@ const [{ TemplateManager }, { TemplateScript }, { GenericServer }] = await loadS
     'files/TemplateManager.ts', 'files/Template.ts', 'GenericServer.ts',
 ]);
 
-test('multi-template import can recover after second destination fails, while first installation precedes reload', async t => {
+test('multi-template import reports successful and failed items separately, then retries', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-partial-import-'));
     const sourceRoot = join(root, 'extension', 'templates', 'templates');
     const destination = join(root, 'installed');
-    for (const name of ['first', 'second']) {
+    for (const name of ['first', 'second', 'third']) {
         const source = join(sourceRoot, name);
         mkdirSync(source, { recursive: true });
         writeFileSync(join(source, 'template.avt.ts'), name);
@@ -31,6 +31,7 @@ test('multi-template import can recover after second destination fails, while fi
     });
 
     const messages = [];
+    const errors = [];
     let reloads = 0;
     GenericServer.instance = {
         _extensionPath: join(root, 'extension'),
@@ -40,27 +41,35 @@ test('multi-template import can recover after second destination fails, while fi
             Select: async () => ({ label: 'Local' }),
             SelectMultiple: async items => items,
             showInformationMessage: message => messages.push(message),
+            showErrorMessage: message => errors.push(message),
         },
     };
     TemplateScript.create = async config => ({
         name: readFileSync(config, 'utf8'),
-        installationFolder: config.includes('second') ? 'collision/second' : 'first',
+        installationFolder: config.includes('second') ? 'collision/second'
+            : config.includes('third') ? 'collision/third' : 'first',
     });
     const manager = Object.create(TemplateManager.prototype);
     manager.templatePath = [destination];
     manager.reloadTemplates = async () => { reloads++; };
 
-    await assert.rejects(manager.selectTemplateToImport());
+    await manager.selectTemplateToImport();
     assert.equal(readFileSync(join(destination, 'first', 'content.txt'), 'utf8'), 'first content');
     assert.equal(existsSync(join(destination, 'collision', 'second')), false);
-    assert.equal(reloads, 0);
-    assert.deepEqual(messages, []);
+    assert.equal(existsSync(join(destination, 'collision', 'third')), false);
+    assert.equal(reloads, 1);
+    assert.deepEqual(messages, ['Templates installed: first']);
+    assert.equal(errors.length, 2);
+    assert.match(errors[0], /^Template second failed: /);
+    assert.match(errors[1], /^Template third failed: /);
 
     unlinkSync(join(destination, 'collision'));
     mkdirSync(join(destination, 'collision'));
     await manager.selectTemplateToImport();
     assert.equal(readFileSync(join(destination, 'first', 'content.txt'), 'utf8'), 'first content');
     assert.equal(readFileSync(join(destination, 'collision', 'second', 'content.txt'), 'utf8'), 'second content');
-    assert.equal(reloads, 1);
-    assert.deepEqual(messages, ['Templates installed']);
+    assert.equal(readFileSync(join(destination, 'collision', 'third', 'content.txt'), 'utf8'), 'third content');
+    assert.equal(reloads, 2);
+    assert.deepEqual(messages, ['Templates installed: first', 'Templates installed']);
+    assert.equal(errors.length, 2);
 });
