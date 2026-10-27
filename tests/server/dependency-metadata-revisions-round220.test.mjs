@@ -52,8 +52,8 @@ test('dependency npm metadata follows configuration and package header revisions
         packages.Widget.content = 'export declare class Widget {}';
         const cleared = await resolve();
         assert.notEqual(cleared, updated);
-        assert.equal(cleared.npmUri, undefined);
-        assert.equal(cleared.description, undefined);
+        assert.equal(cleared.npmUri, '');
+        assert.equal(cleared.description, '');
     } finally {
         [ManifestPackage.files, ManifestPackage.done] = previous;
     }
