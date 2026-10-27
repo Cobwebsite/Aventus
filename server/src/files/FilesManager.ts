@@ -311,7 +311,11 @@ export class FilesManager {
                         seenUris.add(uri);
                         try {
                             const extension = getLanguageIdByUri(uri);
-                            const document = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
+                            const content = readFileSync(currentPath, 'utf8');
+                            const cached = this.files[uri];
+                            if (cached && cached.contentUser === content) return;
+                            const version = cached ? cached.versionUser + 1 : 0;
+                            const document = TextDocument.create(uri, extension, version, content);
                             if (file == AventusExtension.Config) {
                                 configFiles.push(document);
                             }
@@ -395,8 +399,10 @@ export class FilesManager {
         if (existsSync(pathToImport)) {
             txtToImport = readFileSync(pathToImport, 'utf8')
         }
-        let document = TextDocument.create(uri, AventusLanguageId.Package, 0, txtToImport);
+        const cached = this.files[uri];
+        const document = TextDocument.create(uri, AventusLanguageId.Package, cached ? cached.versionUser + 1 : 0, txtToImport);
         FilesWatcher.getInstance().watch(uri);
+        if (cached && cached.contentUser === txtToImport) return cached;
         return await this.registerFile(document);
     }
     public async registerFile(document: TextDocument): Promise<AventusFile | undefined> {
