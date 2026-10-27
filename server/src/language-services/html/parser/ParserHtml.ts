@@ -628,11 +628,24 @@ export class ParserHtml {
 						else {
 							if (lastTag) {
 								this.errors.push(createErrorHTMLPos(document, "The tag " + lastTag?.tagName + " isn't correctly closed", lastTag?.start, lastTag?.end))
+								let matchingIndex = -1;
+								for (let i = currentTags.length - 1; i >= 0; i--) {
+									if (currentTags[i].tagName == tagName) {
+										matchingIndex = i;
+										break;
+									}
+								}
+								if (matchingIndex >= 0) {
+									currentTags.length = matchingIndex + 1;
+									currentTags.pop()?.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
+								}
+								else {
+									currentTags.push(lastTag);
+								}
 							}
 							else {
 								this.errors.push(createErrorHTMLPos(document, "No opening tag found for " + tagName, scanner.getTokenOffset(), scanner.getTokenEnd()))
 							}
-							return;
 						}
 					}
 					else if (scanner.getTokenType() == TokenType.DelimiterAssign) { // =
