@@ -58,5 +58,5 @@ test('split into an existing component folder preserves matching sibling and sou
     assert.deepEqual([...files.keys()], [sourceUri]);
     assert.deepEqual(events, []);
     assert.equal(errors.length, 1);
-    assert.match(errors[0], /destination already exists: true/);
+    assert.ok(errors[0].includes(`destination already exists: ${uriToPath(pathToUri(oldStyle))}`));
 });

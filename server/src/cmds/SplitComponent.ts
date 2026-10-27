@@ -28,10 +28,10 @@ export class SplitComponent {
 				newUri + AventusExtension.ComponentLogic,
 			];
 			
-			let conflict = false;
+			let conflict: string | undefined;
 			for(let destination of destinations) {
 				if(existsSync(uriToPath(destination)) || FilesManager.getInstance().getByUri(destination)) {
-					conflict = true;
+					conflict = uriToPath(destination);
 					break;
 				}
 			}

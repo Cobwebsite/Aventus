@@ -53,7 +53,7 @@ test('split refuses an occupied output path and succeeds after the obstruction i
     assert.deepEqual([...files.keys()], [sourceUri]);
     assert.deepEqual(events, []);
     assert.equal(errors.length, 1);
-    assert.match(errors[0], /destination already exists: true/);
+    assert.ok(errors[0].includes(`destination already exists: ${uriToPath(pathToUri(viewPath))}`));
 
     rmSync(viewPath, { recursive: true });
     await split();
