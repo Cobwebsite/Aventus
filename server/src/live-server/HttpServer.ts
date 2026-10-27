@@ -3,8 +3,8 @@ import send from 'send';
 import * as url from 'url';
 import { createServer, Server, ServerResponse } from 'http';
 import { createServer as testPortServer, isIP } from 'net';
-import { extname } from 'path';
-import { readFileSync } from 'fs';
+import { dirname, extname, isAbsolute, relative, resolve, sep } from 'path';
+import { existsSync, readFileSync, realpathSync } from 'fs';
 import { replace } from 'event-stream';
 import serveIndex from 'serve-index'
 import { INJECTED_CODE } from './injectedCode';
@@ -58,7 +58,8 @@ export class HttpServer {
 			this.port = this.config.port;
 			var app = connect();
 			let staticServer = this.createStaticServer();
-			app.use(staticServer)
+			app.use(this.confineToRoot())
+				.use(staticServer)
 				.use(this.entryPoint(staticServer, this.config.indexFile))
 				.use(serveIndex(this.config.rootFolder, { icons: true }) as any);
 			this.server = createServer(app);
@@ -207,6 +208,38 @@ export class HttpServer {
 		if (hostname.length > 253) return false;
 		if (/^[\d.]+$/.test(hostname)) return isIP(hostname) === 4;
 		return hostname.replace(/\.$/, '').split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label));
+	}
+	private confineToRoot() {
+		return (req: connect.IncomingMessage, res: ServerResponse<connect.IncomingMessage>, next: connect.NextFunction) => {
+			if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+			let pathname: string;
+			try {
+				pathname = decodeURIComponent(url.parse(req.url || '').pathname || '/');
+			} catch {
+				res.statusCode = 400;
+				res.end('Invalid path');
+				return;
+			}
+			try {
+				const root = realpathSync(this.config.rootFolder);
+				let target = resolve(this.config.rootFolder, '.' + pathname.replace(/\//g, sep));
+				while (!existsSync(target)) {
+					const parent = dirname(target);
+					if (parent === target) break;
+					target = parent;
+				}
+				const realTarget = realpathSync(target);
+				const inside = relative(root, realTarget);
+				if (inside === '..' || inside.startsWith('..' + sep) || isAbsolute(inside)) {
+					res.statusCode = 403;
+					res.end('Forbidden');
+					return;
+				}
+				next();
+			} catch (error) {
+				next(error);
+			}
+		};
 	}
 	private createStaticServer() {
 		return (req: connect.IncomingMessage, res: ServerResponse<connect.IncomingMessage>, next: connect.NextFunction) => {
