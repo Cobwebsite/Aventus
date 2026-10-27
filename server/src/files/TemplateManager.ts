@@ -1,4 +1,5 @@
-import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync } from 'fs';
+import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync } from 'fs';
+import { randomUUID } from 'crypto';
 import { GenericServer } from '../GenericServer';
 import { dirname, isAbsolute, join, normalize, posix, relative, resolve, sep, win32 } from 'path';
 import { SelectItem } from '../IConnection';
@@ -27,6 +28,34 @@ function copyTemplateTree(templates: TemplatesByName): TemplatesByName {
 }
 
 export class TemplateManager {
+	private static replaceLocalInstallation(source: string, root: string, destination: string): void {
+		const suffix = randomUUID();
+		const staged = destination + '.staged-' + suffix;
+		const backup = destination + '.backup-' + suffix;
+		for (const path of [destination, staged, backup]) {
+			if (this.getInstallationPath(root, relative(resolve(root), path)) !== path) {
+				throw new Error('Invalid installation path');
+			}
+		}
+		let backedUp = false;
+		try {
+			cpSync(source, staged, { force: true, recursive: true });
+			if (existsSync(destination)) {
+				renameSync(destination, backup);
+				backedUp = true;
+			}
+			try {
+				renameSync(staged, destination);
+			} catch (error) {
+				if (backedUp) renameSync(backup, destination);
+				throw error;
+			}
+			if (backedUp) rmSync(backup, { recursive: true, force: true });
+		} finally {
+			if (existsSync(staged)) rmSync(staged, { recursive: true, force: true });
+		}
+	}
+
 	private static resolveExistingPath(path: string): string {
 		let existing = resolve(path);
 		const missing: string[] = [];
@@ -308,10 +337,7 @@ export class TemplateManager {
 							GenericServer.showErrorMessage("Invalid installation folder");
 							continue;
 						}
-						if (existsSync(destPath)) {
-							rmSync(destPath, { recursive: true, force: true })
-						}
-						cpSync(path, destPath, { force: true, recursive: true })
+						TemplateManager.replaceLocalInstallation(path, this.projectPath[0], destPath);
 						installed = true;
 					}
 				}
@@ -402,10 +428,7 @@ export class TemplateManager {
 							continue;
 						}
 						try {
-							if (existsSync(destPath)) {
-								rmSync(destPath, { recursive: true, force: true })
-							}
-							cpSync(path, destPath, { force: true, recursive: true })
+							TemplateManager.replaceLocalInstallation(path, this.templatePath[0], destPath);
 							installed.push(name);
 						} catch (error) {
 							failed.push(`Template ${name} failed: ${String(error)}`);
@@ -416,7 +439,7 @@ export class TemplateManager {
 					await this.reloadTemplates();
 					let msg = "Templates installed";
 					if (failed.length > 0) {
-						msg += installed.join(', ')
+						msg += ": " + installed.join(', ')
 					}
 					GenericServer.showInformationMessage(msg);
 				}

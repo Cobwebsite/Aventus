@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Réimport local après disparition de la source
-
-- Reproduction automatisée : `template-import-source-disappears-round246.test.mjs` retire le dossier source d'un projet ou template local après l'affichage de la sélection. Le réimport supprime d'abord l'ancienne installation, puis `cpSync()` échoue ; aucun rechargement ni message de réussite ne suit. Restaurer la source permet un nouvel essai réussi.
-- Cause : les deux branches d'import retirent le dossier cible préexistant avant de copier la source sélectionnée, sans vérifier à nouveau que celle-ci existe ni préparer une copie provisoire.
-- Décision à prendre : préserver l'ancienne installation si la copie échoue, par exemple en copiant dans un dossier provisoire avant de remplacer la destination.
-
 ## Alias npm non échappé dans la sortie JavaScript
 
 - Reproduction automatisée : `npm-alias-escaping-round245.test.mjs` enregistre un export npm avec l'alias `user'sValue`. `NpmBuilder.compile()` ne renvoie aucune erreur, mais l'exécution du texte produit lève `SyntaxError`. Le retrait de cet import puis l'enregistrement de `usersValue` rétablit un bundle exécutable sur la même instance.

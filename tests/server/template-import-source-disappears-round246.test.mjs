@@ -10,7 +10,7 @@ const [{ TemplateManager }, { TemplateScript }, { GenericServer }] = await loadS
 ]);
 
 for (const kind of ['projects', 'templates']) {
-    test(`local ${kind} reimport after source disappears removes old installation before copy fails`, async t => {
+    test(`local ${kind} reimport preserves the old installation when the source disappears`, async t => {
         const root = mkdtempSync(join(tmpdir(), `aventus-import-vanish-${kind}-`));
         const extension = join(root, 'extension');
         const source = join(extension, 'templates', kind, 'source');
@@ -34,6 +34,7 @@ for (const kind of ['projects', 'templates']) {
         let removeSource = true;
         let reloads = 0;
         const messages = [];
+        const errors = [];
         GenericServer.instance = {
             _extensionPath: extension,
             _template: { workspaces: [root] },
@@ -44,6 +45,7 @@ for (const kind of ['projects', 'templates']) {
                     return items;
                 },
                 showInformationMessage: message => messages.push(message),
+                showErrorMessage: message => errors.push(message),
             },
         };
         TemplateScript.create = async () => ({ name: 'Source' });
@@ -56,11 +58,17 @@ for (const kind of ['projects', 'templates']) {
             ? manager.selectProjectToImport(false)
             : manager.selectTemplateToImport();
 
-        await assert.rejects(importLocal());
-        assert.equal(existsSync(target), false);
+        if (kind === 'projects') await assert.rejects(importLocal());
+        else await importLocal();
+        assert.equal(readFileSync(join(target, 'old.txt'), 'utf8'), 'old');
+        assert.equal(existsSync(join(target, 'new.txt')), false);
         assert.equal(readFileSync(join(destination, 'neighbor.txt'), 'utf8'), 'neighbor');
         assert.equal(reloads, 0);
         assert.deepEqual(messages, []);
+        if (kind === 'templates') {
+            assert.equal(errors.length, 1);
+            assert.match(errors[0], /^Template Source failed: /);
+        }
 
         removeSource = false;
         mkdirSync(source, { recursive: true });
@@ -68,6 +76,7 @@ for (const kind of ['projects', 'templates']) {
         writeFileSync(join(source, 'new.txt'), 'new');
         await importLocal();
         assert.equal(readFileSync(join(target, 'new.txt'), 'utf8'), 'new');
+        assert.equal(existsSync(join(target, 'old.txt')), false);
         assert.equal(reloads, 1);
         assert.deepEqual(messages, [kind === 'projects' ? 'Projects installed' : 'Templates installed']);
     });
