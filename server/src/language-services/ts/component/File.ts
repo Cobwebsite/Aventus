@@ -1272,7 +1272,15 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             let diagStart = this.file.documentInternal.offsetAt(format.range.start);
             let diagEnd = this.file.documentInternal.offsetAt(format.range.end);
             let found = false;
-            let avoid = diagStart >= this.file.contentUser.length;
+            // Formatting runs on the internal document, which contains generated
+            // methods inserted before the user's closing class brace. Edits in
+            // that generated section must not be applied to the user document.
+            const hasGeneratedSection = this.viewGeneratedStart >= 0 && this.viewGeneratedEnd >= this.viewGeneratedStart;
+            let avoid = hasGeneratedSection
+                ? (diagStart < this.viewGeneratedEnd && diagEnd > this.viewGeneratedStart) ||
+                  (diagStart >= this.viewGeneratedStart && diagStart < this.viewGeneratedEnd) ||
+                  diagEnd > this.viewUserSuffixEnd
+                : diagStart >= this.file.contentUser.length;
             if (html) {
                 for (let i = 0; i < this.viewMethodsInfo.length; i++) {
                     let start = this.viewMethodsInfo[i].start;
@@ -1322,6 +1330,13 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             }
 
             if (!found && !avoid) {
+                if (hasGeneratedSection && diagStart >= this.viewGeneratedEnd) {
+                    const generatedLength = this.viewGeneratedEnd - this.viewGeneratedStart;
+                    format.range = {
+                        start: this.file.documentUser.positionAt(diagStart - generatedLength),
+                        end: this.file.documentUser.positionAt(diagEnd - generatedLength)
+                    };
+                }
                 result.js.push(format);
             }
         }

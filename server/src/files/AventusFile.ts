@@ -190,6 +190,7 @@ export class InternalAventusFile implements AventusFile {
     //#region validate
 
     private onValidateCb: { [uuid: string]: onValidateType } = {};
+    private validationRequest = 0;
     private deleted = false;
     public get isDeleted(): boolean {
         return this.deleted;
@@ -197,11 +198,11 @@ export class InternalAventusFile implements AventusFile {
     public async validate(sendDiagnostics: boolean = true): Promise<Diagnostic[]> {
         if (this.deleted) return [];
         const versionUser = this.versionUser;
-        const versionInternal = this.versionInternal;
+        const request = ++this.validationRequest;
         let diagnostics: { [key: string]: Diagnostic } = {};
         for (let uuid in this.onValidateCb) {
             let diagTemps = await this.onValidateCb[uuid](this);
-            if (this.deleted || this.versionUser !== versionUser || this.versionInternal !== versionInternal) return [];
+            if (this.deleted || this.versionUser !== versionUser || request !== this.validationRequest) return [];
 
             for (let diagTemp of diagTemps) {
                 let key = diagTemp.message + "**" + diagTemp.range.start.line + ":" + diagTemp.range.start.character + "," + diagTemp.range.end.line + ":" + diagTemp.range.end.character;
@@ -210,7 +211,7 @@ export class InternalAventusFile implements AventusFile {
                 }
             }
         }
-        if (this.deleted || this.versionUser !== versionUser || this.versionInternal !== versionInternal) return [];
+        if (this.deleted || this.versionUser !== versionUser || request !== this.validationRequest) return [];
         if (sendDiagnostics) {
             if (SettingsManager.getInstance().settings.errorByBuild) {
                 const builds = this.getBuild();

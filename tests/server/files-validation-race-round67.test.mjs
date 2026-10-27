@@ -79,6 +79,56 @@ test('an older in-flight validation does not overwrite a newer published diagnos
     }
 });
 
+test('validation publishes diagnostics when compilation changes the internal document version', async () => {
+    const previous = [GenericServer.instance, SettingsManager.instance];
+    const events = [];
+    const file = new InternalAventusFile(document(1, 'logic'));
+    GenericServer.instance = { connection: { sendDiagnostics: params => events.push(params) } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
+    file.onValidate(async current => {
+        current.setDocumentInternal(document(2, 'generated from view'));
+        return [diagnostic('view error')];
+    });
+    try {
+        assert.deepEqual(await file.validate(), [diagnostic('view error')]);
+        assert.deepEqual(events, [{ uri, diagnostics: [diagnostic('view error')] }]);
+    } finally {
+        [GenericServer.instance, SettingsManager.instance] = previous;
+    }
+});
+
+test('a newer validation supersedes an older one without a user document change', async () => {
+    const previous = [GenericServer.instance, SettingsManager.instance];
+    const events = [];
+    const file = new InternalAventusFile(document(1, 'logic'));
+    const oldStarted = deferred();
+    const releaseOld = deferred();
+    let calls = 0;
+    GenericServer.instance = { connection: { sendDiagnostics: params => events.push(params) } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
+    file.onValidate(async current => {
+        const call = ++calls;
+        if (call === 1) {
+            oldStarted.resolve();
+            await releaseOld.promise;
+        } else {
+            current.setDocumentInternal(document(2, 'new generated view'));
+        }
+        return [diagnostic(call === 1 ? 'old view' : 'new view')];
+    });
+    try {
+        const oldValidation = file.validate();
+        await oldStarted.promise;
+        assert.deepEqual(await file.validate(), [diagnostic('new view')]);
+        releaseOld.resolve();
+        assert.deepEqual(await oldValidation, []);
+        assert.deepEqual(events, [{ uri, diagnostics: [diagnostic('new view')] }]);
+    } finally {
+        releaseOld.resolve();
+        [GenericServer.instance, SettingsManager.instance] = previous;
+    }
+});
+
 test('closing a file prevents an in-flight validation from publishing', async () => {
     const previous = [GenericServer.instance, SettingsManager.instance];
     const events = [];

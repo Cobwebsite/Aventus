@@ -3442,23 +3442,14 @@ let TemplateContext=class TemplateContext {
                 throw 'impossible';
             let keys = Object.keys(items);
             let index = keys[_getIndex.value];
-            let element = items[index];
-            if (element === undefined && (Array.isArray(items) || !items)) {
-                if (this.registry) {
-                    let indexNb = Number(_getIndex.value);
-                    if (!isNaN(indexNb)) {
-                        this.registry.templates[indexNb].destructor();
-                        this.registry.templates.splice(indexNb, 1);
-                        for (let i = indexNb; i < this.registry.templates.length; i++) {
-                            this.registry.templates[i].context.decreaseIndex(_indexName);
-                        }
-                    }
-                }
-            }
-            return element;
+            return items[index];
         });
         let _getIndex = new ComputedNoRecomputed(() => {
             return this.watch[_indexName];
+        });
+        getItem.canChange(() => {
+            let items = getItems.value;
+            return !!items && Object.keys(items)[_getIndex.value] !== undefined;
         });
         this.computeds.push(getIndex);
         this.computeds.push(getItem);
