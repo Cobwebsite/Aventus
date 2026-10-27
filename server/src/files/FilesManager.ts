@@ -26,6 +26,7 @@ export class FilesManager {
     private constructor() { }
 
     private files: { [uri: string]: InternalAventusFile } = {};
+    private pendingRegistrations = new Map<string, Promise<void>>();
     private pendingTemplateInitializations: Map<string, Promise<boolean>> = new Map();
     private failedTemplateInitializations: Set<string> = new Set();
 
@@ -400,17 +401,30 @@ export class FilesManager {
     }
     public async registerFile(document: TextDocument): Promise<AventusFile | undefined> {
         GenericServer.debug("registering " + document.uri);
-        if (!this.files[document.uri]) {
-            await this.triggerOnNewFile(document);
+        const pendingRegistrations = this.pendingRegistrations;
+        const previous = pendingRegistrations.get(document.uri);
+        let release!: () => void;
+        const current = new Promise<void>(resolve => { release = resolve; });
+        pendingRegistrations.set(document.uri, current);
+        try {
+            if (previous) await previous;
+            if (!this.files[document.uri]) {
+                await this.triggerOnNewFile(document);
+            }
+            else {
+                await this.files[document.uri].triggerContentChange(document);
+            }
+            if (!this.files[document.uri]) return undefined;
+            if (!GenericServer.isIDE) {
+                FilesWatcher.getInstance().watch(document.uri);
+            }
+            return this.files[document.uri];
+        } finally {
+            if (pendingRegistrations.get(document.uri) === current) {
+                pendingRegistrations.delete(document.uri);
+            }
+            release();
         }
-        else {
-            await this.files[document.uri].triggerContentChange(document);
-        }
-        if (!this.files[document.uri]) return undefined;
-        if (!GenericServer.isIDE) {
-            FilesWatcher.getInstance().watch(document.uri);
-        }
-        return this.files[document.uri];
     }
     public async onContentChange(document: TextDocument) {
         if (!this.files[document.uri]) {
