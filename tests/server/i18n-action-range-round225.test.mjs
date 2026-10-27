@@ -14,7 +14,7 @@ test('la correction des locales manquantes reste proposée hors de la plage diag
         '{"alpha":{"en":"One"},"beta":{"en":"Two","fr":"Deux"}}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => {

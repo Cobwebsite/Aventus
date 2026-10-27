@@ -26,7 +26,7 @@ test('malformed content in a raw tag becomes parsed after configuration changes,
     rawTags = [];
     const exposed = parse(malformed);
     assert.ok(exposed.errors.some(error => error.message.includes("button isn't correctly closed")));
-    assert.deepEqual(exposed.injections.map(item => item.injectTsTxt), ['hidden']);
+    assert.deepEqual(exposed.injections.map(item => item.injectTsTxt), ['hidden', 'outside']);
     for (const injection of exposed.injections) {
         assert.equal(malformed.slice(injection.start, injection.end), `"${injection.injectTsTxt}"`);
     }

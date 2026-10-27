@@ -12,17 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Action i18n proposée hors de la plage diagnostiquée
-
-- Reproduction automatisée : `i18n-action-range-round225.test.mjs` demande des actions sur la clé `beta` alors que seule `alpha` manque de la locale `fr`. `Import missing locales` est proposé et insère la traduction dans `alpha`. Après une édition qui complète `alpha` et retire `fr` de `beta`, l'action cible la nouvelle absence même lorsqu'elle est demandée au début du document.
-- Cause : `AventusI18nLanguageService.codeAction()` transmet le fichier à `actionImportMissingLocales()` sans utiliser la plage demandée ; la correction parcourt toutes les clés.
-- Décision à prendre : préciser si cette action est volontairement disponible partout dans le fichier, ou si elle doit être limitée à la plage du diagnostic concerné.
-
-## Injection HTML valide masquée par une fermeture invalide précédente
-
-- Reproduction automatisée : `html-raw-malformed-transition-round226.test.mjs` analyse une balise `<pre>` d'abord déclarée brute, puis retire cette configuration. Le `<button>` interne se ferme par `</span>` : le parseur signale l'erreur et expose son injection, mais ne relève plus l'injection du `<button>` valide qui suit `</pre>`. Après correction du contenu de `<pre>`, les deux injections sont retrouvées.
-- Décision à prendre : préciser si le parseur doit reprendre la collecte des injections après une fermeture invalide, au moins à la balise parente suivante.
-
 ## Dépendance transitive conservée après remplacement de version d'un package
 
 - Reproduction automatisée : `dependency-version-branch-revision-round226.test.mjs` charge `Shared` en version générique avec `OldLeaf`, puis remplace `Shared` par une version exacte dont la seule dépendance est `NewLeaf`. Le résultat sélectionne bien le fichier exact, mais contient aussi `OldLeaf` et son URI. Le retrait de la branche exacte lors d'une nouvelle résolution retire `NewLeaf` ; sa réintroduction reproduit le reliquat.
