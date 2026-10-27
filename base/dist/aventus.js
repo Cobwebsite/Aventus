@@ -403,18 +403,28 @@ let ResourceLoader=class ResourceLoader {
             return await this.awaitFctHead(_options.url);
         }
         else {
-            this.headerWaiting[_options.url] = [];
             let tagEl;
             if (_options.type == "js") {
                 tagEl = document.createElement("SCRIPT");
+                const el = document.querySelector(`script[src="${_options.url}"]`);
+                if (el) {
+                    this.headerLoaded[_options.url] = true;
+                    return true;
+                }
             }
             else if (_options.type == "css") {
                 tagEl = document.createElement("LINK");
                 tagEl.setAttribute("rel", "stylesheet");
+                const el = document.querySelector(`link[rel="stylesheet"][href="${_options.url}"]`);
+                if (el) {
+                    this.headerLoaded[_options.url] = true;
+                    return true;
+                }
             }
             else {
                 throw "unknow type " + _options.type + " to append into head";
             }
+            this.headerWaiting[_options.url] = [];
             if (_options.nonce) {
                 tagEl.setAttribute("nonce", _options.nonce);
             }

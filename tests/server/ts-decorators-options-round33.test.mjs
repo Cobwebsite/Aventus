@@ -5,7 +5,7 @@ import { loadServerModules } from './helpers/load-ts.mjs';
 
 const [, { ParserTs }, { I18nDecorator }, { ForeignKeyDecorator },
     { OverrideViewDecorator }, { StateActiveDecorator }, { StateInactiveDecorator },
-    { StateChangeDecorator }, { GenericServer }] = await loadServerModules([
+    { StateChangeDecorator }, { DefaultStateActiveDecorator }, { DefaultStateInactiveDecorator }, { GenericServer }] = await loadServerModules([
     'language-services/ts/FileSelector.ts',
     'language-services/ts/parser/ParserTs.ts',
     'language-services/ts/parser/decorators/I18nDecorator.ts',
@@ -14,6 +14,8 @@ const [, { ParserTs }, { I18nDecorator }, { ForeignKeyDecorator },
     'language-services/ts/parser/decorators/StateActiveDecorator.ts',
     'language-services/ts/parser/decorators/StateInactiveDecorator.ts',
     'language-services/ts/parser/decorators/StateChangeDecorator.ts',
+    'language-services/ts/parser/decorators/DefaultStateActiveDecorator.ts',
+    'language-services/ts/parser/decorators/DefaultStateInactiveDecorator.ts',
     'GenericServer.ts',
 ]);
 GenericServer.instance = { logLevel: 4 };
@@ -56,4 +58,32 @@ test('state decorators retain state and manager names with their operation names
         assert.equal(state.managerName, 'Manager');
         assert.equal(state.functionName, operation);
     }
+});
+
+test('state decorators emit quoted routes and preserve manager instance calls', () => {
+    const card = parse('export class Card { @StateActive("/state1", Manager) public active(): void {} @StateInactive("/state1", Manager.getInstance()) public inactive(): void {} @StateChange("/state1", Manager) public change(): void {} }');
+    for (const [name, Type, manager] of [
+        ['active', StateActiveDecorator, 'Manager'],
+        ['inactive', StateInactiveDecorator, 'Manager.getInstance()'],
+        ['change', StateChangeDecorator, 'Manager'],
+    ]) {
+        const state = Type.is(card.methods[name].decorators[0]);
+        assert.equal(state.stateName, '"/state1"');
+        assert.equal(state.managerName, manager);
+    }
+});
+
+test('default state decorators preserve manager instance calls', () => {
+    const card = parse('export class Card { @DefaultStateActive(Manager.getInstance()) public active(): void {} @DefaultStateInactive(Manager.getInstance()) public inactive(): void {} }');
+    assert.equal(DefaultStateActiveDecorator.is(card.methods.active.decorators[0]).managerName, 'Manager.getInstance()');
+    assert.equal(DefaultStateInactiveDecorator.is(card.methods.inactive.decorators[0]).managerName, 'Manager.getInstance()');
+});
+
+test('state decorators replace the root of manager expressions', () => {
+    const card = parse('export class Card { @StateInactive("/state1", Manager.getInstance()) public inactive(): void {} @DefaultStateActive(Manager.getInstance()) public active(): void {} }');
+    for (const method of [card.methods.inactive, card.methods.active]) {
+        method.decorators[0].baseInfo = { dependenciesLocations: { Manager: { replacement: 'App.Manager' } } };
+    }
+    assert.equal(StateInactiveDecorator.is(card.methods.inactive.decorators[0]).managerName, 'App.Manager.getInstance()');
+    assert.equal(DefaultStateActiveDecorator.is(card.methods.active.decorators[0]).managerName, 'App.Manager.getInstance()');
 });
