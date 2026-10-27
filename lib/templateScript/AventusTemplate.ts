@@ -131,9 +131,13 @@ export abstract class AventusTemplate {
 					this.runCommand("error", e);
 				}
 			})
-			this.run(destination).then(() => {
-				process.exit();
-			})
+			this.run(destination).then(
+				() => process.exit(),
+				(error) => {
+					console.error(error);
+					process.exit(1);
+				}
+			)
 		})
 	}
 
@@ -261,8 +265,9 @@ export abstract class AventusTemplate {
 			AventusExtension.ConfigTemplate
 		]
 		let filesPath: string[] = [];
+		const directories: string[] = [];
+		const filesToWrite: { path: string, content: string | Buffer }[] = [];
 		const _internalLoop = async (currentPath: string) => {
-			try {
 				let files = readdirSync(currentPath);
 				for (let file of files) {
 					let templatePath = currentPath + sep + file;
@@ -283,7 +288,7 @@ export abstract class AventusTemplate {
 						}
 						const result = cb(writeInfo)
 						if (result === false) continue;
-						mkdirSync(exportPath, { recursive: true });
+						directories.push(exportPath);
 						await _internalLoop(templatePath);
 					}
 					else {
@@ -314,8 +319,7 @@ export abstract class AventusTemplate {
 						if (result === false) continue;
 						let writePath = normalize(writeInfo.writePath);
 						if (!configPattern.includes(file)) {
-							mkdirSync(dirname(writePath), { recursive: true });
-							writeFileSync(writePath, isBinary ? rawBytes : writeInfo.content);
+							filesToWrite.push({ path: writePath, content: isBinary ? rawBytes : writeInfo.content });
 							if (writePath.endsWith(".avt")) {
 								filesPath.push(writePath);
 							}
@@ -328,12 +332,14 @@ export abstract class AventusTemplate {
 						}
 					}
 				}
-			} catch (e) {
-				console.log(e);
-			}
 		}
 
 		await _internalLoop(this.templatePath);
+		for (const directory of directories) mkdirSync(directory, { recursive: true });
+		for (const file of filesToWrite) {
+			mkdirSync(dirname(file.path), { recursive: true });
+			writeFileSync(file.path, file.content);
+		}
 		// Force config to be written at the end
 		for (let configPath in configFiles) {
 			mkdirSync(dirname(configPath), { recursive: true });
