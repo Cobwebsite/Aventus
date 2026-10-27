@@ -9,7 +9,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { HttpServer } = await loadServerModule('live-server/HttpServer.ts');
 
-test('HEAD garde la longueur du HTML brut même quand GET injecte le script live reload', async t => {
+test('HEAD annonce la même longueur que GET pour le HTML injecté', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-http-head-round247-'));
     const html = '<html><head></head><body>Head check</body></html>';
     writeFileSync(join(root, 'index.html'), html);
@@ -35,16 +35,16 @@ test('HEAD garde la longueur du HTML brut même quand GET injecte le script live
         const head = await fetch(url, { method: 'HEAD', headers });
         assert.equal(get.status, 200);
         assert.equal(head.status, 200);
-        assert.equal(Number(head.headers.get('content-length')), Buffer.byteLength(html));
         assert.equal(await head.text(), '');
+        assert.equal(head.headers.get('content-length'), get.headers.get('content-length'));
         if (headers.Origin) {
             assert.equal(body, html);
-            assert.equal(get.headers.get('content-length'), head.headers.get('content-length'));
+            assert.equal(Number(head.headers.get('content-length')), Buffer.byteLength(html));
         } else {
             assert.match(body, /Head check/);
             assert.match(body, /WebSocket|websocket|new WebSocket/);
             assert.equal(Number(get.headers.get('content-length')), Buffer.byteLength(body));
-            assert.ok(Number(get.headers.get('content-length')) > Number(head.headers.get('content-length')));
+            assert.ok(Number(head.headers.get('content-length')) > Buffer.byteLength(html));
         }
     }
 });
