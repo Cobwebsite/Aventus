@@ -2,6 +2,24 @@
  * Manages the state and history of routes within an Aventus application.
  */
 export class RouterStateManager extends Aventus.StateManager {
+    private hash: string = "";
+
+    public getHash(): string {
+        return this.hash;
+    }
+
+    public override async setState(state: Aventus.State | string): Promise<boolean> {
+        if(typeof state !== "string") {
+            const hashIndex = state.name.indexOf("#");
+            this.hash = hashIndex === -1 ? "" : state.name.substring(hashIndex);
+            return super.setState(state);
+        }
+
+        const hashIndex = state.indexOf("#");
+        this.hash = hashIndex === -1 ? "" : state.substring(hashIndex);
+        return super.setState(hashIndex === -1 ? state : state.substring(0, hashIndex));
+    }
+
     /**
      * Retrieves the singleton instance of the RouterStateManager.
      */

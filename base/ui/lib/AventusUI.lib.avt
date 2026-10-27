@@ -1,0 +1,6 @@
+
+export class AventusUI {
+    public static configure() {
+
+    }
+}
