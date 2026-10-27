@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Copie statique orpheline après changement du dossier source
-
-- Reproduction automatisée : `static-input-folder-transition-round247.test.mjs` exporte `first/asset.bin`, change `inputPathFolder` vers `second` contenant un autre `asset.bin`, puis supprime ce second fichier. La nouvelle copie remplace l'ancienne, mais reste dans la destination alors que le registre de suivi est vide.
-- Cause : lorsque la nouvelle source réutilise une sortie déjà présente, `rememberOutput()` lui attribue `canDelete: false` car cette sortie existe avant la copie ; le retrait de l'ancienne source supprime son entrée sans transférer la propriété.
-- Décision à prendre : déterminer si un changement de `inputPathFolder` doit transférer la propriété des sorties remplacées à la nouvelle source afin de permettre leur nettoyage ultérieur.
-
 ## Bundle npm périmé après édition d'un module installé
 
 - Reproduction automatisée : `npm-project-manifest-disappearance-round247.test.mjs` change le code d'un module installé en retirant puis restaurant le `package.json` du projet ; chaque transition force une recompilation. Une troisième édition du même module, alors que le manifeste et les imports restent identiques, laisse la valeur précédente dans le bundle. Ce cas complète `npm-installed-source-rebuild-round110.test.mjs` et `npm-package-content-cache-round193.test.mjs`.

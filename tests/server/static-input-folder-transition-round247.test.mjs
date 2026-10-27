@@ -56,7 +56,6 @@ test('static export switches input folders with a colliding relative file and la
     rmSync(secondSource);
     await exporter.export();
     assert.equal(exporter.exportedBySource.size, 0);
-    assert.equal(existsSync(copy), true);
-    assert.deepEqual(readFileSync(copy), Buffer.from([3, 4, 5, 6]));
+    assert.equal(existsSync(copy), false);
     assert.equal(reloads, 3);
 });
