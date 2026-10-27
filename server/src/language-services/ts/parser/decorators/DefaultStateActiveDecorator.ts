@@ -29,9 +29,10 @@ export class DefaultStateParser {
 		}
 		try {
 			let managerName = decorator.arguments[0].value;
-			const remplacement = decorator.baseInfo?.dependenciesLocations[managerName]?.replacement;
+			const root = managerName.split(/[.(]/, 1)[0];
+			const remplacement = decorator.baseInfo?.dependenciesLocations[root]?.replacement;
 			if (remplacement) {
-				managerName = remplacement;
+				managerName = remplacement + managerName.slice(root.length);
 			}
 			result.managerName = managerName;
 		} catch (e) { }

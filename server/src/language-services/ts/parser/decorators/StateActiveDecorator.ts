@@ -33,7 +33,10 @@ export class StateParser {
 		}
 		try {
 			let stateName = decorator.arguments[0].value;
-			if (decorator.arguments[0].type == "identifier") {
+			if (decorator.arguments[0].type == "string") {
+				stateName = JSON.stringify(stateName);
+			}
+			else if (decorator.arguments[0].type == "identifier") {
 				let splitted = decorator.arguments[0].value.split(".");
 				const remplacement = decorator.baseInfo?.dependenciesLocations[splitted[0]]?.replacement;
 				if (remplacement) {
@@ -45,9 +48,10 @@ export class StateParser {
 
 			if (decorator.arguments.length > 1) {
 				let managerName = decorator.arguments[1].value;
-				const remplacement = decorator.baseInfo?.dependenciesLocations[managerName]?.replacement;
+				const root = managerName.split(/[.(]/, 1)[0];
+				const remplacement = decorator.baseInfo?.dependenciesLocations[root]?.replacement;
 				if (remplacement) {
-					managerName = remplacement;
+					managerName = remplacement + managerName.slice(root.length);
 				}
 				result.managerName = managerName;
 			}
