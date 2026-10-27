@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Exception de callback pendant la copie d'un template
-
-- Reproduction automatisée : `template-callback-exception-round236.test.mjs` lance un vrai template à deux fichiers. Le callback lève une exception pour le second. Le premier fichier est écrit et enregistré, le second n'est pas créé ; le template termine néanmoins sans rejeter l'appel. Après correction du callback, un nouvel essai crée le second fichier et réenregistre aussi le premier.
-- Cause : `AventusTemplate.writeFile()` intercepte l'exception autour de la boucle de copie, poursuit jusqu'à `registerFile` pour les fichiers déjà traités et ne signale pas l'échec à l'appelant.
-- Décision à prendre : déterminer si une exception du callback doit faire échouer la génération et comment traiter les fichiers déjà écrits ou enregistrés.
-
 ## Écriture partielle pendant la séparation d'un composant
 
 - Reproduction automatisée : `component-split-write-recovery-round240.test.mjs` place un dossier au chemin attendu pour `Card.wcv.avt`. `SplitComponent.run()` écrit d'abord `Card.wcs.avt`, puis échoue en écrivant la vue. Le composant unique et le cache restent présents, sans notification, mais le style partiel demeure sur disque. Après retrait du dossier bloquant, une seconde séparation réussit.

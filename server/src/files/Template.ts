@@ -116,16 +116,19 @@ export class TemplateScript {
 
 	public init(path: string, workspacePath: string) {
 		return new Promise<void>((resolve) => {
+			let finished = false;
+			const finish = (error?: unknown) => {
+				if (finished) return;
+				finished = true;
+				if (error) GenericServer.showErrorMessage(String(error));
+				resolve();
+			};
 			try {
 				const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
 
 				const txt = `
 					import { AventusTemplate } from 'file://${rootPath}';
 					import { Template } from 'file://${this.config.replace(/\\/g, "\\\\")}'
-
-					process.on('uncaughtException', function(err) {
-						console.log('Caught exception: ' + err);
-					});
 
 					const t = new Template();
 					await t._run(\`${this.folderPath.replace(/\\/g, "\\\\")}\`, \`${path.replace(/\\/g, "\\\\")}\`, \`${workspacePath.replace(/\\/g, "\\\\")}\`)`;
@@ -298,17 +301,25 @@ export class TemplateScript {
 					}
 				});
 
+				let childError = '';
 				// Lire les erreurs du programme secondaire
 				child.stderr.on("data", (data) => {
-					console.error(`Erreur with template : ${data.toString().trim()}`);
+					childError += data.toString();
 				});
 
+				child.on("error", finish);
 				child.on("close", (code) => {
-					unlinkSync(scriptPath);
-					resolve();
+					try {
+						unlinkSync(scriptPath);
+					} catch (e) {
+						finish(e);
+						return;
+					}
+					if (code === 0) finish();
+					else finish(childError.trim() || `Template process exited with code ${code}`);
 				});
 			} catch (e) {
-				resolve();
+				finish(e);
 			}
 		})
 	}

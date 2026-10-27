@@ -10,7 +10,7 @@ const [{ TemplateScript }, { GenericServer }, { ProjectManager }, { FilesManager
     'files/Template.ts', 'GenericServer.ts', 'project/ProjectManager.ts', 'files/FilesManager.ts',
 ]);
 
-test('real template retries after a callback exception during file copying', { timeout: 20_000 }, async t => {
+test('real template publishes no files when a callback throws, then retries', { timeout: 20_000 }, async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-template-callback-exception-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const templateDir = join(root, 'template');
@@ -19,6 +19,7 @@ test('real template retries after a callback exception during file copying', { t
     mkdirSync(destination);
     writeFileSync(join(templateDir, 'A.lib.avt'), 'first');
     writeFileSync(join(templateDir, 'B.lib.avt'), 'second');
+    writeFileSync(join(destination, 'A.lib.avt'), 'existing');
     const config = join(templateDir, 'template.avt.ts');
     const base = pathToFileURL(resolve('lib/templateScript/AventusTemplate.ts')).href;
     const scriptSource = fail => [
@@ -46,7 +47,10 @@ test('real template retries after a callback exception during file copying', { t
     const errors = [];
     GenericServer.instance = {
         _savePath: root, _extensionPath: resolve('.'), logLevel: 99,
-        connection: { error: value => errors.push(String(value)) },
+        connection: {
+            error: value => errors.push(String(value)),
+            showErrorMessage: value => errors.push(String(value)),
+        },
     };
     TemplateScript.memory = {};
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
@@ -55,9 +59,10 @@ test('real template retries after a callback exception during file copying', { t
     const first = await TemplateScript.create(config);
     assert.ok(first, errors.join('\n'));
     await first.init(destination, root);
-    assert.equal(readFileSync(join(destination, 'A.lib.avt'), 'utf8'), 'first');
+    assert.ok(errors.some(message => message.includes('callback failure')));
+    assert.equal(readFileSync(join(destination, 'A.lib.avt'), 'utf8'), 'existing');
     assert.equal(existsSync(join(destination, 'B.lib.avt')), false);
-    assert.deepEqual(registered.map(uri => uri.replaceAll('\\', '/').split('/').at(-1)), ['A.lib.avt']);
+    assert.deepEqual(registered, []);
 
     writeFileSync(config, scriptSource(false));
     TemplateScript.memory = {};
@@ -65,5 +70,5 @@ test('real template retries after a callback exception during file copying', { t
     assert.ok(second, errors.join('\n'));
     await second.init(destination, root);
     assert.equal(readFileSync(join(destination, 'B.lib.avt'), 'utf8'), 'second');
-    assert.deepEqual(registered.map(uri => uri.replaceAll('\\', '/').split('/').at(-1)), ['A.lib.avt', 'A.lib.avt', 'B.lib.avt']);
+    assert.deepEqual(registered.map(uri => uri.replaceAll('\\', '/').split('/').at(-1)), ['A.lib.avt', 'B.lib.avt']);
 });
