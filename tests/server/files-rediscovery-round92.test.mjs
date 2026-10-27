@@ -3,14 +3,13 @@ import test from 'node:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
 const [{ FilesManager }, { SettingsManager }, { GenericServer }, { InitStep }, { pathToUri }] = await loadServerModules([
     'files/FilesManager.ts', 'settings/Settings.ts', 'GenericServer.ts', 'notification/InitStep.ts', 'tools.ts',
 ]);
 
-test('rediscovery preserves a cached file until a newer document arrives and registers a new sibling', async () => {
+test('rediscovery refreshes a changed cached file and registers a new sibling', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-rediscovery-round92-'));
     const firstPath = join(root, 'first.wcl.avt');
     const secondPath = join(root, 'second.wcl.avt');
@@ -18,7 +17,7 @@ test('rediscovery preserves a cached file until a newer document arrives and reg
     const secondUri = pathToUri(secondPath);
     const previous = [SettingsManager.instance, GenericServer.instance, InitStep.send, InitStep.sendDone];
     const manager = Object.create(FilesManager.prototype);
-    Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
+    Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {}, pendingRegistrations: new Map() });
     const events = [];
     SettingsManager.instance = { settings: { readDirs: [], errorByBuild: false } };
     GenericServer.instance = { isIDE: true, logLevel: 99, connection: { sendNotification() {}, sendDiagnostics() {} } };
@@ -40,15 +39,14 @@ test('rediscovery preserves a cached file until a newer document arrives and reg
 
         assert.equal(manager.getByUri(firstUri), first);
         assert.equal(manager.getByPath(firstPath), first);
-        assert.equal(first.contentUser, 'class First {}');
+        assert.equal(first.contentUser, 'class Updated {}');
         assert.equal(manager.getByPath(secondPath), manager.getByUri(secondUri));
         assert.deepEqual(new Set(manager.getUris()), new Set([firstUri, secondUri]));
-        await manager.onContentChange(TextDocument.create(firstUri, 'typescript', 1, 'class Updated {}'));
-        assert.equal(first.contentUser, 'class Updated {}');
+        await manager.loadAllAventusFiles([pathToUri(root)]);
         assert.deepEqual(events, [
             ['new', firstUri, 'class First {}'],
-            ['new', secondUri, 'class Second {}'],
             ['change', firstUri, 'class Updated {}'],
+            ['new', secondUri, 'class Second {}'],
         ]);
     } finally {
         for (const file of Object.values(manager.files)) clearTimeout(file.delayValidate);

@@ -12,22 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Priorité des déclarations SCSS dupliquées dans un même fichier
-
-- Reproduction automatisée : `language-service-round20.test.mjs` et `scss-global-duplicate-declarations-round229.test.mjs` vérifient qu'une déclaration `--tone` ultérieure dans le même `:root` remplace la précédente pour la définition et le hover, alors que deux fichiers globaux distincts conservent la priorité du premier fichier chargé.
-- Décision à prendre : confirmer que cette différence de priorité entre déclarations d'un fichier et fichiers distincts est voulue. Les tests décrivent le comportement actuel sans modifier le service.
-
-## Fichier Emmet conservé après retrait du dernier tag de package
-
-- Reproduction automatisée : `manifest-package-removal-round72.test.mjs` retire le dernier export de package ; `snippets.json` reste présent avec le snippet intégré `block` et sans ancien tag.
-- Décision à prendre : confirmer si le fichier doit rester généré avec `block` ou être supprimé lorsque le dernier package disparaît. Le test décrit le comportement actuel.
-
-## Redécouverte sur disque : fichiers existants et packages externes restent périmés
-
-- Reproductions automatisées : `files-rediscovery-round92.test.mjs` rescane un espace après modification d'un fichier déjà en cache ; le nouveau fichier voisin est inscrit, mais le contenu du premier reste ancien. `files-package-recovery-round116.test.mjs` réinscrit un package externe initialement absent après sa création sur disque ; son contenu reste vide. Une notification de modification avec une version supérieure actualise chaque fichier.
-- Source : `FilesManager.loadAllAventusFiles()` et `registerFilePackage()` créent des `TextDocument` en version `0` à chaque lecture ; `AventusFile.triggerContentChange()` ignore une version inférieure ou égale à la version déjà présente.
-- Décision à prendre : lors d'une nouvelle lecture disque, incrémenter la version du document en cache, ou prévoir un chemin de rafraîchissement indépendant des versions des notifications client.
-
 ## Fusion de composant partiellement appliquée après échec d'une édition de référence
 
 - Reproduction automatisée : `component-merge-reference-error-round248.test.mjs` fait échouer l'application de la seconde édition de référence renvoyée par `ProjectManager.onRename()`. La première référence est déjà écrite sur disque ; la seconde et les sources du composant restent inchangées, sans fichier fusionné ni notification. Une nouvelle tentative peut achever la fusion.
