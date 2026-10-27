@@ -35,8 +35,10 @@ test('les diagnostics de doublon entre fichiers suivent une édition invalide pu
 
     await editSecond(2, '{"replacement":');
     assert.ok((await messages(second)).some(message => /parse|value|expected/i.test(message)));
-    assert.deepEqual(await messages(first), ['Duplicate translation key shared across global files']);
+    assert.deepEqual(await messages(first), []);
     assert.deepEqual(second.translation.keys, ['shared']);
+    assert.equal(second.translation.parsed, undefined);
+    assert.deepEqual(second.translation.exported, { en: { shared: 'Two' }, fr: { shared: 'Deux' } });
 
     await editSecond(3, '{"replacement":{"en":"Three","fr":"Trois"}}');
     assert.deepEqual(await messages(first), []);

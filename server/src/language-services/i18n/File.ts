@@ -75,7 +75,9 @@ export class AventusI18nFile extends AventusBaseFile {
 			}
 		}
 		catch (e) {
-			// Keep the last valid translations while the user edits invalid JSON.
+			// Keep the last valid translations for export, but discard positions from the old document.
+			this.parsed = undefined;
+			this.parsedVersion = -1;
 		}
 	}
 	public transformForExport() {
