@@ -12,13 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Diagnostic i18n de doublon conservé par un autre fichier pendant une édition invalide
-
-- Reproduction automatisée : `i18n-cross-file-invalid-recovery-round222.test.mjs` crée deux fichiers globaux ayant la clé `shared`. Après remplacement du second par un JSON incomplet, le premier continue de signaler un doublon avec l'ancienne clé du second. Une correction vers `replacement` retire le diagnostic et actualise les exports.
-- Cause : `AventusI18nFile.onContentChange()` garde `parsed` après une erreur de parsing ; la validation des autres fichiers consulte cette ancienne analyse dans `build.tsLanguageService.i18nFiles`.
-- Décision à prendre : préciser si une traduction temporairement invalide doit continuer à participer aux diagnostics de doublon des autres fichiers, ou si son analyse doit être écartée jusqu'à sa correction.
-- Décision à prendre : pendant une édition invalide, faut-il vider l'index de positions ou garder le dernier état valide en signalant son caractère périmé aux consommateurs ?
-
 ## Action i18n proposée hors de la plage diagnostiquée
 
 - Reproduction automatisée : `i18n-action-range-round225.test.mjs` demande des actions sur la clé `beta` alors que seule `alpha` manque de la locale `fr`. `Import missing locales` est proposé et insère la traduction dans `alpha`. Après une édition qui complète `alpha` et retire `fr` de `beta`, l'action cible la nouvelle absence même lorsqu'elle est demandée au début du document.
