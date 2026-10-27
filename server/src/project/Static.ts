@@ -96,6 +96,13 @@ export class Static {
             }
             let staticFiles = foundAll(this.staticConfig.inputPathFolder);
             const currentSources = new Set(staticFiles.map(path => path.replace(/\\/g, '/')));
+            const currentOutputPaths = new Set<string>();
+            const ownedOutputPaths = new Set<string>();
+            for (const outputs of this.exportedBySource.values()) {
+                for (const [path, recorded] of outputs) {
+                    if (recorded.canDelete) ownedOutputPaths.add(path);
+                }
+            }
             for (let filePath of staticFiles) {
                 if (!this.isReady) return;
                 filePath = filePath.replace(/\\/g, '/');
@@ -119,7 +126,7 @@ export class Static {
                             const existedBefore = existsSync(outputPath);
                             await cssFile.addOutPath(resultPath, this.name);
                             if (!this.isReady) return;
-                            this.rememberOutput(currentOutputs, previousOutputs, outputPath, existedBefore);
+                            this.rememberOutput(currentOutputs, previousOutputs, outputPath, existedBefore, ownedOutputPaths);
                         }
                     }
                     else {
@@ -127,17 +134,19 @@ export class Static {
                         const existedBefore = existsSync(outputPath);
                         const writtenPath = await copyFile(filePath, resultPath);
                         if (!this.isReady) return;
-                        if (writtenPath) this.rememberOutput(currentOutputs, previousOutputs, writtenPath, existedBefore);
+                        if (writtenPath) this.rememberOutput(currentOutputs, previousOutputs, writtenPath, existedBefore, ownedOutputPaths);
                     }
                 }
                 if (previousOutputs || currentOutputs.size > 0) {
                     this.exportedBySource.set(filePath, new Map([...(previousOutputs ?? []), ...currentOutputs]));
                 }
+                for (const path of currentOutputs.keys()) currentOutputPaths.add(path);
             }
             if (!this.isReady) return;
             for (const [source, outputs] of this.exportedBySource) {
                 if (currentSources.has(source)) continue;
                 for (const [path, recorded] of outputs) {
+                    if (currentOutputPaths.has(path)) continue;
                     if (source.endsWith(AventusExtension.GlobalStyle)) {
                         this.project.scssFiles[pathToUri(source)]?.removeOutPath?.(path);
                     }
@@ -158,13 +167,15 @@ export class Static {
             Statistics.sendStaticTime(this.name);
         }
     }
-    private rememberOutput(current: Map<string, { size: number, mtimeMs: number, canDelete: boolean }>, previous: Map<string, { size: number, mtimeMs: number, canDelete: boolean }> | undefined, path: string, existedBefore: boolean) {
+    private rememberOutput(current: Map<string, { size: number, mtimeMs: number, canDelete: boolean }>, previous: Map<string, { size: number, mtimeMs: number, canDelete: boolean }> | undefined, path: string, existedBefore: boolean, ownedOutputPaths: Set<string>) {
         if (!existsSync(path)) return;
         const stats = statSync(path);
+        const canDelete = previous?.get(path)?.canDelete === true || ownedOutputPaths.has(path) || !existedBefore;
+        if (canDelete) ownedOutputPaths.add(path);
         current.set(path, {
             size: stats.size,
             mtimeMs: stats.mtimeMs,
-            canDelete: previous?.get(path)?.canDelete ?? !existedBefore,
+            canDelete,
         });
     }
     public registerWatcher() {
