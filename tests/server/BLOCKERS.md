@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Chemin de sortie modifié par un callback de template
-
-- Reproduction automatisée : `template-callback-path-round228.test.mjs` exécute un vrai template dont le callback change `writeInfo.writePath` de `Original.lib.avt` à `Renamed.lib.avt`. Le fichier écrit sur disque garde le nom `Original.lib.avt`, tandis que `FilesManager.onCreatedUri()` reçoit l'URI de `Renamed.lib.avt`, qui n'existe pas.
-- Cause : `AventusTemplate.writeFile()` écrit avec la variable locale `exportPath`, calculée avant le callback, puis enregistre `writeInfo.writePath` après le callback.
-- Décision à prendre : soit appliquer le chemin modifié à l'écriture et à l'enregistrement, soit rendre ce champ non modifiable et toujours enregistrer le chemin réellement écrit.
-
 ## Découpage divergent d'un template imbriqué dans un composant unique
 
 - Reproduction automatisée : `component-nested-template-round230.test.mjs` édite un composant unique avec une région `<template>` contenant elle-même `<template><b>Nested</b></template>`. Le sous-document vivant conserve tout le contenu de la région, alors que `AventusWebComponentSingleFile.getRegion()` s'arrête à la fermeture interne et renvoie `<div><template><b>Nested</b>` ; les deux parcours retrouvent le même résultat après suppression du template imbriqué.
@@ -287,7 +281,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Catégories serveur encore ouvertes dans TODO.md
 
-- **Création depuis un template (ligne 479)** : l'URI réécrite par callback diverge encore dans `template-callback-path-round228.test.mjs`. Décider la sortie attendue, puis corriger le code avant de déclarer la génération complète.
 - **Import et désinstallation des templates (ligne 480)** : les collisions de destination et les sources modifiées pendant l'import restent à décider avant de clore la catégorie.
 - **Conversions de composants (ligne 526)** : `component-merge-destination-race-round281.test.mjs` démontre l'écrasement d'une destination apparue durant l'attente ; `component-merge-reference-error-round248.test.mjs` démontre une édition de référence appliquée avant un échec ultérieur. Choisir les garanties d'atomicité et de préservation de destination, puis les implémenter.
 - **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.

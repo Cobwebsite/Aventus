@@ -1,5 +1,5 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
-import { join, normalize, sep } from 'path'
+import { dirname, join, normalize, sep } from 'path'
 
 export type Version = `${number}.${number}.${number}`
 export interface InputOptions {
@@ -312,17 +312,19 @@ export abstract class AventusTemplate {
 						const result = cb(writeInfo)
 
 						if (result === false) continue;
+						let writePath = normalize(writeInfo.writePath);
 						if (!configPattern.includes(file)) {
-							writeFileSync(exportPath, isBinary ? rawBytes : writeInfo.content);
-							if (exportPath.endsWith(".avt")) {
-								filesPath.push(writeInfo.writePath);
+							mkdirSync(dirname(writePath), { recursive: true });
+							writeFileSync(writePath, isBinary ? rawBytes : writeInfo.content);
+							if (writePath.endsWith(".avt")) {
+								filesPath.push(writePath);
 							}
 						}
 						else {
 							if (file == AventusExtension.ConfigTemplate) {
-								exportPath = exportPath.replace(AventusExtension.ConfigTemplate, AventusExtension.Config)
+								writePath = writePath.replace(AventusExtension.ConfigTemplate, AventusExtension.Config)
 							}
-							configFiles[exportPath] = writeInfo.content;
+							configFiles[writePath] = writeInfo.content;
 						}
 					}
 				}
@@ -334,6 +336,7 @@ export abstract class AventusTemplate {
 		await _internalLoop(this.templatePath);
 		// Force config to be written at the end
 		for (let configPath in configFiles) {
+			mkdirSync(dirname(configPath), { recursive: true });
 			writeFileSync(configPath, configFiles[configPath]);
 			filesPath.push(configPath);
 		}
