@@ -1,50 +1,53 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Static }, { SettingsManager }, { HttpServer }, { GenericServer }] = await loadServerModules([
-    'project/Static.ts', 'settings/Settings.ts', 'live-server/HttpServer.ts', 'GenericServer.ts',
+const [{ AventusJSONLanguageService }, { SettingsManager }, { GenericServer }] = await loadServerModules([
+    'language-services/json/LanguageService.ts', 'settings/Settings.ts', 'GenericServer.ts',
 ]);
 
-test('static output inside its input is rediscovered and copied to deeper paths', async t => {
+test('a static output inside its input is omitted while valid statics remain', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-static-recursive-output-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
-    const previous = {
-        settings: SettingsManager.instance, http: HttpServer.getInstance,
-        server: GenericServer.instance,
-    };
+    const previousSettings = SettingsManager.instance;
+    const previousServer = GenericServer.instance;
     t.after(() => {
-        SettingsManager.instance = previous.settings;
-        HttpServer.getInstance = previous.http;
-        GenericServer.instance = previous.server;
+        SettingsManager.instance = previousSettings;
+        GenericServer.instance = previousServer;
     });
-    SettingsManager.instance = { settings: { watchFiles: false, useStats: false } };
-    HttpServer.getInstance = () => ({ reload() {} });
-    GenericServer.instance = { logLevel: 99, connection: { sendNotification() {} } };
+    SettingsManager.instance = { settings: { defaultHideWarnings: false } };
+    const messages = [];
+    GenericServer.instance = { logLevel: 99, connection: { showErrorMessage: message => messages.push(message) } };
 
     const input = join(root, 'input');
     const output = join(input, 'generated');
+    const validOutput = join(root, 'dist');
     mkdirSync(input);
-    const source = join(input, 'data.txt');
-    writeFileSync(source, 'original');
-    const target = new Static({ scssFiles: {} }, {
-        name: 'assets', inputPathFolder: input.replaceAll('\\', '/'),
-        outputPathFolder: [output.replaceAll('\\', '/')],
+    const uri = pathToFileURL(join(root, 'aventus.conf.avt')).href;
+    const source = destination => JSON.stringify({
+        module: 'Demo', build: [{ name: 'web', src: [] }],
+        static: [
+            { name: 'assets', input: './input', output: destination },
+            { name: 'other', input: './input', output: validOutput },
+        ],
     });
-    t.after(() => target.destroy());
+    const diagnostics = [];
+    const parse = (version, destination) => AventusJSONLanguageService.getInstance().getConfig(
+        TextDocument.create(uri, 'json', version, source(destination)), diagnostics);
 
-    await target.export();
-    assert.equal(readFileSync(join(output, 'data.txt'), 'utf8'), 'original');
-    assert.equal(existsSync(join(output, 'generated', 'data.txt')), false);
+    const invalid = await parse(1, output);
+    assert.ok(invalid, JSON.stringify(diagnostics));
+    assert.deepEqual(invalid.static.map(item => item.name), ['other']);
+    assert.equal(invalid.build.length, 1);
+    assert.equal(messages.length, 1);
+    assert.match(messages[0], /Static assets: output .* is inside input /);
 
-    await target.export();
-    assert.equal(readFileSync(join(output, 'generated', 'data.txt'), 'utf8'), 'original');
-
-    rmSync(source);
-    await target.export();
-    assert.equal(existsSync(join(output, 'data.txt')), false);
-    assert.equal(readFileSync(join(output, 'generated', 'generated', 'data.txt'), 'utf8'), 'original');
+    const corrected = await parse(2, validOutput);
+    assert.ok(corrected);
+    assert.deepEqual(corrected.static.map(item => item.name), ['assets', 'other']);
 });

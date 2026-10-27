@@ -1,4 +1,4 @@
-import { join, normalize, sep } from "path";
+import { isAbsolute, join, normalize, relative, resolve, sep } from "path";
 import { ASTNode, Diagnostic, getLanguageService, LanguageService, ObjectASTNode } from "vscode-json-languageservice";
 import { CompletionItem, CompletionList, DiagnosticSeverity, FormattingOptions, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension } from "../../definition";
@@ -335,7 +335,17 @@ export class AventusJSONLanguageService {
         if (config.static) {
             let statics: AventusConfigStatic[] = []
             for (let _static of config.static) {
-                statics.push(this.prepareStatic(uri, _static));
+                const prepared = this.prepareStatic(uri, _static);
+                const input = resolve(prepared.inputPathFolder);
+                const recursiveOutput = prepared.outputPathFolder.find(output => {
+                    const fromInput = relative(input, resolve(output));
+                    return fromInput === '' || (fromInput !== '..' && !fromInput.startsWith('..' + sep) && !isAbsolute(fromInput));
+                });
+                if (recursiveOutput) {
+                    GenericServer.showErrorMessage(`Static ${prepared.name}: output ${recursiveOutput} is inside input ${prepared.inputPathFolder}`);
+                    continue;
+                }
+                statics.push(prepared);
             }
             config.static = statics;
         }

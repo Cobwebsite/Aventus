@@ -12,18 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Cache npm après exception du bundler concurrent
-
-- Reproduction automatisée : `npm-concurrent-error-recovery-round242.test.mjs` lance deux appels `NpmBuilder.compile()` sur les mêmes imports. Une exception transitoire d'esbuild rejette les deux appels. Un troisième appel identique renvoie une sortie vide sans relancer esbuild ; un import supplémentaire force une nouvelle compilation réussie.
-- Cause : `compileCurrent()` conserve `lastInfo` et `lastInfoToCompile` lorsqu'`esbuildBuild()` rejette avant de renseigner `npmDepBuildTxt`.
-- Décision à prendre : invalider ces caches lors d'une exception pour permettre un nouvel essai avec les mêmes imports.
-
-## Export statique récursif quand la destination est dans la source
-
-- Reproduction automatisée : `static-output-inside-input-round244.test.mjs` configure `input/generated` comme destination d'un export dont la source est `input`. Le premier export écrit `generated/data.txt`, le second redécouvre cette copie et écrit `generated/generated/data.txt`. Après suppression de `input/data.txt`, un export suivant écrit encore `generated/generated/generated/data.txt`.
-- Cause : `Static.export()` parcourt récursivement tout le dossier source sans exclure ses dossiers de sortie.
-- Décision à prendre : refuser une destination située dans la source ou l'exclure de la découverte pour éviter la croissance récursive des sorties.
-
 ## Type inféré d'un paramètre avec valeur par défaut absent du manifeste package
 
 - Reproduction automatisée : `manifest-package-function-parameters-round240.test.mjs` analyse `combine(first?: string, suffix = "!", ...parts: number[])`. Le Markdown préserve `first?: string` et `...parts: number[]`, mais représente `suffix = "!"` par `suffix: any` et omet sa valeur par défaut.
