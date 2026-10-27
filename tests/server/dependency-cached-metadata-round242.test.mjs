@@ -6,7 +6,7 @@ const [{ DependencyManager }, { ManifestPackage }] = await loadServerModules([
     'project/DependencyManager.ts', 'manifest/ManifestPackage.ts',
 ]);
 
-test('reloading a cached package follows metadata revisions and exposes removed-header residue', async t => {
+test('reloading a cached package clears metadata when its headers disappear', async t => {
     const previous = { files: ManifestPackage.files, done: ManifestPackage.done };
     ManifestPackage.files = {};
     ManifestPackage.done = false;
@@ -57,6 +57,6 @@ test('reloading a cached package follows metadata revisions and exposes removed-
 
     widget.file.contentUser = 'export declare class Widget {}';
     await resolve();
-    assert.equal(widget.npmUri, '@widget/second');
-    assert.equal(widget.description, 'Second');
+    assert.equal(widget.npmUri, '');
+    assert.equal(widget.description, '');
 });

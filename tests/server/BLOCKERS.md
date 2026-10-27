@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Métadonnées périmées sur un package chargé en cache
-
-- Reproduction automatisée : `dependency-cached-metadata-round242.test.mjs` résout plusieurs fois le même objet package. Un override npm prend effet, son retrait révèle le nouvel en-tête, mais le retrait ultérieur des en-têtes npm et description laisse `npmUri` et `description` à leurs anciennes valeurs.
-- Cause : `DependencyManager.loadDependency()` affecte ces champs lorsque la configuration ou les en-têtes existent, mais ne les efface pas lorsqu'ils disparaissent d'un objet package réutilisé.
-- Décision à prendre : définir si la résolution doit recalculer ces deux métadonnées à chaque lecture d'un package déjà chargé ; si oui, remettre les valeurs absentes à `undefined` avant de publier la nouvelle résolution.
-
 ## Enregistrement concurrent d'un fichier et échec tardif du callback initial
 
 - Reproduction automatisée : `files-concurrent-registration-failure-round243.test.mjs` suspend le callback d'ouverture d'une URI, puis enregistre une deuxième version de la même URI. Le deuxième appel renvoie bien un fichier contenant cette version. Quand le premier callback échoue, le gestionnaire déclenche sa suppression et retire l'URI de son registre, malgré la réussite du deuxième appel. Une troisième ouverture rétablit le fichier.

@@ -272,11 +272,17 @@ export class DependencyManager {
 				if (npmInfo) {
 					packageFile.npmUri = npmInfo[1];
 				}
+				else {
+					packageFile.npmUri = '';
+				}
 			}
 
 			let description = /\/\* description:(.*) \*\//gm.exec(packageFile.file.contentUser);
 			if (description) {
 				packageFile.description = description[1];
+			}
+			else {
+				packageFile.description = '';
 			}
 
 			const setDependency = async (file: AventusPackageFile, uri: string) => {
