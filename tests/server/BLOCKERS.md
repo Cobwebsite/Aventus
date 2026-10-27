@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Alias npm non échappé dans la sortie JavaScript
-
-- Reproduction automatisée : `npm-alias-escaping-round245.test.mjs` enregistre un export npm avec l'alias `user'sValue`. `NpmBuilder.compile()` ne renvoie aucune erreur, mais l'exécution du texte produit lève `SyntaxError`. Le retrait de cet import puis l'enregistrement de `usersValue` rétablit un bundle exécutable sur la même instance.
-- Cause : `NpmBuilder.writeFileToCompile()` insère l'alias entre apostrophes dans `toExport` sans l'échapper. Ce fragment est assemblé après esbuild et échappe ainsi à sa validation syntaxique.
-- Décision à prendre : définir les caractères admis dans les alias, puis échapper la clé produite ou diagnostiquer un alias invalide avant de publier le bundle.
-
 ## Référence SCSS masquée par une URL `https://` sur la même ligne
 
 - Reproduction automatisée : `scss-global-url-comment-reference-round246.test.mjs` définit `--tone` dans `:root` et l'utilise après `url("https://example.test/image.svg")` sur la même ligne. La recherche de références et le renommage ne voient que la déclaration. Remplacer l'URL par une URL `data:` révèle aussi l'usage, sans changer la variable.

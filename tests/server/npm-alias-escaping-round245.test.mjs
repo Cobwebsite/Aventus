@@ -10,7 +10,7 @@ const [{ NpmBuilder }, { GenericServer }] = await loadServerModules([
     'project/BuildNpm.ts', 'GenericServer.ts',
 ]);
 
-test('an apostrophe in an npm export alias breaks generated JavaScript until re-registration', async t => {
+test('an apostrophe in an npm export alias produces executable JavaScript across re-registration', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-quote-alias-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const nodeModulesDir = join(root, 'node_modules');
@@ -27,9 +27,11 @@ test('an apostrophe in an npm export alias breaks generated JavaScript until re-
     const builder = new NpmBuilder({ isBuildAllowed: true, nodeModulesDir, fullname: 'AliasFixture' });
     const sourceUri = 'file:///alias-fixture.lib.avt';
     assert.deepEqual(builder.register(sourceUri, { uri: 'alias-fixture', libName: 'value', alias: "user'sValue" }), []);
-    const invalid = await builder.compile();
-    assert.deepEqual(invalid.errors, []);
-    assert.throws(() => runInNewContext(invalid.result, {}), { name: 'SyntaxError' });
+    const quoted = await builder.compile();
+    assert.deepEqual(quoted.errors, []);
+    const firstContext = {};
+    runInNewContext(quoted.result, firstContext);
+    assert.equal(Object.values(firstContext.npmCompilation)[0]["user'sValue"], 17);
 
     builder.unregister(sourceUri);
     assert.deepEqual(builder.register(sourceUri, { uri: 'alias-fixture', libName: 'value', alias: 'usersValue' }), []);

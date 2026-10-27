@@ -233,11 +233,11 @@ export class NpmBuilder {
 				finalTxt += `import * as ${info.all.internalAlias} from "${uri}";` + EOL
 				exportTxtArray.push(info.all.internalAlias)
 				for (let alias of info.all.externalAlias) {
-					exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _.default['${info.all.internalAlias}'];` + EOL;
+					exportTxt += `npmCompilation['${info.md5}'][${JSON.stringify(alias)}] = _.default['${info.all.internalAlias}'];` + EOL;
 				}
 				for (let libName in info.part) {
 					for (let alias of info.part[libName].externalAlias) {
-						exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _.default['${info.all.internalAlias}'][${JSON.stringify(libName)}];` + EOL;
+						exportTxt += `npmCompilation['${info.md5}'][${JSON.stringify(alias)}] = _.default['${info.all.internalAlias}'][${JSON.stringify(libName)}];` + EOL;
 					}
 				}
 			}
@@ -249,7 +249,7 @@ export class NpmBuilder {
 					parts.push(`${libName} as ${info.part[libName].internalAlias}`)
 					exportTxtArray.push(info.part[libName].internalAlias)
 					for (let alias of info.part[libName].externalAlias) {
-						exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _.default['${info.part[libName].internalAlias}'];` + EOL;
+						exportTxt += `npmCompilation['${info.md5}'][${JSON.stringify(alias)}] = _.default['${info.part[libName].internalAlias}'];` + EOL;
 					}
 				}
 				finalTxt += `import {${Object.values(parts).join(", ")}} from "${uri}";` + EOL
