@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Message de conflit de séparation de composant sans chemin
-
-- Reproduction automatisée : `component-destination-collision-round124.test.mjs`, `component-split-existing-folder-round173.test.mjs` et `component-split-write-recovery-round240.test.mjs` vérifient que la séparation refuse une destination déjà présente sur disque ou dans le cache, sans modifier les fichiers. Le message d'erreur actuel se termine par `destination already exists: true` au lieu de nommer le chemin occupé.
-- Cause : `SplitComponent.run()` mémorise seulement un booléen `conflict` puis le concatène au message.
-- Décision à prendre : inclure le chemin de la première destination en conflit pour que l'utilisateur puisse résoudre l'obstruction.
-
 ## Priorité des déclarations SCSS dupliquées dans un même fichier
 
 - Reproduction automatisée : `language-service-round20.test.mjs` et `scss-global-duplicate-declarations-round229.test.mjs` vérifient qu'une déclaration `--tone` ultérieure dans le même `:root` remplace la précédente pour la définition et le hover, alors que deux fichiers globaux distincts conservent la priorité du premier fichier chargé.

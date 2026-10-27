@@ -68,7 +68,7 @@ test('split refuses existing three-part files without changing source or destina
         assert.deepEqual(notifications, []);
         assert.deepEqual([...files.keys()], [sourceUri]);
         assert.equal(errors.length, 1);
-        assert.match(errors[0], /destination already exists: true/);
+        assert.ok(errors[0].includes(`destination already exists: ${uriToPath(pathToUri(oldPaths[2]))}`));
     });
 });
 
@@ -125,7 +125,7 @@ test('split and merge also refuse destinations present only in the file cache', 
         assert.equal(existsSync(sourcePath), false);
         assert.deepEqual(notifications, []);
         assert.equal(errors.length, 2);
-        assert.match(errors[0], /destination already exists: true/);
+        assert.ok(errors[0].includes(`destination already exists: ${uriToPath(styleUri)}`));
         assert.match(errors[1], /Button\.wc\.avt/);
     });
 });
