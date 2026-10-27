@@ -1162,23 +1162,21 @@ export class TemplateContext {
             if(!items) throw 'impossible';
             let keys = Object.keys(items);
             let index = keys[_getIndex.value];
-            let element = (items as any)[index];
-            if(element === undefined && (Array.isArray(items) || !items)) {
-                if(this.registry) {
-                    let indexNb = Number(_getIndex.value);
-                    if(!isNaN(indexNb)) {
-                        this.registry.templates[indexNb].destructor();
-                        this.registry.templates.splice(indexNb, 1);
-                        for(let i = indexNb; i < this.registry.templates.length; i++) {
-                            this.registry.templates[i].context.decreaseIndex(_indexName);
-                        }
-                    }
-                }
-            }
-            return element;
+            // Replacing a collection can temporarily invalidate this index.
+            // The owning loop will destroy/rebuild its templates; a value getter
+            // must not destroy one while a nested effect is still evaluating it.
+            return (items as any)[index];
         });
         let _getIndex: Computed<any> = new ComputedNoRecomputed(() => {
             return this.watch[_indexName];
+        });
+
+        // An item context is retired by its owning loop when its key disappears.
+        // Keep its last value until then, so nested effects are not notified
+        // with an undefined parent item before the loop can destroy them.
+        getItem.canChange(() => {
+            let items = getItems.value;
+            return !!items && Object.keys(items)[_getIndex.value] !== undefined;
         });
 
         this.computeds.push(getIndex);
