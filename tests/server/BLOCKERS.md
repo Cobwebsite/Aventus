@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Valeurs vides de `group` et `prefix` dans `@Storybook`
-
-- Reproduction automatisée : `storybook-empty-group-prefix-round238.test.mjs` analyse trois versions d'une classe : `group: ''` et `prefix: ''`, puis deux valeurs non vides, puis aucun réglage local. La première version garde `Library/Catalog/Widget` au lieu de désactiver le préfixe et le groupe ; les versions suivantes produisent respectivement `Local/Controls/Widget` et `Library/Catalog/Widget`.
-- Cause : `StorybookDecorator.is()` ne renseigne `group` et `prefix` que lorsque leurs valeurs sont véridiques, tandis que `Storie.getFullname()` prévoit déjà le cas d'une chaîne vide explicite.
-- Décision à prendre : décider si une valeur vide explicite doit annuler le préfixe du build et le namespace, puis conserver cette valeur dans le parseur si ce comportement est voulu.
-
 ## Collision d'alias entre deux exports d'un même package npm
 
 - Reproduction automatisée : `npm-same-alias-revision-round239.test.mjs` enregistre `first` et `second` du même package sous l'alias `shared`. Le bundle expose `second` sous cet alias, quel que soit l'ordre d'enregistrement. Le retrait de `second` révèle `first`, et son retour remplace de nouveau `first`, sans diagnostic.

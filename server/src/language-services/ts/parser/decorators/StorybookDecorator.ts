@@ -32,13 +32,13 @@ export class StorybookDecorator {
 			if (decorator.arguments.length > 0) {
 				try {
 					let params = JSON.parse(decorator.arguments[0].value) as StorybookConfig;
-					if (params.prefix) {
+					if (typeof params.prefix === 'string') {
 						result.prefix = params.prefix.replace(/(^('|"))|(('|")$)/g, '');
 					}
 					if (params.export) {
 						result.exportType = params.export.replace(/(^('|"))|(('|")$)/g, '') as StoryExport;
 					}
-					if (params.group) {
+					if (typeof params.group === 'string') {
 						result.group = params.group.replace(/(^('|"))|(('|")$)/g, '');
 					}
 					if (params.noLive === true) {

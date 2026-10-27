@@ -12,7 +12,7 @@ const [, { ParserTs }, { Storie }, { SettingsManager }, { GenericServer }] = awa
     'project/storybook/Stories.ts', 'settings/Settings.ts', 'GenericServer.ts',
 ]);
 
-test('Storybook parser ignores empty group and prefix, then honors nonempty replacements across revisions', async t => {
+test('Storybook parser preserves empty group and prefix, then honors nonempty replacements across revisions', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-storybook-empty-group-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const previousSettings = SettingsManager.instance;
@@ -40,7 +40,7 @@ test('Storybook parser ignores empty group and prefix, then honors nonempty repl
     };
 
     const empty = await generate(1, `{export:'public',group:'',prefix:''}`);
-    assert.match(empty, /title: ['"]Library\/Catalog\/Widget['"]/);
+    assert.match(empty, /title: ['"]Widget['"]/);
 
     const local = await generate(2, `{export:'public',group:'Controls',prefix:'Local'}`);
     assert.match(local, /title: ['"]Local\/Controls\/Widget['"]/);
