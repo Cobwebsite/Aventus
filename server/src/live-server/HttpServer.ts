@@ -248,6 +248,11 @@ export class HttpServer {
 			var hasNoOrigin = !req.headers.origin;
 			var injectCandidates = [new RegExp("</head>", "i"), new RegExp("</body>", "i")];
 			var injectTag: string | null = null;
+			const getAddedCode = () => {
+				if (this.config.auto_close)
+					return INJECTED_CODE.replace("//onclose", "socket.onclose = function () { setTimeout(() => window.close(), 100); }")
+				return INJECTED_CODE;
+			}
 
 			if (req.url?.startsWith("/?get_injected_code")) {
 				// /?get_injected_code&host=123
@@ -301,6 +306,15 @@ export class HttpServer {
 							break;
 						}
 					}
+					if (injectTag && req.method === 'HEAD') {
+						const originalEnd = res.end;
+						res.end = function (...args) {
+							if (res.statusCode === 200) {
+								res.setHeader('Content-Length', Number(res.getHeader('Content-Length')) + Buffer.byteLength(getAddedCode()));
+							}
+							return (originalEnd as (...args: any[]) => typeof res).apply(res, args);
+						};
+					}
 
 				}
 			}
@@ -318,12 +332,9 @@ export class HttpServer {
 			const inject = (stream) => {
 				if (injectTag) {
 					let tagToUse = injectTag;
-					let addedCode = INJECTED_CODE;
-					if (this.config.auto_close) {
-						addedCode = addedCode.replace("//onclose", "socket.onclose = function () { setTimeout(() => window.close(), 100); }")
-					}
+					let addedCode = getAddedCode();
 					// We need to modify the length given to browser
-					var len = addedCode.length + Number(res.getHeader('Content-Length'));
+					var len = Buffer.byteLength(addedCode) + Number(res.getHeader('Content-Length'));
 					res.setHeader('Content-Length', len);
 					var originalPipe = stream.pipe;
 

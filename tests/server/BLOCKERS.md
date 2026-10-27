@@ -12,18 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Bundle npm périmé après édition d'un module installé
-
-- Reproduction automatisée : `npm-project-manifest-disappearance-round247.test.mjs` change le code d'un module installé en retirant puis restaurant le `package.json` du projet ; chaque transition force une recompilation. Une troisième édition du même module, alors que le manifeste et les imports restent identiques, laisse la valeur précédente dans le bundle. Ce cas complète `npm-installed-source-rebuild-round110.test.mjs` et `npm-package-content-cache-round193.test.mjs`.
-- Cause : `NpmBuilder.compileCurrent()` ne relance esbuild que si les imports ou les déclarations de dépendances du manifeste changent ; il ne surveille pas le contenu des modules installés.
-- Décision à prendre : définir si les sources de `node_modules` doivent invalider le cache pendant les builds de développement, et selon quel signal pour éviter une recompilation à chaque appel.
-
-## Longueur HTTP différente entre `HEAD` et `GET` pour le HTML injecté
-
-- Reproduction automatisée : `http-head-injection-round247.test.mjs` sert le même fichier HTML avec `GET` et `HEAD`. Sans en-tête `Origin`, `GET` injecte le script live reload et annonce la taille du contenu enrichi ; `HEAD` ne renvoie pas de corps mais annonce la taille du fichier brut. Avec un en-tête `Origin`, les deux requêtes annoncent la taille brute.
-- Cause : l'injection et l'ajustement de `Content-Length` se font lors de l'événement de flux dans `HttpServer.createStaticServer()`, qui n'est pas parcouru pour `HEAD`.
-- Décision à prendre : déterminer si `HEAD` doit annoncer la longueur de la représentation qui serait servie par `GET`, puis calculer les mêmes en-têtes sans envoyer le corps si cette cohérence est attendue.
-
 ## Message de conflit de séparation de composant sans chemin
 
 - Reproduction automatisée : `component-destination-collision-round124.test.mjs`, `component-split-existing-folder-round173.test.mjs` et `component-split-write-recovery-round240.test.mjs` vérifient que la séparation refuse une destination déjà présente sur disque ou dans le cache, sans modifier les fichiers. Le message d'erreur actuel se termine par `destination already exists: true` au lieu de nommer le chemin occupé.
