@@ -464,7 +464,6 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
 
     private splitDocument(): SplittedTxt {
         let regexScript = /<script>([\s\S]*)<\/script>/g;
-        let regexTemplate = /<template>([\s\S]*)<\/template>/g;
         let regexStyle = /<style>([\s\S]*)<\/style>/g;
 
         let resultTxt: SplittedTxt = {
@@ -491,13 +490,11 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
             resultTxt.cssText = this.file.contentInternal.substring(startIndex, endIndex)
         }
 
-        let htmlMatch = regexTemplate.exec(this.file.contentInternal);
-        if (htmlMatch) {
-            let startIndex = htmlMatch.index + 10;
-            this.regionView.start = startIndex;
-            let endIndex = htmlMatch.index + htmlMatch[0].length - 11;
-            this.regionView.end = endIndex;
-            resultTxt.htmlText = this.file.contentInternal.substring(startIndex, endIndex)
+        const htmlRegion = AventusWebComponentSingleFile.findTemplateRegion(this.file.contentInternal);
+        if (htmlRegion) {
+            this.regionView.start = htmlRegion.start;
+            this.regionView.end = htmlRegion.end;
+            resultTxt.htmlText = this.file.contentInternal.substring(htmlRegion.start, htmlRegion.end)
         }
 
         return resultTxt;
@@ -514,9 +511,23 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
 
 
 
+    private static findTemplateRegion(content: string): { start: number, end: number } | null {
+        const openingIndex = content.indexOf('<template>');
+        if (openingIndex < 0) return null;
+        const tagPattern = /<\/?template>/g;
+        const start = openingIndex + '<template>'.length;
+        tagPattern.lastIndex = start;
+        let depth = 1;
+        let tag: RegExpExecArray | null;
+        while ((tag = tagPattern.exec(content))) {
+            depth += tag[0] === '<template>' ? 1 : -1;
+            if (depth === 0) return { start, end: tag.index };
+        }
+        return null;
+    }
+
     public static getRegion(file: AventusFile): SplittedTxt {
         let regexScript = /<script>([\s\S]*?)<\/script>/g;
-        let regexTemplate = /<template>([\s\S]*?)<\/template>/g;
         let regexStyle = /<style>([\s\S]*?)<\/style>/g;
 
         let resultTxt: SplittedTxt = {
@@ -539,11 +550,9 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
             resultTxt.cssText = file.contentInternal.substring(startIndex, endIndex)
         }
 
-        let htmlMatch = regexTemplate.exec(file.contentInternal);
-        if (htmlMatch) {
-            let startIndex = htmlMatch.index + 10;
-            let endIndex = htmlMatch.index + htmlMatch[0].length - 11;
-            resultTxt.htmlText = file.contentInternal.substring(startIndex, endIndex)
+        const htmlRegion = this.findTemplateRegion(file.contentInternal);
+        if (htmlRegion) {
+            resultTxt.htmlText = file.contentInternal.substring(htmlRegion.start, htmlRegion.end)
         }
 
         return resultTxt;

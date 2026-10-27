@@ -39,7 +39,7 @@ test('single-file template extraction across nested-template and corrected revis
 
         await file.triggerContentChange(TextDocument.create(uri, 'Aventus WebComponent', 2, nested));
         assert.equal(single.view.file.contentUser, '<div><template><b>Nested</b></template></div>');
-        assert.equal(AventusWebComponentSingleFile.getRegion(file).htmlText, '<div><template><b>Nested</b>');
+        assert.equal(AventusWebComponentSingleFile.getRegion(file).htmlText, '<div><template><b>Nested</b></template></div>');
         assert.equal(single.logic, children[0]);
         assert.equal(single.view, children[1]);
         assert.equal(single.style, children[2]);
@@ -48,6 +48,11 @@ test('single-file template extraction across nested-template and corrected revis
         assert.equal(single.view.file.contentUser, '<div>Repaired</div>');
         assert.equal(AventusWebComponentSingleFile.getRegion(file).htmlText, '<div>Repaired</div>');
         assert.doesNotMatch(single.view.file.contentUser, /Nested/);
+
+        const neighboring = `${script}<template><div><template>Inner</template></div></template><template>Outside</template><style>.card{color:red}</style>`;
+        await file.triggerContentChange(TextDocument.create(uri, 'Aventus WebComponent', 4, neighboring));
+        assert.equal(single.view.file.contentUser, '<div><template>Inner</template></div>');
+        assert.equal(AventusWebComponentSingleFile.getRegion(file).htmlText, single.view.file.contentUser);
     } finally {
         await file.triggerDelete();
     }
