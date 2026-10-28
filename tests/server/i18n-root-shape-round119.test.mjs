@@ -13,7 +13,7 @@ test('i18n keeps an empty key list for a null root and recovers after a valid ed
         '{"message":{"en":"Old","fr":"Ancien"}}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     try {

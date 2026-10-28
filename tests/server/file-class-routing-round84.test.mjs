@@ -86,6 +86,7 @@ test('the build chooses file classes by extension and excludes package, template
 test('template file is registered through FilesManager and handled outside the build', async () => {
     const previous = [GenericServer.instance, SettingsManager.instance, FilesManager.instance, TemplateFileManager.instance];
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     manager.files = {};
     manager.onNewFileCb = {};
     manager.loadingInProgress = false;

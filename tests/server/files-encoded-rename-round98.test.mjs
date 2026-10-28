@@ -19,6 +19,7 @@ test('disk rename and recreation keep encoded URI and path cache entries distinc
     const previous = [GenericServer.instance, FilesWatcher.instance, SettingsManager.instance];
     const events = [];
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     GenericServer.instance = { isIDE: false, logLevel: 99, connection: { sendDiagnostics: value => events.push(['diagnostics', value.uri]) } };
     FilesWatcher.instance = { watch: uri => events.push(['watch', uri]), unwatch: uri => events.push(['unwatch', uri]) };

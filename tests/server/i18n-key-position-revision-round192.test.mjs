@@ -17,7 +17,7 @@ test('la recherche de clé i18n suit les décalages et le renommage après trois
     const source = new InternalAventusFile(TextDocument.create(uri, 'json', 1, versions[0]));
     const build = {
         buildConfig: { i18n: { locales: ['en'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => {

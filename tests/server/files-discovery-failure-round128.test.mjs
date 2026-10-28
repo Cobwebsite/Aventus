@@ -29,6 +29,8 @@ test('failed registration is reported while discovery continues to configuration
         InitStep.sendDone = () => steps.push('done');
         GenericServer.showErrorMessage = message => errors.push(message);
         const manager = Object.create(FilesManager.prototype);
+        manager.files = {};
+        manager.pendingRegistrations = new Map();
         manager.loadingInProgress = false;
         const registered = [];
         let rejectFirst = true;

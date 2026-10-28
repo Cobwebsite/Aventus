@@ -19,6 +19,8 @@ test('full workspace loading registers ordinary files before configurations from
     const registered = [];
     const progress = [];
     const manager = Object.create(FilesManager.prototype);
+    manager.files = {};
+    manager.pendingRegistrations = new Map();
     manager.loadingInProgress = false;
     manager.registerFile = async document => {
         registered.push([document.uri, document.getText(), manager.loadingInProgress]);

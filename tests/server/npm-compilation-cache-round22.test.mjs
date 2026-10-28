@@ -34,15 +34,15 @@ test('adding and removing an alias refreshes exports without recompiling unchang
     builder.register('file-b', { uri: 'sample-library', libName: 'Widget', alias: 'Second' });
     const withAlias = await builder.compile();
     assert.equal(bundles.length, 1);
-    assert.match(initial.result, /\['First'\]/);
-    assert.doesNotMatch(initial.result, /\['Second'\]/);
-    assert.match(withAlias.result, /\['First'\]/);
-    assert.match(withAlias.result, /\['Second'\]/);
+    assert.match(initial.result, /\["First"\]/);
+    assert.doesNotMatch(initial.result, /\["Second"\]/);
+    assert.match(withAlias.result, /\["First"\]/);
+    assert.match(withAlias.result, /\["Second"\]/);
     builder.unregister('file-a');
     const afterRemoval = await builder.compile();
     assert.equal(bundles.length, 1);
-    assert.doesNotMatch(afterRemoval.result, /\['First'\]/);
-    assert.match(afterRemoval.result, /\['Second'\]/);
+    assert.doesNotMatch(afterRemoval.result, /\["First"\]/);
+    assert.match(afterRemoval.result, /\["Second"\]/);
 });
 
 test('changing imported symbols rebuilds dependencies and final unregister clears stale output', async () => {

@@ -15,7 +15,7 @@ test('i18n add edit applied to a real translation file is visible to locale and 
     const source = new InternalAventusFile(TextDocument.create(uri, 'json', 1, '{"existing":{"en":"Existing","fr":"Existant"}}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        module: 'Round51', tsFiles: {}, htmlFiles: {}, i18nComponentsFiles: {}, diagnostics: new Map(), hideWarnings: false,
+        module: 'Round51', tsFiles: {}, htmlFiles: {}, i18nComponentsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), hideWarnings: false,
         build() {},
     };
     const translation = new AventusI18nFile(source, true, build);

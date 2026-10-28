@@ -9,6 +9,7 @@ test('concurrent first template completions wait for the same asynchronous save 
     const uri = 'file:///workspace/template.avt.ts';
     const document = TextDocument.create(uri, 'typescript', 1, 'export default {}');
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     manager.files = {};
     manager.pendingTemplateInitializations = new Map();
     manager.failedTemplateInitializations = new Set();
@@ -51,6 +52,7 @@ test('failed template initialization reaches the request and can be retried', as
     const uri = 'file:///workspace/template.avt.ts';
     const document = TextDocument.create(uri, 'typescript', 1, 'export default {}');
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     manager.files = {};
     manager.pendingTemplateInitializations = new Map();
     manager.failedTemplateInitializations = new Set();

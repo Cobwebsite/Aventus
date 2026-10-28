@@ -22,6 +22,8 @@ test('CLI discovery selects the first config across workspaces and forwards buil
     writeFileSync(join(nested, 'aventus.conf.avt'), '{"module":"first"}');
     writeFileSync(join(second, 'aventus.conf.avt'), '{"module":"second"}');
     const manager = Object.create(FilesManager.prototype);
+    manager.files = {};
+    manager.pendingRegistrations = new Map();
     const calls = [];
     manager.loadConfigFile = async (...args) => calls.push(args);
     try {
@@ -39,6 +41,8 @@ test('CLI discovery signals completed initialization when no config exists', asy
     InitStep.sendDone = () => calls.push('done');
     try {
         const manager = Object.create(FilesManager.prototype);
+        manager.files = {};
+        manager.pendingRegistrations = new Map();
         manager.loadConfigFile = async () => assert.fail('no config should be loaded');
         await manager.loadConfigFileNotSet([pathToUri(root)]);
         assert.deepEqual(calls, ['done']);
@@ -58,6 +62,8 @@ test('CLI discovery searches later workspaces when earlier roots contain only de
     writeFileSync(join(second, 'aventus.conf.avt'), '{}');
     const calls = [];
     const manager = Object.create(FilesManager.prototype);
+    manager.files = {};
+    manager.pendingRegistrations = new Map();
     manager.loadConfigFile = async uri => calls.push(uri);
     try {
         await manager.loadConfigFileNotSet([pathToUri(first), pathToUri(second)]);

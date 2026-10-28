@@ -46,6 +46,7 @@ test('template child failure after writing derived variables cleans its generate
         connection: {
             Input: async () => answers.shift(),
             sendNotification: (...args) => notifications.push(args),
+            showErrorMessage: () => {},
             error: () => {},
         },
     };

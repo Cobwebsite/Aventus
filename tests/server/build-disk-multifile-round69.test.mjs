@@ -36,6 +36,8 @@ test('disk changes to one of two sources preserve the other source in build outp
     });
 
     const manager = Object.create(FilesManager.prototype);
+
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, {
         files: {}, lockedUpdatedUri: {}, loadingInProgress: false,
         onNewFileCb: {}, onFileRemoveCb: {},

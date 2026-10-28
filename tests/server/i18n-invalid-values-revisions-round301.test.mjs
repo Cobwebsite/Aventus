@@ -15,7 +15,7 @@ test('invalid translation types and missing locales recover over successive edit
         '{"first":{"en":true},"second":{"en":null},"third":{"en":["x"]}}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => {

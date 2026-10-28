@@ -13,7 +13,7 @@ test('un doublon de locale suit les editions sans conserver son diagnostic ni sa
     const source = new InternalAventusFile(document(1, '{\n  "title": {"en":"First","en":"Last"}\n}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => { clearTimeout(source.delayValidate); await source.triggerDelete(); });

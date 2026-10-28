@@ -57,6 +57,7 @@ test('i18n key lookup uses multiline document offsets and excludes adjacent keys
     const file = Object.create(AventusI18nFile.prototype);
     file._file = { uri: documentUser.uri, documentUser };
     file.parsed = I18nParser.parse(documentUser);
+    file.parsedVersion = documentUser.version;
     assert.equal(file.getKeyFromLocation([{ line: 2, character: 4 }, { line: 2, character: 9 }]), 'second');
     assert.equal(file.getKeyFromLocation([{ line: 1, character: 4 }, { line: 2, character: 9 }]), null);
     assert.equal(file.getKeyFromLocation([{ line: 2, character: 19 }, { line: 2, character: 21 }]), null);

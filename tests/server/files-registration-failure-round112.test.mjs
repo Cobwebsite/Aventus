@@ -9,6 +9,7 @@ const [{ FilesManager }, { GenericServer }, { FilesWatcher }] = await loadServer
 
 test('failed new-file listener rolls back registration and retries its callbacks', async () => {
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const oldServer = GenericServer.instance;
     const oldWatcher = FilesWatcher.instance;

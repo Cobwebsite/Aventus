@@ -9,6 +9,7 @@ const [{ FilesManager }, { GenericServer }, { FilesWatcher }] = await loadServer
 
 function manager() {
     const instance = Object.create(FilesManager.prototype);
+    instance.pendingRegistrations = new Map();
     instance.files = {};
     instance.lockedUpdatedUri = {};
     instance.loadingInProgress = false;

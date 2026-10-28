@@ -24,6 +24,8 @@ test('readDirs with two wildcard segments discovers only matching directories', 
         mkdirSync(wrongBranch, { recursive: true });
         writeFileSync(join(wrongBranch, 'aventus.conf.avt'), '{}');
         const manager = Object.create(FilesManager.prototype);
+        manager.files = {};
+        manager.pendingRegistrations = new Map();
         SettingsManager.instance = { settings: { readDirs: ['src/*'] } };
         const singleWildcard = await manager.loadAllAventusConfigFiles([pathToUri(root)]);
         assert.equal(singleWildcard.length, 3);

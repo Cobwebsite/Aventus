@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import test from 'node:test';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
@@ -17,6 +18,7 @@ test('a rebuild tracks real source-file additions, edits and deletions in two np
     const previousDependencies = DependencyManager.instance;
     GenericServer.instance = {
         _noBuild: false, isIDE: false, logLevel: 4,
+        workspaces: [pathToFileURL(root).href],
         connection: { delayBetweenBuild: () => 0, sendNotification() {}, sendDiagnostics() {} },
     };
     DependencyManager.instance = { getPath: () => join(root, 'cache') };

@@ -30,6 +30,7 @@ test('two projects replace a deleted global style without retaining its former f
         server: GenericServer.instance, settings: SettingsManager.instance,
     };
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false,
         onNewFileCb: {}, onFileRemoveCb: {} });
     FilesManager.instance = manager;

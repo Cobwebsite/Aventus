@@ -14,7 +14,7 @@ test('an astral i18n key keeps UTF-16 ranges across edits and locale repair', as
         '{\n  "🚀ready": {"en":"Ready"}\n}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => {
