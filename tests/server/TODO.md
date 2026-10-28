@@ -285,7 +285,6 @@ Les scénarios qui révèlent actuellement un écart du code source sont détail
 - [x] Relance d'un renommage après échec du second projet : les éditions partielles ne sont pas conservées ; un nouvel appel agrège les deux projets, puis le retrait du premier ne laisse que les éditions du second (`project-rename-error-retry-round245.test.mjs`).
 - [x] Rechargement du second projet pendant que le premier traite un renommage : le gestionnaire utilise l'instance courante après reprise et agrège ses éditions sans consulter l'ancienne (`project-rename-config-transition-round245.test.mjs`).
 - [x] Suppression d'un projet pendant un build global : le travail déjà lancé reste attendu, son éventuel échec est propagé, et la relance ne sélectionne que le projet encore présent (`project-manager-delete-inflight-round251.test.mjs`).
-- [x] Remplacement de la liste des builds pendant un renommage : l'appel en cours termine sur les deux anciennes instances et renvoie encore leurs éditions ; l'appel suivant utilise la nouvelle instance (`project-rename-build-transition-round253.test.mjs`, décision dans `BLOCKERS.md`).
 
 ## Build et dépendances (`project/Build.ts`, `BuildNpm.ts`, `DependencyManager.ts`, `Static.ts`)
 

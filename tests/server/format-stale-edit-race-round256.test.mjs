@@ -12,7 +12,7 @@ const [{ Commands }, { FilesManager }, { InternalAventusFile }, { GenericServer 
         'cmds/index.ts', 'files/FilesManager.ts', 'files/AventusFile.ts', 'GenericServer.ts',
     ]);
 
-test('une édition concurrente pendant le formatage reçoit les plages calculées sur l ancienne version', async t => {
+test('une édition concurrente pendant le formatage conserve le document récent et signale le conflit', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-format-stale-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const path = join(root, 'stale.wcl.avt');
@@ -34,8 +34,10 @@ test('une édition concurrente pendant le formatage reçoit les plages calculée
         return new Promise(resolve => { releaseFormatting = resolve; });
     });
     FilesManager.instance = { getUris: () => [uri], getByUri: () => file };
+    const errors = [];
     GenericServer.instance = { connection: {
         showLoadingMessage: async (_message, action) => action(),
+        showErrorMessage: message => errors.push(message),
     } };
 
     const pending = Commands.allCommandes['aventus.format'].run(uri);
@@ -48,6 +50,9 @@ test('une édition concurrente pendant le formatage reçoit les plages calculée
     }]);
     await pending;
 
-    assert.equal(file.contentUser, 'ABC abc def');
-    assert.equal(readFileSync(path, 'utf8'), 'ABC abc def');
+    assert.equal(file.contentUser, 'new abc def');
+    assert.equal(readFileSync(path, 'utf8'), 'abc def');
+    assert.equal(errors.length, 1);
+    assert.match(errors[0], /Files changed during formatting; format them again/);
+    assert.match(errors[0], /stale\.wcl\.avt/);
 });
