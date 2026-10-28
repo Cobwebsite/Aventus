@@ -28,6 +28,17 @@ function copyTemplateTree(templates: TemplatesByName): TemplatesByName {
 }
 
 export class TemplateManager {
+	private static findInstallationCollision(plans: { name: string; destination: string }[]): string | undefined {
+		const destinations = new Map<string, string>();
+		for (const plan of plans) {
+			const key = process.platform === 'win32' ? plan.destination.toLowerCase() : plan.destination;
+			const previous = destinations.get(key);
+			if (previous) return `${previous} and ${plan.name} use the same installation folder: ${plan.destination}`;
+			destinations.set(key, plan.name);
+		}
+		return undefined;
+	}
+
 	private static replaceLocalInstallation(source: string, root: string, destination: string): void {
 		const suffix = randomUUID();
 		const staged = destination + '.staged-' + suffix;
@@ -328,6 +339,7 @@ export class TemplateManager {
 			});
 			if (result) {
 				let installed = false;
+				const plans: { path: string; name: string; destination: string }[] = [];
 				for (let item of result) {
 					let path = this.getSelectItem(quickPicks, item);
 					if (path) {
@@ -337,9 +349,17 @@ export class TemplateManager {
 							GenericServer.showErrorMessage("Invalid installation folder");
 							continue;
 						}
-						TemplateManager.replaceLocalInstallation(path, this.projectPath[0], destPath);
-						installed = true;
+						plans.push({ path, name: scripts[path].name, destination: destPath });
 					}
+				}
+				const collision = TemplateManager.findInstallationCollision(plans);
+				if (collision) {
+					GenericServer.showErrorMessage('Projects not installed: ' + collision);
+					return;
+				}
+				for (const plan of plans) {
+					TemplateManager.replaceLocalInstallation(plan.path, this.projectPath[0], plan.destination);
+					installed = true;
 				}
 				if (installed) {
 					GenericServer.showInformationMessage("Projects installed");
@@ -416,6 +436,7 @@ export class TemplateManager {
 			if (result) {
 				const installed: string[] = [];
 				const failed: string[] = [];
+				const plans: { path: string; name: string; destination: string }[] = [];
 				for (let item of result) {
 					let path = this.getSelectItem(quickPicks, item);
 
@@ -427,12 +448,20 @@ export class TemplateManager {
 							failed.push(`Template ${name} failed: invalid installation folder`);
 							continue;
 						}
-						try {
-							TemplateManager.replaceLocalInstallation(path, this.templatePath[0], destPath);
-							installed.push(name);
-						} catch (error) {
-							failed.push(`Template ${name} failed: ${String(error)}`);
-						}
+						plans.push({ path, name, destination: destPath });
+					}
+				}
+				const collision = TemplateManager.findInstallationCollision(plans);
+				if (collision) {
+					GenericServer.showErrorMessage('Templates not installed: ' + collision);
+					return;
+				}
+				for (const plan of plans) {
+					try {
+						TemplateManager.replaceLocalInstallation(plan.path, this.templatePath[0], plan.destination);
+						installed.push(plan.name);
+					} catch (error) {
+						failed.push(`Template ${plan.name} failed: ${String(error)}`);
 					}
 				}
 				if (installed.length > 0) {

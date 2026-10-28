@@ -10,7 +10,7 @@ const [{ TemplateManager }, { TemplateScript }, { GenericServer }] = await loadS
 ]);
 
 for (const kind of ['projects', 'templates']) {
-    test(`local ${kind} import with one installation folder replaces the first selected source`, async t => {
+    test(`local ${kind} import rejects selections with one installation folder before copying`, async t => {
         const root = mkdtempSync(join(tmpdir(), `aventus-import-collision-${kind}-`));
         const sourceRoot = join(root, 'extension', 'templates', kind);
         const destination = join(root, 'installed');
@@ -34,6 +34,7 @@ for (const kind of ['projects', 'templates']) {
         });
 
         const messages = [];
+        const errors = [];
         let reloads = 0;
         GenericServer.instance = {
             _extensionPath: join(root, 'extension'),
@@ -43,7 +44,7 @@ for (const kind of ['projects', 'templates']) {
                 Select: async () => ({ label: 'Local' }),
                 SelectMultiple: async items => items,
                 showInformationMessage: message => messages.push(message),
-                showErrorMessage: message => { throw new Error(message); },
+                showErrorMessage: message => errors.push(message),
             },
         };
         TemplateScript.create = async path => ({
@@ -60,11 +61,13 @@ for (const kind of ['projects', 'templates']) {
         if (kind === 'projects') await manager.selectProjectToImport(false);
         else await manager.selectTemplateToImport();
 
-        assert.equal(readFileSync(join(target, 'second.txt'), 'utf8'), 'second source');
+        assert.equal(readFileSync(join(target, 'old.txt'), 'utf8'), 'previous installation');
+        assert.equal(existsSync(join(target, 'second.txt')), false);
         assert.equal(existsSync(join(target, 'first.txt')), false);
-        assert.equal(existsSync(join(target, 'old.txt')), false);
         assert.equal(readFileSync(join(destination, 'neighbor.txt'), 'utf8'), 'preserved neighbor');
-        assert.deepEqual(messages, [kind === 'projects' ? 'Projects installed' : 'Templates installed']);
-        assert.equal(reloads, 1);
+        assert.deepEqual(messages, []);
+        assert.equal(reloads, 0);
+        assert.equal(errors.length, 1);
+        assert.match(errors[0], /First and Second use the same installation folder/);
     });
 }
