@@ -65,11 +65,8 @@ test('merge observes a destination created while project rename is pending', asy
     releaseRename({});
     await pending;
 
-    assert.equal(existsSync(folder), false);
-    assert.match(readFileSync(destination, 'utf8'), /export class Card/);
-    assert.doesNotMatch(readFileSync(destination, 'utf8'), /export class Other/);
-    assert.deepEqual(notifications.map(([name]) => name), [
-        'aventus/closefile', 'aventus/closefile', 'aventus/openfile',
-    ]);
-    assert.deepEqual(errors, []);
+    assert.equal(existsSync(folder), true);
+    assert.equal(readFileSync(destination, 'utf8'), '<script>export class Other {}</script>');
+    assert.deepEqual(notifications, []);
+    assert.match(errors[0], /destination already exists/);
 });

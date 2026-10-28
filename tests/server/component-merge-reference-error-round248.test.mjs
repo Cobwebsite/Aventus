@@ -10,7 +10,7 @@ const [{ Commands }, { FilesManager }, { GenericServer }, { ProjectManager }, { 
     'cmds/index.ts', 'files/FilesManager.ts', 'GenericServer.ts', 'project/ProjectManager.ts', 'tools.ts',
 ]);
 
-test('merge keeps sources after a reference edit fails, while earlier reference edits remain written', async t => {
+test('merge restores references and sources after a reference edit fails', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-merge-reference-error-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const previous = {
@@ -78,7 +78,8 @@ test('merge keeps sources after a reference edit fails, while earlier reference 
 
     const merge = () => Commands.allCommandes['aventus.component.merge'].run(pathToUri(logicPath));
     await assert.rejects(merge(), /reference edit unavailable/);
-    assert.equal(readFileSync(firstRefPath, 'utf8'), 'new-first');
+    assert.equal(readFileSync(firstRefPath, 'utf8'), 'old-first');
+    assert.equal(files.get(pathToUri(firstRefPath)).contentUser, 'old-first');
     assert.equal(readFileSync(secondRefPath, 'utf8'), 'old-second');
     assert.equal(readFileSync(logicPath, 'utf8'), 'export class Card {}');
     assert.equal(readFileSync(viewPath, 'utf8'), '<p>card</p>');
@@ -90,7 +91,7 @@ test('merge keeps sources after a reference edit fails, while earlier reference 
     assert.equal(existsSync(folder), false);
     assert.match(readFileSync(destination, 'utf8'), /export class Card/);
     assert.match(readFileSync(destination, 'utf8'), /<p>card<\/p>/);
-    assert.equal(readFileSync(firstRefPath, 'utf8'), 'new-first');
+    assert.equal(readFileSync(firstRefPath, 'utf8'), 'old-first');
     assert.equal(readFileSync(secondRefPath, 'utf8'), 'old-second');
     assert.deepEqual(notifications.map(([channel]) => channel), [
         'aventus/closefile', 'aventus/closefile', 'aventus/openfile',

@@ -14,9 +14,9 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Fusion de composant partiellement appliquée après échec d'une édition de référence
 
-- Reproduction automatisée : `component-merge-reference-error-round248.test.mjs` fait échouer l'application de la seconde édition de référence renvoyée par `ProjectManager.onRename()`. La première référence est déjà écrite sur disque ; la seconde et les sources du composant restent inchangées, sans fichier fusionné ni notification. Une nouvelle tentative peut achever la fusion.
-- Cause : `MergeComponent.run()` applique et écrit chaque édition de référence successivement avant de créer le composant fusionné, sans restauration si une édition ultérieure échoue.
-- Décision à prendre : définir si la fusion doit être atomique pour les références et les fichiers du composant, ou si une reprise après application partielle est le comportement attendu.
+- Résolu : la fusion réserve la destination de façon exclusive, restaure les références et les sources si une étape échoue, puis ne notifie la fermeture/ouverture qu'après la réussite.
+- Régression automatisée : `component-merge-reference-error-round248.test.mjs` fait échouer la seconde édition de référence et vérifie que la première est restaurée, que les sources restent présentes et qu'aucune notification n'est envoyée. `component-merge-destination-race-round281.test.mjs` vérifie que la destination apparue pendant l'attente est préservée.
+- Décision prise : restaurer les modifications de la fusion en cas d'échec et préserver toute destination concurrente.
 
 ## Storybook : description et valeur initiale d'une variable absentes
 
