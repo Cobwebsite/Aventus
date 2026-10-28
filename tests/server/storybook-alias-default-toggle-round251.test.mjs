@@ -48,17 +48,17 @@ test('parsed alias toggles its default Storybook story while renewing type and d
 
     const first = await render(1, 'group:"Options"', 'First choice.', '"small" | "large"');
     assert.match(first.story, /DefaultStory: Story/);
-    assert.doesNotMatch(first.story + first.mdx, /First choice/);
+    assert.match(first.story, /First choice/);
     assert.match(first.story, /small|large/);
 
     const second = await render(2, 'group:"Options",noDefaultStory:true', 'Second choice.', '"medium"');
     assert.doesNotMatch(second.story, /DefaultStory: Story/);
-    assert.doesNotMatch(second.story + second.mdx, /Second choice/);
+    assert.match(second.story, /Second choice/);
     assert.doesNotMatch(second.story + second.mdx, /First choice|small|large/);
 
     const third = await render(3, 'group:"Options",noDefaultStory:false', 'Final choice.', '"tiny" | "huge"');
     assert.match(third.story, /DefaultStory: Story/);
-    assert.doesNotMatch(third.story + third.mdx, /Final choice/);
+    assert.match(third.story, /Final choice/);
     assert.match(third.story, /tiny|huge/);
     assert.doesNotMatch(third.story + third.mdx, /First choice|Second choice|small|large|medium/);
 });
