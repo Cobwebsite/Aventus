@@ -870,7 +870,16 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
             await this.writeFile(file, content);
         };
         const hash = (content: string) => createHash('sha256').update(content.replace(/\r\n?/g, '\n')).digest('hex');
-        const manifestName = '.aventus-npm-generated.json';
+        const registerDir = join(uriToPath(GenericServer.getWorkspaceUri()), '.aventus', 'npm');
+        const registerPath = join(registerDir, 'register.json');
+        let register: Record<string, Record<string, string>> = Object.create(null);
+        if (existsSync(registerPath)) {
+            try {
+                const parsed = JSON.parse(readFileSync(registerPath, 'utf8'));
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) register = parsed;
+            } catch { }
+        }
+        const outputKey = (root: string) => resolve(root).replace(/\\/g, '/');
         const generatedPath = (root: string, file: string) => {
             const path = relative(resolve(root), resolve(file));
             if (!path || path === '..' || path.startsWith('..' + sep) || path.split(sep).includes('..')) {
@@ -1114,14 +1123,9 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                     finalPackage.dependencies = packageJson.dependencies;
                     let generatedPackage = !existsSync(packageJsonPath);
                     if (!generatedPackage) {
-                        const ownershipPath = join(outputPackage, manifestName);
-                        if (existsSync(ownershipPath)) {
-                            try {
-                                const previous = JSON.parse(readFileSync(ownershipPath, 'utf8'));
-                                generatedPackage = typeof previous?.['package.json'] === 'string' &&
-                                    previous['package.json'] === hash(readFileSync(packageJsonPath, 'utf8'));
-                            } catch { }
-                        }
+                        const previous = register[outputKey(outputPackage)];
+                        generatedPackage = typeof previous?.['package.json'] === 'string' &&
+                            previous['package.json'] === hash(readFileSync(packageJsonPath, 'utf8'));
                     }
                     const content = JSON.stringify(finalPackage, null, 2);
                     if (generatedPackage) await writeGenerated(outputPackage, packageJsonPath, content);
@@ -1142,15 +1146,9 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
             }
 
             for (const outputPackage of outputNpm.path) {
-                const manifestPath = join(outputPackage, manifestName);
                 const current = generated.get(outputPackage) ?? Object.create(null);
-                let previous: Record<string, string> = Object.create(null);
-                if (existsSync(manifestPath)) {
-                    try {
-                        const parsed = JSON.parse(readFileSync(manifestPath, 'utf8'));
-                        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) previous = parsed;
-                    } catch { }
-                }
+                const key = outputKey(outputPackage);
+                const previous = register[key] ?? Object.create(null);
                 for (const [path, oldHash] of Object.entries(previous)) {
                     if (Object.hasOwn(current, path) || typeof oldHash !== 'string') continue;
                     const file = resolve(outputPackage, path);
@@ -1168,8 +1166,10 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                         }
                     }
                 }
-                await writeNpmFile(manifestPath, JSON.stringify(current, null, 2));
+                register[key] = current;
             }
+            mkdirSync(registerDir, { recursive: true });
+            await writeNpmFile(registerPath, JSON.stringify(register, null, 2));
         } catch (error) {
             for (const [file, previous] of [...previousFiles].reverse()) {
                 try {

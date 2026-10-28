@@ -3,12 +3,16 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
-import { loadServerModule } from './helpers/load-ts.mjs';
+import { pathToFileURL } from 'node:url';
+import { loadServerModules } from './helpers/load-ts.mjs';
 
-const { Build } = await loadServerModule('project/Build.ts');
+const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
 
 test('npm namespace entry points include children without importing prefix-sharing siblings', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-prefix-'));
+    const previousServer = GenericServer.instance;
+    GenericServer.instance = { ...(previousServer ?? {}), workspaces: [pathToFileURL(root).href] };
+    t.after(() => { GenericServer.instance = previousServer; });
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'package');
     const build = Object.create(Build.prototype);

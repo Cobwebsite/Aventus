@@ -3,12 +3,16 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Build }] = await loadServerModules(['project/Build.ts']);
+const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
 
 test('npm output recovers malformed destination metadata and retains later user fields', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-metadata-recovery-'));
+    const previousServer = GenericServer.instance;
+    GenericServer.instance = { ...(previousServer ?? {}), workspaces: [pathToFileURL(root).href] };
+    t.after(() => { GenericServer.instance = previousServer; });
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'dist');
     mkdirSync(output);
@@ -52,5 +56,5 @@ test('npm output recovers malformed destination metadata and retains later user 
     assert.equal(pkg.scripts, undefined);
     assert.equal(existsSync(join(output, 'index.js')), true);
     assert.equal(existsSync(join(output, 'index.d.ts')), true);
-    assert.deepEqual(Object.keys(JSON.parse(readFileSync(join(output, '.aventus-npm-generated.json'), 'utf8'))).sort(), ['index.d.ts', 'index.js']);
+    assert.deepEqual(Object.keys(JSON.parse(readFileSync(join(root, '.aventus', 'npm', 'register.json'), 'utf8'))[output.replace(/\\/g, '/')]).sort(), ['index.d.ts', 'index.js']);
 });

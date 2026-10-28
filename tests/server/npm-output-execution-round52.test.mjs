@@ -22,7 +22,7 @@ test('npm entries in both destinations execute after rebuilding without a remove
     const root = mkdtempSync(join(import.meta.dirname, '.npm-executable-round52-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const previousServer = GenericServer.instance;
-    GenericServer.instance = { logLevel: 0, connection: { sendNotification() {} }, _savePath: root };
+    GenericServer.instance = { logLevel: 0, connection: { sendNotification() {} }, workspaces: [pathToFileURL(root).href], _savePath: root };
     t.after(() => { GenericServer.instance = previousServer; });
     const destinations = [join(root, 'first'), join(root, 'second')];
     const build = Object.create(Build.prototype);
