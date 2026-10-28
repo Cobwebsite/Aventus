@@ -12,17 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Renommage pendant le remplacement des builds d'un projet
-
-- Reproduction automatisée : `project-rename-build-transition-round253.test.mjs` suspend le premier build pendant `Project.onRename()`, remplace la liste des builds, puis reprend. Le second build de l'ancienne liste est encore appelé et ses éditions sont renvoyées, alors que l'appel suivant utilise la nouvelle liste.
-- Décision à prendre : confirmer si les éditions issues de builds retirés pendant un renommage doivent rester dans la réponse, ou si le projet doit vérifier la liste courante avant chaque build.
-
-## Formatage appliqué à une version de fichier différente
-
-- Reproduction automatisée : `format-stale-edit-race-round256.test.mjs` suspend le formateur après sa lecture de `abc def`, insère `new ` dans le document, puis reprend l'édition calculée pour les trois premiers caractères. La commande applique cette édition au document récent et écrit `ABC abc def` sur disque, remplaçant `new` plutôt que `abc`.
-- Cause : `Format.run()` attend `getFormatting()` puis appelle `applyTextEdits()` sans comparer la version du document ; cette méthode calcule les offsets sur le document courant.
-- Décision à prendre : refuser ou recalculer les éditions si le fichier change pendant le formatage, ou confirmer explicitement l'application à la version courante.
-
 ## Formatage non écrit sur disque après un premier échec d'écriture
 
 - Reproduction automatisée : `format-write-retry-round257.test.mjs` rend le chemin de destination non inscriptible après le calcul des éditions. Le contenu en mémoire passe à `after`, mais l'écriture échoue. Après rétablissement du fichier à `before`, un second formatage sans nouvelle édition ne réécrit pas le disque ; mémoire et disque restent divergents. Le même test vérifie qu'un lot continue à formater le fichier suivant et signale seulement le chemin en échec.
@@ -95,7 +84,7 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Catégories serveur encore ouvertes dans TODO.md
 
-- **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.
+- **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées. Décider l'unicité des noms avant de valider l'ensemble.
 - **Commandes build, npm, Storybook et sortie statique (ligne 540)** : `build-command-unlisted-selection-round213.test.mjs` démontre que les quatre commandes acceptent une cible qui n'était pas dans les choix proposés. Définir si le choix doit être limité à la liste affichée et appliquer ce contrat aux quatre commandes.
 - **Exports Sharp/PHP (ligne 541)** : `converter-output-concurrency-round99.test.mjs` démontre que deux échecs laissent l'état client à `compiling`. Définir l'état terminal de chaque export et les conventions de sortie avant de considérer tous les échecs couverts.
 - **Stories et MDX (ligne 562)** : `storybook-description-interpolation-round130.test.mjs` démontre qu'un JSDoc contenant `${name}` devient une interpolation dans la story. Échapper le texte utilisateur avant de clore la génération complète.
