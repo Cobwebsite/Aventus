@@ -296,7 +296,7 @@ export class HttpServer {
 			function file(filepath /*, stat*/) {
 				var x = extname(filepath).toLocaleLowerCase(), match,
 					possibleExtensions = ["", ".html"];
-				if (hasNoOrigin && (possibleExtensions.indexOf(x) > -1)) {
+				if (hasNoOrigin && !req.headers.range && (possibleExtensions.indexOf(x) > -1)) {
 					// TODO: Sync file read here is not nice, but we need to determine if the html should be injected or not
 					var contents = readFileSync(filepath, "utf8");
 					for (var i = 0; i < injectCandidates.length; ++i) {
