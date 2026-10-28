@@ -49,14 +49,20 @@ test('parsed Storybook variable renews type and default story across revisions',
     const first = await render(1, 'group:"Limits"', 'Initial threshold.', 'number', '17');
     assert.match(first.story, /"name": "number"/);
     assert.match(first.story, /DefaultStory: Story/);
-    assert.doesNotMatch(first.story + first.mdx, /Initial threshold\.|\b17\b/);
+    assert.match(first.story, /Initial threshold\./);
+    assert.match(first.story, /"value": "17"/);
+    assert.match(first.mdx, /JSON\.stringify\(Meta\.aventus\)/);
 
     const second = await render(2, 'group:"Limits",noDefaultStory:true', 'Revised threshold.', 'string', '"high"');
     assert.match(second.story, /"name": "string"/);
     assert.doesNotMatch(second.story, /"name": "number"|DefaultStory: Story/);
+    assert.match(second.story, /Revised threshold\./);
+    assert.match(second.story, /"value": "\\"high\\""/);
 
     const third = await render(3, 'group:"Limits",noDefaultStory:false', 'Final threshold.', 'boolean', 'true');
     assert.match(third.story, /"name": "boolean"/);
     assert.match(third.story, /DefaultStory: Story/);
     assert.doesNotMatch(third.story, /"name": "number"|"name": "string"/);
+    assert.match(third.story, /Final threshold\./);
+    assert.match(third.story, /"value": "true"/);
 });

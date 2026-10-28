@@ -20,8 +20,8 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Storybook : description et valeur initiale d'une variable absentes
 
-- Reproduction automatisée : `storybook-variable-revisions-round249.test.mjs` parse une constante documentée et initialisée puis régénère trois versions de sa story. Le type et l'option `noDefaultStory` sont actualisés, mais la description JSDoc et la valeur initiale n'apparaissent ni dans la story TS ni dans le MDX.
-- Décision à prendre : déterminer si les stories de variables doivent publier ces deux informations ; si oui, les propager depuis le parseur vers `storieContent` et la génération Storybook.
+- Résolu côté serveur : la description JSDoc et la valeur initiale, sous forme de texte source, sont transmises dans la story. Leur rendu est confié à `@aventusjs/storybook-render` 0.0.5 une fois publié.
+- Régression automatisée : `storybook-variable-revisions-round249.test.mjs` vérifie ces informations sur trois révisions, ainsi que le type et `noDefaultStory`.
 
 ## Corps injecté hors de la plage HTTP annoncée
 
