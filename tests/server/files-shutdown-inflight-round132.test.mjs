@@ -16,6 +16,7 @@ function deferred() {
 test('shutdown waits for an already-started content-change callback before deleting the file', async () => {
     const previous = [FilesWatcher.instance, GenericServer.instance];
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const uri = 'file:///round132/inflight.wcl.avt';
     const doc = (version, content) => TextDocument.create(uri, 'typescript', version, content);

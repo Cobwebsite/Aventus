@@ -9,6 +9,7 @@ const [{ FilesManager }, { FilesWatcher }, { GenericServer }] = await loadServer
 
 test('a failed first registration does not discard a newer registration of the same URI', async t => {
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const previousServer = GenericServer.instance;
     const previousWatcher = FilesWatcher.instance;
@@ -51,6 +52,7 @@ test('a failed first registration does not discard a newer registration of the s
 
 test('registration of a different URI proceeds while the first URI is pending', { timeout: 5_000 }, async t => {
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const previousServer = GenericServer.instance;
     const previousWatcher = FilesWatcher.instance;
@@ -77,6 +79,7 @@ test('registration of a different URI proceeds while the first URI is pending', 
 
 test('three registrations of the same URI are processed in arrival order', async t => {
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const previousServer = GenericServer.instance;
     const previousWatcher = FilesWatcher.instance;

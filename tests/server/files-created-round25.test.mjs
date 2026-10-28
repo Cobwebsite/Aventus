@@ -11,6 +11,7 @@ const [{ FilesManager }, { GenericServer }, { FilesWatcher }, { pathToUri }] = a
 
 function manager() {
     const instance = Object.create(FilesManager.prototype);
+    instance.pendingRegistrations = new Map();
     Object.assign(instance, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return instance;
 }

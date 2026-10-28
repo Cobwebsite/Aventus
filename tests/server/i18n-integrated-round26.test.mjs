@@ -17,6 +17,7 @@ function fixture(content) {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
         module: 'Round26',
         tsFiles: {},
+        tsLanguageService: { i18nFiles: {} },
         diagnostics: new Map(),
         hideWarnings: false,
         build() { builds.push(true); },

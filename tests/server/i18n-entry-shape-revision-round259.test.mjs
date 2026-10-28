@@ -14,7 +14,7 @@ test('une entrée i18n de forme invalide devient traduisible après deux révisi
         '{"ready":{"en":"Ready","fr":"Prêt"},"draft":"plain"}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => {

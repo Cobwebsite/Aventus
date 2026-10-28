@@ -22,6 +22,7 @@ test('disk creation waits for its asynchronous save callback', async () => {
     writeFileSync(path, 'class Sample {}');
     const uri = pathToUri(path);
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const previousServer = GenericServer.instance;
     const previousWatcher = FilesWatcher.instance;
@@ -62,6 +63,7 @@ test('disk updates wait for save when registering and refreshing a file', async 
     const path = join(root, 'sample.wcl.avt');
     const uri = pathToUri(path);
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     manager.files = {};
     manager.lockedUpdatedUri = {};
     const saves = [];

@@ -15,6 +15,7 @@ function fixture(content, isGlobal = true) {
     file._file = { uri: documentUser.uri, documentUser };
     file.parsedSrc = JSON.parse(content);
     file.parsed = I18nParser.parse(documentUser);
+    file.parsedVersion = documentUser.version;
     file._build = { buildConfig: { i18n: { locales: ['en', 'fr'] } }, module: 'Demo', tsFiles: {} };
     file.isGlobal = isGlobal;
     return file;

@@ -21,7 +21,7 @@ function fixture(t, locales, content) {
     const source = new InternalAventusFile(TextDocument.create(uri, 'json', 1, content));
     const build = {
         buildConfig: { i18n: { locales, fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => {

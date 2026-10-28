@@ -14,7 +14,7 @@ test('une clé JSON échappée renouvelle sa plage, sa correction et son export 
         '{\n  "caf\\u00e9": {"en":"Coffee"}\n}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => {

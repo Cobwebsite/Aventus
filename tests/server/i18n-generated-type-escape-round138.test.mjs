@@ -25,7 +25,7 @@ test('une clé i18n contenant un saut de ligne reste valide dans le type génér
         JSON.stringify({ 'line\nbreak': { en: 'Line', fr: 'Ligne' } })));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => {
@@ -57,7 +57,7 @@ test('une clé i18n contenant une séquence antislash-t garde son nom dans le ty
         JSON.stringify({ [key]: { en: 'Value' } })));
     const build = {
         buildConfig: { i18n: { locales: ['en'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => {

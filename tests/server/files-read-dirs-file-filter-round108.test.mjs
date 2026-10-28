@@ -27,6 +27,8 @@ test('a readDirs file entry admits only that file while a directory entry admits
         InitStep.send = () => {};
         InitStep.sendDone = () => {};
         const manager = Object.create(FilesManager.prototype);
+        manager.files = {};
+        manager.pendingRegistrations = new Map();
         const registered = [];
         manager.registerFile = async document => registered.push(document.uri);
         await manager.loadAllAventusFiles([pathToUri(root)]);

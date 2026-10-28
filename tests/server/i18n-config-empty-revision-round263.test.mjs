@@ -12,7 +12,7 @@ test('les locales configurées passent de zéro à deux puis à zéro sans laiss
     const uri = 'file:///D:/round263/config-empty.i18n.avt';
     const build = {
         buildConfig: { i18n: { locales: [], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const source = new InternalAventusFile(TextDocument.create(uri, 'json', 1,
         '{"first":{"en":"One"},"second":{}}'));

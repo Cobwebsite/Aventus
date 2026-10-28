@@ -16,6 +16,8 @@ for (const [label, invoke] of [
     test(`${label} of a missing file waits for deferred deletion`, async () => {
         const uri = pathToUri(join(tmpdir(), `aventus-round123-missing-${label.replace(' ', '-')}.wcl.avt`));
         const manager = Object.create(FilesManager.prototype);
+        manager.files = {};
+        manager.pendingRegistrations = new Map();
         const oldWatcher = FilesWatcher.instance;
         const oldServer = GenericServer.instance;
         const oldSendDiagnostics = GenericServer.sendDiagnostics;

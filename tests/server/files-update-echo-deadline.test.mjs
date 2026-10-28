@@ -14,6 +14,7 @@ test('disk echo is suppressed until exactly two seconds after the last suppressi
     const path = join(dir, 'sample.wcl.avt');
     const uri = pathToUri(path);
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     manager.files = { [uri]: { versionUser: 1 } };
     manager.lockedUpdatedUri = {};
     const events = [];

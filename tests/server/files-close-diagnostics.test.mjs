@@ -12,6 +12,7 @@ const [{ FilesManager }, { GenericServer }, { SettingsManager }, { FilesWatcher 
 
 function manager() {
     const instance = Object.create(FilesManager.prototype);
+    instance.pendingRegistrations = new Map();
     instance.files = {};
     instance.lockedUpdatedUri = {};
     instance.loadingInProgress = false;

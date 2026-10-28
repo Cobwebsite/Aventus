@@ -34,6 +34,8 @@ test('disk create and edit replace output; deletion removes the source in one re
     });
 
     const manager = Object.create(FilesManager.prototype);
+
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, {
         files: {}, lockedUpdatedUri: {}, loadingInProgress: false,
         onNewFileCb: {}, onFileRemoveCb: {},

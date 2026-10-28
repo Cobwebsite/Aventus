@@ -15,6 +15,7 @@ test('client create, update and delete commands carry a disk file through the ma
     const uri = pathToUri(path);
     const old = [FilesManager.instance, GenericServer.instance, FilesWatcher.instance, SettingsManager.instance];
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const events = [];
     FilesManager.instance = manager;

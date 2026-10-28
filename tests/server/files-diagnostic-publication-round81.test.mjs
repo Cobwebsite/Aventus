@@ -19,6 +19,7 @@ test('diagnostics are replaced by an empty publication after revalidation, then 
     const path = join(root, 'entry.wcl.avt');
     const uri = pathToUri(path);
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const previous = [GenericServer.instance, SettingsManager.instance, FilesWatcher.instance];
     const publications = [];

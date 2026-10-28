@@ -16,6 +16,7 @@ test('an edited and saved document is discarded on close after disk removal, the
     const uri = pathToUri(path);
     const previous = [GenericServer.instance, FilesWatcher.instance, SettingsManager.instance];
     const manager = Object.create(FilesManager.prototype);
+    manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const events = [];
     GenericServer.instance = { isIDE: true, logLevel: 99, connection: { sendDiagnostics: params => events.push(['diagnostics', params.uri, params.diagnostics]) } };

@@ -12,18 +12,18 @@ test('npm builder shares a wildcard import across files and removes it after the
     builder.register('file-b', { uri: '@demo/widgets', libName: '*', alias: 'Controls' });
     let generated = builder.writeFileToCompile();
     assert.equal((generated.buildTxt.match(/from "@demo\/widgets"/g) ?? []).length, 1);
-    assert.match(generated.toExport, /\['Widgets'\]/);
-    assert.match(generated.toExport, /\['Controls'\]/);
+    assert.match(generated.toExport, /\["Widgets"\]/);
+    assert.match(generated.toExport, /\["Controls"\]/);
 
     builder.unregister('file-a');
     generated = builder.writeFileToCompile();
-    assert.doesNotMatch(generated.toExport, /\['Widgets'\]/);
-    assert.match(generated.toExport, /\['Controls'\]/);
+    assert.doesNotMatch(generated.toExport, /\["Widgets"\]/);
+    assert.match(generated.toExport, /\["Controls"\]/);
 
     builder.unregister('file-b');
     generated = builder.writeFileToCompile();
     assert.doesNotMatch(generated.buildTxt, /@demo\/widgets/);
-    assert.doesNotMatch(generated.toExport, /\['Controls'\]/);
+    assert.doesNotMatch(generated.toExport, /\["Controls"\]/);
 });
 
 test('npm builder resolves existing node_modules from the project upward in nearest-first order', t => {

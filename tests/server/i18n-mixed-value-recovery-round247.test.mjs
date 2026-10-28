@@ -14,7 +14,7 @@ test('valeurs de traduction structurées : diagnostics, action ciblée et récup
         '{"array":{"en":["one"]},"object":{"en":{"text":"Two"}},"valid":{"en":"Three"}}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        tsFiles: {}, diagnostics: new Map(), build() {},
+        tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, true, build);
     t.after(async () => { clearTimeout(source.delayValidate); await source.triggerDelete(); });

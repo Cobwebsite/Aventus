@@ -17,13 +17,13 @@ test('npm builder deduplicates imports and aliases shared by several files', () 
     const generated = builder.writeFileToCompile();
     assert.match(generated.buildTxt, /from "library-one"/);
     assert.match(generated.buildTxt, /from "library-two"/);
-    assert.match(generated.toExport, /\['First'\]/);
-    assert.match(generated.toExport, /\['Second'\]/);
-    assert.match(generated.toExport, /\['Other'\]/);
+    assert.match(generated.toExport, /\["First"\]/);
+    assert.match(generated.toExport, /\["Second"\]/);
+    assert.match(generated.toExport, /\["Other"\]/);
     assert.equal((generated.buildTxt.match(/from "library-one"/g) ?? []).length, 1);
 
     builder.unregister('file-b');
-    assert.doesNotMatch(builder.writeFileToCompile().toExport, /\['Second'\]/);
+    assert.doesNotMatch(builder.writeFileToCompile().toExport, /\["Second"\]/);
 });
 
 test('npm builder reports a missing namespace alias without registering the wildcard import', () => {

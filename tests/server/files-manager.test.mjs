@@ -6,6 +6,7 @@ const { FilesManager } = await loadServerModule('files/FilesManager.ts');
 
 function manager() {
     const instance = Object.create(FilesManager.prototype);
+    instance.pendingRegistrations = new Map();
     instance.files = {
         'file:///d%3A/app/src/a.wcl.avt': { uri: 'file:///d%3A/app/src/a.wcl.avt', path: 'D:/app/src/a.wcl.avt' },
         'file:///d%3A/app/src/b.wcs.avt': { uri: 'file:///d%3A/app/src/b.wcs.avt', path: 'D:/app/src/b.wcs.avt' },

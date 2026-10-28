@@ -12,7 +12,7 @@ test('une traduction de composant suit l’apparition, le changement puis la sup
     const source = new InternalAventusFile(TextDocument.create(uri, 'json', 1, '{"title":{"en":"Title","fr":"Titre"}}'));
     const build = {
         buildConfig: { i18n: { locales: ['en', 'fr'], fallback: 'en' } },
-        module: 'Demo', tsFiles: {}, diagnostics: new Map(), build() {},
+        module: 'Demo', tsFiles: {}, tsLanguageService: { i18nFiles: {} }, diagnostics: new Map(), build() {},
     };
     const translation = new AventusI18nFile(source, false, build);
     t.after(async () => { clearTimeout(source.delayValidate); await source.triggerDelete(); });

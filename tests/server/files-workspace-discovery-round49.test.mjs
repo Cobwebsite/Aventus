@@ -33,6 +33,8 @@ test('readDirs applies independently to each workspace for config and ordinary f
         InitStep.send = () => {};
         InitStep.sendDone = () => {};
         const manager = Object.create(FilesManager.prototype);
+        manager.files = {};
+        manager.pendingRegistrations = new Map();
         manager.loadingInProgress = false;
         const registered = [];
         manager.registerFile = async document => registered.push([document.uri, manager.loadingInProgress]);
