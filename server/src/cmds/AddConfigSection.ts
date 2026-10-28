@@ -60,7 +60,6 @@ export class AddConfigSection {
 				return { content, config };
 			};
 			const initialConfig = readConfig().config;
-			let newSection: object;
 
 			if (sectionType.label == "Build") {
 				const normalizeName = (value: string) => value.trim().replace(/[^a-zA-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
@@ -113,7 +112,7 @@ export class AddConfigSection {
 					}
 				}
 
-				newSection = {
+				const newSection = {
 					"name": buildName,
 					"src": [],
 					"compile": [{
@@ -131,15 +130,19 @@ export class AddConfigSection {
 			}
 			else if (sectionType.label == "Static") {
 				const name = await GenericServer.Input({
-					title: "Provide a name for your static section",
+					title: "Provide a name for your static section (optional)",
+					placeHolder: "Leave blank for an unnamed static section",
 				});
-				if (!name) return;
+				if (name === null) return;
 
 				const { content, config } = readConfig();
-				newSection = {
+				const newSection: { name?: string, input: string, output: string } = {
 					"name": name,
 					"input": "",
 					"output": ""
+				}
+				if (!newSection.name?.trim()) {
+					delete newSection.name;
 				}
 
 				const current = Array.isArray(config.static) ? config.static : [];
@@ -149,7 +152,9 @@ export class AddConfigSection {
 				});
 				writeFileSync(configPath, applyEdits(content, edits));
 			}
-			else return;
+			else {
+				return;
+			}
 			OpenFile.send(uri);
 		} catch (e) {
 			console.error(e);

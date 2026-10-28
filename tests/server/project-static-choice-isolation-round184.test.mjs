@@ -86,7 +86,7 @@ test('same named static choices remain project scoped through replacement and in
         entry.file.documentUser = TextDocument.create(entry.file.uri, 'json', version, content);
         await entry.project.onConfigSave();
     };
-    const choice = (entry, name) => ({ name, uri: entry.file.uri });
+    const choice = (entry, name) => ({ name, uri: entry.file.uri, index: 0 });
 
     await save(first, 1, ['assets']);
     await save(second, 1, ['assets']);

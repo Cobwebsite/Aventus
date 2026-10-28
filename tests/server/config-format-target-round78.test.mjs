@@ -66,7 +66,7 @@ test('add config section cancels at project or name prompt without writing', asy
     GenericServer.instance = { logLevel: 4, connection: {
         Select: async (_items, options) => options.title === 'Select a project to add section'
             ? (selectProject ? null : { label: uri }) : { label: 'Static' },
-        Input: async () => '',
+        Input: async () => null,
         sendNotification: (...args) => notifications.push(args),
     } };
     try {

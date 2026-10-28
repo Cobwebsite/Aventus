@@ -48,7 +48,7 @@ test('add config section keeps an edit made while the section type is being sele
     assert.deepEqual(notifications, [['aventus/openfile', [uri]]]);
 });
 
-test('add static section keeps an edit made while its name is being entered', async t => {
+test('add static section keeps an edit made while its type is being selected', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-add-static-concurrent-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const path = join(root, 'aventus.conf.avt');
@@ -56,11 +56,11 @@ test('add static section keeps an edit made while its name is being entered', as
     const previousServer = GenericServer.instance;
     t.after(() => { GenericServer.instance = previousServer; });
 
-    let releaseName;
+    let releaseSelection;
     const notifications = [];
     GenericServer.instance = { connection: {
-        Select: async () => ({ label: 'Static' }),
-        Input: () => new Promise(resolve => { releaseName = resolve; }),
+        Select: () => new Promise(resolve => { releaseSelection = resolve; }),
+        Input: async () => 'New assets',
         sendNotification: (...args) => notifications.push(args),
     } };
 
@@ -68,11 +68,11 @@ test('add static section keeps an edit made while its name is being entered', as
     writeFileSync(path, JSON.stringify(original));
     const pending = Commands.allCommandes['aventus.addConfigSection'].run(uri);
     await Promise.resolve();
-    assert.equal(typeof releaseName, 'function');
+    assert.equal(typeof releaseSelection, 'function');
 
     const revised = { ...original, module: 'Demo2', custom: { revision: 2 }, static: [{ name: 'Existing', input: 'old', output: 'old-out' }] };
     writeFileSync(path, JSON.stringify(revised));
-    releaseName('New assets');
+    releaseSelection({ label: 'Static' });
     await pending;
 
     assert.deepEqual(JSON.parse(readFileSync(path, 'utf8')), {

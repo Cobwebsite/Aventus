@@ -22,14 +22,14 @@ test('build commands resolve the current project after selection pauses across a
             buildNpm: () => calls.push([version, name, 'npm']),
             buildStorybook: () => calls.push([version, name, 'storybook']),
         }),
-        getStatic: name => ({ export: async () => calls.push([version, name, 'static']) }),
+        getStaticAt: index => ({ export: async () => calls.push([version, index, 'static']) }),
     });
     let current = project('old');
     const manager = {
         getAllBuilds: () => [{ name: 'Demo@web', uri }],
         getAllBuildsWithNpm: () => [{ name: 'Demo@web', uri }, { name: 'Other@web', uri }],
         getAllBuildsWithStory: () => [{ name: 'Demo@web', uri }],
-        getAllStatics: () => [{ name: 'Demo@assets', uri }],
+        getAllStatics: () => [{ name: 'Demo@assets', uri, index: 0 }],
         getProjectByUri: requested => requested === uri ? current : undefined,
     };
     ProjectManager.getInstance = () => manager;
@@ -52,7 +52,7 @@ test('build commands resolve the current project after selection pauses across a
         current = project('new');
         select();
         await running;
-        assert.deepEqual(calls.at(-1), ['new', name, kind]);
+        assert.deepEqual(calls.at(-1), ['new', kind === 'static' ? 0 : name, kind]);
     }
     assert.equal(calls.length, 4);
 });

@@ -22,10 +22,10 @@ test('build commands recover from a failed selection on the next invocation', as
             buildNpm: () => calls.push(['npm', name]),
             buildStorybook: () => calls.push(['storybook', name]),
         }),
-        getStatic: name => ({ export: async () => calls.push(['static', name]) }),
+        getStaticAt: index => ({ export: async () => calls.push(['static', index]) }),
     };
     const build = { name: 'Demo@web', uri };
-    const staticBuild = { name: 'Demo@assets', uri };
+    const staticBuild = { name: 'Demo@assets', uri, index: 0 };
     ProjectManager.getInstance = () => ({
         getAllBuilds: () => [build],
         getAllBuildsWithNpm: () => [build, { name: 'Other@web', uri }],
@@ -50,7 +50,7 @@ test('build commands recover from a failed selection on the next invocation', as
         assert.deepEqual(calls.filter(call => call[0] === kind), [], `${kind} ran after a rejected selection`);
         await Commands.allCommandes[command].run();
         assert.equal(selects, 2);
-        assert.deepEqual(calls.at(-1), [kind, name]);
+        assert.deepEqual(calls.at(-1), [kind, kind === 'static' ? 0 : name]);
     }
     assert.equal(calls.length, 4);
 });

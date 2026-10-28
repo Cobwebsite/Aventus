@@ -79,6 +79,7 @@ test('global build and static choices recover after one project changes module n
         await entry.project.onConfigSave();
     };
     const choice = (entry, name) => ({ name, uri: entry.file.uri });
+    const staticChoice = (entry, name) => ({ name, uri: entry.file.uri, index: 0 });
     const story = { name: 'web', src: [], stories: { output: './stories' } };
     const npm = { name: 'web', src: [], compile: [{ outputNpm: './npm' }] };
     const plain = { name: 'plain', src: [] };
@@ -90,26 +91,26 @@ test('global build and static choices recover after one project changes module n
     assert.deepEqual(manager.getAllBuildsWithStory(), [choice(first, 'Alpha@web')]);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [choice(first, 'Alpha@web'),
         choice(second, 'Beta@web')]);
-    assert.deepEqual(manager.getAllStatics(), [choice(first, 'assets'), choice(second, 'assets')]);
+    assert.deepEqual(manager.getAllStatics(), [staticChoice(first, 'assets'), staticChoice(second, 'assets')]);
 
     await save(first, 2, 'Gamma', [npm, { ...story, name: 'story', disabled: true }], ['media']);
     assert.deepEqual(manager.getAllBuilds(), [choice(first, 'Gamma@web'), choice(second, 'Beta@web')]);
     assert.deepEqual(manager.getAllBuildsWithStory(), []);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [choice(first, 'Gamma@web'),
         choice(second, 'Beta@web')]);
-    assert.deepEqual(manager.getAllStatics(), [choice(first, 'media'), choice(second, 'assets')]);
+    assert.deepEqual(manager.getAllStatics(), [staticChoice(first, 'media'), staticChoice(second, 'assets')]);
 
     await save(first, 3, null, [], []);
     assert.deepEqual(manager.getAllBuilds(), [choice(second, 'Beta@web')]);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [choice(second, 'Beta@web')]);
-    assert.deepEqual(manager.getAllStatics(), [choice(second, 'assets')]);
+    assert.deepEqual(manager.getAllStatics(), [staticChoice(second, 'assets')]);
 
     await save(first, 4, 'Delta', [story], ['images']);
     assert.deepEqual(manager.getAllBuilds(), [choice(first, 'Delta@web'), choice(second, 'Beta@web')]);
     assert.deepEqual(manager.getAllBuildsWithStory(), [choice(first, 'Delta@web')]);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [choice(first, 'Delta@web'),
         choice(second, 'Beta@web')]);
-    assert.deepEqual(manager.getAllStatics(), [choice(first, 'images'), choice(second, 'assets')]);
+    assert.deepEqual(manager.getAllStatics(), [staticChoice(first, 'images'), staticChoice(second, 'assets')]);
     first.project.destroy();
     second.project.destroy();
 });

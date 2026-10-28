@@ -22,7 +22,7 @@ export class Static {
     private exportedBySource = new Map<string, Map<string, { size: number, mtimeMs: number, canDelete: boolean }>>();
 
     public get name() {
-        return this.staticConfig.name;
+        return this.staticConfig.name ?? '';
     }
 
     public constructor(project: Project, staticConfig: AventusConfigStatic) {

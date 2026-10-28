@@ -69,11 +69,11 @@ test('static export awaits a failed destination and a later selection can still 
     let selected = 'file:///alpha/aventus.conf.avt';
     const manager = {
         getAllStatics: () => ['alpha', 'beta'].map(root => ({
-            name: 'Shared@assets', uri: `file:///${root}/aventus.conf.avt`,
+            name: 'Shared@assets', uri: `file:///${root}/aventus.conf.avt`, index: 0,
         })),
         getProjectByUri: uri => ({
-            getStatic: name => ({ export: async () => {
-                calls.push([uri, name]);
+            getStaticAt: index => ({ export: async () => {
+                calls.push([uri, index]);
                 if (uri.includes('/alpha/')) throw new Error('destination unavailable');
             } }),
         }),
@@ -86,7 +86,7 @@ test('static export awaits a failed destination and a later selection can still 
     selected = 'file:///beta/aventus.conf.avt';
     await commands['aventus.static'].run();
     assert.deepEqual(calls, [
-        ['file:///alpha/aventus.conf.avt', 'Shared@assets'],
-        ['file:///beta/aventus.conf.avt', 'Shared@assets'],
+        ['file:///alpha/aventus.conf.avt', 0],
+        ['file:///beta/aventus.conf.avt', 0],
     ]);
 });

@@ -10,7 +10,7 @@ const [{ Commands }, { GenericServer }] = await loadServerModules([
     'cmds/index.ts', 'GenericServer.ts',
 ]);
 
-test('la section statique supprimée pendant la saisie est recréée sur la configuration récente', async t => {
+test('la section statique supprimée pendant le choix du type est recréée sur la configuration récente', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-static-removed-race-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const path = join(root, 'aventus.conf.avt');
@@ -20,20 +20,20 @@ test('la section statique supprimée pendant la saisie est recréée sur la conf
     }));
     const previousServer = GenericServer.instance;
     t.after(() => { GenericServer.instance = previousServer; });
-    let releaseName;
+    let releaseSelection;
     const notifications = [];
     GenericServer.instance = { connection: {
-        Select: async () => ({ label: 'Static' }),
-        Input: () => new Promise(resolve => { releaseName = resolve; }),
+        Select: () => new Promise(resolve => { releaseSelection = resolve; }),
+        Input: async () => 'New assets',
         sendNotification: (...args) => notifications.push(args),
     } };
 
     const pending = Commands.allCommandes['aventus.addConfigSection'].run(uri);
     await Promise.resolve();
-    assert.equal(typeof releaseName, 'function');
+    assert.equal(typeof releaseSelection, 'function');
     const revised = { module: 'Revised', build: [], custom: { version: 2 } };
     writeFileSync(path, JSON.stringify(revised));
-    releaseName('New assets');
+    releaseSelection({ label: 'Static' });
     await pending;
 
     assert.deepEqual(JSON.parse(readFileSync(path, 'utf8')), {

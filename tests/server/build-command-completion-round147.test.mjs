@@ -25,14 +25,14 @@ test('build, npm, Storybook and static commands await their selected jobs', asyn
         getAllBuilds: () => [item],
         getAllBuildsWithNpm: () => [item],
         getAllBuildsWithStory: () => [item],
-        getAllStatics: () => [item],
+        getAllStatics: () => [{ ...item, index: 0 }],
         getProjectByUri: () => ({
             getBuild: () => ({
                 build: job('build'),
                 buildNpm: job('npm'),
                 buildStorybook: job('storybook'),
             }),
-            getStatic: () => ({ export: job('static') }),
+            getStaticAt: () => ({ export: job('static') }),
         }),
     });
     GenericServer.instance = { connection: { Select: async items => items[0] } };

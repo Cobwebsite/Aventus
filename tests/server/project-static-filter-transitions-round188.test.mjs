@@ -69,7 +69,7 @@ test('static selection changes from empty to one to all without routing excluded
         }));
         await project.onConfigSave();
     };
-    const choices = names => names.map(name => ({ name, uri }));
+    const choices = names => names.map((name, index) => ({ name, uri, index }));
 
     await save(1);
     assert.ok(project.getConfig(), 'configuration must parse');
