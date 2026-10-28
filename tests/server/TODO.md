@@ -493,9 +493,7 @@ Les scénarios qui révèlent actuellement un écart du code source sont détail
 
 - [x] Fusion d'un composant séparé avec destination déjà présente sur disque ou uniquement enregistrée en mémoire : la source et la destination restent intactes, sans renommage ni notification ; une erreur nomme la destination (`component-merge-destination-collision-round264.test.mjs`).
 
-- [x] Import local de deux projets ou templates dont les sources distinctes visent le même dossier d'installation : la seconde sélection remplace entièrement la première et l'ancienne installation, le dossier voisin reste intact et le registre est rechargé une fois (`template-import-same-destination-round250.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Import d'un projet dont le template change pendant la sélection : la copie utilise le contenu source actualisé mais garde le chemin d'installation déduit de l'ancienne version parsée (`template-import-source-edited-round250.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Import d'un template dont la source change pendant la sélection : les fichiers copiés reflètent la dernière version, tandis que le dossier cible reste celui calculé avant l'édition (`template-import-edited-source-round252.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Import local de deux projets ou templates dont les sources distinctes visent le même dossier d'installation : le lot est refusé avant toute copie et l'ancienne installation reste intacte (`template-import-same-destination-round250.test.mjs`).
 - [x] Deux opérations de progression successives d'un template réel émettent chacune un identifiant distinct et des notifications début/fin appariées ; l'enregistrement du fichier généré survient entre les notifications de la seconde opération (`template-progress-round256.test.mjs`).
 
 - [x] Ajout de build avec sortie existante écrite `./dist/sub/../Shared-App.js` : le chemin normalisé empêche le doublon sans modifier la configuration ; après correction de l'ancienne sortie, la même commande ajoute le nouveau build et notifie son ouverture (`add-config-output-path-recovery-round248.test.mjs`).

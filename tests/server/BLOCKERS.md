@@ -12,31 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Fusion de composant partiellement appliquée après échec d'une édition de référence
-
-- Résolu : la fusion réserve la destination de façon exclusive, restaure les références et les sources si une étape échoue, puis ne notifie la fermeture/ouverture qu'après la réussite.
-- Régression automatisée : `component-merge-reference-error-round248.test.mjs` fait échouer la seconde édition de référence et vérifie que la première est restaurée, que les sources restent présentes et qu'aucune notification n'est envoyée. `component-merge-destination-race-round281.test.mjs` vérifie que la destination apparue pendant l'attente est préservée.
-- Décision prise : restaurer les modifications de la fusion en cas d'échec et préserver toute destination concurrente.
-
-## Storybook : description et valeur initiale d'une variable absentes
-
-- Résolu côté serveur : la description JSDoc et la valeur initiale, sous forme de texte source, sont transmises dans la story. Leur rendu est confié à `@aventusjs/storybook-render` 0.0.5 une fois publié.
-- Régression automatisée : `storybook-variable-revisions-round249.test.mjs` vérifie ces informations sur trois révisions, ainsi que le type et `noDefaultStory`.
-
-## Corps injecté hors de la plage HTTP annoncée
-
-- Résolu : les requêtes avec `Range` servent les octets du fichier brut, sans injection. Les réponses HTML entières conservent l'injection.
-- Régression automatisée : `http-range-injection-round249.test.mjs` vérifie les plages avec et sans `Origin`, ainsi qu'une réponse entière injectée.
-## Import de plusieurs sources vers le même dossier d'installation
-
-- Résolu : une collision entre deux sélections du même import annule le lot avant toute copie et signale les deux sources et le dossier commun. Une sélection unique peut toujours remplacer une installation existante.
-- Régression automatisée : `template-import-same-destination-round250.test.mjs` vérifie les imports de projets et de templates, l'absence de copie et l'absence de rechargement.
-
-## Import d'un projet modifié pendant la sélection
-
-- Reproduction automatisée : `template-import-source-edited-round250.test.mjs` (projet) et `template-import-edited-source-round252.test.mjs` (template) suspendent la sélection après l'analyse de `template.avt.ts`, changent le dossier d'installation déclaré et remplacent les fichiers de la source. La copie prend les nouveaux fichiers mais les installe dans le dossier déduit de l'ancienne version ; le script n'est pas analysé de nouveau.
-- Décision à prendre : confirmer si l'import doit figer le contenu au moment de présenter le choix, ou relire et revalider le script juste avant la copie pour que les fichiers et le dossier correspondent à une même version.
-
 ## Storybook : description JSDoc d'un alias de type absente
 
 - Reproduction automatisée : `storybook-alias-default-toggle-round251.test.mjs` parse trois versions documentées d'un alias avec `@Storybook`. Les types et la story par défaut suivent les révisions, mais aucune des descriptions JSDoc n'apparaît dans la story TS ni dans le MDX ; la description du composant reste vide.
@@ -118,12 +93,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Reproduction automatisée : `i18n-jsonc-trailing-comma-revisions-round281.test.mjs` soumet un fichier commenté en CRLF avec virgules finales dans les objets de traduction. Le formateur ne propose aucune édition. Après retrait des virgules finales, il trie les clés et locales sur deux révisions en préservant les commentaires.
 - Décision à prendre : confirmer si les virgules finales sont admises dans les fichiers i18n commentés ; si oui, permettre leur formatage comme pour les autres formes JSONC acceptées.
 
-## Destination de fusion créée pendant le renommage des références
-
-- Reproduction automatisée : `component-merge-destination-race-round281.test.mjs` suspend `ProjectManager.onRename()`, crée `Card.wc.avt` pendant cette attente, puis laisse la fusion continuer. Le nouveau fichier est écrasé sans erreur et les sources séparées sont supprimées.
-- Cause : `MergeComponent.run()` vérifie l'absence de destination avant l'attente du renommage, puis appelle `writeFileSync()` sans nouvelle vérification.
-- Décision à prendre : confirmer qu'une destination apparue pendant l'attente doit être préservée ; si oui, vérifier et créer la destination de façon exclusive avant de supprimer les sources.
-
 ## Multiplication de deux couleurs valides
 
 - Reproduction automatisée : `color-info-composition-round290.test.mjs` appelle `ColorInfo.multiply()` avec deux couleurs RGB valides. La méthode extrait `r1`, `g1`, `b1` et `r2`, `g2`, `b2` d'objets qui exposent `r`, `g`, `b` ; elle transmet donc `NaN` à `fromRgb()` et lève `Color values out of bounds`.
@@ -131,8 +100,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Catégories serveur encore ouvertes dans TODO.md
 
-- **Import et désinstallation des templates (ligne 480)** : les collisions de destination et les sources modifiées pendant l'import restent à décider avant de clore la catégorie.
-- **Conversions de composants (ligne 526)** : `component-merge-destination-race-round281.test.mjs` démontre l'écrasement d'une destination apparue durant l'attente ; `component-merge-reference-error-round248.test.mjs` démontre une édition de référence appliquée avant un échec ultérieur. Choisir les garanties d'atomicité et de préservation de destination, puis les implémenter.
 - **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.
 - **Commandes build, npm, Storybook et sortie statique (ligne 540)** : `build-command-unlisted-selection-round213.test.mjs` démontre que les quatre commandes acceptent une cible qui n'était pas dans les choix proposés. Définir si le choix doit être limité à la liste affichée et appliquer ce contrat aux quatre commandes.
 - **Exports Sharp/PHP (ligne 541)** : `converter-output-concurrency-round99.test.mjs` démontre que deux échecs laissent l'état client à `compiling`. Définir l'état terminal de chaque export et les conventions de sortie avant de considérer tous les échecs couverts.
