@@ -25,9 +25,8 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Corps injecté hors de la plage HTTP annoncée
 
-- Reproduction automatisée : `http-range-injection-round249.test.mjs` demande `Range: bytes=0-18` sur un HTML contenant `</head>`. Sans en-tête `Origin`, la réponse garde le statut `206` et `Content-Range: bytes 0-18/<taille brute>`, mais le corps contient le script live reload et dépasse largement 19 octets. La plage `bytes=0-10` n'inclut pas le tag : `Content-Length` annonce malgré tout la taille avec injection et le client échoue en lisant le corps trop court. Avec un en-tête `Origin`, la réponse contient exactement les 19 octets demandés.
-- Cause : `HttpServer.createStaticServer()` décide d'injecter en lisant le fichier entier, puis ajuste `Content-Length` pour le flux `send` partiel. Il ne modifie ni le statut ni `Content-Range` calculés depuis le fichier brut ; si la plage ne contient pas le tag, la substitution ne produit même pas le script annoncé.
-- Décision à prendre : omettre l'injection pour les réponses partielles, ou définir une représentation et des en-têtes cohérents pour les requêtes `Range`.
+- Résolu : les requêtes avec `Range` servent les octets du fichier brut, sans injection. Les réponses HTML entières conservent l'injection.
+- Régression automatisée : `http-range-injection-round249.test.mjs` vérifie les plages avec et sans `Origin`, ainsi qu'une réponse entière injectée.
 ## Import de plusieurs sources vers le même dossier d'installation
 
 - Reproduction automatisée : `template-import-same-destination-round250.test.mjs` sélectionne deux projets puis deux templates distincts qui déclarent le même `installationFolder`. Dans les deux cas, le second dossier copié remplace entièrement le premier, sans avertissement, avec un seul rechargement final ; le dossier voisin est conservé.

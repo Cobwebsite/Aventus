@@ -9,7 +9,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { HttpServer } = await loadServerModule('live-server/HttpServer.ts');
 
-test('une réponse HTML partielle injecte du code hors de la plage annoncée sans Origin', async t => {
+test('une réponse HTML partielle conserve la plage brute et une réponse entière reste injectée', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-http-range-round249-'));
     const html = '<html><head></head><body>Range check</body></html>';
     writeFileSync(join(root, 'index.html'), html);
@@ -30,13 +30,12 @@ test('une réponse HTML partielle injecte du code hors de la plage annoncée san
     const url = `http://127.0.0.1:${http.address().port}/index.html`;
     const range = 'bytes=0-18';
 
-    const injected = await fetch(url, { headers: { Range: range } });
-    const injectedBody = await injected.text();
-    assert.equal(injected.status, 206);
-    assert.equal(injected.headers.get('content-range'), `bytes 0-18/${Buffer.byteLength(html)}`);
-    assert.equal(Number(injected.headers.get('content-length')), Buffer.byteLength(injectedBody));
-    assert.match(injectedBody, /^<html><head><script type="text\/javascript">/);
-    assert.ok(Buffer.byteLength(injectedBody) > 19);
+    const partial = await fetch(url, { headers: { Range: range } });
+    const partialBody = await partial.text();
+    assert.equal(partial.status, 206);
+    assert.equal(partial.headers.get('content-range'), `bytes 0-18/${Buffer.byteLength(html)}`);
+    assert.equal(Number(partial.headers.get('content-length')), 19);
+    assert.equal(partialBody, html.slice(0, 19));
 
     const raw = await fetch(url, { headers: { Range: range, Origin: 'https://example.test' } });
     const rawBody = await raw.text();
@@ -48,6 +47,12 @@ test('une réponse HTML partielle injecte du code hors de la plage annoncée san
     const beforeTag = await fetch(url, { headers: { Range: 'bytes=0-10', Connection: 'close' } });
     assert.equal(beforeTag.status, 206);
     assert.equal(beforeTag.headers.get('content-range'), `bytes 0-10/${Buffer.byteLength(html)}`);
-    assert.ok(Number(beforeTag.headers.get('content-length')) > 11);
-    await assert.rejects(beforeTag.text(), /terminated/);
+    assert.equal(Number(beforeTag.headers.get('content-length')), 11);
+    assert.equal(await beforeTag.text(), html.slice(0, 11));
+
+    const complete = await fetch(url);
+    const completeBody = await complete.text();
+    assert.equal(complete.status, 200);
+    assert.equal(Number(complete.headers.get('content-length')), Buffer.byteLength(completeBody));
+    assert.match(completeBody, /^<html><head><script type="text\/javascript">/);
 });
