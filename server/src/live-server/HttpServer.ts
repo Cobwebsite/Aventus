@@ -1,5 +1,6 @@
 import connect from 'connect';
 import send from 'send';
+import etag from 'etag';
 import * as url from 'url';
 import { createServer, Server, ServerResponse } from 'http';
 import { createServer as testPortServer, isIP } from 'net';
@@ -344,10 +345,22 @@ export class HttpServer {
 				}
 			}
 
-			send(req, reqpath, { root: this.config.rootFolder })
+			send(req, reqpath, {
+				root: this.config.rootFolder,
+				lastModified: !["", ".html"].includes(extname(reqpath).toLowerCase()),
+			})
 				.on('error', error)
 				.on('directory', directory)
 				.on('file', file)
+				.on('headers', (response, filepath, stat) => {
+					if (injectTag || (["", ".html"].includes(extname(filepath).toLowerCase()) && !req.headers.range)) {
+						response.setHeader('Vary', 'Origin');
+						if (injectTag) {
+							const sourceTag = etag(stat);
+							response.setHeader('ETag', sourceTag.replace(/"$/, '-injected"'));
+						}
+					}
+				})
 				.on('stream', inject)
 				.pipe(res);
 		};

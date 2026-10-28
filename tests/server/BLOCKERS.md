@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Cache HTTP partagé entre HTML brut et HTML injecté
-
-- Reproduction automatisée : `http-origin-etag-variant-round266.test.mjs` demande le même HTML avec puis sans en-tête `Origin`. Les corps diffèrent par le script live reload, mais les réponses partagent le même ETag et n'annoncent pas `Vary: Origin`. Les requêtes conditionnelles croisées dans les deux sens reçoivent 304 sans la variante demandée.
-- Décision à prendre : distinguer les validateurs des deux représentations, annoncer la variation selon `Origin`, ou désactiver la validation conditionnelle pour le HTML injecté.
-
 ## Export statique bloqué quand un dossier source devient un fichier
 
 - Reproduction automatisée : `static-directory-to-file-recovery-round259.test.mjs` exporte `asset/old.bin`, remplace le dossier source `asset` par un fichier binaire du même nom, puis relance l'export. L'ancienne copie `old.bin` est supprimée, mais le dossier de sortie `asset` reste en place : la copie échoue et le rechargement HTTP n'est pas déclenché. Après suppression manuelle de ce dossier de sortie, la même instance exporte le nouveau fichier et le nettoie correctement lorsque sa source disparaît.
