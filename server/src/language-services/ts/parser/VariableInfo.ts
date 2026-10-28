@@ -1,10 +1,11 @@
-import { NodeFlags, VariableDeclaration, VariableStatement } from 'typescript';
+import { NodeFlags, ScriptTarget, VariableDeclaration, VariableStatement, createSourceFile } from 'typescript';
 import { BaseInfo, InfoType } from "./BaseInfo";
 import { ParserTs } from './ParserTs';
 import { IStoryContentVariable } from '@aventusjs/storybook';
 import { TypeInfo } from './TypeInfo';
 import { InternalDecorator } from './decorators/InternalDecorator';
 import { DecoratorInfo } from './DecoratorInfo';
+import { DocumentationInfo } from './DocumentationInfo';
 
 export enum VariableInfoType {
 	var = "var",
@@ -19,6 +20,17 @@ export class VariableInfo extends BaseInfo {
 	constructor(node: VariableDeclaration, namespaces: string[], parserInfo: ParserTs, statement: VariableStatement) {
 		super(node, namespaces, parserInfo);
 		this.decorators = DecoratorInfo.buildDecorator(statement, this);
+		let documentation = new DocumentationInfo(statement);
+		if (!documentation.hasDoc) {
+			const comment = statement.getFullText().match(/\/\*\*[\s\S]*?\*\//g)?.at(-1);
+			if (comment) {
+				const source = createSourceFile('variable-doc.ts', comment + '\nconst value = 0;', ScriptTarget.Latest, true);
+				documentation = new DocumentationInfo(source.statements[0]);
+			}
+		}
+		if (documentation.hasDoc) {
+			this.documentation = documentation;
+		}
 		this.node = node;
 		this.infoType = InfoType.variable;
 		if (node.parent.flags == NodeFlags.Let) {
@@ -43,7 +55,8 @@ export class VariableInfo extends BaseInfo {
 		let result: IStoryContentVariable = {
 			kind: "variable",
 			name: this.name,
-			modifier: this.type == VariableInfoType.const ? 'const' : this.type == VariableInfoType.let ? 'let' : 'var'
+			modifier: this.type == VariableInfoType.const ? 'const' : this.type == VariableInfoType.let ? 'let' : 'var',
+			value: this.node.initializer?.getText()
 		};
 		this.setNamespaceForStroy(result);
 		this.setDocumentationForStroy(result);

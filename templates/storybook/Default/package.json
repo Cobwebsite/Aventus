@@ -14,7 +14,7 @@
     },
 	"devDependencies": {
         "@aventusjs/main": "^1.0.3",
-        "@aventusjs/storybook": "^0.0.18",
+        "@aventusjs/storybook": "^0.0.19",
         "@aventusjs/storybook-render": "^0.0.4",
         "@storybook/addon-docs": "^8.1.11",
         "@storybook/addon-essentials": "^8.1.11",
