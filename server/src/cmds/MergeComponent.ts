@@ -1,5 +1,5 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { existsSync, readdirSync, rmdirSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, rmdirSync, writeFileSync } from 'fs';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { FilesManager } from '../files/FilesManager';
 import { CloseFile } from '../notification/CloseFile';
@@ -62,13 +62,6 @@ export class MergeComponent {
 			oldUri: fileUriNoExtension + AventusExtension.ComponentLogic,
 			newUri: newUri + AventusExtension.Component,
 		}]);
-		for (const editedUri in textEditsByUri) {
-			const file = FilesManager.getInstance().getByUri(editedUri) as InternalAventusFile | undefined;
-			if (!file) continue;
-			await file.applyTextEdits(textEditsByUri[editedUri]);
-			writeFileSync(uriToPath(editedUri), file.contentUser);
-		}
-
 		let mergeTxt =
 			`
 <script>
@@ -89,24 +82,54 @@ export class MergeComponent {
 			maxVersion + 1,
 			mergeTxt
 		);
-		writeFileSync(uriToPath(compDoc.uri), mergeTxt);
+		const references: { file: InternalAventusFile; content: string; disk: Buffer }[] = [];
+		const sources = sourceDocs.map(doc => ({ path: doc.path, disk: readFileSync(doc.path) }));
+		let destinationCreated = false;
+		try {
+			// Reserve the destination before changing any reference or source.
+			writeFileSync(uriToPath(compDoc.uri), mergeTxt, { flag: 'wx' });
+			destinationCreated = true;
+			for (const editedUri in textEditsByUri) {
+				const file = FilesManager.getInstance().getByUri(editedUri) as InternalAventusFile | undefined;
+				if (!file) continue;
+				references.push({ file, content: file.contentUser, disk: readFileSync(uriToPath(editedUri)) });
+				await file.applyTextEdits(textEditsByUri[editedUri]);
+				writeFileSync(uriToPath(editedUri), file.contentUser);
+			}
+			for (const source of sources) unlinkSync(source.path);
+			rmdirSync(folderPath);
+		} catch (error) {
+			if (!destinationCreated && error && (error as NodeJS.ErrnoException).code === 'EEXIST') {
+				GenericServer.showErrorMessage("Cannot merge component because the destination already exists: " + destinationUri);
+				return;
+			}
+			for (const source of sources) {
+				if (!existsSync(source.path)) writeFileSync(source.path, source.disk);
+			}
+			for (const { file, content, disk } of references.reverse()) {
+				writeFileSync(file.path, disk);
+				if (file.contentUser !== content) {
+					await file.applyTextEdits([{
+						range: { start: { line: 0, character: 0 }, end: file.documentUser.positionAt(file.contentUser.length) },
+						newText: content,
+					}]);
+				}
+			}
+			if (destinationCreated) unlinkSync(uriToPath(compDoc.uri));
+			throw error;
+		}
 		if (scssDoc) {
-			unlinkSync(scssDoc.path);
 			FilesManager.getInstance().onClose(scssDoc.documentUser);
 			CloseFile.send(scssDoc.uri);
 		}
 		if (jsDoc) {
-			unlinkSync(jsDoc.path);
 			FilesManager.getInstance().onClose(jsDoc.documentUser);
 			CloseFile.send(jsDoc.uri);
 		}
 		if (htmlDoc) {
-			unlinkSync(htmlDoc.path);
 			FilesManager.getInstance().onClose(htmlDoc.documentUser);
 			CloseFile.send(htmlDoc.uri);
 		}
-
-		rmdirSync(folderPath);
 
 		FilesManager.getInstance().registerFile(compDoc);
 		OpenFile.send(compDoc.uri);
