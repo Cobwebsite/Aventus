@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Storybook : description JSDoc d'un alias de type absente
-
-- Reproduction automatisée : `storybook-alias-default-toggle-round251.test.mjs` parse trois versions documentées d'un alias avec `@Storybook`. Les types et la story par défaut suivent les révisions, mais aucune des descriptions JSDoc n'apparaît dans la story TS ni dans le MDX ; la description du composant reste vide.
-- Décision à prendre : déterminer si les stories d'alias doivent afficher leur JSDoc ; si oui, transmettre cette description du parseur à la génération Storybook.
-
 ## Renommage pendant le remplacement des builds d'un projet
 
 - Reproduction automatisée : `project-rename-build-transition-round253.test.mjs` suspend le premier build pendant `Project.onRename()`, remplace la liste des builds, puis reprend. Le second build de l'ancienne liste est encore appelé et ses éditions sont renvoyées, alors que l'appel suivant utilise la nouvelle liste.
@@ -103,4 +98,4 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées ; `format-stale-edit-race-round256.test.mjs` démontre l'application d'éditions calculées sur une ancienne version. Décider l'unicité des noms et la politique de conflit d'édition avant de valider l'ensemble.
 - **Commandes build, npm, Storybook et sortie statique (ligne 540)** : `build-command-unlisted-selection-round213.test.mjs` démontre que les quatre commandes acceptent une cible qui n'était pas dans les choix proposés. Définir si le choix doit être limité à la liste affichée et appliquer ce contrat aux quatre commandes.
 - **Exports Sharp/PHP (ligne 541)** : `converter-output-concurrency-round99.test.mjs` démontre que deux échecs laissent l'état client à `compiling`. Définir l'état terminal de chaque export et les conventions de sortie avant de considérer tous les échecs couverts.
-- **Stories et MDX (ligne 562)** : `storybook-description-interpolation-round130.test.mjs` démontre qu'un JSDoc contenant `${name}` devient une interpolation dans la story ; `storybook-alias-default-toggle-round251.test.mjs` montre la perte du JSDoc d'un alias. Échapper le texte utilisateur et définir sa publication avant de clore la génération complète.
+- **Stories et MDX (ligne 562)** : `storybook-description-interpolation-round130.test.mjs` démontre qu'un JSDoc contenant `${name}` devient une interpolation dans la story. Échapper le texte utilisateur avant de clore la génération complète.
