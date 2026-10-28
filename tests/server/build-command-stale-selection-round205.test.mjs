@@ -29,10 +29,10 @@ test('build commands ignore a selection whose project or target disappears and w
         getAllBuilds: () => [item],
         getAllBuildsWithNpm: () => [item, { name: 'Other@web', uri }],
         getAllBuildsWithStory: () => [item],
-        getAllStatics: () => [item],
+        getAllStatics: () => [{ ...item, index: 0 }],
         getProjectByUri: requested => requested === uri && projectPresent ? {
             getBuild: () => targetPresent ? target : undefined,
-            getStatic: () => targetPresent ? target : undefined,
+            getStaticAt: () => targetPresent ? target : undefined,
         } : undefined,
     });
 

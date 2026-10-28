@@ -36,7 +36,7 @@ test('canceling project or section name leaves every configuration byte intact',
                     }
                     return { label: stage === 'static name' ? 'Static' : 'Build' };
                 },
-                Input: async () => { prompts.push('name'); return ''; },
+                Input: async () => { prompts.push('name'); return stage === 'static name' ? null : ''; },
                 sendNotification: (...args) => notifications.push(args),
             } };
             assert.equal(await Commands.allCommandes['aventus.addConfigSection'].run(), undefined);

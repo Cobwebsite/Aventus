@@ -22,8 +22,8 @@ test('static output listing returns names from every project, including projects
         },
     };
     assert.deepEqual(manager.getAllStatics(), [
-        { name: 'A@assets', uri: 'file:///a/aventus.conf.avt' },
-        { name: 'B@assets', uri: 'file:///b/aventus.conf.avt' },
+        { name: 'A@assets', uri: 'file:///a/aventus.conf.avt', index: 0 },
+        { name: 'B@assets', uri: 'file:///b/aventus.conf.avt', index: 0 },
     ]);
 });
 

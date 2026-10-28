@@ -12,26 +12,10 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Formatage non écrit sur disque après un premier échec d'écriture
-
-- Reproduction automatisée : `format-write-retry-round257.test.mjs` rend le chemin de destination non inscriptible après le calcul des éditions. Le contenu en mémoire passe à `after`, mais l'écriture échoue. Après rétablissement du fichier à `before`, un second formatage sans nouvelle édition ne réécrit pas le disque ; mémoire et disque restent divergents. Le même test vérifie qu'un lot continue à formater le fichier suivant et signale seulement le chemin en échec.
-- Cause : `Format.run()` applique les éditions au document avant `writeFileSync()`, puis détermine la nécessité d'une écriture par comparaison du contenu en mémoire avant et après chaque appel.
-- Décision à prendre : définir si l'échec d'écriture doit restaurer le document en mémoire ou garder un état de synchronisation à reprendre au prochain formatage.
-
-## Ajout de sections statiques homonymes
-
-- Reproduction automatisée : `add-config-static-duplicate-round264.test.mjs` lance deux fois `aventus.addConfigSection` avec le nom statique `Assets`. Le fichier contient deux entrées identiques, aucune erreur n'est envoyée et les deux appels notifient l'ouverture du fichier.
-- Décision à prendre : confirmer si plusieurs sorties statiques de même nom sont autorisées ; sinon, appliquer une validation de nom comparable à celle des sections de build.
-
 ## Cache HTTP partagé entre HTML brut et HTML injecté
 
 - Reproduction automatisée : `http-origin-etag-variant-round266.test.mjs` demande le même HTML avec puis sans en-tête `Origin`. Les corps diffèrent par le script live reload, mais les réponses partagent le même ETag et n'annoncent pas `Vary: Origin`. Les requêtes conditionnelles croisées dans les deux sens reçoivent 304 sans la variante demandée.
 - Décision à prendre : distinguer les validateurs des deux représentations, annoncer la variation selon `Origin`, ou désactiver la validation conditionnelle pour le HTML injecté.
-
-## Nom de section statique composé uniquement d'espaces
-
-- Reproduction automatisée : `add-config-static-blank-name-round265.test.mjs` compare une réponse vide, qui annule l'ajout, et une réponse de trois espaces, qui crée une section statique nommée `   ` et notifie l'ouverture du fichier.
-- Décision à prendre : confirmer si les noms statiques sans caractère visible sont autorisés ; sinon, valider la valeur après suppression des espaces périphériques.
 
 ## Export statique bloqué quand un dossier source devient un fichier
 
@@ -84,7 +68,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 
 ## Catégories serveur encore ouvertes dans TODO.md
 
-- **Ajout de configuration et formatage (ligne 527)** : `add-config-static-duplicate-round264.test.mjs` démontre deux sorties statiques homonymes acceptées. Décider l'unicité des noms avant de valider l'ensemble.
 - **Commandes build, npm, Storybook et sortie statique (ligne 540)** : `build-command-unlisted-selection-round213.test.mjs` démontre que les quatre commandes acceptent une cible qui n'était pas dans les choix proposés. Définir si le choix doit être limité à la liste affichée et appliquer ce contrat aux quatre commandes.
 - **Exports Sharp/PHP (ligne 541)** : `converter-output-concurrency-round99.test.mjs` démontre que deux échecs laissent l'état client à `compiling`. Définir l'état terminal de chaque export et les conventions de sortie avant de considérer tous les échecs couverts.
 - **Stories et MDX (ligne 562)** : `storybook-description-interpolation-round130.test.mjs` démontre qu'un JSDoc contenant `${name}` devient une interpolation dans la story. Échapper le texte utilisateur avant de clore la génération complète.

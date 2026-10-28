@@ -32,7 +32,7 @@ test('deleting one configuration removes only its project from routing and listi
     assert.deepEqual(manager.getAllBuilds(), [{ name: 'second@web', uri: secondUri }]);
     assert.deepEqual(manager.getAllBuildsWithStory(), [{ name: 'second@web', uri: secondUri }]);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [{ name: 'second@web', uri: secondUri }]);
-    assert.deepEqual(manager.getAllStatics(), [{ name: 'second-assets', uri: secondUri }]);
+    assert.deepEqual(manager.getAllStatics(), [{ name: 'second-assets', uri: secondUri, index: 0 }]);
     assert.deepEqual(manager.getMatchingBuildsByUri('file:///workspace/first/source.lib.avt'), []);
     assert.deepEqual(manager.getMatchingBuildsByUri('file:///workspace/second/source.lib.avt'), ['second']);
 });

@@ -356,7 +356,7 @@ export const AventusConfigSchema: JSONSchema = {
                         description: "Define where to export static files"
                     }
                 },
-                required: ["name", "input", "output"]
+                required: ["input", "output"]
             }
         },
         "avoidParsingInsideTags": {

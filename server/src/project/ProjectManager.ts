@@ -156,16 +156,21 @@ export class ProjectManager {
         }
         return result;
     }
-    public getAllStatics(): { name: string, uri: string }[] {
-        let result: { name: string, uri: string }[] = [];
+    public getAllStatics(): { name?: string, uri: string, index: number }[] {
+        let result: { name?: string, uri: string, index: number }[] = [];
         for (let uri in this.projects) {
             let project = this.projects[uri];
             let statics = project.getStaticsName();
-            for (let name of statics) {
-                result.push({
-                    name,
+            for (let index = 0; index < statics.length; index++) {
+                const part: { name?: string, uri: string, index: number } = {
+                    name: statics[index],
+                    index,
                     uri: project.getConfigFile().uri
-                })
+                }
+                if (!part.name) {
+                    delete part.name;
+                }
+                result.push(part);
             }
         }
         return result;

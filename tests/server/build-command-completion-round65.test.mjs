@@ -34,17 +34,17 @@ test('build commands wait for selected outputs and return their results', async 
                 return 'compiled';
             } };
             ProjectManager.getInstance = () => ({
-                [entry.list]: () => [selected],
+                [entry.list]: () => [entry.list === 'getAllStatics' ? { ...selected, index: 0 } : selected],
                 getProjectByUri: uri => {
                     assert.equal(uri, selected.uri);
                     return {
                         getBuild: name => { assert.equal(name, selected.name); return output; },
-                        getStatic: name => { assert.equal(name, selected.name); return output; },
+                        getStaticAt: index => { assert.equal(index, 0); return output; },
                     };
                 },
             });
             GenericServer.instance = { connection: { Select: async () => ({
-                label: selected.name, detail: selected.uri,
+                label: selected.name, detail: selected.uri, ...(entry.list === 'getAllStatics' ? { id: '0' } : {}),
             }) } };
 
             let commandSettled = false;
@@ -84,10 +84,10 @@ test('build commands propagate output failures', async t => {
         getAllBuilds: () => [{ name: 'output', uri: 'file:///project' }],
         getAllBuildsWithNpm: () => [{ name: 'output', uri: 'file:///project' }],
         getAllBuildsWithStory: () => [{ name: 'output', uri: 'file:///project' }],
-        getAllStatics: () => [{ name: 'output', uri: 'file:///project' }],
-        getProjectByUri: () => ({ getBuild: () => output, getStatic: () => output }),
+        getAllStatics: () => [{ name: 'output', uri: 'file:///project', index: 0 }],
+        getProjectByUri: () => ({ getBuild: () => output, getStaticAt: () => output }),
     });
-    GenericServer.instance = { connection: { Select: async () => ({ label: 'output', detail: 'file:///project' }) } };
+    GenericServer.instance = { connection: { Select: async items => items[0] } };
 
     for (const command of ['aventus.compile', 'aventus.npm.build', 'aventus.storybook.build', 'aventus.static']) {
         await t.test(command, async () => {
@@ -112,16 +112,16 @@ test('selection resolved after project or output removal safely skips the disapp
                 getAllBuilds: () => [{ name: selected.label, uri: selected.detail }],
                 getAllBuildsWithNpm: () => [{ name: selected.label, uri: selected.detail }, { name: 'Other', uri: 'file:///other' }],
                 getAllBuildsWithStory: () => [{ name: selected.label, uri: selected.detail }],
-                getAllStatics: () => [{ name: selected.label, uri: selected.detail }],
+                getAllStatics: () => [{ name: selected.label, uri: selected.detail, index: 0 }],
                 getProjectByUri: () => !available && removed === 'project' ? undefined : {
                     getBuild: () => available ? { build() {}, buildNpm() {}, buildStorybook() {} } : undefined,
-                    getStatic: () => available ? { export() {} } : undefined,
+                    getStaticAt: () => available ? { export() {} } : undefined,
                 },
             };
             ProjectManager.getInstance = () => manager;
             GenericServer.instance = { connection: { Select: async () => {
                 available = false;
-                return selected;
+                return command === 'aventus.static' ? { ...selected, id: '0' } : selected;
             } } };
             assert.equal(await commands[command].run(), undefined);
         });

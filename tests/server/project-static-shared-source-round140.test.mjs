@@ -78,7 +78,7 @@ test('two projects export a shared static source independently after one changes
     const output = entry => readFileSync(join(root, entry.folder, 'dist', 'assets', 'asset.txt'), 'utf8');
     await save(entries[0], 1, '../shared');
     await save(entries[1], 1, '../shared');
-    assert.deepEqual(manager.getAllStatics(), entries.map(({ file }) => ({ name: 'assets', uri: file.uri })),
+    assert.deepEqual(manager.getAllStatics(), entries.map(({ file }) => ({ name: 'assets', uri: file.uri, index: 0 })),
         JSON.stringify(entries.map(({ project }) => project.getConfig())));
     assert.equal(output(entries[0]), 'shared one');
     assert.equal(output(entries[1]), 'shared one');
@@ -88,7 +88,7 @@ test('two projects export a shared static source independently after one changes
     await entries[1].project.buildAll();
     assert.equal(output(entries[0]), 'first local');
     assert.equal(output(entries[1]), 'shared two');
-    assert.deepEqual(manager.getAllStatics(), entries.map(({ file }) => ({ name: 'assets', uri: file.uri })));
+    assert.deepEqual(manager.getAllStatics(), entries.map(({ file }) => ({ name: 'assets', uri: file.uri, index: 0 })));
 
     await save(entries[1], 2, './local');
     assert.equal(output(entries[0]), 'first local');

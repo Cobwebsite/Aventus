@@ -79,7 +79,7 @@ test('aggregate build, Storybook, npm and static choices retain project URIs acr
     assert.deepEqual(manager.getAllBuildsWithStory(), [expected[0]]);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [expected[0], expected[1]]);
     assert.deepEqual(manager.getAllStatics(), entries.map(({ file }) =>
-        ({ name: 'assets', uri: file.uri })));
+        ({ name: 'assets', uri: file.uri, index: 0 })));
 
     await save(entries[0], 2, [plain]);
     await save(entries[1], 2, [story], [staticItem]);
@@ -87,7 +87,7 @@ test('aggregate build, Storybook, npm and static choices retain project URIs acr
     assert.deepEqual(manager.getAllBuildsWithStory(), [expected[1]]);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [expected[1]]);
     assert.deepEqual(manager.getAllStatics(), [entries[1]].map(({ file }) =>
-        ({ name: 'assets', uri: file.uri })));
+        ({ name: 'assets', uri: file.uri, index: 0 })));
 
     entries[0].file.documentUser = TextDocument.create(entries[0].file.uri, 'json', 3, '{ invalid');
     await entries[0].project.onConfigSave();
@@ -95,7 +95,7 @@ test('aggregate build, Storybook, npm and static choices retain project URIs acr
     assert.deepEqual(manager.getAllBuildsWithStory(), [expected[1]]);
     assert.deepEqual(manager.getAllBuildsWithNpm(), [expected[1]]);
     assert.deepEqual(manager.getAllStatics(), [entries[1]].map(({ file }) =>
-        ({ name: 'assets', uri: file.uri })));
+        ({ name: 'assets', uri: file.uri, index: 0 })));
 
     delete manager.projects[entries[1].file.uri];
     assert.deepEqual(manager.getAllBuilds(), []);

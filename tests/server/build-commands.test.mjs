@@ -24,7 +24,7 @@ function arrange({ selection, builds = [], statics = [], npm = [], stories = [] 
                 buildNpm: () => calls.push(['npm', uri, name]),
                 buildStorybook: () => calls.push(['storybook', uri, name]),
             }),
-            getStatic: name => ({ export: () => calls.push(['static', uri, name]) }),
+            getStaticAt: index => ({ export: () => calls.push(['static', uri, index]) }),
         }),
     };
     const previousGetInstance = ProjectManager.getInstance;
@@ -63,18 +63,18 @@ test('build command offers project names and dispatches the selected build', asy
 
 test('static and Storybook commands dispatch selection and respect cancellation', async () => {
     const target = { name: 'Demo@assets', uri: 'file:///demo/aventus.conf.avt' };
-    const state = arrange({ statics: [target], stories: [target], selection: { label: target.name, detail: target.uri } });
+    const state = arrange({ statics: [{ ...target, index: 0 }], stories: [target], selection: { label: target.name, detail: target.uri, id: '0' } });
     try {
         await commands['aventus.static'].run();
         await commands['aventus.storybook.build'].run();
         assert.deepEqual(state.calls, [
-            ['static', target.uri, target.name],
+            ['static', target.uri, 0],
             ['storybook', target.uri, target.name],
         ]);
         assert.deepEqual(state.selections.map(item => item.options.title), ['Static to export', 'Story to build']);
     } finally { state.restore(); }
 
-    const canceled = arrange({ statics: [target], stories: [target], selection: null });
+    const canceled = arrange({ statics: [{ ...target, index: 0 }], stories: [target], selection: null });
     try {
         await commands['aventus.static'].run();
         await commands['aventus.storybook.build'].run();

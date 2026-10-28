@@ -226,7 +226,7 @@ export class Project {
                 if (this.config.static) {
                     for (let _static of this.config.static) {
                         if (this.destroyed) return;
-                        if (this.staticsAllowed && !this.staticsAllowed.includes(_static.name)) {
+                        if (this.staticsAllowed && !this.staticsAllowed.includes(_static.name ?? '')) {
                             continue;
                         }
                         let staticEl = new Static(this, _static);
@@ -312,10 +312,10 @@ export class Project {
         }
         return result;
     }
-    public getStaticsName(): string[] {
-        let result: string[] = [];
-        for (let build of this.statics) {
-            result.push(build.name);
+    public getStaticsName(): (string|undefined)[] {
+        let result: (string|undefined)[] = [];
+        for (let _static of this.statics) {
+            result.push(_static.name);
         }
         return result;
     }
@@ -326,6 +326,10 @@ export class Project {
             }
         }
         return undefined;
+    }
+
+    public getStaticAt(index: number): Static | undefined {
+        return this.statics[index];
     }
 
     public loadFiles() {

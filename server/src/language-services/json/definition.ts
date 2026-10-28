@@ -69,7 +69,7 @@ export interface AventusConfigBuildDependency {
 	isLocal?: boolean
 }
 export interface AventusConfigStatic {
-	name: string,
+	name?: string,
 	input: string,
 	inputPathFolder: string,
 	output: string[]

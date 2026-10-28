@@ -33,6 +33,6 @@ test('static section keeps the exact user name and appends without changing exis
         { name: 'Images', input: 'assets', output: 'dist/assets' },
         { name: '  Café / images  ', input: '', output: '' },
     ]);
-    assert.deepEqual(prompts, ['Section type', 'Provide a name for your static section']);
+    assert.deepEqual(prompts, ['Section type', 'Provide a name for your static section (optional)']);
     assert.deepEqual(notifications, [['aventus/openfile', [uri]]]);
 });

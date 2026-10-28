@@ -12,9 +12,10 @@ export class StaticExport {
 
 		for (let build of builds) {
 			items.push({
-				label: build.name,
-				detail: build.uri
-			})
+				label: build.name ?? `Static #${build.index}`,
+				detail: build.uri,
+				id: String(build.index),
+			});
 		}
 		if (items.length === 0) {
 			GenericServer.showWarningMessage('No static export was found.');
@@ -25,10 +26,12 @@ export class StaticExport {
 			title: 'Static to export'
 		})
 
-		if(result && items.some(item => item.label === result.label && item.detail === result.detail)) {
-			let uri = result.detail ?? "";
-			let name = result.label;
-			return await ProjectManager.getInstance().getProjectByUri(uri)?.getStatic(name)?.export();
+		const selectedIndex = result ? items.findIndex(item => item.label === result.label && item.detail === result.detail && item.id === result.id) : -1;
+		if (selectedIndex !== -1) {
+			const selected = builds[selectedIndex];
+			const project = ProjectManager.getInstance().getProjectByUri(selected.uri);
+			const target = project?.getStaticAt(selected.index);
+			return await target?.export();
 		}
 	}
 }

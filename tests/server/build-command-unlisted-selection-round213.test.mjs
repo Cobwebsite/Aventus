@@ -27,10 +27,10 @@ test('build commands ignore a selected target absent from their offered choices'
         getAllBuilds: () => [offered],
         getAllBuildsWithNpm: () => [offered, { name: 'Other@offered', uri }],
         getAllBuildsWithStory: () => [offered],
-        getAllStatics: () => [offered],
+        getAllStatics: () => [{ ...offered, index: 0 }],
         getProjectByUri: requested => requested === uri ? {
             getBuild: name => name === 'Demo@hidden' ? hidden : undefined,
-            getStatic: name => name === 'Demo@hidden' ? hidden : undefined,
+            getStaticAt: () => hidden,
         } : undefined,
     });
     GenericServer.instance = { connection: { Select: async items => {
