@@ -2,18 +2,22 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
-import { loadServerModule } from './helpers/load-ts.mjs';
+import { pathToFileURL } from 'node:url';
+import { loadServerModules } from './helpers/load-ts.mjs';
 
-const { Build } = await loadServerModule('project/Build.ts');
+const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
 
 test('npm output can be retried after a source write fails', async t => {
     const root = mkdtempSync(join(import.meta.dirname, '.npm-write-round147-'));
+    const previousServer = GenericServer.instance;
+    GenericServer.instance = { ...(previousServer ?? {}), workspaces: [pathToFileURL(root).href] };
+    t.after(() => { GenericServer.instance = previousServer; });
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'dist');
     const build = Object.create(Build.prototype);
     build.buildRevision = 0;
     build.buildConfig = { fullname: 'Demo@web', module: 'Demo', name: 'web', version: '1.0.0' };
-    build.project = { getConfigFile: () => ({ folderPath: root }) };
+    build.project = { getConfigFile: () => ({ folderPath: join(root, 'project') }) };
     build.tsFiles = {};
     build.externalPackageInformation = { filesUri: [] };
     let failOnce = true;
@@ -38,5 +42,6 @@ test('npm output can be retried after a source write fails', async t => {
     await build.writeBuildNpm(options, result);
     assert.match(readFileSync(join(output, '__src', 'widget.ts'), 'utf8'), /export class Widget/);
     assert.match(readFileSync(join(output, 'index.js'), 'utf8'), /Widget/);
-    assert.equal(existsSync(join(output, '.aventus-npm-generated.json')), true);
+    assert.equal(existsSync(join(root, '.aventus', 'npm', 'register.json')), true);
+    assert.equal(existsSync(join(root, 'project', '.aventus', 'npm', 'register.json')), false);
 });

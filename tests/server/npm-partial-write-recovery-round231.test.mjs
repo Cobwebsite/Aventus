@@ -3,9 +3,10 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
-import { loadServerModule } from './helpers/load-ts.mjs';
+import { pathToFileURL } from 'node:url';
+import { loadServerModules } from './helpers/load-ts.mjs';
 
-const { Build } = await loadServerModule('project/Build.ts');
+const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
 
 function result(names) {
     return {
@@ -19,9 +20,13 @@ function result(names) {
 
 test('npm publication restores previous outputs after a partial write', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-partial-retry-'));
+    const previousServer = GenericServer.instance;
+    GenericServer.instance = { ...(previousServer ?? {}), workspaces: [pathToFileURL(root).href] };
+    t.after(() => { GenericServer.instance = previousServer; });
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const output = join(root, 'npm');
     const build = Object.create(Build.prototype);
+    build.project = { getConfigFile: () => ({ folderPath: root }) };
     let failAt = null;
     build.writeFile = async (path, content) => {
         if (path === failAt) throw new Error('simulated write failure');
@@ -29,7 +34,7 @@ test('npm publication restores previous outputs after a partial write', async t 
         writeFileSync(path, content);
     };
     const options = { path: [output], packageJson: false, manifest: false };
-    const ownership = join(output, '.aventus-npm-generated.json');
+    const ownership = join(root, '.aventus', 'npm', 'register.json');
 
     await build.writeBuildNpm(options, result(['Alpha']));
     const baseline = readFileSync(ownership, 'utf8');
@@ -43,7 +48,7 @@ test('npm publication restores previous outputs after a partial write', async t 
 
     failAt = null;
     await build.writeBuildNpm(options, result(['Gamma']));
-    const current = JSON.parse(readFileSync(ownership, 'utf8'));
+    const current = JSON.parse(readFileSync(ownership, 'utf8'))[output.replace(/\\/g, '/')];
     assert.equal(existsSync(join(output, '__src', 'Alpha.js')), false);
     assert.equal(existsSync(join(output, '__src', 'Gamma.js')), true);
     assert.equal(existsSync(join(output, '__src', 'Beta.js')), false);
@@ -53,10 +58,14 @@ test('npm publication restores previous outputs after a partial write', async t 
 
 test('npm publication to two destinations restores both when the second fails', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-two-destinations-'));
+    const previousServer = GenericServer.instance;
+    GenericServer.instance = { ...(previousServer ?? {}), workspaces: [pathToFileURL(root).href] };
+    t.after(() => { GenericServer.instance = previousServer; });
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const first = join(root, 'first');
     const second = join(root, 'second');
     const build = Object.create(Build.prototype);
+    build.project = { getConfigFile: () => ({ folderPath: root }) };
     let failAt = null;
     build.writeFile = async (path, content) => {
         if (path === failAt) throw new Error('second destination failed');

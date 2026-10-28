@@ -2,12 +2,16 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
-import { loadServerModule } from './helpers/load-ts.mjs';
+import { pathToFileURL } from 'node:url';
+import { loadServerModules } from './helpers/load-ts.mjs';
 
-const { Build } = await loadServerModule('project/Build.ts');
+const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
 
 function fixture(t) {
     const root = mkdtempSync(join(import.meta.dirname, '.build-npm-round26-'));
+    const previousServer = GenericServer.instance;
+    GenericServer.instance = { ...(previousServer ?? {}), workspaces: [pathToFileURL(root).href] };
+    t.after(() => { GenericServer.instance = previousServer; });
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const outputs = [join(root, 'one'), join(root, 'two')];
     const build = Object.create(Build.prototype);

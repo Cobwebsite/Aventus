@@ -3,12 +3,16 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Build }] = await loadServerModules(['project/Build.ts']);
+const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
 
 test('npm manifests filter self and unresolved packages, then renew dependencies across two destinations', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-dependency-filter-'));
+    const previousServer = GenericServer.instance;
+    GenericServer.instance = { ...(previousServer ?? {}), workspaces: [pathToFileURL(root).href] };
+    t.after(() => { GenericServer.instance = previousServer; });
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const outputs = [join(root, 'first'), join(root, 'second')];
     const write = (path, content) => {

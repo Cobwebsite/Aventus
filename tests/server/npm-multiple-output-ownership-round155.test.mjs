@@ -3,12 +3,16 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
-const [{ Build }] = await loadServerModules(['project/Build.ts']);
+const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
 
 test('npm rebuild owns generated files independently in two destinations', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-two-outputs-'));
+    const previousServer = GenericServer.instance;
+    GenericServer.instance = { ...(previousServer ?? {}), workspaces: [pathToFileURL(root).href] };
+    t.after(() => { GenericServer.instance = previousServer; });
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const outputs = [join(root, 'first'), join(root, 'second')];
     const build = Object.create(Build.prototype);
@@ -35,7 +39,7 @@ test('npm rebuild owns generated files independently in two destinations', async
     for (const output of outputs) {
         assert.match(readFileSync(join(output, 'Demo', 'index.js'), 'utf8'), /Beta/);
         assert.equal(existsSync(join(output, '__src', 'beta.js')), true);
-        const generated = JSON.parse(readFileSync(join(output, '.aventus-npm-generated.json'), 'utf8'));
+        const generated = JSON.parse(readFileSync(join(root, '.aventus', 'npm', 'register.json'), 'utf8'))[output.replace(/\\/g, '/')];
         assert.ok(generated['__src/beta.js']);
     }
 
@@ -49,7 +53,7 @@ test('npm rebuild owns generated files independently in two destinations', async
         assert.doesNotMatch(readFileSync(join(output, 'Demo', 'index.js'), 'utf8'), /Beta/);
         assert.doesNotMatch(readFileSync(join(output, 'Demo', 'index.d.ts'), 'utf8'), /Beta/);
         assert.equal(existsSync(join(output, '__src', 'alpha.js')), true);
-        const generated = JSON.parse(readFileSync(join(output, '.aventus-npm-generated.json'), 'utf8'));
+        const generated = JSON.parse(readFileSync(join(root, '.aventus', 'npm', 'register.json'), 'utf8'))[output.replace(/\\/g, '/')];
         assert.equal(Object.hasOwn(generated, '__src/beta.js'), false);
     }
 });

@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { loadServerModules } from './helpers/load-ts.mjs';
 
 const [{ Build }, { GenericServer }] = await loadServerModules(['project/Build.ts', 'GenericServer.ts']);
@@ -11,7 +12,7 @@ function fixture(t) {
     const root = mkdtempSync(join(tmpdir(), 'aventus-npm-entry-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const previous = GenericServer.instance;
-    GenericServer.instance = { logLevel: 0, connection: { sendNotification() {} }, _savePath: root };
+    GenericServer.instance = { logLevel: 0, connection: { sendNotification() {} }, workspaces: [pathToFileURL(root).href], _savePath: root };
     t.after(() => { GenericServer.instance = previous; });
     const build = Object.create(Build.prototype);
     build.buildConfig = { fullname: 'Catalog@web', module: 'Catalog', name: 'web', version: '3.2.1' };
