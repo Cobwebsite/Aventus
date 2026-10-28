@@ -29,8 +29,8 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Régression automatisée : `http-range-injection-round249.test.mjs` vérifie les plages avec et sans `Origin`, ainsi qu'une réponse entière injectée.
 ## Import de plusieurs sources vers le même dossier d'installation
 
-- Reproduction automatisée : `template-import-same-destination-round250.test.mjs` sélectionne deux projets puis deux templates distincts qui déclarent le même `installationFolder`. Dans les deux cas, le second dossier copié remplace entièrement le premier, sans avertissement, avec un seul rechargement final ; le dossier voisin est conservé.
-- Décision à prendre : confirmer si une collision entre deux sélections du même import doit être acceptée et résolue par la dernière sélection, ou signalée avant la copie.
+- Résolu : une collision entre deux sélections du même import annule le lot avant toute copie et signale les deux sources et le dossier commun. Une sélection unique peut toujours remplacer une installation existante.
+- Régression automatisée : `template-import-same-destination-round250.test.mjs` vérifie les imports de projets et de templates, l'absence de copie et l'absence de rechargement.
 
 ## Import d'un projet modifié pendant la sélection
 
