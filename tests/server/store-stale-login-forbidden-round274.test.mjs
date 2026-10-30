@@ -6,7 +6,7 @@ const [{ Store }, { GenericServer }] = await loadServerModules([
     'store/Store.ts', 'GenericServer.ts',
 ]);
 
-test('a stale forbidden login logs out the newer Store session', async t => {
+test('a stale forbidden login preserves the newer Store session', async t => {
     const previous = {
         fetch: globalThis.fetch,
         settings: Store._settings,
@@ -50,11 +50,10 @@ test('a stale forbidden login logs out the newer Store session', async t => {
 
     releaseOld({ status: 403, text: async () => '' });
     assert.equal(await oldLogin, false);
-    assert.deepEqual(Store._settings, { token: '', username: undefined });
+    assert.deepEqual(Store._settings, { token: 'new-token', username: 'bob' });
     assert.deepEqual(requests.map(request => request.path), [
-        '/api/remote/login', '/api/remote/login', '/api/remote/logout',
+        '/api/remote/login', '/api/remote/login',
     ]);
     assert.deepEqual(requests.slice(0, 2).map(request => request.authorization), [undefined, undefined]);
-    assert.match(requests[2].authorization, /^Bearer new-token\|.+/);
     assert.deepEqual(errors, ['You must connect to your account first']);
 });

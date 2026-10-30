@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Réponse Store 403 ancienne qui déconnecte une nouvelle session
-
-- Reproduction automatisée : `store-stale-forbidden-round267.test.mjs` lance une publication avec le token d'Alice, connecte Bob avec succès, puis reçoit HTTP 403 pour l'ancienne publication. Le serveur envoie alors `/logout` avec le token de Bob et efface sa session locale.
-- La même course existe entre deux connexions : `store-stale-login-forbidden-round274.test.mjs` reçoit le 403 de l'ancien login d'Alice après le succès du login de Bob ; `/logout` utilise le nouveau token et vide sa session.
-- Décision à prendre : confirmer si un refus de publication doit déconnecter uniquement la session ayant émis la requête ; dans ce cas, vérifier son token ou sa révision avant le logout.
-
 ## Échec synchrone d'un build qui interrompt le lancement du lot
 
 - Reproduction automatisée : `project-build-all-sync-failure-round268.test.mjs` fait lever immédiatement `build()` sur le premier build. `Project.buildAll()` rejette avant de lancer le second build et la sortie statique, tandis qu'une relance après disparition de l'erreur lance les trois travaux.
