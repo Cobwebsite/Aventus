@@ -4,7 +4,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { Store, QueryError } = await loadServerModule('store/Store.ts');
 
-test('an old Store request returning 401 clears a newer successful session', async t => {
+test('an old Store request returning 401 preserves a newer successful session', async t => {
     const previous = {
         fetch: globalThis.fetch,
         settings: Store._settings,
@@ -41,7 +41,7 @@ test('an old Store request returning 401 clears a newer successful session', asy
     const result = await oldPublication;
     assert.ok(result instanceof QueryError);
     assert.deepEqual(result.errors, [{ code: 401, message: 'No token provided' }]);
-    assert.deepEqual(Store._settings, { token: '', username: undefined });
+    assert.deepEqual(Store._settings, { token: 'new-token', username: 'bob' });
     assert.deepEqual(requests.map(request => request.url), [
         `${Store.url}/api/remote/package/publish`,
         `${Store.url}/api/remote/login`,

@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Réponse Store 401 ancienne qui efface une nouvelle session
-
-- Reproduction automatisée : `store-stale-unauthorized-round266.test.mjs` lance une publication avec le token d'Alice, connecte Bob avec succès, puis reçoit le HTTP 401 de l'ancienne publication. La session de Bob est effacée bien que sa connexion ait été confirmée avant cette réponse.
-- Une ancienne tentative de connexion elle-même peut avoir le même effet : `store-stale-login-unauthorized-round269.test.mjs` connecte Bob pendant que la réponse du login d'Alice attend ; le 401 tardif du login d'Alice efface la session de Bob, malgré la vérification de révision dans `connect()`.
-- Décision à prendre : confirmer si une réponse non autorisée doit invalider uniquement la session ayant émis la requête ; dans ce cas, comparer le token ou une révision de session avant de vider les identifiants.
-
 ## Réponse Store 403 ancienne qui déconnecte une nouvelle session
 
 - Reproduction automatisée : `store-stale-forbidden-round267.test.mjs` lance une publication avec le token d'Alice, connecte Bob avec succès, puis reçoit HTTP 403 pour l'ancienne publication. Le serveur envoie alors `/logout` avec le token de Bob et efface sa session locale.

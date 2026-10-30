@@ -185,6 +185,8 @@ export class Store {
 	}
 	private static async postWithErrors<T>(uri: string, body: FormData | {} = {}, options?: PostOptions): Promise<T | QueryError> {
 		let query: Response | null = null;
+		const requestRevision = this.sessionRevision;
+		const requestToken = this.token;
 		try {
 			const headers = {};
 			if (!(body instanceof FormData)) {
@@ -201,7 +203,9 @@ export class Store {
 				headers
 			});
 			if (query.status == 401) {
-				this.setSettings({ token: "", username: undefined });
+				if (requestRevision === this.sessionRevision && requestToken === this.token) {
+					this.setSettings({ token: "", username: undefined });
+				}
 				return new QueryError([{ code: 401, message: "No token provided" }])
 			}
 			if (query.status == 403) {
