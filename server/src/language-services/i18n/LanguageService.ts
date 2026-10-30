@@ -1,4 +1,4 @@
-import { CodeAction, Diagnostic, DiagnosticSeverity, FormattingOptions, getLanguageService, LanguageService, ObjectASTNode, Position, Range, TextEdit } from 'vscode-json-languageservice';
+import { CodeAction, Diagnostic, DiagnosticSeverity, ErrorCode, FormattingOptions, getLanguageService, LanguageService, ObjectASTNode, Position, Range, TextEdit } from 'vscode-json-languageservice';
 import { AventusErrorCode, AventusExtension } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
 import { createErrorI18n, createErrorI18nPos, createWarningI18nPos } from '../../tools';
@@ -130,7 +130,7 @@ export class AventusI18nLanguageService {
 				const jsonDocument = this.languageService.parseJSONDocument(file.documentUser);
 				const root = jsonDocument.root;
 				const syntaxErrors = (jsonDocument as typeof jsonDocument & { syntaxErrors?: Diagnostic[] }).syntaxErrors;
-				if (!root || root.type !== 'object' || syntaxErrors?.length) return [];
+				if (!root || root.type !== 'object' || syntaxErrors?.some(error => error.code !== ErrorCode.TrailingComma)) return [];
 
 				const sorted = file.contentUser.slice(0, root.offset) + this.sortJsoncObject(file.contentUser, root) +
 					file.contentUser.slice(root.offset + root.length);
