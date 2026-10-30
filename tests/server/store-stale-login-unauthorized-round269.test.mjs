@@ -6,7 +6,7 @@ const [{ Store }, { GenericServer }] = await loadServerModules([
     'store/Store.ts', 'GenericServer.ts',
 ]);
 
-test('an older unauthorized login clears a newer successful Store session', async t => {
+test('an older unauthorized login preserves a newer successful Store session', async t => {
     const previous = {
         fetch: globalThis.fetch,
         settings: Store._settings,
@@ -47,7 +47,7 @@ test('an older unauthorized login clears a newer successful Store session', asyn
 
     releaseOld({ status: 401, text: async () => '' });
     assert.equal(await oldLogin, false);
-    assert.deepEqual(Store._settings, { token: '', username: undefined });
+    assert.deepEqual(Store._settings, { token: 'new-token', username: 'bob' });
     assert.deepEqual(requests.map(request => request.path), [
         '/api/remote/login', '/api/remote/login',
     ]);
