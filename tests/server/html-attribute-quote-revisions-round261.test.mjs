@@ -19,7 +19,7 @@ test('attribute expressions retain their source ranges when quote style and neig
     const firstText = `<button :title='item.name' @click='open(item)'>Open</button><p :title="tail">Tail</p>`;
     const first = parse(firstText);
     assert.deepEqual(first.errors, []);
-    assert.deepEqual(first.injections.map(item => item.injectTsTxt), ["'item.name'", 'tail']);
+    assert.deepEqual(first.injections.map(item => item.injectTsTxt), ['item.name', 'tail']);
     assert.deepEqual(first.injections.map(item => firstText.slice(item.start, item.end)), ["'item.name'", '"tail"']);
 
     const secondText = `<i>Before</i>\r\n<button :title="item.label" @click="select(item)">Select</button>`;
