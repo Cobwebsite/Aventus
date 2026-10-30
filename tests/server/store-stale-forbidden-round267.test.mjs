@@ -4,7 +4,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 
 const { Store, QueryError } = await loadServerModule('store/Store.ts');
 
-test('a stale forbidden Store publication logs out a newer session', async t => {
+test('a stale forbidden Store publication preserves a newer session', async t => {
     const previous = {
         fetch: globalThis.fetch,
         settings: Store._settings,
@@ -44,11 +44,10 @@ test('a stale forbidden Store publication logs out a newer session', async t => 
     const result = await publication;
     assert.ok(result instanceof QueryError);
     assert.deepEqual(result.errors, [{ code: 403, message: 'You must connect to your account first' }]);
-    assert.deepEqual(Store._settings, { token: '', username: undefined });
+    assert.deepEqual(Store._settings, { token: 'new-token', username: 'bob' });
     assert.deepEqual(requests.map(request => request.path), [
-        '/api/remote/package/publish', '/api/remote/login', '/api/remote/logout',
+        '/api/remote/package/publish', '/api/remote/login',
     ]);
     assert.match(requests[0].authorization, /^Bearer old-token\|.+/);
     assert.equal(requests[1].authorization, undefined);
-    assert.match(requests[2].authorization, /^Bearer new-token\|.+/);
 });

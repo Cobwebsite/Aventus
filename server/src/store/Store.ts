@@ -209,7 +209,7 @@ export class Store {
 				return new QueryError([{ code: 401, message: "No token provided" }])
 			}
 			if (query.status == 403) {
-				if (uri != '/logout')
+				if (uri != '/logout' && requestRevision === this.sessionRevision && requestToken === this.token)
 					await this.disconnect();
 				return new QueryError([{ code: 403, message: "You must connect to your account first" }])
 			}
