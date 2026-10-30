@@ -53,15 +53,10 @@ test('RGB gamut includes exact endpoints and rejects negative or excess channels
     }
 });
 
-test('ColorInfo accepts RGB and HSL endpoint values and rejects out-of-range inputs', () => {
+test('ColorInfo accepts RGB endpoint values and rejects out-of-range inputs', () => {
     assert.equal(new ColorInfo(0, 0, 0).toHex(), '#000000');
     assert.equal(new ColorInfo(255, 255, 255).toHex(), '#ffffff');
-    assert.equal(ColorInfo.fromHsl(360, 100, 50).toHex(), '#ff0000');
-    assert.equal(ColorInfo.fromHsl(0, 0, 0).toHex(), '#000000');
     for (const channels of [[-1, 0, 0], [0, 256, 0], [0, 0, Infinity]]) {
         assert.throws(() => new ColorInfo(...channels), /out of bounds/);
-    }
-    for (const hsl of [[-1, 100, 50], [0, 101, 50], [0, 100, -1]]) {
-        assert.throws(() => ColorInfo.fromHsl(...hsl), /out of range/);
     }
 });

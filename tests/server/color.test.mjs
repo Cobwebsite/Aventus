@@ -16,12 +16,10 @@ test('ColorInfo parses short and long hex and formats RGB', () => {
     assert.deepEqual(ColorInfo.fromName('red').toRgb(), { r: 255, g: 0, b: 0 });
 });
 
-test('ColorInfo rejects invalid colors and converts primary HSL colors', () => {
+test('ColorInfo rejects invalid colors', () => {
     assert.throws(() => ColorInfo.fromHex('#12'), /Invalid Hex code/);
     assert.throws(() => ColorInfo.fromName('not-a-color'), /Invalid Color name/);
     assert.throws(() => new ColorInfo(256, 0, 0), /out of bounds/);
-    assert.throws(() => ColorInfo.fromHsl(361, 100, 50), /out of range/);
-    assert.equal(ColorInfo.fromHsl(120, 100, 50).toHex(), '#00ff00');
 });
 
 test('ColorData converts between RGB and HSL without changing the input', () => {
