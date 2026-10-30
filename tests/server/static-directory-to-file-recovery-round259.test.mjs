@@ -48,15 +48,11 @@ test('static export recovers when a source directory becomes a binary file at th
     rmSync(sourcePath, { recursive: true });
     writeFileSync(sourcePath, Buffer.from([3, 4, 5]));
     await exporter.export();
-    assert.equal(errors.length, 1);
-    assert.equal(reloads, 1);
+    assert.equal(errors.length, 0);
+    assert.equal(reloads, 2);
     assert.equal(existsSync(join(outputPath, 'old.bin')), false);
     assert.equal(existsSync(outputPath), true);
-
-    rmSync(outputPath, { recursive: true });
-    await exporter.export();
     assert.deepEqual(readFileSync(outputPath), Buffer.from([3, 4, 5]));
-    assert.equal(reloads, 2);
 
     rmSync(sourcePath);
     await exporter.export();

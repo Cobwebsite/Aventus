@@ -12,17 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Export statique bloqué quand un dossier source devient un fichier
-
-- Reproduction automatisée : `static-directory-to-file-recovery-round259.test.mjs` exporte `asset/old.bin`, remplace le dossier source `asset` par un fichier binaire du même nom, puis relance l'export. L'ancienne copie `old.bin` est supprimée, mais le dossier de sortie `asset` reste en place : la copie échoue et le rechargement HTTP n'est pas déclenché. Après suppression manuelle de ce dossier de sortie, la même instance exporte le nouveau fichier et le nettoie correctement lorsque sa source disparaît.
-
-## Export statique en deux passes quand un fichier source devient un dossier
-
-- Reproduction automatisée : `static-file-to-directory-recovery-round262.test.mjs` exporte le fichier `asset`, puis le remplace par un dossier `asset/new.bin`. Le premier export tente de créer `output/asset` alors que l'ancienne copie y est encore un fichier : la copie échoue. Le nettoyage en fin de passe retire ce fichier et un second export réussit sans autre modification de la source.
-- Décision à prendre : faut-il refaire la copie dans la même passe après le nettoyage des anciennes sorties, afin que le changement de type soit publié dès le premier export ?
-- Cause : l'export nettoie les fichiers suivis dans `exportedBySource` sans retirer leurs dossiers vides avant de copier une nouvelle source au chemin parent.
-- Décision à prendre : déterminer si l'export doit retirer ses dossiers vides après suppression des copies possédées, afin de permettre cette transition sans intervention manuelle.
-
 ## Expressions HTML entre apostrophes conservées comme littéraux
 
 - Reproduction automatisée : `html-attribute-quote-revisions-round261.test.mjs` parse `:title='item.name'`, puis `:title="item.label"` dans la même vue révisée. La première injection contient `'item.name'` avec ses apostrophes, la seconde contient `item.label` sans guillemets, alors que les plages source couvrent correctement les deux attributs.

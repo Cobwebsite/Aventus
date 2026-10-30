@@ -2,7 +2,7 @@ import { AventusConfigStatic } from "../language-services/json/definition";
 import { Project } from "./Project";
 import { FSWatcher, watch } from "chokidar";
 import { normalize, sep } from "path";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync } from "fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync } from "fs";
 import { compile } from 'sass';
 import { HttpServer } from '../live-server/HttpServer';
 import { AventusExtension } from '../definition';
@@ -69,6 +69,9 @@ export class Static {
                     let filename = splitted.pop();
                     let folder = splitted.join(sep);
 
+                    if (existsSync(folder) && statSync(folder).isFile()) {
+                        rmSync(folder);
+                    }
                     if (!existsSync(folder)) {
                         mkdirSync(folder, { recursive: true });
                     }
@@ -79,11 +82,17 @@ export class Static {
                             }).css.toString().trim();
                             const cssPath = pathOut.slice(0, -".scss".length) + ".css";
                             if (!this.isReady) return null;
+                            if (existsSync(cssPath) && statSync(cssPath).isDirectory()) {
+                                rmSync(cssPath, { recursive: true });
+                            }
                             await writeFile(cssPath, style, "static", this.name);
                             return cssPath;
                         }
                     }
                     else {
+                        if (existsSync(pathOut) && statSync(pathOut).isDirectory()) {
+                            rmSync(pathOut, { recursive: true });
+                        }
                         copyFileSync(pathFile, pathOut);
                         Statistics.sendFileSize(pathOut, undefined, "static", this.name);
                         return pathOut;
@@ -131,7 +140,7 @@ export class Static {
                     }
                     else {
                         const outputPath = normalize(resultPath.endsWith('.scss') ? resultPath.slice(0, -".scss".length) + ".css" : resultPath);
-                        const existedBefore = existsSync(outputPath);
+                        const existedBefore = existsSync(outputPath) && !statSync(outputPath).isDirectory();
                         const writtenPath = await copyFile(filePath, resultPath);
                         if (!this.isReady) return;
                         if (writtenPath) this.rememberOutput(currentOutputs, previousOutputs, writtenPath, existedBefore, ownedOutputPaths);
@@ -153,7 +162,7 @@ export class Static {
                     try {
                         if (!recorded.canDelete || !existsSync(path)) continue;
                         const current = statSync(path);
-                        if (current.size === recorded.size && current.mtimeMs === recorded.mtimeMs) {
+                        if (current.isFile() && current.size === recorded.size && current.mtimeMs === recorded.mtimeMs) {
                             unlinkSync(path);
                         }
                     } catch (e) {
