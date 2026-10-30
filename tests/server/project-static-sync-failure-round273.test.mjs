@@ -10,7 +10,7 @@ function deferred() {
     return { promise, resolve };
 }
 
-test('synchronous static failure leaves started builds running and retry dispatches every output', async () => {
+test('synchronous static failure still dispatches later outputs and retry dispatches every output', async () => {
     const project = Object.create(Project.prototype);
     const pendingBuild = deferred();
     const calls = [];
@@ -30,13 +30,13 @@ test('synchronous static failure leaves started builds running and retry dispatc
     ];
 
     await assert.rejects(project.buildAll(), /static setup failed/);
-    assert.deepEqual(calls, ['first build', 'second build', 'first static']);
+    assert.deepEqual(calls, ['first build', 'second build', 'first static', 'second static']);
 
     pendingBuild.resolve();
     fail = false;
     await project.buildAll();
     assert.deepEqual(calls, [
-        'first build', 'second build', 'first static',
+        'first build', 'second build', 'first static', 'second static',
         'first build', 'second build', 'first static', 'second static',
     ]);
 });

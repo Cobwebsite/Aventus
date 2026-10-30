@@ -4,7 +4,7 @@ import { loadServerModules } from './helpers/load-ts.mjs';
 
 const [{ Project }] = await loadServerModules(['project/Project.ts']);
 
-test('a synchronous build failure stops dispatching later builds and statics, then retry runs all', async () => {
+test('a synchronous build failure still dispatches later builds and statics, then retry runs all', async () => {
     const project = Object.create(Project.prototype);
     const calls = [];
     let fail = true;
@@ -19,11 +19,12 @@ test('a synchronous build failure stops dispatching later builds and statics, th
     project.statics = [{ export: async () => { calls.push('static export'); } }];
 
     await assert.rejects(project.buildAll(), /build setup failed/);
-    assert.deepEqual(calls, ['first build']);
+    assert.deepEqual(calls, ['first build', 'second build', 'static export']);
 
     fail = false;
     await project.buildAll();
     assert.deepEqual(calls, [
-        'first build', 'first build', 'second build', 'static export',
+        'first build', 'second build', 'static export',
+        'first build', 'second build', 'static export',
     ]);
 });

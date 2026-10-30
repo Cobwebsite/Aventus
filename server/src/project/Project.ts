@@ -385,10 +385,10 @@ export class Project {
     public async buildAll() {
         const proms: Promise<void>[] = []
         for (let build of this.builds) {
-            proms.push(build.build());
+            proms.push(Promise.resolve().then(() => build.build()));
         }
         for (let _static of this.statics) {
-            proms.push(_static.export());
+            proms.push(Promise.resolve().then(() => _static.export()));
         }
         await Promise.all(proms);
     }
