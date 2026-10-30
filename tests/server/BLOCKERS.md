@@ -12,12 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Échec synchrone d'un build qui interrompt le lancement du lot
-
-- Reproduction automatisée : `project-build-all-sync-failure-round268.test.mjs` fait lever immédiatement `build()` sur le premier build. `Project.buildAll()` rejette avant de lancer le second build et la sortie statique, tandis qu'une relance après disparition de l'erreur lance les trois travaux.
-- Variante : `project-static-sync-failure-round273.test.mjs` lance deux builds, puis un échec synchrone de la première sortie statique empêche le lancement de la seconde ; le build asynchrone déjà lancé continue et la relance démarre toutes les sorties.
-- Décision à prendre : confirmer si un échec de préparation synchrone doit empêcher les autres travaux du lot, ou si chaque lancement doit être isolé afin de tenter les autres builds et sorties statiques comme lors d'un rejet asynchrone.
-
 ## En-tête d'un package Store sans saut de ligne final
 
 - Reproduction automatisée : `dependency-store-header-newline-round278.test.mjs` vérifie que `DependencyManager.readFirstLine()` rend l'en-tête complet quand il est suivi d'un saut de ligne, mais en retire le dernier caractère lorsque le fichier se termine directement après l'en-tête. Un en-tête `// Widget:1.2.3` devient alors `// Widget:1.2.` et la validation du package téléchargé échoue.
