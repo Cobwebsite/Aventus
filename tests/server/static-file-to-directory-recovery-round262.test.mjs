@@ -49,13 +49,9 @@ test('static export recovers when a source file becomes a directory at the same 
     mkdirSync(sourcePath);
     writeFileSync(join(sourcePath, 'new.bin'), Buffer.from([3, 4, 5]));
     await exporter.export();
-    assert.equal(errors.length, 1);
-    assert.equal(reloads, 1);
-    assert.equal(existsSync(outputPath), false);
-
-    await exporter.export();
-    assert.deepEqual(readFileSync(join(outputPath, 'new.bin')), Buffer.from([3, 4, 5]));
+    assert.equal(errors.length, 0);
     assert.equal(reloads, 2);
+    assert.deepEqual(readFileSync(join(outputPath, 'new.bin')), Buffer.from([3, 4, 5]));
 
     rmSync(sourcePath, { recursive: true });
     await exporter.export();
