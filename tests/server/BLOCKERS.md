@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Expressions HTML entre apostrophes conservées comme littéraux
-
-- Reproduction automatisée : `html-attribute-quote-revisions-round261.test.mjs` parse `:title='item.name'`, puis `:title="item.label"` dans la même vue révisée. La première injection contient `'item.name'` avec ses apostrophes, la seconde contient `item.label` sans guillemets, alors que les plages source couvrent correctement les deux attributs.
-- Décision à prendre : confirmer si les apostrophes doivent être retirées comme les guillemets doubles pour interpréter l'expression dynamique, puis harmoniser le parseur et la compilation si nécessaire.
-
 ## Réponse Store 401 ancienne qui efface une nouvelle session
 
 - Reproduction automatisée : `store-stale-unauthorized-round266.test.mjs` lance une publication avec le token d'Alice, connecte Bob avec succès, puis reçoit le HTTP 401 de l'ancienne publication. La session de Bob est effacée bien que sa connexion ait été confirmée avant cette réponse.
