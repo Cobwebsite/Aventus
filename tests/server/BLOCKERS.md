@@ -12,11 +12,6 @@ Ce fichier conserve les cas reproductibles rencontrés pendant l'écriture des t
 - Source : `Build.onRename()` ne traite que les cinq extensions TypeScript Aventus et retourne un résultat vide pour les autres fichiers.
 - Décision à prendre : préciser quelles références de vues et de styles doivent être actualisées lors d'un déplacement, puis ajouter des cas réels avant de modifier le routage du renommage.
 
-## Formatage i18n JSONC avec virgules finales
-
-- Reproduction automatisée : `i18n-jsonc-trailing-comma-revisions-round281.test.mjs` soumet un fichier commenté en CRLF avec virgules finales dans les objets de traduction. Le formateur ne propose aucune édition. Après retrait des virgules finales, il trie les clés et locales sur deux révisions en préservant les commentaires.
-- Décision à prendre : confirmer si les virgules finales sont admises dans les fichiers i18n commentés ; si oui, permettre leur formatage comme pour les autres formes JSONC acceptées.
-
 ## Multiplication de deux couleurs valides
 
 - Reproduction automatisée : `color-info-composition-round290.test.mjs` appelle `ColorInfo.multiply()` avec deux couleurs RGB valides. La méthode extrait `r1`, `g1`, `b1` et `r2`, `g2`, `b2` d'objets qui exposent `r`, `g`, `b` ; elle transmet donc `NaN` à `fromRgb()` et lève `Color values out of bounds`.

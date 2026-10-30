@@ -6,7 +6,7 @@ import { loadServerModule } from './helpers/load-ts.mjs';
 const { AventusI18nLanguageService } = await loadServerModule(
     'language-services/i18n/LanguageService.ts');
 
-test('i18n JSONC formatting recovers after trailing commas and sorts commented CRLF revisions', async () => {
+test('i18n JSONC formatting accepts trailing commas and sorts commented CRLF revisions', async () => {
     const service = AventusI18nLanguageService.getInstance();
     const uri = 'file:///D:/round281/jsonc.i18n.avt';
     const format = async (version, source, expectedEdits = 1) => {
@@ -23,13 +23,17 @@ test('i18n JSONC formatting recovers after trailing commas and sorts commented C
         return { formatted, parsed };
     };
 
-    const invalid = await format(1, [
+    const withTrailingCommas = await format(1, [
         '// catalog', '{',
         '  // last key', '  "z": { "fr": "Dernier", "en": "Last", },',
         '  /* first key */ "a": { "fr": "Premier", "en": "First", },',
         '}', '',
-    ].join('\r\n'), 0);
-    assert.match(invalid.formatted, /"en": "Last",/);
+    ].join('\r\n'));
+    assert.deepEqual(withTrailingCommas.parsed.root.properties.map(item => item.keyNode.value), ['a', 'z']);
+    assert.deepEqual(withTrailingCommas.parsed.root.properties[0].valueNode.properties.map(item => item.keyNode.value), ['en', 'fr']);
+    assert.match(withTrailingCommas.formatted, /\/\* first key \*\/\s*"a"/);
+    assert.match(withTrailingCommas.formatted, /\/\/ last key\s*"z"/);
+    assert.doesNotMatch(withTrailingCommas.formatted, /(?<!\r)\n/);
 
     const first = await format(2, [
         '// catalog', '{',
