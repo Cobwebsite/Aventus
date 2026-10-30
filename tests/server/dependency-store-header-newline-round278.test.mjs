@@ -7,7 +7,7 @@ import { loadServerModules } from './helpers/load-ts.mjs';
 
 const [{ DependencyManager }] = await loadServerModules(['project/DependencyManager.ts']);
 
-test('Store package header reading handles newline and newline-free files differently', async t => {
+test('Store package header reading preserves the full first line with or without a newline', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-package-header-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const manager = Object.create(DependencyManager.prototype);
@@ -18,6 +18,5 @@ test('Store package header reading handles newline and newline-free files differ
     writeFileSync(withoutNewline, header);
 
     assert.equal(await manager.readFirstLine(withNewline), header);
-    // Current behavior: the last character is lost if the file contains no newline.
-    assert.equal(await manager.readFirstLine(withoutNewline), header.slice(0, -1));
+    assert.equal(await manager.readFirstLine(withoutNewline), header);
 });
