@@ -718,16 +718,14 @@ export class DependencyManager {
 		return new Promise(function (resolve, reject) {
 			var rs = createReadStream(path, { encoding: 'utf8' });
 			var acc = '';
-			var pos = 0;
-			var index;
 			rs
 				.on('data', function (chunk) {
-					index = chunk.indexOf('\n');
 					acc += chunk;
-					index !== -1 ? rs.close() : pos += chunk.length;
+					if (acc.includes('\n')) rs.close();
 				})
 				.on('close', function () {
-					resolve(acc.slice(0, pos + index));
+					const newline = acc.indexOf('\n');
+					resolve(newline === -1 ? acc : acc.slice(0, newline));
 				})
 				.on('error', function (err) {
 					reject(err);
