@@ -385,11 +385,18 @@ export class Project {
 
     public async buildAll() {
         const proms: Promise<void>[] = []
+        const start = (action: () => Promise<void>) => {
+            try {
+                proms.push(Promise.resolve(action()));
+            } catch (error) {
+                proms.push(Promise.reject(error));
+            }
+        };
         for (let build of this.builds) {
-            proms.push(Promise.resolve().then(() => build.build()));
+            start(() => build.build());
         }
         for (let _static of this.statics) {
-            proms.push(Promise.resolve().then(() => _static.export()));
+            start(() => _static.export());
         }
         await Promise.all(proms);
     }

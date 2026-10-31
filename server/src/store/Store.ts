@@ -186,15 +186,22 @@ export class Store {
 	private static async postWithErrors<T>(uri: string, body: FormData | {} = {}, options?: PostOptions): Promise<T | QueryError> {
 		let query: Response | null = null;
 		const requestRevision = this.sessionRevision;
-		const requestToken = this.token;
+		const withoutBearer = options?.withoutBearer === true;
+		const requestToken = withoutBearer ? undefined : this.token;
+		const sessionUnchanged = () => {
+			const sameRevision = requestRevision === this.sessionRevision;
+			const sameToken = withoutBearer || requestToken === this.token;
+			return sameRevision && sameToken;
+		}
+
 		try {
 			const headers = {};
 			if (!(body instanceof FormData)) {
 				headers['Content-Type'] = 'application/json'
 			}
-			if (!options?.withoutBearer) {
+			if (!withoutBearer) {
 				const machineId = await Id();
-				const bearer = this.token + "|" + machineId;
+				const bearer = requestToken + "|" + machineId;
 				headers['Authorization'] = 'Bearer ' + bearer;
 			}
 			query = await fetch(Store.url + "/api/remote" + uri, {
@@ -203,13 +210,13 @@ export class Store {
 				headers
 			});
 			if (query.status == 401) {
-				if (requestRevision === this.sessionRevision && requestToken === this.token) {
+				if (sessionUnchanged()) {
 					this.setSettings({ token: "", username: undefined });
 				}
 				return new QueryError([{ code: 401, message: "No token provided" }])
 			}
 			if (query.status == 403) {
-				if (uri != '/logout' && requestRevision === this.sessionRevision && requestToken === this.token)
+				if (uri != '/logout' && sessionUnchanged())
 					await this.disconnect();
 				return new QueryError([{ code: 403, message: "You must connect to your account first" }])
 			}

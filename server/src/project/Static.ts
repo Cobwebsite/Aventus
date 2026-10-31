@@ -46,10 +46,7 @@ export class Static {
                             let completePath = dir + '/' + name;
                             if (lstatSync(completePath).isDirectory()) {
                                 // If it is another directory
-                                let files = recu(completePath);
-                                if (files.length > 0) {
-                                    result.concat(files);
-                                }
+                                recu(completePath);
                             } else {
                                 result.push(completePath);
                             }
@@ -149,7 +146,9 @@ export class Static {
                 if (previousOutputs || currentOutputs.size > 0) {
                     this.exportedBySource.set(filePath, new Map([...(previousOutputs ?? []), ...currentOutputs]));
                 }
-                for (const path of currentOutputs.keys()) currentOutputPaths.add(path);
+                for (const path of currentOutputs.keys()) {
+                    currentOutputPaths.add(path);
+                }
             }
             if (!this.isReady) return;
             for (const [source, outputs] of this.exportedBySource) {
@@ -157,7 +156,7 @@ export class Static {
                 for (const [path, recorded] of outputs) {
                     if (currentOutputPaths.has(path)) continue;
                     if (source.endsWith(AventusExtension.GlobalStyle)) {
-                        this.project.scssFiles[pathToUri(source)]?.removeOutPath?.(path);
+                        this.project.scssFiles[pathToUri(source)]?.removeOutPath(path);
                     }
                     try {
                         if (!recorded.canDelete || !existsSync(path)) continue;
