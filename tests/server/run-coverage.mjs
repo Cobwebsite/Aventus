@@ -13,10 +13,10 @@ const nyc = resolve(root, 'node_modules/nyc/bin/nyc.js');
 const bundlePattern = /^\.coverage-bundle-.*\.cjs$/;
 const tests = process.argv.length > 2
     ? process.argv.slice(2)
-    : readdirSync(resolve(root, 'tests/server'))
-        .filter(name => name.endsWith('.test.mjs'))
+    : readdirSync(resolve(root, 'tests/server'), { recursive: true, withFileTypes: true })
+        .filter(entry => entry.isFile() && entry.name.endsWith('.test.mjs'))
+        .map(entry => `${entry.parentPath.replace(root + sep, '').replaceAll('\\', '/')}/${entry.name}`)
         .sort()
-        .map(name => `tests/server/${name}`);
 const shardSize = 40;
 const coverage = createCoverageMap({});
 let failed = false;
