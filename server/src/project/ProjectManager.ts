@@ -94,14 +94,32 @@ export class ProjectManager {
             const project = this.projects[uri];
             const temp = await project.onRename(changes);
             if (this.projects[uri] !== project) continue;
-            for (let uri in temp) {
-                if (!result[uri]) {
-                    result[uri] = []
-                }
-                result[uri] = result[uri].concat(temp[uri]);
-            }
+            this.preventDoubleEdit(result, temp)
         }
         return result;
+    }
+
+    private preventDoubleEdit(result: { [uri: string]: TextEdit[] }, source: { [uri: string]: TextEdit[] }) {
+        for (let uri in source) {
+            if (!result[uri]) {
+                result[uri] = []
+            }
+            if (!uri.endsWith(AventusExtension.ComponentStyle) && !uri.endsWith(AventusExtension.GlobalStyle)) {
+                result[uri] = result[uri].concat(source[uri]);
+                continue;
+            }
+            for (const edit of source[uri]) {
+                if (!result[uri].some(
+                    existing => existing.newText === edit.newText &&
+                        existing.range.start.line === edit.range.start.line &&
+                        existing.range.start.character === edit.range.start.character &&
+                        existing.range.end.line === edit.range.end.line &&
+                        existing.range.end.character === edit.range.end.character)
+                ) {
+                    result[uri].push(edit);
+                }
+            }
+        }
     }
 
     public getAllConfigFiles(): string[] {

@@ -22,6 +22,9 @@ function managerWithProjects(names, calls) {
         };
         const project = Object.create(Project.prototype);
         project.builds = [build];
+        project.scssFiles = {};
+        build.project = project;
+        build.scssFiles = {};
         manager.projects[name] = project;
     }
     return manager;

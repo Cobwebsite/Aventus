@@ -9,12 +9,100 @@ import { SCSSDoc, CustomCssProperty, CustomCssPropertyType } from './helper/CSSC
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusFile } from '../../files/AventusFile';
 import { TagInfo } from '../html/parser/TagInfo';
-import { AventusWebSCSSFile } from './File';
+import type { AventusWebSCSSFile } from './File';
 import { GenericServer } from '../../GenericServer';
+import { basename, dirname, isAbsolute, normalize, relative, resolve, sep } from 'path';
+import { samePath, uriToPath } from '../../tools';
+import { styleExtensions } from '../../definition';
 
 export type SCSSParsedRule = Map<(tagInfo: TagInfo) => boolean, { start: number, end: number }>;
 
 export class AventusSCSSLanguageService {
+
+    private static referencedPath(base: string, oldPath: string): boolean {
+        const allPaths = [base];
+        for (const extension of styleExtensions) {
+            allPaths.push(base + extension);
+        }
+        const folder = dirname(base);
+        const name = basename(base);
+        for (const extension of styleExtensions) {
+            allPaths.push(resolve(folder, '_' + name + extension));
+        }
+        allPaths.push(resolve(folder, '_' + name));
+        return allPaths.some(candidate => samePath(candidate, oldPath));
+    }
+
+    private static updatedSpecifier(sourcePath: string, original: string, newPath: string): string | null {
+        let updated = relative(dirname(sourcePath), newPath).split(sep).join('/');
+        if (isAbsolute(updated)) return null;
+
+        if (!styleExtensions.some(extension => original.endsWith(extension))) {
+            const extension = styleExtensions.find(item => updated.endsWith(item));
+            if (extension) {
+                updated = updated.slice(0, -extension.length);
+            }
+
+            const slash = updated.lastIndexOf('/');
+            if (updated[slash + 1] === '_') {
+                updated = updated.slice(0, slash + 1) + updated.slice(slash + 2);
+            }
+        }
+        if (!updated.startsWith('.')) {
+            updated = './' + updated;
+        }
+        return updated;
+    }
+
+    public static getScssRenameEdits(document: TextDocument, changes: { oldUri: string; newUri: string }[]): TextEdit[] {
+        const source = document.getText();
+        const sourcePath = uriToPath(document.uri);
+        const edits: TextEdit[] = [];
+        try {
+            const stylesheet = postcssScss.parse(source);
+            stylesheet.walkAtRules(rule => {
+                if (!['import', 'use', 'forward'].includes(rule.name)) return;
+                if (!rule.source?.start) return;
+
+                const ruleStart = document.offsetAt({
+                    line: rule.source.start.line - 1,
+                    character: rule.source.start.column - 1,
+                });
+
+                const paramsStart = source.indexOf(rule.params, ruleStart + rule.name.length + 1);
+                if (paramsStart === -1) return;
+
+                const params = rule.params.replace(/\/\*[\s\S]*?\*\//g, match => ' '.repeat(match.length));
+                for (const match of params.matchAll(/(['"])([^'"\r\n]+)\1/g)) {
+                    const specifier = match[2];
+                    if (/url\(\s*$/i.test(params.slice(0, match.index))) continue;
+                    if (specifier.startsWith('@') || /^([a-z]+:|\/\/)/i.test(specifier)) continue;
+
+                    const base = resolve(dirname(sourcePath), specifier);
+                    for (const change of changes) {
+                        const oldPath = uriToPath(change.oldUri);
+                        if (!styleExtensions.some(extension => oldPath.endsWith(extension))) continue;
+                        if (!this.referencedPath(base, oldPath)) continue;
+
+                        const newText = this.updatedSpecifier(sourcePath, specifier, uriToPath(change.newUri));
+                        if (!newText || newText === specifier) break;
+                        const start = paramsStart + match.index + 1;
+                        edits.push({
+                            range: {
+                                start: document.positionAt(start),
+                                end: document.positionAt(start + specifier.length),
+                            }, newText
+                        });
+                        break;
+                    }
+                }
+            });
+        } catch {
+            return [];
+        }
+        return edits;
+    }
+
     private languageService: LanguageService;
     private documentationInfo: SCSSDoc = {};
     private externalDocumentation: { [key: string]: SCSSDoc } = {};
@@ -39,6 +127,10 @@ export class AventusSCSSLanguageService {
     public constructor(build: Build) {
         this.build = build;
         this.languageService = getSCSSLanguageService();
+    }
+
+    public getRenameFileEdits(file: AventusFile, changes: { oldUri: string; newUri: string }[]): TextEdit[] {
+        return AventusSCSSLanguageService.getScssRenameEdits(file.documentUser, changes);
     }
 
     public async doValidation(file: AventusFile): Promise<Diagnostic[]> {
