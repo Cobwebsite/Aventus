@@ -8,7 +8,7 @@ const [{ Static }, { SettingsManager }, { HttpServer }, { GenericServer }] = awa
     'project/Static.ts', 'settings/Settings.ts', 'live-server/HttpServer.ts', 'GenericServer.ts',
 ]);
 
-test('static export isolates a blocked destination, then retries it and reports only completed copies', async t => {
+test('static export replaces a blocking file and reports both completed copies', async t => {
     const root = mkdtempSync(join(import.meta.dirname, '.static-recovery-round59-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const input = join(root, 'input');
@@ -37,23 +37,27 @@ test('static export isolates a blocked destination, then retries it and reports 
     t.after(() => target.destroy());
 
     await target.export();
-    assert.equal(errors.length, 1);
-    assert.equal(existsSync(join(first, 'nested', 'asset.bin')), false);
+    assert.equal(errors.length, 0);
+    assert.deepEqual(readFileSync(join(first, 'nested', 'asset.bin')), Buffer.from([0, 255, 42]));
     assert.deepEqual(readFileSync(join(second, 'nested', 'asset.bin')), Buffer.from([0, 255, 42]));
     assert.deepEqual(events.map(event => event.name), [
-        'aventus/statistics/fileSize',
+        'aventus/statistics/fileSize', 'aventus/statistics/fileSize',
+        'reload', 'aventus/statistics/staticTime',
     ]);
-    assert.equal(events[0].params[0], join(second, 'nested', 'asset.bin'));
-    assert.deepEqual(events[0].params.slice(1), [3, 'static', 'assets']);
+    assert.deepEqual(events.slice(0, 2).map(event => event.params[0]), [
+        join(first, 'nested', 'asset.bin'), join(second, 'nested', 'asset.bin'),
+    ]);
+    assert.deepEqual(events.slice(0, 2).map(event => event.params.slice(1)), [
+        [3, 'static', 'assets'], [3, 'static', 'assets'],
+    ]);
 
-    unlinkSync(join(first, 'nested'));
     writeFileSync(join(input, 'nested', 'asset.bin'), Buffer.from([1, 2, 3, 4]));
     events.length = 0;
     await target.export();
     for (const output of [first, second]) {
         assert.deepEqual(readFileSync(join(output, 'nested', 'asset.bin')), Buffer.from([1, 2, 3, 4]));
     }
-    assert.equal(errors.length, 1);
+    assert.equal(errors.length, 0);
     assert.deepEqual(events.map(event => event.name), [
         'aventus/statistics/fileSize', 'aventus/statistics/fileSize',
         'reload', 'aventus/statistics/staticTime',

@@ -347,7 +347,7 @@ export class HttpServer {
 
 			send(req, reqpath, {
 				root: this.config.rootFolder,
-				lastModified: !["", ".html"].includes(extname(reqpath).toLowerCase()),
+				lastModified: true,
 			})
 				.on('error', error)
 				.on('directory', directory)

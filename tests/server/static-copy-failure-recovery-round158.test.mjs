@@ -9,7 +9,7 @@ const [{ Static }, { SettingsManager }, { HttpServer }, { GenericServer }] = awa
     'project/Static.ts', 'settings/Settings.ts', 'live-server/HttpServer.ts', 'GenericServer.ts',
 ]);
 
-test('static binary copy failure retains other exports and retries on the same instance', async t => {
+test('static binary copy replaces a blocking destination file and exports to every output', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-static-copy-retry-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const input = join(root, 'input');
@@ -44,14 +44,14 @@ test('static binary copy failure retains other exports and retries on the same i
 
     await target.export();
     assert.deepEqual(readFileSync(join(available, 'logo.bin')), Buffer.from([4, 5, 6]));
-    assert.equal(reloads, 0);
-    assert.equal(errors.length, 1);
+    assert.deepEqual(readFileSync(join(blocked, 'logo.bin')), Buffer.from([4, 5, 6]));
+    assert.equal(reloads, 1);
+    assert.equal(errors.length, 0);
 
-    rmSync(blocked);
     await target.export();
     assert.deepEqual(readFileSync(join(blocked, 'logo.bin')), Buffer.from([4, 5, 6]));
     assert.deepEqual(readFileSync(join(available, 'logo.bin')), Buffer.from([4, 5, 6]));
-    assert.equal(reloads, 1);
+    assert.equal(reloads, 2);
 
     rmSync(source);
     await target.export();

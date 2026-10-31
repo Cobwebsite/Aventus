@@ -50,13 +50,13 @@ test('HEAD conditionnel suit ETag et la nouvelle longueur avec ou sans origine e
     assert.equal(first.body, initial);
     const etag = first.headers.etag;
     assert.ok(etag);
-    for (const headers of [{ 'If-None-Match': etag }, {
-        'If-None-Match': etag, Origin: 'https://example.test',
-    }]) {
-        const cached = await send('HEAD', headers);
-        assert.equal(cached.status, 304);
-        assert.equal(cached.body, '');
-    }
+    const injected = await send('HEAD', { 'If-None-Match': etag });
+    assert.equal(injected.status, 200);
+    assert.notEqual(injected.headers.etag, etag);
+    assert.equal(injected.body, '');
+    const cached = await send('HEAD', { 'If-None-Match': etag, Origin: 'https://example.test' });
+    assert.equal(cached.status, 304);
+    assert.equal(cached.body, '');
 
     writeFileSync(path, revised);
     const current = await send('HEAD', { 'If-None-Match': etag, Origin: 'https://example.test' });

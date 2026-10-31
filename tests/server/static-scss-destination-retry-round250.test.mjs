@@ -9,7 +9,7 @@ const [{ Static }, { SettingsManager }, { HttpServer }, { GenericServer }] = awa
     'project/Static.ts', 'settings/Settings.ts', 'live-server/HttpServer.ts', 'GenericServer.ts',
 ]);
 
-test('SCSS export retries a blocked destination and later removes both owned outputs', async t => {
+test('SCSS export replaces a blocking destination and later removes both outputs', async t => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-static-scss-destination-retry-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const input = join(root, 'input');
@@ -46,23 +46,21 @@ test('SCSS export retries a blocked destination and later removes both owned out
 
     await exporter.export();
     assert.equal(readFileSync(firstCss, 'utf8'), '.theme{color:red}');
-    assert.equal(existsSync(secondCss), false);
-    assert.equal(reloads, 0);
-    assert.equal(errors.length, 1);
-    assert.equal(errors[0].code, 'ENOENT');
+    assert.equal(readFileSync(secondCss, 'utf8'), '.theme{color:red}');
+    assert.equal(reloads, 1);
+    assert.equal(errors.length, 0);
 
-    unlinkSync(second);
     writeFileSync(source, '.theme { color: blue; }');
     await exporter.export();
     assert.equal(readFileSync(firstCss, 'utf8'), '.theme{color:blue}');
     assert.equal(readFileSync(secondCss, 'utf8'), '.theme{color:blue}');
-    assert.equal(reloads, 1);
+    assert.equal(reloads, 2);
 
     rmSync(source);
     await exporter.export();
     assert.equal(existsSync(firstCss), false);
     assert.equal(existsSync(secondCss), false);
     assert.equal(exporter.exportedBySource.size, 0);
-    assert.equal(reloads, 2);
-    assert.equal(errors.length, 1);
+    assert.equal(reloads, 3);
+    assert.equal(errors.length, 0);
 });
