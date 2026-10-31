@@ -15,7 +15,7 @@ export class Rename {
 		for(let item of data){
 			formattedData.push({
 				oldUri: item.oldUri.toString(),
-				newUri: item.oldUri.toString(),
+				newUri: item.newUri.toString(),
 			})
 		}
 		commands.executeCommand(this.cmd, formattedData);

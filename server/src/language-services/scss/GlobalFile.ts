@@ -35,6 +35,10 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		this.project.globalSCSSLanguageService.loadVariables(this, this.file.uri);
 	}
 
+	public getRenameFileEdits(changes: { oldUri: string; newUri: string }[]): TextEdit[] {
+        return this.project.globalSCSSLanguageService.getRenameFileEdits(this.file, changes);
+    }
+
 	protected async onContentChange(): Promise<void> {
 		// TODO delete if it's too lagy
 		this.project.globalSCSSLanguageService.loadVariables(this, this.file.uri);

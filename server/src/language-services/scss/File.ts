@@ -58,6 +58,10 @@ export class AventusWebSCSSFile extends AventusBaseFile {
         this.namespace = this.build.getNamespace(file.uri);
     }
 
+    public getRenameFileEdits(changes: { oldUri: string; newUri: string }[]): TextEdit[] {
+        return this.build.scssLanguageService.getRenameFileEdits(this.file, changes);
+    }
+
     public async init(): Promise<void> {
         await this.loadDependencies();
         await this.compile(false);

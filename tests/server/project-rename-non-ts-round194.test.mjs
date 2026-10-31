@@ -23,6 +23,9 @@ test('non-TypeScript file moves leave project edits empty while a later TypeScri
         };
         const project = Object.create(Project.prototype);
         project.builds = [build];
+        project.scssFiles = {};
+        build.project = project;
+        build.scssFiles = {};
         manager.projects[name] = project;
     }
 

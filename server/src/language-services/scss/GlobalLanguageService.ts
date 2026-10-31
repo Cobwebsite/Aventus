@@ -8,6 +8,7 @@ import { Node, NodeType } from './helper/CSSNode';
 import { AventusGlobalSCSSFile } from './GlobalFile';
 import type { Build } from '../../project/Build';
 import type { Project } from '../../project/Project';
+import { AventusSCSSLanguageService } from './LanguageService';
 
 
 
@@ -76,6 +77,10 @@ export class AventusGlobalSCSSLanguageService {
     public constructor(project: Project) {
         this.project = project;
         this.languageService = getSCSSLanguageService();
+    }
+
+    public getRenameFileEdits(file: AventusFile, changes: { oldUri: string; newUri: string }[]): TextEdit[] {
+        return AventusSCSSLanguageService.getScssRenameEdits(file.documentUser, changes);
     }
 
     public async doValidation(file: AventusFile): Promise<Diagnostic[]> {

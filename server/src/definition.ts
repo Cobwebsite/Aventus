@@ -41,6 +41,8 @@ export const AventusExtension = {
     I18n: ".i18n.avt",
 } as const;
 
+export const styleExtensions = [AventusExtension.ComponentStyle, AventusExtension.GlobalStyle] as const;
+
 export enum AventusErrorCode {
     Unknow = 1000,
     ConfigJsonError,

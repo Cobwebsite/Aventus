@@ -1,4 +1,4 @@
-import { dirname, sep } from "path";
+import { dirname, normalize, sep } from "path";
 import { flattenDiagnosticMessageText } from 'typescript';
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -68,6 +68,11 @@ export function uriToPath(uri: string): string {
     }
     return decodeURIComponent(uri.replace("file:///", ""));
 }
+export function samePath(first: string, second: string): boolean {
+    const left = normalize(first);
+    const right = normalize(second);
+    return process.platform === 'win32' ? left.toLowerCase() === right.toLowerCase() : left === right;
+}
 export function reorderList<T>(list: T[], selected: T) {
     let indexResult = list.indexOf(selected);
     if (indexResult > -1) {
@@ -85,7 +90,7 @@ export function getLanguageIdByUri(uri: string) {
             return getLanguageIdByExtension(AventusExtension[key]);
         }
     }
-    if(uri.endsWith(".scss")) {
+    if (uri.endsWith(".scss")) {
         return AventusLanguageId.SCSS;
     }
     return ''

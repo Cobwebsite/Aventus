@@ -72,7 +72,7 @@ export class Project {
                 for (let i = 0; i < basePathSplitted.length; i++) {
                     if (filePathSplitted.length > i) {
                         let sameSegment = basePathSplitted[i] === filePathSplitted[i];
-                        if(process.platform === 'win32') {
+                        if (process.platform === 'win32') {
                             sameSegment = basePathSplitted[i].toLowerCase() === filePathSplitted[i].toLowerCase()
                         }
                         if (sameSegment) {
@@ -312,8 +312,8 @@ export class Project {
         }
         return result;
     }
-    public getStaticsName(): (string|undefined)[] {
-        let result: (string|undefined)[] = [];
+    public getStaticsName(): (string | undefined)[] {
+        let result: (string | undefined)[] = [];
         for (let _static of this.statics) {
             result.push(_static.name);
         }
@@ -370,8 +370,9 @@ export class Project {
 
     public async onRename(changes: { oldUri: string, newUri: string }[]): Promise<{ [uri: string]: TextEdit[] }> {
         let result: { [uri: string]: TextEdit[] } = {};
+        const seen = new Set<string>();
         for (let build of this.builds) {
-            let temp = await build.onRename(changes);
+            let temp = await build.onRename(changes, seen);
             for (let uri in temp) {
                 if (!result[uri]) {
                     result[uri] = []
