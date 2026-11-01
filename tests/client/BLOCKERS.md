@@ -1,9 +1,5 @@
 # Cas client en attente de décision
 
-## La migration supprime le nouveau mot de passe au lieu de l'ancien
-
-`tests/client/migration-databases.test.mjs` reproduit le cas dans un dossier temporaire : `setDatabases` enregistre `db_pass_new` pour une connexion de remplacement, puis supprime immédiatement ce même secret. L'ancien `db_pass_old` reste stocké. La boucle de suppression parcourt `data[type]` au lieu des entrées restantes de `old[type]`. Le fichier JSON ne contient pas le mot de passe en clair, mais la nouvelle connexion ne peut plus le relire. Décision attendue : confirmer la politique de conservation des secrets lors des remplacements et suppressions.
-
 ## Les callbacks d'initialisation restent enregistrés après `initDone()`
 
 `tests/client/lifecycle.test.mjs` reproduit le cas : un callback transmis à `onInit` avant `initDone()` est appelé une première fois, puis encore lors d'un second appel à `initDone()`. `initCbs` n'est jamais vidé. Décision attendue : confirmer si `initDone()` peut se répéter et si les callbacks doivent être exécutés une seule fois.

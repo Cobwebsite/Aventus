@@ -57,9 +57,9 @@ test('migration route reads saved credentials and persists changed database meta
   const stored = JSON.parse(readFileSync(databaseFile, 'utf8'));
   assert.equal(stored.source[0].Password, undefined);
   assert.equal(stored.source[0].Database, 'new');
-  assert.deepEqual(secretEvents, [['store', 'db_pass_new', 'new-password'], ['delete', 'db_pass_new']]);
-  assert.equal(secrets.has('db_pass_new'), false);
-  assert.equal(secrets.get('db_pass_old'), 'old-password');
+  assert.deepEqual(secretEvents, [['store', 'db_pass_new', 'new-password'], ['delete', 'db_pass_old']]);
+  assert.equal(secrets.get('db_pass_new'), 'new-password');
+  assert.equal(secrets.has('db_pass_old'), false);
   const queries = [];
   migration.executeDbQuery = async payload => {
     queries.push(payload);
@@ -83,7 +83,7 @@ test('migration route reads saved credentials and persists changed database meta
   assert.equal(await routes.chooseFolder(), undefined);
 });
 
-test('migration replacement across source and target exposes secret cleanup and write failures', async t => {
+test('migration replacement across source and target cleans old secrets and reports write failures', async t => {
   const secondDirectory = mkdtempSync(join(tmpdir(), 'aventus-migration-multiple-'));
   t.after(() => rmSync(secondDirectory, { recursive: true, force: true }));
   mkdirSync(join(secondDirectory, '.aventus'));
@@ -105,10 +105,12 @@ test('migration replacement across source and target exposes secret cleanup and 
   assert.deepEqual(JSON.parse(readFileSync(file, 'utf8')).target.map(db => db.UUID), ['target-new']);
   assert.deepEqual(secretEvents, [
     ['store', 'db_pass_source-new', 'new-source'], ['store', 'db_pass_target-new', 'new-target'],
-    ['delete', 'db_pass_source-new'], ['delete', 'db_pass_target-new'],
+    ['delete', 'db_pass_source-old'], ['delete', 'db_pass_target-old'],
   ]);
-  assert.equal(secrets.get('db_pass_source-old'), 'source-secret');
-  assert.equal(secrets.get('db_pass_target-old'), 'target-secret');
+  assert.equal(secrets.get('db_pass_source-new'), 'new-source');
+  assert.equal(secrets.get('db_pass_target-new'), 'new-target');
+  assert.equal(secrets.has('db_pass_source-old'), false);
+  assert.equal(secrets.has('db_pass_target-old'), false);
   const beforeOpened = opened.length;
   await assert.rejects(routes.writeFile({ folder: join(secondDirectory, 'missing'), filename: 'schema.json', content: '{}' }), /ENOENT/);
   assert.equal(opened.length, beforeOpened);

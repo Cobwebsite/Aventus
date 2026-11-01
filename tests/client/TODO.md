@@ -15,9 +15,9 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Emmet en production : échec d'écriture signalé à l'utilisateur ; le chemin en mémoire reste modifié (`settings-emmet.test.mjs`).
 - [x] Statut du serveur HTTP : transition démarrage, adresse affichée et retour à la commande de démarrage après arrêt (`live-server-status.test.mjs`).
 - [x] Statut HTTP : deux démarrages remplacent l'adresse et deux arrêts laissent le même état inactif (`live-server-status.test.mjs`).
-- [x] Migration DB : lecture du secret, persistance sans mot de passe en clair et suppression erronée du nouveau secret (`migration-databases.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Migration DB : lecture du secret, persistance sans mot de passe en clair et suppression de l'ancien secret lors du remplacement (`migration-databases.test.mjs`).
 - [x] Migration DB : test de connexion et schéma avec succès/échec simulés, choix/annulation du dossier et écriture d'un fichier temporaire (`migration-databases.test.mjs`).
-- [x] Migration DB : remplacement simultané dans source et target, conservation erronée des anciens secrets, suppression des nouveaux et rejet d'une écriture dans un dossier absent (`migration-databases.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Migration DB : remplacement simultané dans source et target, suppression des anciens secrets, conservation des nouveaux et rejet d'une écriture dans un dossier absent (`migration-databases.test.mjs`).
 - [x] Processus `db-query` simulé : payload JSON, réponse réussie, erreur applicative, code d'échec, JSON invalide, outils absents et installation acceptée non attendue (`migration-process.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Processus `db-query` réel avec SQLite en mémoire : requête réussie et requête invalide, route `testConnection` validée ; valeur numérique retournée en chaîne et détail d'erreur perdu (`migration-real-process.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Interactions utilisateur : sélection simple/multiple, annulation, popup et validations de saisie avec réponse au serveur (`prompts.test.mjs`).
