@@ -478,10 +478,6 @@
 				"title": "Aventus : Get namespace for a path"
 			},
 			{
-				"command": "aventus.dependencies.show",
-				"title": "Aventus : show webview"
-			},
-			{
 				"command": "aventus.sharp.export",
 				"title": "Aventus : Export sharp"
 			},
@@ -770,10 +766,6 @@
 				},
 				{
 					"command": "aventus.getNamespace",
-					"when": "false"
-				},
-				{
-					"command": "aventus.dependencies.show",
 					"when": "false"
 				},
 				{
