@@ -38,6 +38,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Cycle de `RealServer` : notification d'initialisation, second `start()` et exception de démarrage qui laissent le demandeur en attente (`real-server-lifecycle.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Registre des notifications CLI : canaux init/HTTP/statistiques, callbacks HTTP retirés pendant la diffusion et signal de fin d'initialisation (`notifications.test.mjs`).
 - [x] Connexion et registre réels : diffusion HTTP dans l'ordre des abonnés et mise à jour des statistiques sur la même connexion (`notification-dispatch.test.mjs`).
+- [x] Notifications destinées à l'éditeur : réception sans effet côté CLI (`notifications.test.mjs`).
 ## Après analyse des blocages
 
 Ces parcours restent à préciser ou à débloquer dans `BLOCKERS.md` avant de figer leurs résultats attendus.
@@ -48,6 +49,6 @@ Ces parcours restent à préciser ou à débloquer dans `BLOCKERS.md` avant de f
 - [x] Interaction terminal : vues Inquirer réelles de sélection, sélection multiple et saisie ; choix désactivé, validation, correction et fermeture (`terminal-prompts.test.mjs`).
 - [x] Interaction terminal : arbre de fichiers Inquirer réel sur dossier temporaire, choix d'un dossier, navigation vers un fichier et annulation (`terminal-prompts.test.mjs`, sortie parasite dans `BLOCKERS.md`).
 - [ ] Watcher : annulation des timers et fermeture explicite selon la décision dans `BLOCKERS.md`.
-- [ ] Notifications du serveur CLI : enregistrement/retrait des sorties et fichiers ouverts/modifiés selon la décision dans `BLOCKERS.md` ; transition d'arrêt HTTP selon `BLOCKERS.md`.
+- [ ] Notifications du serveur CLI : transition d'arrêt HTTP selon `BLOCKERS.md`.
 - [ ] Parcours intégré d'un build réel sur un projet temporaire : sorties, diagnostics après correction et nettoyage ; `check --json` est à analyser dans `BLOCKERS.md`.
 

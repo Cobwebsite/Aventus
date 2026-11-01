@@ -2,8 +2,6 @@
 
 ## Notifications de fichiers et de sorties sans effet côté CLI
 
-Les actions de `RegisterBuild`, `UnregisterBuild`, `RegisterData`, `UnregisterData`, `RegisterStatic`, `UnregisterStatic`, `OpenFile`, `CloseFile`, `EditFile` et `OpenPreview` dans `cli/src/server/notification` sont vides ou n'affectent que des variables locales. Un test d'enregistrement, de retrait, d'édition ou d'ordre d'événements n'a donc pas de résultat observable à vérifier. Décision attendue : confirmer que la CLI ignore volontairement ces notifications ou préciser l'état et les effets à implémenter avant de tester ces parcours.
-
 `ServerStart` diffuse une URL à ses callbacks, tandis que `ServerStop.action()` est vide. Il n'existe donc pas de transition de fermeture HTTP observable à tester côté CLI. Décision attendue : confirmer si l'arrêt doit être annoncé aux abonnés.
 
 ## L'arbre de fichiers écrit des valeurs de débogage dans le terminal
