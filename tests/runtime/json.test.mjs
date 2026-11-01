@@ -69,5 +69,9 @@ test('Json prefers exact data keys over capitalized aliases', () => {
     Json.classFromJson(model, { count: 3, Count: 9 });
     assert.equal(model.count, 3);
     Json.classFromJson(model, { count: undefined, Count: 9 });
+    assert.equal(model.count, 3);
+    Json.classFromJson(model, { count: undefined, Count: 9 }, { replaceUndefinedWithKey: true });
+    assert.equal(model.count, undefined);
+    Json.classFromJson(model, { Count: 9 });
     assert.equal(model.count, 9);
 });

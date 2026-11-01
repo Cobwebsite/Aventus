@@ -53,7 +53,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `GenericRam` : création de liste arrêtée si un hook préalable ou la transformation échoue, puis traitement des ressources poursuivi après erreur d'un élément ; suppression de liste avec résultats partiels et notifications immédiates ; exceptions d'abonnés signalées sans interrompre la publication ; créations concurrentes du même objet de requête (`ram.test.mjs`).
 - [x] `GenericRam` : mise à jour de liste arrêtée avant transformation si un hook préalable échoue, puis traitement des ressources poursuivi après erreur d'un élément, identité des objets conservée et événement `updated` ; la seconde création concurrente visant le même identifiant est refusée sans modifier la première (`ram.test.mjs`).
 - [x] `Json` : champs non modifiables, préservation des champs absents et option `replaceUndefined` (`json.test.mjs`).
-- [x] `Json` : entrées `null`, collision de clés renommées, ordre des transformations et priorité des clés exactes sur leurs variantes capitalisées (`json.test.mjs`, décisions dans `BLOCKERS.md`).
+- [x] `Json` : entrées `null` rejetées par `TypeError` sans modifier la cible, dernière valeur conservée lors d'une collision de renommage, ordre des transformations et priorité des clés exactes même si leur valeur est `undefined` (`json.test.mjs`).
 - [x] Résultats avec erreur : extraction asynchrone, arrêt après échec et résultat falsy caractérisé (`error-result.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Résultats avec erreur : accumulation de plusieurs erreurs, filtrage des codes par sous-classe, conversion générique avec résultat partiel et message d'une exception (`error-result.test.mjs`).
 - [x] Mutex : coalescence des appels asynchrones `safeRunLastAsync`, annulation des attentes intermédiaires et réutilisation (`mutex.test.mjs`).
@@ -67,7 +67,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `uuidv4`, `Async` et `sleep` : format et unicité des UUID, assimilation des valeurs/promesses et temporisation pilotée par un faux timer (`basic-tools.test.mjs`).
 - [x] `uuidv4` : erreur lorsque `crypto` est indisponible ; `sleep` : délais zéro, négatif et positif, et résolution indépendante selon l'ordre des timers (`basic-tools.test.mjs`).
 - [x] `Converter` : restauration de `Map` sérialisées et transformation de leurs valeurs ; `clone` : copie imbriquée indépendante (`converter.test.mjs`).
-- [x] `Converter` : type inconnu imbriqué conservé, date native transformée en objet vide ; `clone` : erreurs JSON sur cycle et `BigInt` (`converter.test.mjs`, décision sur les dates dans `BLOCKERS.md`).
+- [x] `Converter` : type inconnu imbriqué conservé, date native hors contrat Aventus transformée en objet vide ; `clone` : erreurs JSON sur cycle et `BigInt` (`converter.test.mjs`).
 - [x] `HttpResponse` : second lecteur concurrent renvoyant `undefined` et changement de format après lecture renvoyant le contenu initial (`http-cache.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `ResourceLoader.load` : conversion d'un blob image en URL de données et mise en cache (`resource-loader.test.mjs`).
 - [x] `Style` : ajout et remplacement de feuilles, rafraîchissement du `<head>`, feuille vide et styles par défaut (`style.test.mjs`).
