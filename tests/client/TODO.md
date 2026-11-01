@@ -27,13 +27,13 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Éditeurs i18n/DB : tri et formatage des modifications, remplacement du document et absence d'écriture lorsque le schéma DB est inchangé (`editors-change.test.mjs`).
 - [x] Éditeur DB : routes webview de lecture, sauvegarde et modification, puis suppression de l'écho local et mise à jour externe (`editors-change.test.mjs`).
 - [x] Éditeur i18n : initialisation filtrée, contenu/locales, sauvegarde et traduction sans clé API (`editors-change.test.mjs`).
-- [x] Éditeur i18n : sauvegarde globale de clé API, modification locale puis externe, traduction simulée avec succès/échec et événements après fermeture du panneau (`editors-change.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Éditeur i18n : sauvegarde globale de clé API, modification locale puis externe, traduction simulée avec succès/échec et nettoyage des événements à la fermeture du panneau (`editors-change.test.mjs`).
 - [x] Rendu HTML réel des éditeurs i18n/DB : résolution des chemins webview, nonce et source CSP dans les fichiers `index.html` (`editors-change.test.mjs`).
 - [x] Vue des dépendances : création du panneau et rendu HTML réel ; URI de configuration ignorée et ressources actives en chemins absolus (`dependencies-view.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Commande `ShowDependencies` : middleware qui transmet seulement les arguments ; la vue client a été supprimée (`file-command-middleware.test.mjs`).
 - [x] Aperçu : création du panneau puis échec ENOENT dû au fichier HTML absent (`preview-view.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Panneau i18n : fermeture ciblée par URI et réouverture du même document (`editors-change.test.mjs`).
-- [x] Panneau i18n réouvert : l'ancien et le nouveau webview reçoivent tous deux la modification du document, avec deux paires d'abonnements conservées (`editors-change.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Panneau i18n réouvert : seul le nouveau webview reçoit la modification du document et une seule paire d'abonnements reste active (`editors-change.test.mjs`).
 - [x] Éditeur DB : événements de document encore envoyés après fermeture du panneau (`editors-change.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Watcher VS Code : transitions création/modification/suppression, notifications regroupées et écouteur de renommage conservé après `stop()` (`file-system.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Watcher VS Code : rafale de plusieurs chemins, fichier ignoré et notification différée qui part encore après `stop()` (`file-system.test.mjs`, décision dans `BLOCKERS.md`).
