@@ -4,12 +4,6 @@
 
 `tests/client/settings.test.mjs` bloque volontairement `WorkspaceConfiguration.update` : la promesse de `SetSettings.action` se termine alors que l'écriture n'est pas encore achevée, car l'action n'attend pas `SettingsManager.setSettings`. Décision attendue : préciser si le serveur doit pouvoir savoir que les réglages sont persistés avant de poursuivre et comment lui signaler un échec.
 
-## `AutoLoader` accepte un dossier voisin partageant le préfixe du workspace
-
-`tests/client/auto-loader.test.mjs` place le workspace dans `file:///project` et présente `file:///project-other/snippets.json`. Le test montre que `register()` affiche quand même le prompt et enregistre `.-other/snippets.json`, car l'appartenance est vérifiée avec `startsWith(workspaceUri)` sans frontière de chemin. Décision attendue : confirmer que seuls les fichiers réellement contenus dans le workspace doivent être proposés, puis définir la comparaison URI adaptée.
-
-Le même test retient deux appels concurrents à `register()` pour le même manifeste avant que les prompts répondent. Deux prompts s'ouvrent et le chemin est ajouté deux fois à `html.customData`. Décision attendue : préciser si les demandes simultanées doivent être regroupées par URI et comment éviter les doublons à l'écriture.
-
 ## L'aperçu ne trouve pas son fichier HTML
 
 `tests/client/preview-view.test.mjs` appelle `AventusPeview.getPreview` avec l'arborescence réelle de l'extension. Le panneau est créé, puis la lecture de `client/views/preview/index.html` échoue avec `ENOENT` : ce dossier n'existe pas. L'URI du script fournie à `getPreview` n'est pas utilisée non plus. Décision attendue : préciser si cette vue est toujours prise en charge et, si oui, fournir son HTML et le passage du script à prévisualiser.

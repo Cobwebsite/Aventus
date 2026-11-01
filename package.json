@@ -906,6 +906,7 @@
 		"cross-env": "^10.1.0",
 		"deepl-node": "^1.26.0",
 		"event-stream": "^4.0.1",
+		"jsdom": "29.1.1",
 		"merge-options": "^3.0.4",
 		"node-machine-id": "^1.1.12",
 		"node-notifier-cli": "^2.0.0",

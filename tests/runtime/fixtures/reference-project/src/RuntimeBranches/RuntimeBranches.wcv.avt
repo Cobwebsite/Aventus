@@ -1,0 +1,11 @@
+<button @click="increment">Increment</button>
+if (this.count % 2 === 0) {
+    <p class="even">Even {{ this.count }}</p>
+} else {
+    <p class="odd">Odd {{ this.count }}</p>
+}
+<ul>
+    for(let key in this.labels) {
+        <li>{{ key }}: {{ this.labels[key] }}</li>
+    }
+</ul>
