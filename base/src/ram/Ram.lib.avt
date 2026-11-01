@@ -146,6 +146,7 @@ export abstract class GenericRam<
      * List of stored item by index key
      */
     protected records: Map<Index, RamItem<ResourceDetails, Request>> = new Map();
+    private creatingIds: Set<Index> = new Set();
 
     protected actionGuard: ActionGuard = new ActionGuard();
 
@@ -804,14 +805,24 @@ export abstract class GenericRam<
 
             const id = await action.extract(() => this.getIdWithError(resource));
             if(id !== undefined) {
-                const resultTemp = await action.extractAsync(() => this.addOrUpdateData(resource));
-                if(!resultTemp) return action;
+                if(this.records.has(id) || this.creatingIds.has(id)) {
+                    action.errors.push(new RamError(RamErrorCode.alreadyExists, `Item ${id} already exists in RAM`));
+                    return action;
+                }
+                this.creatingIds.add(id);
+                try {
+                    const resultTemp = await action.extractAsync(() => this.addOrUpdateData(resource));
+                    if(!resultTemp) return action;
 
-                await action.runAsync(() => this.afterCreateItem(resultTemp.value, false));
+                    await action.runAsync(() => this.afterCreateItem(resultTemp.value, false));
 
-                if(action.success) {
-                    action.result = resultTemp.value;
-                    this.publish('created', resultTemp.value);
+                    if(action.success) {
+                        action.result = resultTemp.value;
+                        this.publish('created', resultTemp.value);
+                    }
+                }
+                finally {
+                    this.creatingIds.delete(id);
                 }
             }
 

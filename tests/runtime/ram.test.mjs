@@ -87,7 +87,7 @@ test('GenericRam currently stores a new record despite a rejected record-set hoo
     assert.equal(result.containsCode(99), true);
     assert.equal((await ram.getById(8)).name, 'blocked');
     ram.rejectSet = false;
-    assert.equal((await ram.create({ id: 8, name: 'allowed' })).name, 'allowed');
+    assert.equal((await ram.update({ id: 8, name: 'allowed' })).name, 'allowed');
     assert.equal((await ram.getById(8)).name, 'allowed');
 });
 
@@ -105,17 +105,21 @@ test('GenericRam reports missing identifiers and missing records without changin
     assert.equal((await ram.getAll()).length, 0);
 });
 
-test('GenericRam currently treats a duplicate create as an in-place update with a created event', async () => {
-    const { ram } = makeRam();
+test('GenericRam rejects a duplicate create and keeps the existing record', async () => {
+    const { ram, RamErrorCode } = makeRam();
     const events = [];
     ram.onCreated(item => events.push(`created:${item.name}`));
     ram.onUpdated(item => events.push(`updated:${item.name}`));
     const first = await ram.create({ id: 3, name: 'old' });
-    const second = await ram.create({ id: 3, name: 'new' });
-    assert.equal(second, first);
-    assert.equal((await ram.getById(3)).name, 'new');
+    const second = await ram.createWithError({ id: 3, name: 'new' });
+    assert.equal(second.success, false);
+    assert.equal(second.containsCode(RamErrorCode.alreadyExists), true);
+    assert.equal(await ram.getById(3), first);
+    assert.equal(first.name, 'old');
     assert.equal((await ram.getAll()).length, 1);
-    assert.deepEqual(events, ['created:old', 'created:new']);
+    assert.deepEqual(events, ['created:old']);
+    assert.equal(await ram.update({ id: 3, name: 'new' }), first);
+    assert.deepEqual(events, ['created:old', 'updated:new']);
 });
 
 test('GenericRam stores a new record when the after-set hook fails, without publishing creation', async () => {
@@ -228,8 +232,8 @@ test('GenericRam keeps the first list update when a later item lacks an identifi
     assert.equal(last.name, 'new last');
 });
 
-test('GenericRam processes distinct concurrent creates for one id separately', async () => {
-    const { ram } = makeRam();
+test('GenericRam rejects the second distinct concurrent create for one id', async () => {
+    const { ram, RamErrorCode } = makeRam();
     const events = [];
     ram.onCreated(item => events.push(item.name));
     let release;
@@ -246,10 +250,11 @@ test('GenericRam processes distinct concurrent creates for one id separately', a
     release();
     const [a, b] = await Promise.all([first, second]);
     assert.equal(a.success, true);
-    assert.equal(b.success, true);
+    assert.equal(b.success, false);
+    assert.equal(b.containsCode(RamErrorCode.alreadyExists), true);
     assert.notEqual(a, b);
     assert.equal(transformations, 2);
-    assert.equal(a.result, b.result);
-    assert.equal((await ram.getById(61)).name, 'second');
-    assert.deepEqual(events, ['second', 'second']);
+    assert.equal(a.result, await ram.getById(61));
+    assert.equal((await ram.getById(61)).name, 'first');
+    assert.deepEqual(events, ['first']);
 });
