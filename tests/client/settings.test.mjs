@@ -80,13 +80,21 @@ test('settings callbacks currently remain registered after their consumer is don
   assert.equal(typeof manager.onSettingsChange(() => {}), 'undefined');
 });
 
-test('invalid configuration values currently pass through the defaults merge', () => {
-  aventus = { liveserver: null, readDirs: 'src' };
+test('invalid configuration values keep defaults while valid nested values are merged', () => {
+  aventus = { liveserver: null, readDirs: 'src', debug: true };
   html = { customData: null };
   listeners[0]();
-  assert.equal(manager.settings.liveserver, null);
-  assert.equal(manager.settings.readDirs, 'src');
-  assert.equal(manager.settingsHtml.customData, null);
+  assert.equal(manager.settings.liveserver.port, 8080);
+  assert.deepEqual(manager.settings.readDirs, []);
+  assert.deepEqual(manager.settingsHtml.customData, []);
+  assert.equal(manager.settings.debug, true);
+  aventus = { liveserver: { port: 9001, host: null, delay: 'slow' }, readDirs: ['src'] };
+  listeners[0]();
+  assert.deepEqual(manager.settings.liveserver, {
+    host: '0.0.0.0', autoIncrementPort: true, port: 9001, rootFolder: './dist',
+    indexFile: 'index.html', delay: 200, launch_browser: true, browser: '', auto_close: true,
+  });
+  assert.deepEqual(manager.settings.readDirs, ['src']);
   aventus = {};
   html = {};
   listeners[0]();
