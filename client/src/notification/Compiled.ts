@@ -20,12 +20,7 @@ export class Compiled {
 
     public static removeBuild(buildName: string) {
         delete Compiled.timeByBuild[buildName];
-        if (Singleton.client.components) {
-            Singleton.client.components.setCompilationInfo('aventus', 'success', {
-                text: "$(issue-closed) " + this.lastTime,
-                tooltip: "Aventus last compilation :\n" + Object.values(Compiled.timeByBuild).join("\n")
-            });
-        }
+        this.render();
     }
     public static action(buildName: string, errors?: { file: string, title: string }[]) {
         if (!errors || errors.length == 0) {
