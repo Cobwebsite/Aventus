@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path';
 
 const cli = resolve('cli/out/cli.js');
 
-test('packaged check currently exits successfully without JSON for a temporary project', () => {
+test('packaged check returns JSON for a temporary minimal project', () => {
   const directory = mkdtempSync(join(tmpdir(), 'aventus-cli-project-'));
   const config = join(directory, 'aventus.conf.avt');
   writeFileSync(config, JSON.stringify({ module: 'Test' }));
@@ -18,7 +18,9 @@ test('packaged check currently exits successfully without JSON for a temporary p
     });
     assert.equal(result.error, undefined, result.error?.message);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, '');
+    const output = JSON.parse(result.stdout);
+    assert.equal(typeof output.success, 'boolean');
+    assert.equal(typeof output.builds, 'object');
     assert.equal(result.stderr, '');
   } finally {
     rmSync(directory, { recursive: true, force: true });
@@ -26,7 +28,7 @@ test('packaged check currently exits successfully without JSON for a temporary p
   assert.equal(existsSync(directory), false);
 });
 
-test('packaged check also exits without JSON for the Empty template project shape', () => {
+test('packaged check returns JSON for the Empty template project shape', () => {
   const directory = mkdtempSync(join(tmpdir(), 'aventus-cli-template-'));
   const config = join(directory, 'aventus.conf.avt');
   mkdirSync(join(directory, 'src'));
@@ -40,7 +42,9 @@ test('packaged check also exits without JSON for the Empty template project shap
     });
     assert.equal(result.error, undefined, result.error?.message);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, '');
+    const output = JSON.parse(result.stdout);
+    assert.equal(typeof output.success, 'boolean');
+    assert.equal(typeof output.builds, 'object');
     assert.equal(result.stderr, '');
   } finally {
     rmSync(directory, { recursive: true, force: true });
@@ -48,7 +52,7 @@ test('packaged check also exits without JSON for the Empty template project shap
   assert.equal(existsSync(directory), false);
 });
 
-test('packaged build currently exits successfully without JSON for a temporary project', () => {
+test('packaged build returns JSON for a temporary project', () => {
   const directory = mkdtempSync(join(tmpdir(), 'aventus-cli-build-'));
   const config = join(directory, 'aventus.conf.avt');
   mkdirSync(join(directory, 'src'));
@@ -62,7 +66,9 @@ test('packaged build currently exits successfully without JSON for a temporary p
     });
     assert.equal(result.error, undefined, result.error?.message);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, '');
+    const output = JSON.parse(result.stdout);
+    assert.equal(typeof output.success, 'boolean');
+    assert.equal(typeof output.builds, 'object');
     assert.equal(result.stderr, '');
   } finally {
     rmSync(directory, { recursive: true, force: true });

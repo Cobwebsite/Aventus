@@ -103,7 +103,7 @@ test('Store command exits with failure after a failed server request', async () 
   assert.deepEqual(exits, [1]);
 });
 
-test('template, project and Store cancellation stops after the server request', async () => {
+test('a rejected prompt remains a failure for template, project and Store commands', async () => {
   const originalLog = console.log;
   const originalExit = process.exit;
   const logged = [], exits = [];

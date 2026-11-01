@@ -142,61 +142,65 @@ export class FilesManager {
     }
     public async loadConfigFile(configUri: string, builds?: string[], statics?: string[]) {
         ProjectManager.autoLoad = false;
-        let configPath = uriToPath(configUri);
-        configUri = pathToUri(configPath);
-        const configFile = TextDocument.create(pathToUri(configPath), AventusExtension.Config, 0, readFileSync(configPath, 'utf8'))
-        this.loadingInProgress = false;
-        await this.registerFile(configFile);
-        this.loadingInProgress = true;
+        try {
+            let configPath = uriToPath(configUri);
+            configUri = pathToUri(configPath);
+            const configFile = TextDocument.create(pathToUri(configPath), AventusExtension.Config, 0, readFileSync(configPath, 'utf8'))
+            this.loadingInProgress = false;
+            await this.registerFile(configFile);
+            this.loadingInProgress = true;
 
-        const project = ProjectManager.getInstance().getProjectByUri(configUri);
-        if (project) {
-            await project.loadConfig();
-            project.buildsAllowed = builds;
-            project.staticsAllowed = statics;
-            const config = project.getConfig();
-            if (config) {
-                let readDir = async (workspacePath) => {
-                    if (!existsSync(workspacePath)) return;
-                    let folderContent = readdirSync(workspacePath);
-                    for (let i = 0; i < folderContent.length; i++) {
-                        let currentPath = workspacePath + '/' + folderContent[i];
-                        if (lstatSync(currentPath).isDirectory()) {
-                            if (folderContent[i] != "node_modules") {
-                                await readDir(currentPath);
-                            }
-                        } else {
-                            let uri = pathToUri(currentPath)
-                            let extension = getLanguageIdByUri(uri);
-                            if (folderContent[i] == AventusExtension.Config) { }
-                            else if (folderContent[i].endsWith(AventusExtension.Base)) {
-                                let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
-                                await this.registerFile(textDoc);
+            const project = ProjectManager.getInstance().getProjectByUri(configUri);
+            if (project) {
+                await project.loadConfig();
+                project.buildsAllowed = builds;
+                project.staticsAllowed = statics;
+                const config = project.getConfig();
+                if (config) {
+                    let readDir = async (workspacePath) => {
+                        if (!existsSync(workspacePath)) return;
+                        let folderContent = readdirSync(workspacePath);
+                        for (let i = 0; i < folderContent.length; i++) {
+                            let currentPath = workspacePath + '/' + folderContent[i];
+                            if (lstatSync(currentPath).isDirectory()) {
+                                if (folderContent[i] != "node_modules") {
+                                    await readDir(currentPath);
+                                }
+                            } else {
+                                let uri = pathToUri(currentPath)
+                                let extension = getLanguageIdByUri(uri);
+                                if (folderContent[i] == AventusExtension.Config) { }
+                                else if (folderContent[i].endsWith(AventusExtension.Base)) {
+                                    let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
+                                    await this.registerFile(textDoc);
+                                }
                             }
                         }
                     }
-                }
-                for (let build of config.build) {
-                    if (!builds || builds.includes(build.name ?? "")) {
-                        for (let src of build.srcPath) {
-                            await readDir(src);
+                    for (let build of config.build) {
+                        if (!builds || builds.includes(build.name ?? "")) {
+                            for (let src of build.srcPath) {
+                                await readDir(src);
+                            }
                         }
                     }
-                }
-                for (let _static of config.static) {
-                    if (!statics || statics.includes(_static.name ?? "")) {
-                        await readDir(_static.inputPathFolder);
+                    for (let _static of config.static) {
+                        if (!statics || statics.includes(_static.name ?? "")) {
+                            await readDir(_static.inputPathFolder);
+                        }
                     }
+
+                    Statistics.startSendLoadFile();
+                    project.loadFiles();
+                    Statistics.sendLoadFile();
+                    this.loadingInProgress = false;
+
+                    await project.init();
                 }
-
-                Statistics.startSendLoadFile();
-                project.loadFiles();
-                Statistics.sendLoadFile();
-                this.loadingInProgress = false;
-
-                await project.init();
-                InitStep.sendDone();
             }
+        } finally {
+            this.loadingInProgress = false;
+            InitStep.sendDone();
         }
     }
 
