@@ -1,9 +1,5 @@
 # Cas CLI en attente de décision
 
-## `check` en mode texte ne signale pas l'échec au processus appelant
-
-`tests/cli/commands.test.mjs` reproduit le cas : `Check.run([], {})` reçoit un diagnostic de sévérité `Error` pour un build. Le diagnostic est écrit sur `console.error`, mais aucun `process.exit(1)` n'est appelé. La variable `hasGlobalFailed` du rendu texte est initialisée à `false` et n'est jamais mise à `true` ; l'action enregistrée par `Action.register` termine donc normalement avec `process.exit(0)`. Le mode JSON marque bien l'échec. Décision attendue : confirmer si le mode texte doit renvoyer le même code d'échec que JSON ; si oui, corriger le code source séparément.
-
 ## Le watcher CLI ne peut pas être arrêté explicitement
 
 `tests/cli/watcher.test.mjs` vérifie le regroupement des événements, puis constate que `FilesWatcher` ne propose ni `stop()` ni `dispose()`. L'instance `chokidar` est créée avec `persistent: true` et ne peut donc pas être fermée par son propriétaire. `triggerTimer()` ne conserve pas non plus l'identifiant retourné par `setTimeout`, ce qui empêche l'annulation du délai précédent et son nettoyage. Décision attendue : définir la fermeture du watcher et des timers, notamment pour les usages longs ou les tests intégrés.

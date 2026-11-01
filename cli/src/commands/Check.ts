@@ -94,6 +94,7 @@ export class Check extends Action<CheckOptions> {
 						if (diagnostic.severity == DiagnosticSeverity.Error) {
 							sev = "\x1b[31m[error]\x1b[0m";
 							hasFailed = true;
+							hasGlobalFailed = true;
 							write = console.error;
 						}
 						else if (diagnostic.severity == DiagnosticSeverity.Warning) {
