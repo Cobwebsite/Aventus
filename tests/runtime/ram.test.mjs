@@ -126,7 +126,7 @@ test('GenericRam rejects a duplicate create and keeps the existing record', asyn
     assert.deepEqual(events, ['created:old', 'updated:new']);
 });
 
-test('GenericRam stores a new record when the after-set hook fails, without publishing creation', async () => {
+test('GenericRam reports an after-set error and publishes the stored creation', async () => {
     const { ram } = makeRam();
     const events = [];
     ram.onCreated(item => events.push(item.id));
@@ -134,8 +134,9 @@ test('GenericRam stores a new record when the after-set hook fails, without publ
     const result = await ram.createWithError({ id: 11, name: 'stored' });
     assert.equal(result.success, false);
     assert.equal(result.containsCode(98), true);
-    assert.equal((await ram.getById(11)).name, 'stored');
-    assert.deepEqual(events, []);
+    assert.equal(result.result, await ram.getById(11));
+    assert.equal(result.result.name, 'stored');
+    assert.deepEqual(events, [11]);
 });
 
 test('GenericRam deletes a record when the before-delete hook fails, without publishing deletion', async () => {
