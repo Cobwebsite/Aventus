@@ -189,7 +189,8 @@ export function setValueToObject(path: string, obj: any, value: any) {
     for(let i = 0; i < splitted.length - 1; i++) {
         let split = splitted[i];
         let value = obj instanceof Map ? obj.get(split) : obj[split];
-        if(!value) {
+        const exists = obj instanceof Map ? obj.has(split) : split in Object(obj);
+        if(!exists) {
             value = {};
             if(obj instanceof Map) {
                 obj.set(split, value);
@@ -197,6 +198,9 @@ export function setValueToObject(path: string, obj: any, value: any) {
             else {
                 obj[split] = value;
             }
+        }
+        else if(value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+            throw new TypeError(`Cannot write through primitive path segment "${split}"`);
         }
         obj = value;
     }

@@ -42,24 +42,33 @@ test('empty object paths return the root on read and set an empty key on write',
     assert.equal(getValueFromObject('', object), object);
 });
 
-test('object paths stop reading at primitive intermediates and replace falsy intermediates on write', () => {
+test('object paths stop reading at primitive intermediates and reject writes through them', () => {
     const { getValueFromObject, setValueToObject } = loadRuntime();
     const object = { count: 0, enabled: false, missing: null, label: 'fixed' };
     assert.equal(getValueFromObject('count.value', object), undefined);
     assert.equal(getValueFromObject('enabled.value', object), undefined);
     assert.equal(getValueFromObject('missing.value', object), undefined);
-    setValueToObject('count.value', object, 1);
-    setValueToObject('enabled.value', object, 2);
-    setValueToObject('missing.value', object, 3);
-    assert.equal(object.count.value, 1);
-    assert.equal(object.enabled.value, 2);
-    assert.equal(object.missing.value, 3);
+    assert.throws(() => setValueToObject('count.value', object, 1), { name: 'TypeError', message: /count/ });
+    assert.throws(() => setValueToObject('enabled.value', object, 2), { name: 'TypeError', message: /enabled/ });
+    assert.throws(() => setValueToObject('missing.value', object, 3), { name: 'TypeError', message: /missing/ });
+    assert.equal(object.count, 0);
+    assert.equal(object.enabled, false);
+    assert.equal(object.missing, null);
     assert.equal(object.label, 'fixed');
 });
 
-test('writing through a truthy primitive intermediate is silently ignored', () => {
+test('writing through a truthy primitive intermediate fails without changing it', () => {
     const { setValueToObject } = loadRuntime();
     const object = { count: 5 };
-    assert.equal(setValueToObject('count.value', object, 1), undefined);
+    assert.throws(() => setValueToObject('count.value', object, 1), { name: 'TypeError', message: /count/ });
     assert.equal(object.count, 5);
+});
+
+test('object paths create only absent intermediates', () => {
+    const { setValueToObject } = loadRuntime();
+    const object = { existing: undefined };
+    setValueToObject('new.value', object, 1);
+    assert.equal(object.new.value, 1);
+    assert.throws(() => setValueToObject('existing.value', object, 2), { name: 'TypeError', message: /existing/ });
+    assert.equal(object.existing, undefined);
 });
