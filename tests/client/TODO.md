@@ -8,11 +8,11 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Registres des notifications : dédoublonnage et recréation des builds, remplacement et retrait des données/statiques, isolation entre configurations (`registries.test.mjs`).
 - [x] Progression : démarrage de deux identifiants, arrêt indépendant et arrêt d'un identifiant inconnu (`progress.test.mjs`).
 - [x] Réglages : fusion des valeurs par défaut, rechargement et callbacks après changement, cible globale ou espace de travail lors d'une écriture (`settings.test.mjs`).
-- [x] Réglages : plusieurs changements reconstruisent les valeurs par défaut ; les callbacks restent enregistrés sans moyen de retrait (`settings.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Réglages : plusieurs changements reconstruisent les valeurs par défaut ; les callbacks restent enregistrés pour la durée de vie du singleton (`settings.test.mjs`).
 - [x] Réglages invalides : valeurs nulles ou de mauvais type transmises telles quelles, puis retour aux valeurs par défaut au changement suivant (`settings.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Notification `setsettings` : transfert des valeurs et fin de l'action avant la persistance asynchrone (`settings.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Notification `setsettings` : transfert des valeurs et attente de la persistance asynchrone côté client (`settings.test.mjs`).
 - [x] Emmet en production : retrait d'un ancien chemin Aventus, ajout du chemin courant et absence de doublon lors d'un nouvel appel (`settings-emmet.test.mjs`).
-- [x] Emmet en production : échec d'écriture absorbé et absence de nouvel essai après mutation de l'objet de configuration (`settings-emmet.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Emmet en production : échec d'écriture signalé à l'utilisateur ; le chemin en mémoire reste modifié (`settings-emmet.test.mjs`).
 - [x] Statut du serveur HTTP : transition démarrage, adresse affichée et retour à la commande de démarrage après arrêt (`live-server-status.test.mjs`).
 - [x] Statut HTTP : deux démarrages remplacent l'adresse et deux arrêts laissent le même état inactif (`live-server-status.test.mjs`).
 - [x] Migration DB : lecture du secret, persistance sans mot de passe en clair et suppression erronée du nouveau secret (`migration-databases.test.mjs`, décision dans `BLOCKERS.md`).
@@ -23,7 +23,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Interactions utilisateur : sélection simple/multiple, annulation, popup et validations de saisie avec réponse au serveur (`prompts.test.mjs`).
 - [x] Aller-retour des prompts : notifications de saisie, sélection et popup jusqu'aux vraies commandes de réponse, y compris annulation (`prompt-roundtrip.test.mjs`).
 - [x] Notifications de fichiers : ouverture et fermeture d'éditeur, groupes d'éditions successifs, ajout et retrait de fichier de débogage (`file-notifications.test.mjs`).
-- [x] Communication webview : paramètres de route, réponse aux messages entrants, retrait de route et réponse sortante perdue (`communication.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Communication webview : paramètres de route, réponse aux messages entrants, retrait de route et résolution des réponses sortantes par canal et UID (`communication.test.mjs`).
 - [x] Éditeurs i18n/DB : tri et formatage des modifications, remplacement du document et absence d'écriture lorsque le schéma DB est inchangé (`editors-change.test.mjs`).
 - [x] Éditeur DB : routes webview de lecture, sauvegarde et modification, puis suppression de l'écho local et mise à jour externe (`editors-change.test.mjs`).
 - [x] Éditeur i18n : initialisation filtrée, contenu/locales, sauvegarde et traduction sans clé API (`editors-change.test.mjs`).

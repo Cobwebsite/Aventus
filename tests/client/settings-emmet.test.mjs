@@ -6,11 +6,13 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { build } = require('esbuild');
 const updates = [];
+const errors = [];
 const emmet = {
   extensionsPath: ['D:/old/lib/emmet/aventus.json', 'D:/other/tool.json'],
   async update(...args) { updates.push(args); },
 };
 const vscode = {
+  window: { showErrorMessage(message) { errors.push(message); } },
   ConfigurationTarget: { Global: 1, Workspace: 2 },
   ExtensionMode: { Production: 1 },
   workspace: {
@@ -42,7 +44,7 @@ test('production settings replace stale Aventus Emmet path and preserve other ex
   assert.deepEqual(emmet.extensionsPath.filter(path => path === current), [current]);
 });
 
-test('failed Emmet update is swallowed and the in-memory path is not retried', async () => {
+test('failed Emmet update reports an error and keeps the in-memory path', async () => {
   const current = join('D:/new', 'lib', 'emmet', 'aventus.json');
   globalThis.__aventusEmmetClient.context.extensionPath = 'D:/next';
   const next = join('D:/next', 'lib', 'emmet', 'aventus.json');
@@ -53,6 +55,7 @@ test('failed Emmet update is swallowed and the in-memory path is not retried', a
     await manager.applyDefault();
     assert.deepEqual(emmet.extensionsPath, ['D:/other/tool.json', next]);
     assert.equal(attempts, 1);
+    assert.deepEqual(errors, ['Error: configuration write failed']);
     await manager.applyDefault();
     assert.equal(attempts, 1);
     assert.ok(!emmet.extensionsPath.includes(current));

@@ -1,17 +1,5 @@
 # Cas client en attente de décision
 
-## Une écriture Emmet échouée ne se réessaie pas
-
-`tests/client/settings-emmet.test.mjs` simule un échec de `settingsEmmet.update`. `applyDefault` absorbe l'erreur après avoir modifié `extensionsPath` en mémoire. Un appel suivant retrouve déjà le nouveau chemin et ne retente pas l'écriture persistante. Décision attendue : préciser si l'extension doit réessayer la sauvegarde et comment signaler cet échec.
-
-## Les callbacks de réglages ne peuvent pas être retirés
-
-`tests/client/settings.test.mjs` vérifie qu'un callback enregistré par `onSettingsChange` reste appelé lors de changements ultérieurs. Cette méthode et `onSettingsChangeHtml` ne renvoient aucun `Disposable` et n'exposent pas de méthode de retrait. Un consommateur temporaire conserve donc son callback pour la durée de vie du singleton. Décision attendue : définir la durée de vie de ces callbacks et, si nécessaire, une API de désabonnement.
-
-## `sendWithResponse` ne traite pas la réponse du webview
-
-`tests/client/communication.test.mjs` reproduit le cas : après `sendWithResponse({ channel: 'status', uid: 'same', timeout: 15 })`, le webview répond avec le même canal et UID. `onMessage` ne consulte jamais `waitingList`, donc la promesse attend jusqu'au timeout et renvoie `null`. Sans timeout explicite, elle reste pendante. Décision attendue : confirmer que les réponses doivent résoudre cette promesse et définir le comportement pour un canal ou UID inattendu avant une correction séparée du code source.
-
 ## L'éditeur DB conserve ses abonnements après fermeture du panneau
 
 `tests/client/editors-change.test.mjs` reproduit le cas : après `resolveCustomTextEditor`, le panneau est fermé puis une modification et une sauvegarde du même document sont émises. L'ancien webview reçoit encore `is_dirty` et `update_content`. Les abonnements `workspace.onDidChangeTextDocument` et `workspace.onDidSaveTextDocument` sont créés sans conserver ni disposer les `Disposable` lors de `panel.onDidDispose`. Le même schéma existe dans l'éditeur i18n. Décision attendue : confirmer la durée de vie souhaitée des abonnements et leur nettoyage par panneau.
