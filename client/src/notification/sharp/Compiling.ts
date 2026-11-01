@@ -13,7 +13,7 @@ export class Compiling {
         this.errors = errors;
 
         if (part == 'compiling') {
-            Singleton.client.components.setLastCompiledInfo({
+            Singleton.client.components.setCompilationInfo('sharp', 'progress', {
                 text: '$(loading~spin) Compiling ' + csproj
             });
         }
@@ -34,15 +34,16 @@ export class Compiling {
             let time = h + ":" + m + ":" + s;
             let txt = csproj + " compiled at " + time;
 
-            Singleton.client.components.setLastCompiledInfo({
+            Singleton.client.components.setCompilationInfo('sharp', 'success', {
                 text: "$(issue-closed) " + txt
             });
         }
         else {
-            Singleton.client.components.setLastCompiledInfo({
+            Singleton.client.components.setCompilationInfo('sharp', 'error', {
                 text: "$(error) " + csproj + " compilation errors",
                 backgroundColor: new ThemeColor('statusBarItem.errorBackground'),
-                command: "aventus.openfile.debugsharp"
+                command: "aventus.openfile.debugsharp",
+                tooltip: errors?.map(error => error.title).join("\n")
             });
         }
     }

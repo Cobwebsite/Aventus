@@ -7,7 +7,7 @@ const { build } = require('esbuild');
 const updates = [];
 const opened = [];
 globalThis.__aventusMiscNotifications = {
-  client: { components: { setLastCompiledInfo: info => updates.push(info), runningServer: { show() {}, hide() {} } }, context: { id: 'extension' } },
+  client: { components: { setCompilationInfo: (_source, _state, info) => updates.push(info), runningServer: { show() {}, hide() {} } }, context: { id: 'extension' } },
 };
 const source = `export { Compiling } from './client/src/notification/sharp/Compiling.ts'; export { CompiledPart } from './client/src/notification/CompiledPart.ts'; export { Compiled } from './client/src/notification/Compiled.ts';`;
 const result = await build({ stdin: { contents: source, resolveDir: process.cwd(), sourcefile: 'misc-notifications-entry.ts' }, bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false,
@@ -45,7 +45,7 @@ test('Sharp compilation status moves through progress, failure and success', () 
   assert.match(updates.at(-1).text, /^\$\(issue-closed\) Backend compiled at \d\d:\d\d:\d\d$/);
 });
 
-test('Sharp and Aventus compilation notifications overwrite their shared status in arrival order', () => {
+test('Sharp and Aventus compilation notifications submit their status updates', () => {
   Compiled.action('web');
   assert.match(updates.at(-1).text, /web compiled at/);
   Compiling.action('Backend', 'compiling');

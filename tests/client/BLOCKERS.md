@@ -4,10 +4,6 @@
 
 `tests/client/settings.test.mjs` bloque volontairement `WorkspaceConfiguration.update` : la promesse de `SetSettings.action` se termine alors que l'écriture n'est pas encore achevée, car l'action n'attend pas `SettingsManager.setSettings`. Décision attendue : préciser si le serveur doit pouvoir savoir que les réglages sont persistés avant de poursuivre et comment lui signaler un échec.
 
-## Les compilations Aventus et Sharp partagent le même statut
-
-`tests/client/misc-notifications.test.mjs` reproduit l'interleaving : une compilation Aventus réussie est remplacée par la progression Sharp, une erreur Aventus reprend l'affichage, puis le succès Sharp masque cette erreur. `tests/client/component-status.test.mjs` confirme le masquage avec le vrai composant de barre d'état. Un appel ultérieur à `Compiled.render()` réaffiche l'erreur Aventus. Les deux producteurs écrivent directement dans `setLastCompiledInfo` sans arbitrage commun. Décision attendue : préciser la priorité et la durée de vie de chaque statut lorsque les compilations se chevauchent.
-
 ## Une écriture Emmet échouée ne se réessaie pas
 
 `tests/client/settings-emmet.test.mjs` simule un échec de `settingsEmmet.update`. `applyDefault` absorbe l'erreur après avoir modifié `extensionsPath` en mémoire. Un appel suivant retrouve déjà le nouveau chemin et ne retente pas l'écriture persistante. Décision attendue : préciser si l'extension doit réessayer la sauvegarde et comment signaler cet échec.

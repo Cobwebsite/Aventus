@@ -12,10 +12,10 @@ const picks = [];
 const closed = [];
 const previews = [];
 globalThis.__aventusInternalCommands = { opened, closed, previews, client: { context: undefined }, get builds() { return builds; } };
-const source = `export { OpenDebugFile } from './client/src/cmds-internal/OpenDebugFile.ts'; export { OpenDebugFileSharp } from './client/src/cmds-internal/sharp/OpenDebugFile.ts'; export { EnableBuild } from './client/src/cmds-internal/EnableBuild.ts'; export { OpenFile } from './client/src/cmds-internal/i18n/OpenFile.ts'; export { Migration } from './client/src/cmds-internal/Migration.ts';`;
+const source = `export { OpenDebugFile } from './client/src/cmds-internal/OpenDebugFile.ts'; export { OpenDebugFileSharp } from './client/src/cmds-internal/sharp/OpenDebugFile.ts'; export { OpenDebugFilePhp } from './client/src/cmds-internal/php/OpenDebugFile.ts'; export { EnableBuild } from './client/src/cmds-internal/EnableBuild.ts'; export { OpenFile } from './client/src/cmds-internal/i18n/OpenFile.ts'; export { Migration } from './client/src/cmds-internal/Migration.ts';`;
 const result = await build({ stdin: { contents: source, resolveDir: process.cwd(), sourcefile: 'internal-commands-entry.ts' }, bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false,
   plugins: [{ name: 'notification-doubles', setup(build) {
-    build.onResolve({ filter: /notification\/Compiled$|notification\/sharp\/Compiling$|customEditors\/AventusI18nEditor$|\.\.\/Singleton$|webview\/migration$/ }, args => ({ path: args.path, namespace: 'test' }));
+    build.onResolve({ filter: /notification\/Compiled$|notification\/(?:sharp|php)\/Compiling$|customEditors\/AventusI18nEditor$|\.\.\/Singleton$|webview\/migration$/ }, args => ({ path: args.path, namespace: 'test' }));
     build.onLoad({ filter: /.*/, namespace: 'test' }, args => ({ contents: args.path.endsWith('Compiled')
       ? 'export const Compiled = { getBuilds: () => globalThis.__aventusInternalCommands.builds, openDebug: name => globalThis.__aventusInternalCommands.opened.push(name) };'
       : args.path.endsWith('Singleton')
@@ -24,7 +24,7 @@ const result = await build({ stdin: { contents: source, resolveDir: process.cwd(
         ? 'export class AventusMigration { getPreview(context) { globalThis.__aventusInternalCommands.previews.push(context); } }'
       : args.path.endsWith('AventusI18nEditor')
         ? 'export const AventusI18nEditor = { close: uri => globalThis.__aventusInternalCommands.closed.push(uri) };'
-        : 'export const Compiling = { openDebug: () => globalThis.__aventusInternalCommands.opened.push("sharp") };', loader: 'js' }));
+        : `export const Compiling = { openDebug: () => globalThis.__aventusInternalCommands.opened.push(${JSON.stringify(args.path.includes('/php/') ? 'php' : 'sharp')}) };`, loader: 'js' }));
   } }],
 });
 const vscode = {
@@ -34,7 +34,7 @@ const vscode = {
 };
 const module = { exports: {} };
 new Function('module', 'exports', 'require', result.outputFiles[0].text)(module, module.exports, name => name === 'vscode' ? vscode : require(name));
-const { OpenDebugFile, OpenDebugFileSharp, EnableBuild, OpenFile, Migration } = module.exports;
+const { OpenDebugFile, OpenDebugFileSharp, OpenDebugFilePhp, EnableBuild, OpenFile, Migration } = module.exports;
 
 test('debug command skips empty builds and opens the only build directly', async () => {
   builds = [];
@@ -59,10 +59,11 @@ test('debug command offers multiple builds and ignores cancellation', async () =
   assert.deepEqual(opened, ['web', 'api']);
 });
 
-test('Sharp debug and enable-build commands dispatch to their target actions', async () => {
+test('Sharp and PHP debug commands dispatch to their own actions', async () => {
   await OpenDebugFileSharp.middleware([]);
+  await OpenDebugFilePhp.middleware([]);
   await EnableBuild.middleware([]);
-  assert.equal(opened.at(-1), 'sharp');
+  assert.deepEqual(opened.slice(-2), ['sharp', 'php']);
   assert.deepEqual(settings, [['workbench.action.openSettings', 'aventus.ideBuild']]);
 });
 

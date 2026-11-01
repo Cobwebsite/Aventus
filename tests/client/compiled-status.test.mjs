@@ -10,7 +10,7 @@ let shown = 0;
 let hidden = 0;
 const components = {
   runningServer: { show() { shown++; }, hide() { hidden++; } },
-  setLastCompiledInfo(info) { updates.push(info); },
+  setCompilationInfo(_source, _state, info) { updates.push(info); },
 };
 globalThis.__aventusCompiledTest = { client: { components } };
 const result = await build({ entryPoints: ['client/src/notification/Compiled.ts'], absWorkingDir: process.cwd(), bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false,
