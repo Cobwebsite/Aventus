@@ -47,18 +47,21 @@ test('webview route can be removed without receiving later messages', async () =
   assert.equal(calls, 1);
 });
 
-test('matching webview response currently times out instead of resolving sendWithResponse', async () => {
+test('sendWithResponse resolves only for a matching channel and UID', async () => {
   const target = webview();
   const comm = new Communication(target.view);
   const originalError = console.error;
   const errors = [];
   console.error = message => errors.push(message);
   try {
-    const pending = comm.sendWithResponse({ channel: 'status', uid: 'same', timeout: 15 });
+    const pending = comm.sendWithResponse({ channel: 'status', uid: 'same', timeout: 50 });
     assert.deepEqual(target.sent, [{ channel: 'status', uid: 'same' }]);
+    await target.dispatch({ channel: 'other', uid: 'same', data: 'wrong channel' });
+    await target.dispatch({ channel: 'status', uid: 'other', data: 'wrong uid' });
+    assert.equal(typeof comm.waitingList.same, 'function');
     await target.dispatch({ channel: 'status', uid: 'same', data: 'ready' });
-    assert.equal(await pending, null);
-    assert.deepEqual(errors, ['No message received after 15ms']);
+    assert.equal(await pending, 'ready');
+    assert.deepEqual(errors, []);
     assert.deepEqual(comm.waitingList, {});
   } finally { console.error = originalError; }
 });

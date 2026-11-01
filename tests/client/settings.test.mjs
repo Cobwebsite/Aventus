@@ -71,7 +71,7 @@ test('successive configuration changes rebuild defaults without retaining prior 
   assert.equal(manager.settings.liveserver.port, 7002);
 });
 
-test('settings callbacks currently remain registered after their consumer is done', () => {
+test('settings callbacks remain registered for the singleton lifetime', () => {
   let calls = 0;
   manager.onSettingsChange(() => calls++);
   listeners[0]();

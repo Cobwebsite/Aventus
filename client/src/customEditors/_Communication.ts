@@ -24,6 +24,7 @@ export interface Message {
 
 export class Communication {
 	protected waitingList: { [uuid: string]: (channel: string, data: any) => void; } = {};
+	private waitingChannels: { [uuid: string]: string } = {};
 
 	private routes: { [key: string]: InternalRoute<any, any>[]; } = {};
 
@@ -38,6 +39,7 @@ export class Communication {
 			try {
 				let _uid = options.uid ? options.uid : this.uuidv4();
 				options.uid = _uid;
+				this.waitingChannels[_uid] = options.channel;
 				// No need to have an event listening bc the waiting list is trigger event if no event is listening
 				let timeoutInfo: NodeJS.Timeout | undefined;
 				this.waitingList[_uid] = (channel, data) => {
@@ -53,6 +55,7 @@ export class Communication {
 				if (options.timeout !== undefined) {
 					timeoutInfo = setTimeout(() => {
 						delete this.waitingList[_uid];
+						delete this.waitingChannels[_uid];
 						console.error("No message received after " + options.timeout + "ms");
 						resolve(null);
 					}, options.timeout);
@@ -83,6 +86,15 @@ export class Communication {
 
 	private async onMessage(data: any) {
 		const message: Message = data;
+		if (message.uid && typeof message.channel === 'string') {
+			const waiting = this.waitingList[message.uid];
+			if (waiting && this.waitingChannels[message.uid]?.toLowerCase() === message.channel.toLowerCase()) {
+				delete this.waitingList[message.uid];
+				delete this.waitingChannels[message.uid];
+				waiting(message.channel, message.data);
+				return;
+			}
+		}
 
 		for (let channel in this.routes) {
 			let current = this.routes[channel];
