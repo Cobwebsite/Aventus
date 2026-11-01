@@ -6,7 +6,7 @@ export class CompiledPart {
     public static action(info: string) {
 
         if (Singleton.client.components) {
-            Singleton.client.components.setLastCompiledInfo({
+            Singleton.client.components.setCompilationInfo('aventus', 'progress', {
                 text: "$(loading~spin) " + info
             });
         }

@@ -21,7 +21,7 @@ export class Compiled {
     public static removeBuild(buildName: string) {
         delete Compiled.timeByBuild[buildName];
         if (Singleton.client.components) {
-            Singleton.client.components.setLastCompiledInfo({
+            Singleton.client.components.setCompilationInfo('aventus', 'success', {
                 text: "$(issue-closed) " + this.lastTime,
                 tooltip: "Aventus last compilation :\n" + Object.values(Compiled.timeByBuild).join("\n")
             });
@@ -78,13 +78,13 @@ export class Compiled {
                 }
 
                 if (!hasError) {
-                    Singleton.client.components.setLastCompiledInfo({
+                    Singleton.client.components.setCompilationInfo('aventus', 'success', {
                         text: "$(issue-closed) " + this.lastTime,
                         tooltip: "Aventus last compilation :\n" + tooltips.join("\n")
                     });
                 }
                 else {
-                    Singleton.client.components.setLastCompiledInfo({
+                    Singleton.client.components.setCompilationInfo('aventus', 'error', {
                         text: "$(error) You have compilation errors",
                         backgroundColor: new ThemeColor('statusBarItem.errorBackground'),
                         command: "aventus.openfile.debug",
@@ -93,7 +93,7 @@ export class Compiled {
                 }
             }
             else {
-                Singleton.client.components.setLastCompiledInfo({
+                Singleton.client.components.setCompilationInfo('aventus', 'idle', {
                     text: ""
                 });
                 Singleton.client.components.runningServer.hide();

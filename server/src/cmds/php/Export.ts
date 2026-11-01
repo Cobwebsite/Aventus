@@ -5,7 +5,7 @@ import { execAsync, execFileAsync, uriToPath } from '../../tools';
 import { SelectItem } from '../../IConnection';
 import { AventusExtension } from '../../definition';
 import { existsSync, readFileSync } from 'fs';
-import { Compiling } from '../../notification/sharp/Compiling';
+import { Compiling } from '../../notification/php/Compiling';
 import { DebugFileAdd } from '../../notification/DebugFileAdd';
 import { PhpManager } from '../../language-services/json/PhpManager';
 

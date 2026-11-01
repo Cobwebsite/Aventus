@@ -3,11 +3,15 @@ import { ServerStop } from '../notification/httpServer/ServerStop';
 import { SettingsManager } from '../Settings';
 
 export type TextInfo = { text: string, tooltip?: string, command?: string, color?: string, backgroundColor?: ThemeColor }
+type CompilationState = 'idle' | 'progress' | 'success' | 'error';
+type ProjectType = 'aventus' | 'sharp' | 'php';
 export class AvenutsVsComponent {
     private lastCompiledInfo: StatusBarItem;
     public runningServer: StatusBarItem;
 
     private info: TextInfo;
+    private compilation = new Map<ProjectType, { state: CompilationState, info: TextInfo, order: number }>();
+    private compilationOrder = 0;
 
     constructor() {
         this.info = {
@@ -46,6 +50,31 @@ export class AvenutsVsComponent {
     public setLastCompiledInfo(info: TextInfo) {
         this.info = info;
         this.renderInfo();
+    }
+
+    public getLabel(source: ProjectType) {
+        if(source == "php") return "Php";
+        if(source == "sharp") return "Sharp";
+        return "Aventus"
+    }
+
+    public setCompilationInfo(source: ProjectType, state: CompilationState, info: TextInfo) {
+        if (state === 'idle') this.compilation.delete(source);
+        else this.compilation.set(source, { state, info, order: ++this.compilationOrder });
+
+        const entries = [...this.compilation.entries()];
+        const errors = entries.filter(([, value]) => value.state === 'error');
+        if (errors.length > 0) {
+            const primary = errors.find(([name]) => name === 'aventus') ?? errors[0];
+            const tooltip = errors.map(([name, value]) => `${this.getLabel(name)}: ${value.info.tooltip ?? value.info.text}`).join('\n');
+            this.setLastCompiledInfo({ ...primary[1].info, tooltip });
+            return;
+        }
+
+        const current = entries.filter(([, value]) => value.state === 'progress');
+        const candidates = current.length > 0 ? current : entries;
+        candidates.sort((a, b) => b[1].order - a[1].order);
+        this.setLastCompiledInfo(candidates[0]?.[1].info ?? { text: '' });
     }
 
 }

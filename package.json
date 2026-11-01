@@ -498,6 +498,10 @@
 				"title": "Aventus : Open debug file"
 			},
 			{
+				"command": "aventus.openfile.debugphp",
+				"title": "Aventus : Open debug file"
+			},
+			{
 				"command": "aventus.reloadSettings",
 				"title": "Aventus : Reload settings"
 			},
@@ -786,6 +790,10 @@
 				},
 				{
 					"command": "aventus.openfile.debugsharp",
+					"when": "false"
+				},
+				{
+					"command": "aventus.openfile.debugphp",
 					"when": "false"
 				},
 				{

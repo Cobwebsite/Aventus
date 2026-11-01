@@ -17,7 +17,8 @@ import { RegisterBuild } from "./RegisterBuild";
 import { RegisterData } from "./RegisterData";
 import { RegisterStatic } from "./RegisterStatic";
 import { SetSettings } from './SetSettings';
-import { Compiling } from './sharp/Compiling';
+import { Compiling as CompilingSharp } from './sharp/Compiling';
+import { Compiling as CompilingPhp} from './php/Compiling';
 import { HideLoadingMessage, ShowLoadingMessage } from './ShowLoadingMessage';
 import { UnregisterBuild } from "./UnregisterBuild";
 import { UnregisterData } from "./UnregisterData";
@@ -29,7 +30,8 @@ export const Notifications = {
         [CloseFile.cmd]: CloseFile,
         [Compiled.cmd]: Compiled,
         [CompiledPart.cmd]: CompiledPart,
-        [Compiling.cmd]: Compiling,
+        [CompilingSharp.cmd]: CompilingSharp,
+        [CompilingPhp.cmd]: CompilingPhp,
         [ServerStart.cmd]: ServerStart,
         [ServerStop.cmd]: ServerStop,
         [OpenFile.cmd]: OpenFile,
