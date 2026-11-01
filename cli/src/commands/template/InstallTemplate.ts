@@ -29,6 +29,7 @@ export class ImportTemplate extends Action<ImportTemplateOptions> {
 			await Server.executeCommand("aventus.template.import");
 		} catch (e) {
 			console.log(e)
+			process.exit(1);
 		}
 	}
 

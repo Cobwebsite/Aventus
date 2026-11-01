@@ -28,6 +28,7 @@ export class StorePublish extends Action<StorePublishOptions> {
 			await Server.executeCommand("aventus.store.publish_package");
 		} catch (e) {
 			console.log(e)
+			process.exit(1);
 		}
 	}
 

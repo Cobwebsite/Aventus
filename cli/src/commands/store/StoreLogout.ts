@@ -29,6 +29,7 @@ export class StoreLogout extends Action<StoreLogoutOptions> {
 			await Server.executeCommand("aventus.store.disconnect");
 		} catch (e) {
 			console.log(e)
+			process.exit(1);
 		}
 	}
 

@@ -2,9 +2,7 @@
 
 ## Les commandes de service absorbent un échec du serveur
 
-`tests/cli/service-commands.test.mjs` reproduit le cas avec `template install` : si `Server.start()` rejette, l'erreur est affichée par `console.log`, `run()` se termine sans rejeter et `Action.register` termine ensuite avec `process.exit(0)`. Le même bloc `try/catch` existe dans les commandes de templates, projets et Store. Décision attendue : déterminer le code de sortie voulu pour un échec de démarrage ou d'exécution, puis corriger les commandes concernées séparément.
-
-Le test couvre aussi un rejet `prompt cancelled` de `Server.executeCommand` pour template, projet et Store : les trois commandes journalisent l'erreur et se terminent sans signaler un échec. Décision attendue : distinguer, si nécessaire, l'annulation normale d'un prompt d'une erreur d'installation ou de requête serveur dans la sortie et le code de retour.
+Le test couvre aussi un rejet `prompt cancelled` de `Server.executeCommand` pour template, projet et Store : les trois commandes journalisent actuellement l'erreur et terminent avec le code 1. Décision attendue : distinguer, si nécessaire, l'annulation normale d'un prompt d'une erreur d'installation ou de requête serveur dans la sortie et le code de retour.
 
 Les commandes CLI délèguent le choix et l'installation au serveur. Leurs tests directs couvrent le routage et l'arrêt de séquence ; les installations avec dossiers temporaires sont déjà exercées dans `tests/server/templates` et `tests/server/commands`. Pour un parcours CLI packagé de bout en bout, il faut d'abord résoudre la sortie prématurée des actions asynchrones décrite ci-dessous, puis décider du code de sortie lors d'une annulation ou d'un échec.
 

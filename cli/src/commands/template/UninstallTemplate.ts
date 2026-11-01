@@ -29,6 +29,7 @@ export class UninstallTemplate extends Action<UninstallTemplateOptions> {
 			await Server.executeCommand("aventus.template.uninstall");
 		} catch (e) {
 			console.log(e)
+			process.exit(1);
 		}
 	}
 

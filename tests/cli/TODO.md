@@ -27,9 +27,9 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] `update` : version déjà présente, installation locale dans un dossier temporaire et réponse npm sans version (`update.test.mjs`).
 - [x] Watcher CLI : transitions de fichiers, regroupement des événements, ordre des notifications et arrêt explicite avec annulation des événements en attente (`watcher.test.mjs`).
 - [x] Watcher CLI sur disque : création, modification, suppression et rafales de fichiers `.avt` sur un répertoire temporaire Windows (`watcher-disk.test.mjs`).
-- [x] Templates, projets et Store : configuration serveur, routage des commandes, identifiants transmis et arrêt de la séquence après échec (`service-commands.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Store : échec de la requête serveur absorbé sans code de sortie d'erreur (`service-commands.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Annulation remontée par le serveur : template, projet et Store arrêtent leur séquence après le rejet et journalisent l'erreur (`service-commands.test.mjs`, politique de sortie dans `BLOCKERS.md`).
+- [x] Templates, projets et Store : configuration serveur, routage des commandes, identifiants transmis et code de sortie 1 après échec (`service-commands.test.mjs`).
+- [x] Store : échec de la requête serveur signalé avec le code de sortie 1 (`service-commands.test.mjs`).
+- [x] Annulation remontée par le serveur : template, projet et Store arrêtent leur séquence après le rejet et terminent actuellement avec le code 1 (`service-commands.test.mjs`, politique de sortie dans `BLOCKERS.md`).
 - [x] `create`, `dependencies help-llm` et `ai prepare` : configuration serveur, URI du dossier courant, ordre des commandes et arrêt après échec (`service-commands.test.mjs`).
 - [x] Interaction terminal : choix vides et multiples, saisie, mot de passe, filtre d'arbre et abonnement aux logs (`interaction.test.mjs`).
 - [x] Interaction terminal : validation asynchrone et annulation par rejet du prompt, sans effacement de la vue après ce rejet (`interaction.test.mjs`).

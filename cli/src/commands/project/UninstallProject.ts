@@ -29,6 +29,7 @@ export class UninstallProject extends Action<UninstallProjectOptions> {
 			await Server.executeCommand("aventus.template.uninstall_project");
 		} catch (e) {
 			console.log(e)
+			process.exit(1);
 		}
 	}
 
