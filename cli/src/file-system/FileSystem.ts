@@ -11,6 +11,18 @@ export class FilesWatcher {
 	private stack: { created: string[], updated: string[], deleted: string[] } = { created: [], deleted: [], updated: [] };
 	private mutex: Mutex = new Mutex();
 	private timeout: NodeJS.Timeout | undefined;
+	private stopped = false;
+	private closing: Promise<void> | undefined;
+
+	public stop(): Promise<void> {
+		if (this.closing) return this.closing;
+		this.stopped = true;
+		clearTimeout(this.timeout);
+		this.timeout = undefined;
+		this.stack = { created: [], deleted: [], updated: [] };
+		this.closing = this.watcher.close();
+		return this.closing;
+	}
 
 	public constructor(currentDir: string) {
 		this.watcher = watch(currentDir, {
@@ -25,8 +37,13 @@ export class FilesWatcher {
 	}
 
 	private async onCreate(path: string) {
-		if (!path.endsWith('.avt')) return;
+		if (this.stopped || !path.endsWith('.avt')) return;
+
 		await this.mutex.waitOne();
+		if (this.stopped) { 
+			this.mutex.release(); 
+			return; 
+		}
 		let uriTxt = path.toString();
 		if (!this.stack.created.includes(uriTxt)) {
 			this.stack.created.push(uriTxt);
@@ -46,8 +63,13 @@ export class FilesWatcher {
 
 	}
 	private async onChange(path: string) {
-		if (!path.endsWith('.avt')) return;
+		if (this.stopped || !path.endsWith('.avt')) 
+			return;
 		await this.mutex.waitOne()
+		if (this.stopped) { 
+			this.mutex.release(); 
+			return; 
+		}
 		let uriTxt = path.toString();
 		// not in created
 		if (!this.stack.created.includes(uriTxt) && !this.stack.updated.includes(uriTxt)) {
@@ -62,8 +84,13 @@ export class FilesWatcher {
 		this.triggerTimer();
 	}
 	private async onDelete(path: string) {
-		if (!path.endsWith('.avt')) return;
+		if (this.stopped || !path.endsWith('.avt')) 
+			return;
 		await this.mutex.waitOne();
+		if (this.stopped) { 
+			this.mutex.release(); 
+			return; 
+		}
 		let uriTxt = path.toString();
 		if (!this.stack.deleted.includes(uriTxt)) {
 			this.stack.deleted.push(uriTxt);
@@ -82,13 +109,19 @@ export class FilesWatcher {
 		this.triggerTimer();
 	}
 	private triggerTimer() {
+		if (this.stopped) return;
 		clearTimeout(this.timeout);
-		setTimeout(() => {
+		this.timeout = setTimeout(() => {
+			this.timeout = undefined;
 			this.sendStack();
 		}, 500);
 	}
 	private async sendStack() {
 		await this.mutex.waitOne();
+		if (this.stopped) { 
+			this.mutex.release(); 
+			return; 
+		}
 
 		for (let deleted of this.stack.deleted) {
 			FileDeleted.run(pathToUri(deleted));

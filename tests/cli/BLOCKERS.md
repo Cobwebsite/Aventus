@@ -1,9 +1,5 @@
 # Cas CLI en attente de décision
 
-## Le watcher CLI ne peut pas être arrêté explicitement
-
-`tests/cli/watcher.test.mjs` vérifie le regroupement des événements, puis constate que `FilesWatcher` ne propose ni `stop()` ni `dispose()`. L'instance `chokidar` est créée avec `persistent: true` et ne peut donc pas être fermée par son propriétaire. `triggerTimer()` ne conserve pas non plus l'identifiant retourné par `setTimeout`, ce qui empêche l'annulation du délai précédent et son nettoyage. Décision attendue : définir la fermeture du watcher et des timers, notamment pour les usages longs ou les tests intégrés.
-
 ## Les commandes de service absorbent un échec du serveur
 
 `tests/cli/service-commands.test.mjs` reproduit le cas avec `template install` : si `Server.start()` rejette, l'erreur est affichée par `console.log`, `run()` se termine sans rejeter et `Action.register` termine ensuite avec `process.exit(0)`. Le même bloc `try/catch` existe dans les commandes de templates, projets et Store. Décision attendue : déterminer le code de sortie voulu pour un échec de démarrage ou d'exécution, puis corriger les commandes concernées séparément.
