@@ -7,6 +7,7 @@ const { build } = require('esbuild');
 const result = await build({ entryPoints: ['client/src/manifest/AutoLoader.ts'], absWorkingDir: process.cwd(), bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false });
 const values = { aventus: { preventCustomData: [] }, html: { customData: [] }, emmet: { extensionsPath: [] } };
 const writes = [], prompts = [], listeners = [];
+const configurationHandles = [];
 let answer = 'Yes';
 let promptBarrier;
 const vscode = {
@@ -19,7 +20,7 @@ const vscode = {
       get(key) { return values[section][key]; },
       async update(key, value, target) { writes.push([section, key, [...value], target]); values[section][key] = [...value]; },
     }; },
-    onDidChangeConfiguration(callback) { listeners.push(callback); return { dispose() {} }; },
+    onDidChangeConfiguration(callback) { listeners.push(callback); const handle = { disposed: false, dispose() { this.disposed = true; } }; configurationHandles.push(handle); return handle; },
   },
   window: { async showQuickPick(items, options) { prompts.push([items, options]); if (promptBarrier) await promptBarrier; return answer ? { label: answer } : undefined; } },
 };
@@ -81,4 +82,13 @@ test('concurrent AutoLoader events share one prompt and persist the manifest onc
     promptBarrier = undefined;
     release();
   }
+});
+
+test('AutoLoader releases configuration listener when disposed', () => {
+  AutoLoader.dispose();
+  assert.equal(configurationHandles[0].disposed, true);
+  AutoLoader.getInstance();
+  assert.equal(configurationHandles.length, 2);
+  AutoLoader.dispose();
+  assert.equal(configurationHandles[1].disposed, true);
 });

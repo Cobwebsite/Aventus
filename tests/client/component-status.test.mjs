@@ -22,13 +22,13 @@ const result = await build({ stdin: { contents: source, resolveDir: process.cwd(
           : 'export const InitStep = { isDone: true };', loader: 'js' }));
   } }],
 });
-globalThis.__aventusComponentSettings = { settings, onSettingsChange(callback) { onSettingsChange = callback; } };
+globalThis.__aventusComponentSettings = { settings, onSettingsChange(callback) { onSettingsChange = callback; return { dispose() { onSettingsChange = undefined; } }; } };
 globalThis.__aventusComponentClient = {};
 class ThemeColor { constructor(id) { this.id = id; } }
 const vscode = {
   StatusBarAlignment: { Right: 2 }, ThemeColor,
   window: { createStatusBarItem(name, alignment, priority) {
-    const item = { name, alignment, priority, visible: false, show() { this.visible = true; }, hide() { this.visible = false; } };
+    const item = { name, alignment, priority, visible: false, show() { this.visible = true; }, hide() { this.visible = false; }, dispose() { this.disposed = true; } };
     items.set(name, item);
     return item;
   } },

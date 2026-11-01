@@ -8,18 +8,18 @@ const registered = [];
 const events = [];
 const virtual = {
   './cmds': 'export const Commands = { allCommandes: { "aventus.test": { middleware: async args => args.map(value => value + "-mapped") }, "aventus.cancel": { middleware: async () => null } } };',
-  './component': 'export class AvenutsVsComponent {}',
+  './component': 'export class AvenutsVsComponent { dispose() { globalThis.__aventusLifecycle.events.push("component.dispose"); } }',
   './file-system/FileSystem': 'export class FileSystem { constructor() { this.id = ++globalThis.__aventusLifecycle.nextFileSystemId; globalThis.__aventusLifecycle.events.push(["fileSystem.create", this.id]); } stop() { globalThis.__aventusLifecycle.events.push(["fileSystem.stop", this.id]); } }',
   './notification': 'export const Notifications = { allNotifications: { "aventus/sample": { action(value) { globalThis.__aventusLifecycle.events.push(["notification", value]); } } } };',
   './file-system/DebugFile': 'export class DebugFile { static schema = "avdebug"; }',
   './cmds-internal': 'export const CommandsInternal = { allCommandes: { "aventus.internal": { middleware(...args) { globalThis.__aventusLifecycle.events.push(["internal", args]); } } } };',
   './cmds/ReloadSettings': 'export const ReloadSettings = { execute() { globalThis.__aventusLifecycle.events.push("settings.reload"); } };',
-  './manifest/AutoLoader': 'export const AutoLoader = { getInstance() { return {}; } };',
-  './customEditors/AventusI18nEditor': 'export const AventusI18nEditor = { register() { return { dispose() {} }; }, filtersByUri: globalThis.__aventusLifecycle.filters };',
-  './customEditors/AventusDBEditor': 'export const AventusDBEditor = { register() { return { dispose() {} }; } };',
+  './manifest/AutoLoader': 'export const AutoLoader = { getInstance() { return {}; }, dispose() {} };',
+  './customEditors/AventusI18nEditor': 'export const AventusI18nEditor = { register() { return { disposed: false, dispose() { this.disposed = true; } }; }, closeAll() {}, filtersByUri: globalThis.__aventusLifecycle.filters };',
+  './customEditors/AventusDBEditor': 'export const AventusDBEditor = { register() { return { disposed: false, dispose() { this.disposed = true; } }; }, closeAll() {} };',
   './communication/i18n/GetKeyFromPosition': 'export const GetKeyFromPosition = { execute: async () => "greeting" };',
-  './Settings': 'export const SettingsManager = { getInstance() { return {}; } };',
-  './ProtocolHandler': 'export class ProtocolHandler { dispose() {} }',
+  './Settings': 'export const SettingsManager = { getInstance() { return {}; }, dispose() {} };',
+  './ProtocolHandler': 'export class ProtocolHandler { dispose() { this.disposed = true; } }',
 };
 globalThis.__aventusLifecycle = { events, filters: {}, nextFileSystemId: 0 };
 const result = await build({ entryPoints: ['client/src/Client.ts'], absWorkingDir: process.cwd(), bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false,
@@ -34,7 +34,7 @@ const vscode = {
   Range: class { constructor(start, end) { Object.assign(this, { start, end }); } },
   Location: class { constructor(uri, range) { Object.assign(this, { uri, range }); } },
   workspace: {
-    registerTextDocumentContentProvider(schema) { registered.push(['provider', schema]); return { dispose() {} }; },
+    registerTextDocumentContentProvider(schema) { registered.push(['provider', schema]); return { disposed: false, dispose() { this.disposed = true; } }; },
     onDidChangeConfiguration(callback) { const handle = { kind: 'config', callback, disposed: false, dispose() { this.disposed = true; } }; registered.push(handle); return handle; },
   },
   commands: { registerCommand(name, callback) { const handle = { kind: 'command', name, callback, disposed: false, dispose() { this.disposed = true; } }; registered.push(handle); return handle; } },
@@ -69,8 +69,10 @@ test('client initialization registers providers, notifications and command befor
   assert.ok(events.includes('languageClient.start'));
   client.startFileSystem();
   await client.stop();
-  assert.equal(events.at(-2)[0], 'fileSystem.stop');
+  assert.equal(events.at(-3)[0], 'fileSystem.stop');
+  assert.equal(events.at(-2), 'component.dispose');
   assert.equal(events.at(-1), 'languageClient.stop');
+  assert.ok(context.subscriptions.every(subscription => subscription.disposed));
 });
 
 test('LSP middleware maps commands, suppresses cancelled commands and stores i18n navigation filter', async () => {
@@ -166,7 +168,7 @@ test('activation routes notification and internal command through the same clien
   assert.deepEqual(events, [
     'languageClient.start', ['notification', 'ready'], ['internal', ['manual']],
     ['fileSystem.create', globalThis.__aventusLifecycle.nextFileSystemId],
-    ['fileSystem.stop', globalThis.__aventusLifecycle.nextFileSystemId], 'languageClient.stop',
+    ['fileSystem.stop', globalThis.__aventusLifecycle.nextFileSystemId], 'component.dispose', 'languageClient.stop',
   ]);
   assert.equal(context.subscriptions.length, 4);
 });

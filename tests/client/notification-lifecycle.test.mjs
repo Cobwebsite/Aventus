@@ -5,18 +5,18 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { build } = require('esbuild');
 const handles = [], statusItems = new Map(), events = [];
-globalThis.__aventusIntegrated = { client: undefined, settings: { settings: { ideBuild: true }, onSettingsChange() {} } };
+globalThis.__aventusIntegrated = { client: undefined, settings: { settings: { ideBuild: true }, onSettingsChange() { return { dispose() {} }; } } };
 const virtual = {
   './cmds': 'export const Commands = { allCommandes: {} };',
   './file-system/FileSystem': 'export class FileSystem { stop() {} }',
   './file-system/DebugFile': 'export class DebugFile { static schema = "avdebug"; }',
   './cmds-internal': 'export const CommandsInternal = { allCommandes: {} };',
   './cmds/ReloadSettings': 'export const ReloadSettings = { execute() {} };',
-  './manifest/AutoLoader': 'export const AutoLoader = { getInstance() { return {}; } };',
-  './customEditors/AventusI18nEditor': 'export const AventusI18nEditor = { register() { return { dispose() {} }; }, filtersByUri: {} };',
-  './customEditors/AventusDBEditor': 'export const AventusDBEditor = { register() { return { dispose() {} }; } };',
+  './manifest/AutoLoader': 'export const AutoLoader = { getInstance() { return {}; }, dispose() {} };',
+  './customEditors/AventusI18nEditor': 'export const AventusI18nEditor = { register() { return { dispose() {} }; }, closeAll() {}, filtersByUri: {} };',
+  './customEditors/AventusDBEditor': 'export const AventusDBEditor = { register() { return { dispose() {} }; }, closeAll() {} };',
   './communication/i18n/GetKeyFromPosition': 'export const GetKeyFromPosition = { execute: async () => null };',
-  './Settings': 'export const SettingsManager = { getInstance: () => globalThis.__aventusIntegrated.settings };',
+  './Settings': 'export const SettingsManager = { getInstance: () => globalThis.__aventusIntegrated.settings, dispose() {} };',
   './ProtocolHandler': 'export class ProtocolHandler { dispose() {} }',
 };
 const result = await build({
@@ -50,7 +50,7 @@ const vscode = {
   StatusBarAlignment: { Right: 2 },
   ThemeColor: class { constructor(id) { this.id = id; } },
   window: { createStatusBarItem(name) {
-    const item = { name, visible: false, show() { this.visible = true; }, hide() { this.visible = false; } };
+    const item = { name, visible: false, show() { this.visible = true; }, hide() { this.visible = false; }, dispose() { this.disposed = true; } };
     statusItems.set(name, item); return item;
   } },
   workspace: {
@@ -94,4 +94,6 @@ test('one client routes successive LSP notifications to its status items through
   await client.stop();
   assert.deepEqual(events, ['start', 'stop']);
   assert.ok(handles.every(handle => handle.disposed));
+  assert.equal(compilation.disposed, true);
+  assert.equal(server.disposed, true);
 });

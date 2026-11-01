@@ -112,7 +112,8 @@ test('DB editor webview routes load, save and apply changes without echoing its 
       onDidReceiveMessage(callback) { receive = callback; return { dispose() {} }; },
       postMessage(message) { sent.push(message); },
     },
-    onDidDispose() { return { dispose() {} }; },
+    onDidDispose(callback) { this.onDispose = callback; return { dispose() {} }; },
+    dispose() { this.onDispose(); },
   };
   let contents = '{"tables":[]}';
   let saves = 0;
@@ -155,7 +156,8 @@ test('i18n editor webview initializes filtered content, saves and reports missin
       onDidReceiveMessage(callback) { receive = callback; return { dispose() {} }; },
       postMessage(message) { sent.push(message); },
     },
-    onDidDispose() { return { dispose() {} }; },
+    onDidDispose(callback) { this.onDispose = callback; return { dispose() {} }; },
+    dispose() { this.onDispose(); },
   };
   let saves = 0;
   let contents = '{"welcome":{"en":"Hello"}}';
@@ -306,4 +308,38 @@ test('reopening an i18n panel leaves only the current generation listening', asy
     [], ['is_dirty', 'update_content'],
   ]);
   generations[1].dispose();
+});
+
+test('closing all editor panels releases document and webview subscriptions', async () => {
+  changeListeners.length = 0;
+  saveListeners.length = 0;
+  const panels = [];
+  const documents = [];
+  for (const [Editor, suffix] of [[AventusI18nEditor, 'i18n'], [AventusDBEditor, 'db']]) {
+    const editor = new Editor({ extensionUri: { path: '/extension' } });
+    editor.setHtmlForWebview = () => {};
+    const document = { uri: { toString: () => `file:///close-all.${suffix}.avt` }, version: 1, isDirty: false, getText: () => '{}', lineCount: 1 };
+    documents.push(document);
+    const panel = { disposed: false, messageDisposed: false,
+      messages: [],
+      webview: { onDidReceiveMessage() { return { dispose() { panel.messageDisposed = true; } }; }, postMessage(message) { panel.messages.push(message); } },
+      onDidDispose(callback) { this.onDispose = callback; return { dispose() {} }; },
+      dispose() { this.disposed = true; this.onDispose(); },
+    };
+    panels.push(panel);
+    await editor.resolveCustomTextEditor(document, panel, {});
+  }
+  assert.equal(changeListeners.length, 2);
+  assert.equal(saveListeners.length, 2);
+  for (const document of documents) {
+    document.version++;
+    for (const listener of changeListeners) await listener({ document });
+  }
+  assert.ok(panels.every(panel => panel.messages.some(message => message.channel === 'update_content')));
+  AventusI18nEditor.closeAll();
+  AventusDBEditor.closeAll();
+  assert.ok(panels.every(panel => panel.disposed && panel.messageDisposed));
+  assert.equal(changeListeners.length, 0);
+  assert.equal(saveListeners.length, 0);
+  assert.ok(panels.every(panel => panel.messages.length === 2));
 });

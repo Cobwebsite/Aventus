@@ -1,4 +1,4 @@
-import { StatusBarAlignment, StatusBarItem, ThemeColor, window } from "vscode";
+import { Disposable, StatusBarAlignment, StatusBarItem, ThemeColor, window } from "vscode";
 import { ServerStop } from '../notification/httpServer/ServerStop';
 import { SettingsManager } from '../Settings';
 
@@ -12,6 +12,7 @@ export class AvenutsVsComponent {
     private info: TextInfo;
     private compilation = new Map<ProjectType, { state: CompilationState, info: TextInfo, order: number }>();
     private compilationOrder = 0;
+    private settingsSubscription: Disposable;
 
     constructor() {
         this.info = {
@@ -25,9 +26,15 @@ export class AvenutsVsComponent {
         this.runningServer.hide();
         ServerStop.setInfo(this.runningServer);
 
-        SettingsManager.getInstance().onSettingsChange(() => {
+        this.settingsSubscription = SettingsManager.getInstance().onSettingsChange(() => {
             this.renderInfo();
         })
+    }
+
+    public dispose() {
+        this.settingsSubscription.dispose();
+        this.lastCompiledInfo.dispose();
+        this.runningServer.dispose();
     }
 
     private renderInfo() {

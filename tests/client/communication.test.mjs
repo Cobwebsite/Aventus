@@ -12,15 +12,24 @@ const { Communication, Uri } = module.exports;
 function webview() {
   const sent = [];
   let receive;
+  let disposed = false;
   return {
     sent,
     view: {
-      onDidReceiveMessage(callback) { receive = callback; return { dispose() {} }; },
+      onDidReceiveMessage(callback) { receive = callback; return { dispose() { disposed = true; } }; },
       postMessage(message) { sent.push(message); },
     },
     async dispatch(message) { await receive(message); },
+    get disposed() { return disposed; },
   };
 }
+
+test('webview message subscription is released on dispose', () => {
+  const target = webview();
+  const comm = new Communication(target.view);
+  comm.dispose();
+  assert.equal(target.disposed, true);
+});
 
 test('webview route extracts typed URI parameters and sends callback response', async () => {
   const target = webview();

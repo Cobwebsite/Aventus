@@ -22,6 +22,8 @@ const vscode = {
   window: { async showQuickPick(items, options) { prompts.push(options.title); return { label: 'Yes' }; } },
   workspace: {
     workspaceFolders: [{ uri: { toString: () => 'file:///project' } }],
+    getWorkspaceFolder(uri) { return uri.toString().startsWith('file:///project/') ? this.workspaceFolders[0] : undefined; },
+    asRelativePath(uri) { return uri.toString().slice('file:///project/'.length); },
     getConfiguration(section) { return {
       get(key) { return values[section][key]; },
       async update(key, value, target) { writes.push([section, key, [...value], target]); values[section][key] = [...value]; },

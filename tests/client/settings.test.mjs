@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url);
 const { build } = require('esbuild');
 const writes = [];
 const listeners = [];
+const configurationHandles = [];
 let updateBarrier;
 let aventus = { liveserver: { port: 9000 }, readDirs: ['src'] };
 let html = { customData: ['first.json'] };
@@ -15,9 +16,9 @@ const workspace = {
     if (section === 'html') return html;
     return {};
   },
-  onDidChangeConfiguration(callback) { listeners.push(callback); return { dispose() {} }; },
+  onDidChangeConfiguration(callback) { listeners.push(callback); const handle = { disposed: false, dispose() { this.disposed = true; } }; configurationHandles.push(handle); return handle; },
 };
-const vscode = { workspace, window: { showErrorMessage() {} }, ExtensionMode: { Production: 1 }, ConfigurationTarget: { Global: 1, Workspace: 2 } };
+const vscode = { workspace, window: { showErrorMessage() {} }, Disposable: class { constructor(dispose) { this.dispose = dispose; } }, ExtensionMode: { Production: 1 }, ConfigurationTarget: { Global: 1, Workspace: 2 } };
 const source = `export { SettingsManager } from './client/src/Settings.ts'; export { SetSettings } from './client/src/notification/SetSettings.ts';`;
 const result = await build({ stdin: { contents: source, resolveDir: process.cwd(), sourcefile: 'settings-entry.ts' }, bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false,
   plugins: [{ name: 'singleton-double', setup(build) {
@@ -71,13 +72,19 @@ test('successive configuration changes rebuild defaults without retaining prior 
   assert.equal(manager.settings.liveserver.port, 7002);
 });
 
-test('settings callbacks remain registered for the singleton lifetime', () => {
+test('settings callbacks can be disposed independently', () => {
   let calls = 0;
-  manager.onSettingsChange(() => calls++);
+  const subscription = manager.onSettingsChange(() => calls++);
   listeners[0]();
+  subscription.dispose();
   listeners[0]();
-  assert.equal(calls, 2);
-  assert.equal(typeof manager.onSettingsChange(() => {}), 'undefined');
+  assert.equal(calls, 1);
+  let htmlCalls = 0;
+  const htmlSubscription = manager.onSettingsChangeHtml(() => htmlCalls++);
+  manager.setSettingsHtml({ customData: ['third.json'] });
+  htmlSubscription.dispose();
+  manager.setSettingsHtml({ customData: [] });
+  assert.equal(htmlCalls, 1);
 });
 
 test('invalid configuration values keep defaults while valid nested values are merged', () => {
@@ -121,4 +128,14 @@ test('setsettings notification waits for the write to complete', async () => {
     release();
   }
   assert.deepEqual(writes.slice(before), [['debug', true, 2]]);
+});
+
+test('settings singleton releases its configuration listener and can start again', () => {
+  module.exports.SettingsManager.dispose();
+  assert.equal(configurationHandles[0].disposed, true);
+  const next = module.exports.SettingsManager.getInstance();
+  assert.notEqual(next, manager);
+  assert.equal(configurationHandles.length, 2);
+  module.exports.SettingsManager.dispose();
+  assert.equal(configurationHandles[1].disposed, true);
 });
