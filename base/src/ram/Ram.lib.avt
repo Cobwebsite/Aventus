@@ -812,15 +812,13 @@ export abstract class GenericRam<
                 }
                 this.creatingIds.add(id);
                 try {
-                    const resultTemp = await action.extractAsync(() => this.addOrUpdateData(resource));
-                    if(!resultTemp) return action;
+                    const resultTemp = await this.addOrUpdateData(resource);
+                    action.errors.push(...resultTemp.errors);
+                    if(!resultTemp.result) return action;
 
-                    await action.runAsync(() => this.afterCreateItem(resultTemp.value, false));
-
-                    if(action.success) {
-                        action.result = resultTemp.value;
-                        this.publish('created', resultTemp.value);
-                    }
+                    action.result = resultTemp.result.value;
+                    await action.runAsync(() => this.afterCreateItem(resultTemp.result!.value, false));
+                    this.publish('created', resultTemp.result.value);
                 }
                 finally {
                     this.creatingIds.delete(id);
