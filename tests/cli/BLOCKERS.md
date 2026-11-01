@@ -1,9 +1,5 @@
 # Cas CLI en attente de décision
 
-## Options de build contradictoires acceptées par le parseur
-
-`tests/cli/arguments.test.mjs` vérifie qu'une sélection `--builds web --builds api` est agrégée, mais que l'ajout de `--no-builds` remplace cette sélection par `false`. Le parseur accepte aussi `--verbose` et `--silent` ensemble. `Build.run` transforme ensuite `builds: false` en liste vide, utilise le niveau de journalisation Debug et supprime la sortie texte. Décision attendue : préciser si ces combinaisons doivent être rejetées ou si cette priorité implicite est voulue.
-
 ## `check` en mode texte ne signale pas l'échec au processus appelant
 
 `tests/cli/commands.test.mjs` reproduit le cas : `Check.run([], {})` reçoit un diagnostic de sévérité `Error` pour un build. Le diagnostic est écrit sur `console.error`, mais aucun `process.exit(1)` n'est appelé. La variable `hasGlobalFailed` du rendu texte est initialisée à `false` et n'est jamais mise à `true` ; l'action enregistrée par `Action.register` termine donc normalement avec `process.exit(0)`. Le mode JSON marque bien l'échec. Décision attendue : confirmer si le mode texte doit renvoyer le même code d'échec que JSON ; si oui, corriger le code source séparément.

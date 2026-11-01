@@ -32,6 +32,7 @@ export class Build extends Action<BuildOptions> {
 	protected registerOptions(addOption: (option: ActionOption<BuildOptions>) => void) {
 		addOption({
 			name: "builds",
+			conflicts: "no-builds",
 			description: "Define the build name",
 			type: "string",
 			typeIsRequired: true,
@@ -45,6 +46,7 @@ export class Build extends Action<BuildOptions> {
 		});
 		addOption({
 			name: "statics",
+			conflicts: "no-statics",
 			description: "Define the static files to export",
 			type: "string",
 			typeIsRequired: true,
@@ -58,6 +60,7 @@ export class Build extends Action<BuildOptions> {
 		});
 		addOption({
 			name: "verbose",
+			conflicts: "silent",
 			shortName: "v",
 			description: "Debug your compilation",
 		})
