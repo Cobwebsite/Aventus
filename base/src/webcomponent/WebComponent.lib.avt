@@ -241,6 +241,8 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         this.postDestruction();
 
         this.destructChildren();
+        this.__templateInstance?.destructor();
+        this.__templateInstance = undefined;
     }
     protected destructChildren() {
         const recu = (el: HTMLElement) => {

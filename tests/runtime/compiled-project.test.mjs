@@ -171,6 +171,18 @@ test('the compiled component renders its loop and updates its binding in a DOM',
         component.value = 'after removal';
         await tick();
         result.detachedValue = input.value;
+        input.value = 'event after removal';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        result.valueAfterDetachedEvent = component.value;
+        const retained = document.createElement('rt-runtime-list');
+        document.body.append(retained);
+        await tick();
+        const retainedInput = retained.shadowRoot.querySelector('input');
+        retained.remove(false);
+        retained.value = 'still active';
+        await tick();
+        result.valueAfterRemoveWithoutDestruction = retainedInput.value;
+        retained.destructor();
         return result;
     });
     assert.deepEqual(actual, {
@@ -178,7 +190,8 @@ test('the compiled component renders its loop and updates its binding in a DOM',
         updatedValue: 'updated', updatedText: 'updated', typedValue: 'typed',
         addedRows: ['alpha', 'beta', 'gamma'], removedRows: ['alpha', 'gamma'],
         changedValue: 'changed', registered: true, unregistered: true,
-        detachedValue: 'after removal',
+        detachedValue: 'changed', valueAfterDetachedEvent: 'after removal',
+        valueAfterRemoveWithoutDestruction: 'still active',
     });
 });
 
