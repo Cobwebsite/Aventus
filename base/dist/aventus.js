@@ -6924,6 +6924,7 @@ let TemplateContext=class TemplateContext {
     comp;
     computeds = [];
     watch;
+    proxyWatches = {};
     registry;
     isDestroyed = false;
     constructor(component, data = {}, parentContext, registry) {
@@ -7060,6 +7061,10 @@ let TemplateContext=class TemplateContext {
     }
     destructor() {
         this.isDestroyed = true;
+        for (let signal of Object.values(this.proxyWatches)) {
+            signal.destroy();
+        }
+        this.proxyWatches = {};
         for (let computed of this.computeds) {
             computed.destroy();
         }
@@ -7067,6 +7072,16 @@ let TemplateContext=class TemplateContext {
     }
     registerWatch(name, value) {
         let that = this;
+        if (Watcher.is(value)) {
+            const signal = new Signal(value);
+            this.proxyWatches[name] = signal;
+            Object.defineProperty(this.data, name, {
+                get() {
+                    return signal.value;
+                }
+            });
+            return;
+        }
         that.watch[name] = value;
         Object.defineProperty(that.data, name, {
             get() {
@@ -7075,6 +7090,10 @@ let TemplateContext=class TemplateContext {
         });
     }
     updateWatch(name, value, dones) {
+        if (this.proxyWatches[name]) {
+            this.proxyWatches[name].value = value;
+            return;
+        }
         if (Watcher.is(this.watch[name])) {
             this.watch[name].__injectedDones(dones);
         }

@@ -137,7 +137,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] Après destruction de `RuntimeList` : retrait du registre mais effet de binding encore actif dans le shadow DOM détaché (`compiled-project.test.mjs`, décision dans `BLOCKERS.md`).
 - [ ] Après décision sur la destruction : vérifier l'arrêt des effets du template et des événements du binding.
 - [ ] Templates `for`, `for...in` et `for...of` : étendre le projet avec un tableau, un objet, une boucle imbriquée et `@Context` ; vérifier les indices/clés, ajout, retrait, réordonnancement et destruction (`wc/loop.md`).
-- [x] Projet compilé : `for...in` sur objet avec ajout/suppression de clé, `if`/`else` basculé par clic, et boucle `for` imbriquée avec `@Context` dont le groupe supprimé est retiré ; `push()` dans la liste enfant ne met pas à jour le DOM (`compiled-project.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Projet compilé : `for...in` sur objet avec ajout/suppression de clé, `if`/`else` basculé par clic, et boucle `for` imbriquée avec `@Context` ; ajout et retrait d'une entrée enfant sans recréer l'autre groupe, puis retrait du groupe parent (`compiled-project.test.mjs`).
 - [ ] Templates `if`/`else` : étendre le projet avec des branches imbriquées ; vérifier changement de condition, instances remplacées et destruction de la branche finale (`wc/condition.md`, décision dans `BLOCKERS.md`).
 - [ ] Interpolation et injection : valeurs initiales, valeurs nulles, mise à jour réactive et nettoyage des effets après retrait (`wc/interpolation.md`, `wc/injection.md`).
 - [ ] Sélection d'éléments et événements : élément unique ou multiple, gestionnaire appelé une seule fois, retrait des écouteurs à la destruction (`wc/element.md`, `wc/event.md`).

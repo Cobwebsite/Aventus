@@ -220,7 +220,7 @@ test('the compiled conditional and object loop respond to changes and a click', 
     });
 });
 
-test('the compiled classic loop removes a group but does not render a nested Context push', async t => {
+test('the compiled classic loop updates nested Context entries and removes a group', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
     const page = await openCompiledPage(t, code);
@@ -235,9 +235,14 @@ test('the compiled classic loop removes a group but does not render a nested Con
             entries: Array.from(section.querySelectorAll('.entry'), node => node.textContent.trim()),
         }));
         const result = { initial: groups() };
+        const secondSection = shadow.querySelectorAll('section.group')[1];
         component.groups[0].entries.push('d');
         await tick();
         result.afterPush = groups();
+        result.otherGroupPreserved = shadow.querySelectorAll('section.group')[1] === secondSection;
+        component.groups[0].entries.splice(1, 1);
+        await tick();
+        result.afterEntryRemove = groups();
         component.groups.splice(0, 1);
         await tick();
         result.afterRemove = groups();
@@ -246,7 +251,9 @@ test('the compiled classic loop removes a group but does not render a nested Con
     });
     assert.deepEqual(actual, {
         initial: [{ name: 'first', entries: ['a', 'b'] }, { name: 'second', entries: ['c'] }],
-        afterPush: [{ name: 'first', entries: ['a', 'b'] }, { name: 'second', entries: ['c'] }],
+        afterPush: [{ name: 'first', entries: ['a', 'b', 'd'] }, { name: 'second', entries: ['c'] }],
+        otherGroupPreserved: true,
+        afterEntryRemove: [{ name: 'first', entries: ['a', 'd'] }, { name: 'second', entries: ['c'] }],
         afterRemove: [{ name: 'second', entries: ['c'] }],
     });
 });
