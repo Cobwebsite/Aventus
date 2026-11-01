@@ -1,0 +1,7 @@
+<input @bind="this.value">
+<p class="current">{{ this.value }}</p>
+<ul>
+    for(let item of this.items) {
+        <li>{{ item }}</li>
+    }
+</ul>
