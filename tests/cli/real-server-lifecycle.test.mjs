@@ -31,14 +31,28 @@ test('real server start waits for init notification on its first start', async (
   assert.equal(RealServer.waitingStart, null);
 });
 
-test('real server repeated start currently leaves its promise pending', async () => {
+test('real server repeated start resolves without starting a second server', async () => {
   const second = RealServer.start({ noStart: true });
   const outcome = await Promise.race([
     second.then(() => 'resolved'),
     new Promise(resolve => setTimeout(() => resolve('pending'), 20)),
   ]);
-  assert.equal(outcome, 'pending');
+  assert.equal(outcome, 'resolved');
   assert.deepEqual(events, ['construct', 'start']);
+});
+
+test('repeated start waits for an existing startup to finish', async () => {
+  RealServer.server = null;
+  const first = RealServer.start({});
+  const second = RealServer.start({ noStart: true });
+  let secondResolved = false;
+  second.then(() => { secondResolved = true; });
+  await Promise.resolve();
+  assert.equal(secondResolved, false);
+  RealServer.started();
+  await Promise.all([first, second]);
+  assert.equal(secondResolved, true);
+  assert.deepEqual(events.slice(-2), ['construct', 'start']);
 });
 
 test('real server catches a startup exception but leaves the caller waiting', async () => {

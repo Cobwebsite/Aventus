@@ -45,6 +45,16 @@ export class RealServer {
 					}
 
 				}
+				else if (this.waitingStart) {
+					const previous = this.waitingStart;
+					this.waitingStart = () => {
+						previous();
+						resolve();
+					};
+				}
+				else {
+					resolve();
+				}
 			} catch (e) {
 				console.log(e);
 			}
