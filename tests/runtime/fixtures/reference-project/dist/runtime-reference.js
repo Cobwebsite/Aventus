@@ -5270,6 +5270,119 @@ const _ = {};
 
 
 let _n;
+const RuntimeBranches = class RuntimeBranches extends Aventus.WebComponent {
+    get 'count'() {
+						return this.__watch["count"];
+					}
+					set 'count'(val) {
+						this.__watch["count"] = val;
+					}
+get 'labels'() {
+						return this.__watch["labels"];
+					}
+					set 'labels'(val) {
+						this.__watch["labels"] = val;
+					}
+    __registerWatchesActions() {
+    this.__addWatchesActions("count");
+this.__addWatchesActions("labels");
+    super.__registerWatchesActions();
+}
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeBranches;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeBranches.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<button _id="runtimebranches_0">Increment</button><template _id="runtimebranches_1"></template><ul>
+    <template _id="runtimebranches_4"></template>
+</ul>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "events": [
+    {
+      "eventName": "click",
+      "id": "runtimebranches_0",
+      "fct": (e, c) => c.comp.increment(e)
+    }
+  ]
+});
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+        <li _id="runtimebranches_5"></li>
+    `);
+templ2.setActions({
+  "content": {
+    "runtimebranches_5°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod3(c.data.key))}: ${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod4(c.data.key))}`
+    }
+  }
+});
+this.__getStatic().__template.addLoop({
+                    anchorId: 'runtimebranches_4',
+                    template: templ2,
+                simple:{data: `this.labels`,index:`key`}
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+    <p class="even" _id="runtimebranches_2"></p>
+`);
+templ0.setActions({
+  "content": {
+    "runtimebranches_2°@HTML": {
+      "fct": (c) => `Even ${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod2())}`,
+      "once": true
+    }
+  }
+});
+const templ1 = new Aventus.Template(this);
+templ1.setTemplate(`
+    <p class="odd" _id="runtimebranches_3"></p>
+`);
+templ1.setActions({
+  "content": {
+    "runtimebranches_3°@HTML": {
+      "fct": (c) => `Odd ${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod2())}`,
+      "once": true
+    }
+  }
+});
+this.__getStatic().__template.addIf({
+                    anchorId: 'runtimebranches_1',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__84dee09c18be291203ed39a41f8f178amethod0(),
+                    template: templ0
+                },{once: true,
+                    condition: (c) => true,
+                    template: templ1
+                }]
+            });
+ }
+    getClassName() {
+        return "RuntimeBranches";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["count"] = 0;
+w["labels"] = { first: "one", second: "two" };
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('count');
+this.__correctGetter('labels');
+ }
+    increment() {
+        this.count++;
+    }
+}
+RuntimeBranches.Namespace=`RuntimeReference`;
+RuntimeBranches.Tag=`rt-runtime-branches`;
+__as1(_, 'RuntimeBranches', RuntimeBranches);
+if(!window.customElements.get('rt-runtime-branches')){window.customElements.define('rt-runtime-branches', RuntimeBranches);Aventus.WebComponentInstance.registerDefinition(RuntimeBranches);}
+
 const RuntimeList = class RuntimeList extends Aventus.WebComponent {
     get 'items'() {
 						return this.__watch["items"];

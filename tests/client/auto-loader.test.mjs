@@ -13,6 +13,8 @@ const vscode = {
   ConfigurationTarget: { Workspace: 2 },
   workspace: {
     workspaceFolders: [{ uri: { toString: () => 'file:///project' } }],
+    getWorkspaceFolder(uri) { return uri.toString().startsWith('file:///project/') ? this.workspaceFolders[0] : undefined; },
+    asRelativePath(uri) { return uri.toString().slice('file:///project/'.length); },
     getConfiguration(section) { return {
       get(key) { return values[section][key]; },
       async update(key, value, target) { writes.push([section, key, [...value], target]); values[section][key] = [...value]; },
@@ -53,16 +55,15 @@ test('AutoLoader remembers declined manifests and reloads configuration changes'
   assert.deepEqual(writes.at(-1), ['aventus', 'preventCustomData', ['./other/snippets.json'], 2]);
 });
 
-test('AutoLoader currently treats a sibling path with the same prefix as inside the workspace', async () => {
+test('AutoLoader ignores a sibling path with the same workspace prefix', async () => {
   answer = 'No';
   const before = prompts.length;
   await loader.register({ toString: () => 'file:///project-other/snippets.json' });
-  assert.equal(prompts.length, before + 1);
-  assert.match(prompts.at(-1)[1].title, /\.\-other\/snippets\.json/);
-  assert.deepEqual(writes.at(-1), ['aventus', 'preventCustomData', ['./other/snippets.json', '.-other/snippets.json'], 2]);
+  assert.equal(prompts.length, before);
+  assert.deepEqual(writes.at(-1), ['aventus', 'preventCustomData', ['./other/snippets.json'], 2]);
 });
 
-test('concurrent AutoLoader events prompt and persist the same manifest twice', async () => {
+test('concurrent AutoLoader events share one prompt and persist the manifest once', async () => {
   answer = 'Yes';
   let release;
   promptBarrier = new Promise(resolve => { release = resolve; });
@@ -71,13 +72,11 @@ test('concurrent AutoLoader events prompt and persist the same manifest twice', 
   try {
     const first = loader.register(uri('concurrent/vscode.html-custom-data.json'));
     const second = loader.register(uri('concurrent/vscode.html-custom-data.json'));
-    assert.equal(prompts.length, beforePrompts + 2);
+    assert.equal(prompts.length, beforePrompts + 1);
     release();
     await Promise.all([first, second]);
-    assert.equal(writes.length, beforeWrites + 2);
-    assert.deepEqual(values.html.customData.slice(-2), [
-      './concurrent/vscode.html-custom-data.json', './concurrent/vscode.html-custom-data.json',
-    ]);
+    assert.equal(writes.length, beforeWrites + 1);
+    assert.deepEqual(values.html.customData.slice(-1), ['./concurrent/vscode.html-custom-data.json']);
   } finally {
     promptBarrier = undefined;
     release();

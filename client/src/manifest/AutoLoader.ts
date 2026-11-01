@@ -14,6 +14,7 @@ export class AutoLoader {
 	private preventUris: string[] = [];
 	private registeredUris: string[] = [];
 	private registeredUrisEmmet: string[] = [];
+	private pending = new Map<string, Promise<void>>();
 	private constructor() {
 		this.load();
 		workspace.onDidChangeConfiguration(() => {
@@ -29,42 +30,48 @@ export class AutoLoader {
 
 
 	public async register(uri: Uri) {
-		const folders = workspace.workspaceFolders;
-		if (folders) {
-			for (let folder of folders) {
-				let workspaceUri = this.uriToString(folder.uri);
-				let fileUri = this.uriToString(uri);
-				if (fileUri.startsWith(workspaceUri)) {
-					const relativeUri = "." + fileUri.replace(workspaceUri, "");
-					if (this.preventUris.includes(relativeUri)) return;
-					if (relativeUri.endsWith(AutoLoader.htmlManifest) && this.registeredUris.includes(relativeUri)) return;
-					if (relativeUri.endsWith(AutoLoader.emmetManifest) && this.registeredUrisEmmet.includes(this.dir(relativeUri))) return;
+		const key = uri.toString();
+		const existing = this.pending.get(key);
+		if (existing) return existing;
+		const operation = this.registerOnce(uri);
+		this.pending.set(key, operation);
+		try {
+			await operation;
+		} finally {
+			this.pending.delete(key);
+		}
+	}
 
-					const temp = await window.showQuickPick([{ label: "Yes" }, { label: "No" }], {
-						canPickMany: false,
-						title: `Would you include ${relativeUri} to provide autocompletion?`
-					});
+	private async registerOnce(uri: Uri) {
+		if (!workspace.getWorkspaceFolder(uri)) return;
+		const relativeUri = "./" + workspace.asRelativePath(uri, false).replace(/\\/g, "/");
+		if (relativeUri.startsWith("./../") || relativeUri === "./..") return;
+		if (this.preventUris.includes(relativeUri)) return;
+		if (relativeUri.endsWith(AutoLoader.htmlManifest) && this.registeredUris.includes(relativeUri)) return;
+		if (relativeUri.endsWith(AutoLoader.emmetManifest) && this.registeredUrisEmmet.includes(this.dir(relativeUri))) return;
 
-					if (temp?.label == "Yes") {
-						if (relativeUri.endsWith(AutoLoader.htmlManifest)) {
-							const config = workspace.getConfiguration("html");
-							this.registeredUris.push(relativeUri);
-							await config.update("customData", this.registeredUris, ConfigurationTarget.Workspace);
-						}
-						else if (relativeUri.endsWith(AutoLoader.emmetManifest)) {
-							const config = workspace.getConfiguration("emmet");
-							this.registeredUrisEmmet.push(this.dir(relativeUri));
-							await config.update("extensionsPath", this.registeredUrisEmmet, ConfigurationTarget.Workspace);
-						}
+		const temp = await window.showQuickPick([{ label: "Yes" }, { label: "No" }], {
+			canPickMany: false,
+			title: `Would you include ${relativeUri} to provide autocompletion?`
+		});
 
-					}
-					else {
-						const config = workspace.getConfiguration("aventus");
-						this.preventUris.push(relativeUri);
-						await config.update("preventCustomData", this.preventUris, ConfigurationTarget.Workspace);
-					}
-				}
+		if (temp?.label == "Yes") {
+			if (relativeUri.endsWith(AutoLoader.htmlManifest)) {
+				if (this.registeredUris.includes(relativeUri)) return;
+				this.registeredUris.push(relativeUri);
+				await workspace.getConfiguration("html").update("customData", this.registeredUris, ConfigurationTarget.Workspace);
 			}
+			else if (relativeUri.endsWith(AutoLoader.emmetManifest)) {
+				const directory = this.dir(relativeUri);
+				if (this.registeredUrisEmmet.includes(directory)) return;
+				this.registeredUrisEmmet.push(directory);
+				await workspace.getConfiguration("emmet").update("extensionsPath", this.registeredUrisEmmet, ConfigurationTarget.Workspace);
+			}
+		}
+		else {
+			if (this.preventUris.includes(relativeUri)) return;
+			this.preventUris.push(relativeUri);
+			await workspace.getConfiguration("aventus").update("preventCustomData", this.preventUris, ConfigurationTarget.Workspace);
 		}
 	}
 
@@ -72,12 +79,5 @@ export class AutoLoader {
 		let split = uri.split("/");
 		split.pop();
 		return split.join("/")
-	}
-	public uriToString(uri: Uri) {
-		let uriTxt = uri.toString();
-		uriTxt = uriTxt.replace("file:///", "").replace(/\/\//g, "/")
-			.replace(/%3A/g, ":")
-			.replace(/%40/g, "@");
-		return "file:///" + uriTxt;
 	}
 }

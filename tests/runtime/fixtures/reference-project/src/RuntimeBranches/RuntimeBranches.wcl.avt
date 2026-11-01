@@ -1,0 +1,11 @@
+export class RuntimeBranches extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Watch()
+    public count: number = 0;
+
+    @Watch()
+    public labels: { [key: string]: string } = { first: "one", second: "two" };
+
+    protected increment() {
+        this.count++;
+    }
+}

@@ -130,9 +130,11 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 
 - [x] Projet Aventus de référence : configuration, compilation par le CLI, sortie contenant une boucle simple et un binding bidirectionnel, chargement du bundle et enregistrement du composant (`fixtures/reference-project`, `compiled-project.test.mjs`).
 - [x] Build du projet : réussite du CLI, nom de build, sortie fraîche dans une copie temporaire sans `dist` préexistant et enregistrement du composant (`compiled-project.test.mjs`).
-- [ ] Build du projet : vérifier le détail des diagnostics et des chemins de sorties, puis le nettoyage du dossier temporaire après un échec de compilation.
-- [ ] Révisions du projet : modifier la vue, la logique et le style dans la copie temporaire ; recompiler, vérifier que la nouvelle sortie reflète chaque changement et que l'ancienne définition ne subsiste pas.
-- [ ] Boucle `for...of` et `@bind` déjà présents dans `RuntimeList` : monter le composant dans un DOM de référence ; vérifier le rendu initial, la mise à jour de `value`, la saisie `input`/`change`, l'ajout et le retrait d'items, puis la déconnexion et le nettoyage.
+- [x] Build du projet invalide : diagnostic et échec du rapport, mais sortie tout de même créée (`compiled-project.test.mjs`, décision dans `BLOCKERS.md`).
+- [ ] Build du projet : vérifier le détail des chemins de sorties et le nettoyage de la sortie après échec selon la décision dans `BLOCKERS.md`.
+- [x] Révisions du projet : modifier la vue, la logique et le style dans la copie temporaire ; recompiler, vérifier que la nouvelle sortie reflète chaque changement et que l'ancienne définition ne subsiste pas (`compiled-project.test.mjs`).
+- [x] Boucle `for...of` et `@bind` de `RuntimeList` dans `jsdom` : rendu initial, mise à jour de `value`, saisie `input`/`change`, ajout et retrait d'items, retrait de l'instance du registre après destruction (`compiled-project.test.mjs`).
+- [ ] Après destruction du composant compilé : vérifier l'arrêt des effets du template et des événements du binding, puis décider du comportement attendu si les callbacks persistent.
 - [ ] Templates `for`, `for...in` et `for...of` : étendre le projet avec un tableau, un objet, une boucle imbriquée et `@Context` ; vérifier les indices/clés, ajout, retrait, réordonnancement et destruction (`wc/loop.md`).
 - [ ] Templates `if`/`else` : étendre le projet avec des branches imbriquées ; vérifier changement de condition, instances remplacées et destruction de la branche finale (`wc/condition.md`, décision dans `BLOCKERS.md`).
 - [ ] Interpolation et injection : valeurs initiales, valeurs nulles, mise à jour réactive et nettoyage des effets après retrait (`wc/interpolation.md`, `wc/injection.md`).
