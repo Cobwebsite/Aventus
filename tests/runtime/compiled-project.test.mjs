@@ -102,8 +102,9 @@ test('rebuilding the reference project replaces view, logic and style in the gen
 
     writeFileSync(style, ':host { display: inline-block; }\n');
     code = buildProject(root).code;
-    assert.match(code, /display:inline-block/);
-    assert.doesNotMatch(code, /:host\{display:block\}/);
+    const listOutput = code.slice(code.indexOf('const RuntimeList ='), code.indexOf('RuntimeList.Namespace='));
+    assert.match(listOutput, /display:inline-block/);
+    assert.doesNotMatch(listOutput, /:host\{display:block\}/);
     assert.match(code, /class="revised"/);
     assert.match(code, /\["value"\] = "revision-value"/);
 });
@@ -144,4 +145,68 @@ test('the compiled component renders its loop and updates its binding in a DOM',
     assert.equal(dom.window.Aventus.WebComponentInstance.getAllInstances(component.constructor).includes(component), true);
     component.remove();
     assert.equal(dom.window.Aventus.WebComponentInstance.getAllInstances(component.constructor).includes(component), false);
+    component.value = 'after removal';
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(input.value, 'after removal');
+});
+
+test('the compiled conditional and object loop respond to changes and a click', async t => {
+    const root = copyProject(t);
+    const { code } = buildProject(root);
+    const dom = new JSDOM('<!doctype html><html><body></body></html>', {
+        url: 'https://example.test/', runScripts: 'outside-only',
+    });
+    t.after(() => dom.window.close());
+    dom.window.eval(code);
+    const component = dom.window.document.createElement('rt-runtime-branches');
+    dom.window.document.body.append(component);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const shadow = component.shadowRoot;
+    assert.equal(shadow.querySelector('.even')?.textContent.trim(), 'Even 0');
+    assert.equal(shadow.querySelector('.odd'), null);
+    assert.deepEqual(Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim()),
+        ['first: one', 'second: two']);
+    shadow.querySelector('button').click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(component.count, 1);
+    assert.equal(shadow.querySelector('.even'), null);
+    assert.equal(shadow.querySelector('.odd')?.textContent.trim(), 'Odd 1');
+    component.labels.third = 'three';
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepEqual(Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim()),
+        ['first: one', 'second: two', 'third: three']);
+    delete component.labels.first;
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepEqual(Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim()),
+        ['second: two', 'third: three']);
+    component.remove();
+});
+
+test('the compiled classic loop removes a group but does not render a nested Context push', async t => {
+    const root = copyProject(t);
+    const { code } = buildProject(root);
+    const dom = new JSDOM('<!doctype html><html><body></body></html>', {
+        url: 'https://example.test/', runScripts: 'outside-only',
+    });
+    t.after(() => dom.window.close());
+    dom.window.eval(code);
+    const component = dom.window.document.createElement('rt-runtime-nested');
+    dom.window.document.body.append(component);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const shadow = component.shadowRoot;
+    const groups = () => Array.from(shadow.querySelectorAll('section.group'), section => ({
+        name: section.querySelector('h2').textContent.trim(),
+        entries: Array.from(section.querySelectorAll('.entry'), node => node.textContent.trim()),
+    }));
+    assert.deepEqual(groups(), [
+        { name: 'first', entries: ['a', 'b'] },
+        { name: 'second', entries: ['c'] },
+    ]);
+    component.groups[0].entries.push('d');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepEqual(groups()[0].entries, ['a', 'b']);
+    component.groups.splice(0, 1);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepEqual(groups(), [{ name: 'second', entries: ['c'] }]);
+    component.remove();
 });
