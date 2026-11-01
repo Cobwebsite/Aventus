@@ -30,6 +30,7 @@ export class InstallProject extends Action<InstallProjectOptions> {
 			await Server.executeCommand("aventus.template.import_project");
 		} catch (e) {
 			console.log(e)
+			process.exit(1);
 		}
 	}
 

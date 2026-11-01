@@ -62,21 +62,30 @@ test('Store commands use noStart and login forwards explicit credentials', async
   }
 });
 
-test('template command stops before execution when server start rejects', async () => {
+test('service commands exit with failure when server start rejects', async () => {
   events.length = 0;
   failStart = true;
   const originalLog = console.log;
-  const logged = [];
+  const originalExit = process.exit;
+  const logged = [], exits = [];
   console.log = value => logged.push(value);
-  try { await new module.exports.ImportTemplate().run([], {}); }
-  finally { console.log = originalLog; failStart = false; }
+  process.exit = code => exits.push(code);
+  try {
+    for (const name of ['ImportTemplate', 'UninstallTemplate', 'InstallProject', 'UninstallProject', 'StoreLogin', 'StoreLogout', 'StorePublish']) {
+      events.length = 0;
+      await new module.exports[name]().run([], {});
+      assert.equal(events.at(-1)[0], 'server.start');
+    }
+  }
+  finally { console.log = originalLog; process.exit = originalExit; failStart = false; }
   assert.deepEqual(events, [
-    ['interaction.load'], ['server.load'], ['server.start', { noBuild: true, useTemplates: true }],
+    ['interaction.load'], ['server.load'], ['server.start', { noStart: true }],
   ]);
   assert.equal(logged[0].message, 'start failed');
+  assert.deepEqual(exits, Array(7).fill(1));
 });
 
-test('Store command currently swallows a failed server request', async () => {
+test('Store command exits with failure after a failed server request', async () => {
   events.length = 0;
   failExecute = true;
   const originalLog = console.log;
@@ -91,7 +100,7 @@ test('Store command currently swallows a failed server request', async () => {
     ['execute', 'aventus.store.publish_package'],
   ]);
   assert.equal(logged[0].message, 'request failed');
-  assert.deepEqual(exits, []);
+  assert.deepEqual(exits, [1]);
 });
 
 test('template, project and Store cancellation stops after the server request', async () => {
@@ -115,7 +124,7 @@ test('template, project and Store cancellation stops after the server request', 
     executeError = new Error('request failed');
     failExecute = false;
   }
-  assert.deepEqual(exits, []);
+  assert.deepEqual(exits, [1, 1, 1]);
 });
 
 test('create passes the current directory URI after template-aware startup', async () => {

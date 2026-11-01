@@ -44,6 +44,7 @@ export class StoreLogin extends Action<StoreLoginOptions> {
 			await Server.executeCommand("aventus.store.connect", options.username, options.password);
 		} catch (e) {
 			console.log(e)
+			process.exit(1);
 		}
 	}
 
