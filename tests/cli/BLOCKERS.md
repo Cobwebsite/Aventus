@@ -1,13 +1,5 @@
 # Cas CLI en attente de décision
 
-## Notifications de fichiers et de sorties sans effet côté CLI
-
-`ServerStart` diffuse une URL à ses callbacks, tandis que `ServerStop.action()` est vide. Il n'existe donc pas de transition de fermeture HTTP observable à tester côté CLI. Décision attendue : confirmer si l'arrêt doit être annoncé aux abonnés.
-
-## L'arbre de fichiers écrit des valeurs de débogage dans le terminal
-
-`tests/cli/terminal-prompts.test.mjs` sélectionne un dossier puis un fichier avec le vrai prompt Inquirer. À chaque pression sur Entrée, `FileTree.ts` écrit `activeItem.isDisabled` et `type` via deux `console.log` avant de terminer la sélection. Ces lignes apparaissent dans la sortie CLI en dehors du rendu du prompt. Décision attendue : confirmer si elles doivent être supprimées du code source avant de figer la sortie terminal attendue.
-
 ## Options de build contradictoires acceptées par le parseur
 
 `tests/cli/arguments.test.mjs` vérifie qu'une sélection `--builds web --builds api` est agrégée, mais que l'ajout de `--no-builds` remplace cette sélection par `false`. Le parseur accepte aussi `--verbose` et `--silent` ensemble. `Build.run` transforme ensuite `builds: false` en liste vide, utilise le niveau de journalisation Debug et supprime la sortie texte. Décision attendue : préciser si ces combinaisons doivent être rejetées ou si cette priorité implicite est voulue.

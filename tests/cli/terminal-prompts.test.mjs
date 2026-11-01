@@ -82,7 +82,7 @@ test('terminal file tree navigates a temporary directory and closes on selection
     assert.match(selected.output, /sample\.avt/);
     const cancelled = await runPrompt(FileTree, { message: 'File', basePath: root, type: 'file' }, ['\x0c']);
     assert.equal(cancelled.value, null);
-    assert.deepEqual(logs, [[false], ['directory'], [false], ['file']]);
+    assert.deepEqual(logs, []);
   } finally {
     console.log = originalLog;
     await rm(root, { recursive: true, force: true });

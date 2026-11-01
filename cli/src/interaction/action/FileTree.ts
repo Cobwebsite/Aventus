@@ -104,8 +104,6 @@ export default createPrompt<string | null, FileSelectorConfig>((config, done) =>
 
 	useKeypress((key, rl) => {
 		if (isEnterKey(key)) {
-			console.log(activeItem.isDisabled);
-			console.log(type);
 			if (
 				activeItem.isDisabled ||
 				(type === 'file' && activeItem.isDirectory()) ||
