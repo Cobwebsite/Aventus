@@ -426,6 +426,7 @@ export class Build {
         GenericServer.debug("building " + this.buildConfig.fullname);
         this.clearDiagnostics();
         let buildErrors: BuildErrors = []
+        let hasErrors = false;
         this.pendingOutputs = new Map();
         this.pendingDeletions = new Map();
         this.pendingI18nOutputs = new Map();
@@ -490,10 +491,35 @@ export class Build {
                 if (this.pendingJsOutputs.has(path) || this.pendingOutputs.has(path) || nextI18nOutputs.has(path)) continue;
                 if (previous.canDelete) this.pendingDeletions.set(path, previous.hash);
             }
+
+            if (buildErrors.length > 0) {
+                hasErrors = true;
+            }
+            else {
+                for (let diag of this.diagnostics.values()) {
+                    if (diag.some(diagnostic => diagnostic.severity === DiagnosticSeverity.Error)) {
+                        hasErrors = true;
+                        break;
+                    }
+                }
+
+                if (!hasErrors) {
+                    for (let uri in this.tsFiles) {
+                        const file = this.tsFiles[uri];
+                        if (file.getDiagnostics().some(diagnostic => diagnostic.severity === DiagnosticSeverity.Error)) {
+                            hasErrors = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
             this.ensureBuildActive(revision);
-            await this.publishOutputs(revision);
-            this.publishedI18nOutputs = nextI18nOutputs;
-            this.publishedJsOutputs = this.pendingJsOutputs;
+            if (!hasErrors) {
+                await this.publishOutputs(revision);
+                this.publishedI18nOutputs = nextI18nOutputs;
+                this.publishedJsOutputs = this.pendingJsOutputs;
+            }
             this.ensureBuildActive(revision);
         } catch (error) {
             if (error instanceof BuildCancelledError) return;
@@ -506,7 +532,7 @@ export class Build {
         }
 
         Compiled.send(this.buildConfig.fullname, buildErrors);
-        if (this.reloadPage) {
+        if (this.reloadPage && !hasErrors) {
             this.reloadPage = false;
             HttpServer.getInstance().reload();
         }
@@ -2629,7 +2655,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
                 change.oldUri.endsWith(AventusExtension.ComponentStyle) ||
                 change.oldUri.endsWith(AventusExtension.GlobalStyle)
             ) {
-                const styles: {[uri:string]: (AventusWebSCSSFile|AventusGlobalSCSSFile)} = {
+                const styles: { [uri: string]: (AventusWebSCSSFile | AventusGlobalSCSSFile) } = {
                     ...this.scssFiles,
                     ...this.project.scssFiles,
                 }
