@@ -13,6 +13,31 @@ import { Watcher } from "../lib/Watcher.lib.avt";
     prefix: "Tools"
 })
 export function compareObject(obj1: any, obj2: any, tableOrder: boolean = true): boolean {
+    return compareObjectRecursive(obj1, obj2, tableOrder, new WeakMap());
+}
+
+function compareObjectRecursive(obj1: any, obj2: any, tableOrder: boolean, active: WeakMap<object, WeakSet<object>>): boolean {
+    if(obj1 !== null && obj2 !== null && typeof obj1 === 'object' && typeof obj2 === 'object') {
+        let matches = active.get(obj1);
+        if(matches?.has(obj2)) {
+            return true;
+        }
+        if(!matches) {
+            matches = new WeakSet();
+            active.set(obj1, matches);
+        }
+        matches.add(obj2);
+        try {
+            return compareObjectValue(obj1, obj2, tableOrder, active);
+        }
+        finally {
+            matches.delete(obj2);
+        }
+    }
+    return compareObjectValue(obj1, obj2, tableOrder, active);
+}
+
+function compareObjectValue(obj1: any, obj2: any, tableOrder: boolean, active: WeakMap<object, WeakSet<object>>): boolean {
     if(Array.isArray(obj1)) {
         // array
         if(!Array.isArray(obj2)) {
@@ -24,7 +49,7 @@ export function compareObject(obj1: any, obj2: any, tableOrder: boolean = true):
         }
         if(tableOrder) {
             for(let i = 0; i < obj1.length; i++) {
-                if(!compareObject(obj1[i], obj2[i])) {
+                if(!compareObjectRecursive(obj1[i], obj2[i], true, active)) {
                     return false;
                 }
             }
@@ -34,7 +59,7 @@ export function compareObject(obj1: any, obj2: any, tableOrder: boolean = true):
             for(let i = 0; i < obj1.length; i++) {
                 let foundElement = false;
                 for(let j = 0; j < obj2.length; j++) {
-                    if(compareObject(obj1[i], obj2[j])) {
+                    if(compareObjectRecursive(obj1[i], obj2[j], true, active)) {
                         obj2.splice(j, 1);
                         foundElement = true;
                         break;
@@ -88,7 +113,7 @@ export function compareObject(obj1: any, obj2: any, tableOrder: boolean = true):
                     return false;
                 }
                 // object values are equals
-                if(!compareObject(obj1.get(key), obj2.get(key))) {
+                if(!compareObjectRecursive(obj1.get(key), obj2.get(key), true, active)) {
                     return false;
                 }
             }
@@ -109,7 +134,7 @@ export function compareObject(obj1: any, obj2: any, tableOrder: boolean = true):
                     return false;
                 }
                 // object values are equals
-                if(!compareObject(obj1[key], obj2[key])) {
+                if(!compareObjectRecursive(obj1[key], obj2[key], true, active)) {
                     return false;
                 }
             }

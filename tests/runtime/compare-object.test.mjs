@@ -46,12 +46,17 @@ test('compareObject currently treats native Dates with different timestamps as e
     assert.equal(compareObject(new Date('2020-01-01'), new Date('2021-01-01')), true);
 });
 
-test('compareObject handles an identical cyclic reference but overflows on separate cycles', () => {
+test('compareObject compares cyclic structures without overflowing', () => {
     const { compareObject } = loadRuntime();
-    const same = {}; same.self = same;
-    const other = {}; other.self = other;
+    const same = { value: 1 }; same.self = same;
+    const other = { value: 1 }; other.self = other;
+    const different = { value: 2 }; different.self = different;
     assert.equal(compareObject(same, same), true);
-    assert.throws(() => compareObject(same, other), error => error?.name === 'RangeError');
+    assert.equal(compareObject(same, other), true);
+    assert.equal(compareObject(same, different), false);
+    const leftArray = []; leftArray.push(leftArray, 1);
+    const rightArray = []; rightArray.push(rightArray, 1);
+    assert.equal(compareObject(leftArray, rightArray), true);
 });
 
 test('compareObject currently treats a Watcher proxy and matching plain data as different', () => {
