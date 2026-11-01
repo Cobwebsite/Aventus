@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
-import { JSDOM } from 'jsdom';
+import { chromium } from 'playwright';
 
 const fixture = resolve(import.meta.dirname, 'fixtures/reference-project');
 const cli = resolve(import.meta.dirname, '../../cli/out/cli.js');
@@ -16,6 +16,8 @@ function copyProject(t) {
     cpSync(fixture, root, { recursive: true,
         filter: source => source !== join(fixture, 'dist'),
     });
+    cpSync(resolve(import.meta.dirname, '../../base/src/attributes/Attributes.def.avt'),
+        join(root, 'src/Attributes.def.avt'));
     return root;
 }
 
@@ -36,6 +38,15 @@ function buildProject(root) {
     const output = join(root, 'dist/runtime-reference.js');
     assert.equal(existsSync(output), true);
     return { code: readFileSync(output, 'utf8'), report };
+}
+
+async function openCompiledPage(t, code) {
+    const browser = await chromium.launch();
+    t.after(() => browser.close());
+    const page = await browser.newPage();
+    await page.goto('about:blank');
+    await page.addScriptTag({ content: code });
+    return page;
 }
 
 test('a real Aventus project compiles its loop and two-way binding into an executable bundle', t => {
@@ -112,101 +123,115 @@ test('rebuilding the reference project replaces view, logic and style in the gen
 test('the compiled component renders its loop and updates its binding in a DOM', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
-    const dom = new JSDOM('<!doctype html><html><body></body></html>', {
-        url: 'https://example.test/', runScripts: 'outside-only',
+    const page = await openCompiledPage(t, code);
+    const actual = await page.evaluate(async () => {
+        const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+        const component = document.createElement('rt-runtime-list');
+        document.body.append(component);
+        await tick();
+        const shadow = component.shadowRoot;
+        const rows = () => Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim());
+        const input = shadow.querySelector('input');
+        const result = { hasShadow: !!shadow, initialRows: rows(), initialValue: input.value };
+        component.value = 'updated';
+        await tick();
+        result.updatedValue = input.value;
+        result.updatedText = shadow.querySelector('.current').textContent.trim();
+        input.value = 'typed';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        await tick();
+        result.typedValue = component.value;
+        component.items.push('gamma');
+        await tick();
+        result.addedRows = rows();
+        component.items.splice(1, 1);
+        await tick();
+        result.removedRows = rows();
+        input.value = 'changed';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        result.changedValue = component.value;
+        result.registered = Aventus.WebComponentInstance.getAllInstances(component.constructor).includes(component);
+        component.remove();
+        result.unregistered = !Aventus.WebComponentInstance.getAllInstances(component.constructor).includes(component);
+        component.value = 'after removal';
+        await tick();
+        result.detachedValue = input.value;
+        return result;
     });
-    t.after(() => dom.window.close());
-    dom.window.eval(code);
-    const component = dom.window.document.createElement('rt-runtime-list');
-    dom.window.document.body.append(component);
-    await new Promise(resolve => setTimeout(resolve, 0));
-    const shadow = component.shadowRoot;
-    assert.ok(shadow);
-    assert.deepEqual(Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim()), ['alpha', 'beta']);
-    const input = shadow.querySelector('input');
-    assert.equal(input.value, 'initial');
-    component.value = 'updated';
-    await new Promise(resolve => setTimeout(resolve, 0));
-    assert.equal(input.value, 'updated');
-    assert.equal(shadow.querySelector('.current').textContent.trim(), 'updated');
-    input.value = 'typed';
-    input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-    await new Promise(resolve => setTimeout(resolve, 0));
-    assert.equal(component.value, 'typed');
-    component.items.push('gamma');
-    await new Promise(resolve => setTimeout(resolve, 0));
-    assert.deepEqual(Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim()), ['alpha', 'beta', 'gamma']);
-    component.items.splice(1, 1);
-    await new Promise(resolve => setTimeout(resolve, 0));
-    assert.deepEqual(Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim()), ['alpha', 'gamma']);
-    input.value = 'changed';
-    input.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
-    assert.equal(component.value, 'changed');
-    assert.equal(dom.window.Aventus.WebComponentInstance.getAllInstances(component.constructor).includes(component), true);
-    component.remove();
-    assert.equal(dom.window.Aventus.WebComponentInstance.getAllInstances(component.constructor).includes(component), false);
-    component.value = 'after removal';
-    await new Promise(resolve => setTimeout(resolve, 0));
-    assert.equal(input.value, 'after removal');
+    assert.deepEqual(actual, {
+        hasShadow: true, initialRows: ['alpha', 'beta'], initialValue: 'initial',
+        updatedValue: 'updated', updatedText: 'updated', typedValue: 'typed',
+        addedRows: ['alpha', 'beta', 'gamma'], removedRows: ['alpha', 'gamma'],
+        changedValue: 'changed', registered: true, unregistered: true,
+        detachedValue: 'after removal',
+    });
 });
 
 test('the compiled conditional and object loop respond to changes and a click', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
-    const dom = new JSDOM('<!doctype html><html><body></body></html>', {
-        url: 'https://example.test/', runScripts: 'outside-only',
+    const page = await openCompiledPage(t, code);
+    const actual = await page.evaluate(async () => {
+        const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+        const component = document.createElement('rt-runtime-branches');
+        document.body.append(component);
+        await tick();
+        const shadow = component.shadowRoot;
+        const rows = () => Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim());
+        const result = {
+            initialEven: shadow.querySelector('.even')?.textContent.trim(),
+            initialOdd: shadow.querySelector('.odd')?.textContent.trim() ?? null,
+            initialRows: rows(),
+        };
+        shadow.querySelector('button').click();
+        await tick();
+        result.count = component.count;
+        result.nextEven = shadow.querySelector('.even')?.textContent.trim() ?? null;
+        result.nextOdd = shadow.querySelector('.odd')?.textContent.trim();
+        component.labels.third = 'three';
+        await tick();
+        result.addedRows = rows();
+        delete component.labels.first;
+        await tick();
+        result.removedRows = rows();
+        component.remove();
+        return result;
     });
-    t.after(() => dom.window.close());
-    dom.window.eval(code);
-    const component = dom.window.document.createElement('rt-runtime-branches');
-    dom.window.document.body.append(component);
-    await new Promise(resolve => setTimeout(resolve, 0));
-    const shadow = component.shadowRoot;
-    assert.equal(shadow.querySelector('.even')?.textContent.trim(), 'Even 0');
-    assert.equal(shadow.querySelector('.odd'), null);
-    assert.deepEqual(Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim()),
-        ['first: one', 'second: two']);
-    shadow.querySelector('button').click();
-    await new Promise(resolve => setTimeout(resolve, 0));
-    assert.equal(component.count, 1);
-    assert.equal(shadow.querySelector('.even'), null);
-    assert.equal(shadow.querySelector('.odd')?.textContent.trim(), 'Odd 1');
-    component.labels.third = 'three';
-    await new Promise(resolve => setTimeout(resolve, 0));
-    assert.deepEqual(Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim()),
-        ['first: one', 'second: two', 'third: three']);
-    delete component.labels.first;
-    await new Promise(resolve => setTimeout(resolve, 0));
-    assert.deepEqual(Array.from(shadow.querySelectorAll('li'), node => node.textContent.trim()),
-        ['second: two', 'third: three']);
-    component.remove();
+    assert.deepEqual(actual, {
+        initialEven: 'Even 0', initialOdd: null, initialRows: ['first: one', 'second: two'],
+        count: 1, nextEven: null, nextOdd: 'Odd 1',
+        addedRows: ['first: one', 'second: two', 'third: three'],
+        removedRows: ['second: two', 'third: three'],
+    });
 });
 
 test('the compiled classic loop removes a group but does not render a nested Context push', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
-    const dom = new JSDOM('<!doctype html><html><body></body></html>', {
-        url: 'https://example.test/', runScripts: 'outside-only',
+    const page = await openCompiledPage(t, code);
+    const actual = await page.evaluate(async () => {
+        const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+        const component = document.createElement('rt-runtime-nested');
+        document.body.append(component);
+        await tick();
+        const shadow = component.shadowRoot;
+        const groups = () => Array.from(shadow.querySelectorAll('section.group'), section => ({
+            name: section.querySelector('h2').textContent.trim(),
+            entries: Array.from(section.querySelectorAll('.entry'), node => node.textContent.trim()),
+        }));
+        const result = { initial: groups() };
+        component.groups[0].entries.push('d');
+        await tick();
+        result.afterPush = groups();
+        component.groups.splice(0, 1);
+        await tick();
+        result.afterRemove = groups();
+        component.remove();
+        return result;
     });
-    t.after(() => dom.window.close());
-    dom.window.eval(code);
-    const component = dom.window.document.createElement('rt-runtime-nested');
-    dom.window.document.body.append(component);
-    await new Promise(resolve => setTimeout(resolve, 0));
-    const shadow = component.shadowRoot;
-    const groups = () => Array.from(shadow.querySelectorAll('section.group'), section => ({
-        name: section.querySelector('h2').textContent.trim(),
-        entries: Array.from(section.querySelectorAll('.entry'), node => node.textContent.trim()),
-    }));
-    assert.deepEqual(groups(), [
-        { name: 'first', entries: ['a', 'b'] },
-        { name: 'second', entries: ['c'] },
-    ]);
-    component.groups[0].entries.push('d');
-    await new Promise(resolve => setTimeout(resolve, 0));
-    assert.deepEqual(groups()[0].entries, ['a', 'b']);
-    component.groups.splice(0, 1);
-    await new Promise(resolve => setTimeout(resolve, 0));
-    assert.deepEqual(groups(), [{ name: 'second', entries: ['c'] }]);
-    component.remove();
+    assert.deepEqual(actual, {
+        initial: [{ name: 'first', entries: ['a', 'b'] }, { name: 'second', entries: ['c'] }],
+        afterPush: [{ name: 'first', entries: ['a', 'b'] }, { name: 'second', entries: ['c'] }],
+        afterRemove: [{ name: 'second', entries: ['c'] }],
+    });
 });

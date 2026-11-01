@@ -15,6 +15,26 @@ const failures = [];
 const batchSize = 40;
 
 for (const category of selected.length ? [...new Set(selected)] : categories) {
+    if (category === 'runtime' && !process.env.AVENTUS_TEST_RUNTIME) {
+        process.stdout.write('\nruntime: building base/src/aventus.conf.avt\n');
+        const result = spawnSync(process.execPath, [resolve(root, 'cli/out/cli.js'), 'build',
+            resolve(root, 'base/src/aventus.conf.avt'), '--json'], {
+            cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+        });
+        if (result.error) throw result.error;
+        let report;
+        try {
+            report = JSON.parse(result.stdout);
+        } catch {
+            process.stderr.write(result.stdout);
+        }
+        if (result.status !== 0 || !report?.success || !report.builds?.['Aventus@Main']?.success) {
+            process.stderr.write(result.stderr);
+            if (report) process.stderr.write(`${JSON.stringify(report.builds?.['Aventus@Main']?.diagnostics ?? report)}\n`);
+            process.stderr.write('runtime: base bundle build failed\n');
+            process.exit(1);
+        }
+    }
     const directory = resolve(root, 'tests', category);
     const tests = readdirSync(directory, { recursive: true, withFileTypes: true })
         .filter(entry => entry.isFile() && entry.name.endsWith('.test.mjs'))

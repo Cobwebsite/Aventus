@@ -1,6 +1,6 @@
 # Plan de tests du runtime
 
-Cocher un point seulement lorsqu'un test automatisé vérifie son résultat. Suivre la logique de `tests/server/TODO.md` : vérifier le cas nominal, les entrées invalides, les révisions d'état et le nettoyage quand ils s'appliquent. Les tests chargent le bundle public `base/dist/aventus.js` dans un contexte isolé ; `AVENTUS_TEST_RUNTIME` permet de cibler un autre bundle.
+Cocher un point seulement lorsqu'un test automatisé vérifie son résultat. Suivre la logique de `tests/server/TODO.md` : vérifier le cas nominal, les entrées invalides, les révisions d'état et le nettoyage quand ils s'appliquent. `npm run test:runtime` compile `base/src` puis charge le bundle public fraîchement généré `base/dist/aventus.js` dans un contexte isolé ; `AVENTUS_TEST_RUNTIME` permet de cibler un autre bundle sans lancer cette compilation.
 
 La documentation de `D:/Aventus/AventusWebsite/src/static/docs` décrit aussi des usages compilés (`.avt`). Une assertion sur `base/dist/aventus.js` ne valide pas à elle seule la génération du code par le compilateur. Les scénarios documentés non couverts sont listés plus bas séparément.
 
@@ -133,7 +133,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] Build du projet invalide : diagnostic et échec du rapport, mais sortie tout de même créée (`compiled-project.test.mjs`, décision dans `BLOCKERS.md`).
 - [ ] Build du projet : vérifier le détail des chemins de sorties et le nettoyage de la sortie après échec selon la décision dans `BLOCKERS.md`.
 - [x] Révisions du projet : modifier la vue, la logique et le style dans la copie temporaire ; recompiler, vérifier que la nouvelle sortie reflète chaque changement et que l'ancienne définition ne subsiste pas (`compiled-project.test.mjs`).
-- [x] Boucle `for...of` et `@bind` de `RuntimeList` dans `jsdom` : rendu initial, mise à jour de `value`, saisie `input`/`change`, ajout et retrait d'items, retrait de l'instance du registre après destruction (`compiled-project.test.mjs`).
+- [x] Boucle `for...of` et `@bind` de `RuntimeList` dans Chromium via Playwright : rendu initial, mise à jour de `value`, saisie `input`/`change`, ajout et retrait d'items, retrait de l'instance du registre après destruction (`compiled-project.test.mjs`).
 - [x] Après destruction de `RuntimeList` : retrait du registre mais effet de binding encore actif dans le shadow DOM détaché (`compiled-project.test.mjs`, décision dans `BLOCKERS.md`).
 - [ ] Après décision sur la destruction : vérifier l'arrêt des effets du template et des événements du binding.
 - [ ] Templates `for`, `for...in` et `for...of` : étendre le projet avec un tableau, un objet, une boucle imbriquée et `@Context` ; vérifier les indices/clés, ajout, retrait, réordonnancement et destruction (`wc/loop.md`).
