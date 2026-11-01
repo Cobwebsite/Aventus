@@ -4,10 +4,6 @@
 
 `tests/client/settings.test.mjs` bloque volontairement `WorkspaceConfiguration.update` : la promesse de `SetSettings.action` se termine alors que l'écriture n'est pas encore achevée, car l'action n'attend pas `SettingsManager.setSettings`. Décision attendue : préciser si le serveur doit pouvoir savoir que les réglages sont persistés avant de poursuivre et comment lui signaler un échec.
 
-## Les réglages invalides remplacent les valeurs par défaut
-
-`tests/client/settings.test.mjs` montre que `liveserver: null`, `readDirs: "src"` et `html.customData: null` sont conservés tels quels par `mergeDeep`, malgré les types attendus. Un changement ultérieur vers une configuration vide restaure les valeurs par défaut. Décision attendue : préciser si ces valeurs doivent être rejetées, ignorées ou normalisées avant utilisation par les autres composants.
-
 ## Les compilations Aventus et Sharp partagent le même statut
 
 `tests/client/misc-notifications.test.mjs` reproduit l'interleaving : une compilation Aventus réussie est remplacée par la progression Sharp, une erreur Aventus reprend l'affichage, puis le succès Sharp masque cette erreur. `tests/client/component-status.test.mjs` confirme le masquage avec le vrai composant de barre d'état. Un appel ultérieur à `Compiled.render()` réaffiche l'erreur Aventus. Les deux producteurs écrivent directement dans `setLastCompiledInfo` sans arbitrage commun. Décision attendue : préciser la priorité et la durée de vie de chaque statut lorsque les compilations se chevauchent.

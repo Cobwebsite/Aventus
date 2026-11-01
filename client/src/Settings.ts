@@ -196,11 +196,18 @@ export class SettingsManager {
 
 		if (this.isObject(target) && this.isObject(source)) {
 			for (const key in source) {
-				if (this.isObject(source[key])) {
-					if (!target[key]) Object.assign(target, { [key]: {} });
-					this.mergeDeep(target[key], source[key]);
-				} else {
-					Object.assign(target, { [key]: source[key] });
+				const value = source[key];
+				if (value === null || value === undefined) continue;
+				
+				const defaultValue = target[key];
+				if (defaultValue === undefined) {
+					target[key] = value;
+				} else if (Array.isArray(defaultValue)) {
+					if (Array.isArray(value)) target[key] = value;
+				} else if (this.isObject(defaultValue)) {
+					if (this.isObject(value)) this.mergeDeep(defaultValue, value);
+				} else if (typeof value === typeof defaultValue) {
+					target[key] = value;
 				}
 			}
 		}
