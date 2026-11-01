@@ -4,10 +4,18 @@ import { GenericError } from "../tools/Error.lib.avt";
     prefix: "Http"
 })
 export enum HttpErrorCode {
-    unknow
+    unknow,
+    status
 }
 
 @Storybook({
     prefix: "Http"
 })
-export class HttpError extends GenericError<HttpErrorCode>{}
+export class HttpError extends GenericError<HttpErrorCode>{
+    public readonly status?: number;
+
+    public constructor(code: HttpErrorCode, message: string | Error | unknown, status?: number) {
+        super(code, message);
+        this.status = status;
+    }
+}

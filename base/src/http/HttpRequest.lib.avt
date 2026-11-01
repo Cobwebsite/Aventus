@@ -211,6 +211,15 @@ export class HttpRequest {
                 let response = await fetch(fullUrl, this.request);
                 result.result = new HttpResponse(response);
             }
+            if(result.result && !result.result.ok) {
+                result.errors.push(
+                    new HttpError(
+                        HttpErrorCode.status,
+                        `${result.result.status} ${result.result.statusText}`.trim(),
+                        result.result.status
+                    )
+                );
+            }
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
