@@ -111,7 +111,6 @@ interface RamSubscribers<Item> {
 //     }
 // }
 
-
 @Storybook({
     prefix: "Ram"
 })
@@ -149,7 +148,6 @@ export abstract class GenericRam<
     private creatingIds: Set<Index> = new Set();
 
     protected actionGuard: ActionGuard = new ActionGuard();
-
     @InternalProtected()
     public ramMapping: { [key: string]: { ram: IRam, asArray: boolean; }; } = {};
 
@@ -157,7 +155,6 @@ export abstract class GenericRam<
         if(this.constructor == GenericRam) {
             throw "can't instanciate an abstract class";
         }
-
         // RamManager.check();
     }
 
@@ -474,13 +471,23 @@ export abstract class GenericRam<
     protected publish(type: 'created' | 'updated' | 'deleted', data: RamItem<ResourceDetails, Request>) {
         let callbacks = [...this.subscribers[type]];
         for(let callback of callbacks) {
-            callback(data);
+            try {
+                callback(data);
+            }
+            catch(error) {
+                console.error(error);
+            }
         }
         let sub = this.recordsSubscribers.get(this.getId(data));
         if(sub) {
             let localCallbacks = [...sub[type]];
             for(let localCallback of localCallbacks) {
-                localCallback(data);
+                try {
+                    localCallback(data);
+                }
+                catch(error) {
+                    console.error(error);
+                }
             }
         }
     }
@@ -753,29 +760,58 @@ export abstract class GenericRam<
         list = this.removeWatch(list);
         return this.actionGuard.run(['_createList'], async () => {
             let action: ResultRamWithError<RamItem<ResourceDetails, Request>[]> = new ResultRamWithError();
+            const result: RamItem<ResourceDetails, Request>[] = [];
+            action.result = result;
             await action.runAsync(() => this.beforeCreateList(list));
-            for(let item of list) {
+            for(const item of list) {
                 await action.runAsync(() => this.beforeCreateItem(item, true));
             }
-            const resources = await action.extractAsync(() => this.transformCreateRequestListToItem(list));
-            if(!resources) return action;
-
-            const result: RamItem<ResourceDetails, Request>[] = [];
-            for(let item of resources) {
-                const resultItem = await action.extractAsync(() => this.addOrUpdateData(item));
-                if(!resultItem) return action;
-                await action.runAsync(() => this.afterCreateItem(resultItem.value, true));
-
-                if(action.success) {
-                    result.push(resultItem.value);
-                    this.publish('created', resultItem.value);
+            if(!action.success) return action;
+            let resources: ResourceDetails[];
+            try {
+                const transformed = await this.transformCreateRequestListToItem(list);
+                action.errors.push(...transformed.errors);
+                if(!transformed.success || !transformed.result) return action;
+                resources = transformed.result;
+            }
+            catch(e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+                return action;
+            }
+            for(const item of resources) {
+                try {
+                    const idResult = this.getIdWithError(item);
+                    action.errors.push(...idResult.errors);
+                    if(idResult.result === undefined) continue;
+                    const id = idResult.result;
+                    if(this.records.has(id)) {
+                        action.errors.push(new RamError(RamErrorCode.alreadyExists, `Item ${id} already exists in RAM`));
+                        continue;
+                    }
+                    const added = await this.addOrUpdateData(item);
+                    action.errors.push(...added.errors);
+                    if(!added.result) continue;
+                    const record = added.result.value;
+                    result.push(record);
+                    try {
+                        const after = await this.afterCreateItem(record, true);
+                        action.errors.push(...after.errors);
+                    }
+                    finally {
+                        this.publish('created', record);
+                    }
+                }
+                catch(e) {
+                    action.errors.push(new RamError(RamErrorCode.unknow, e));
                 }
             }
-
-            action.result = result;
-
-            await action.runAsync(() => this.afterCreateList(result));
-
+            try {
+                const after = await this.afterCreateList(result);
+                action.errors.push(...after.errors);
+            }
+            catch(e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+            }
             return action;
         });
     }
@@ -884,30 +920,58 @@ export abstract class GenericRam<
         list = this.removeWatch(list);
         return this.actionGuard.run(['_updateList'], async () => {
             let action: ResultRamWithError<RamItem<ResourceDetails, Request>[]> = new ResultRamWithError();
+            const result: RamItem<ResourceDetails, Request>[] = [];
+            action.result = result;
             await action.runAsync(() => this.beforeUpdateList(list));
-            for(let item of list) {
+            for(const item of list) {
                 await action.runAsync(() => this.beforeUpdateItem(item, true));
             }
-
-            const resources = await action.extractAsync(() => this.transformUpdateRequestListToItem(list));
-            if(!resources) return action;
-
-            const result: RamItem<ResourceDetails, Request>[] = [];
-            for(let item of resources) {
-                const resultItem = await action.extractAsync(() => this.addOrUpdateData(item));
-                if(!resultItem) return action;
-                await action.runAsync(() => this.afterUpdateItem(resultItem.value, true));
-
-                if(action.success) {
-                    result.push(resultItem.value);
-                    this.publish('created', resultItem.value);
+            if(!action.success) return action;
+            let resources: ResourceDetails[];
+            try {
+                const transformed = await this.transformUpdateRequestListToItem(list);
+                action.errors.push(...transformed.errors);
+                if(!transformed.success || !transformed.result) return action;
+                resources = transformed.result;
+            }
+            catch(e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+                return action;
+            }
+            for(const item of resources) {
+                try {
+                    const idResult = this.getIdWithError(item);
+                    action.errors.push(...idResult.errors);
+                    if(idResult.result === undefined) continue;
+                    const id = idResult.result;
+                    if(!this.records.has(id)) {
+                        action.errors.push(new RamError(RamErrorCode.noItemInsideRam, `Item ${id} wasn't found inside RAM`));
+                        continue;
+                    }
+                    const updated = await this.addOrUpdateData(item);
+                    action.errors.push(...updated.errors);
+                    if(!updated.result) continue;
+                    const record = updated.result.value;
+                    result.push(record);
+                    try {
+                        const after = await this.afterUpdateItem(record, true);
+                        action.errors.push(...after.errors);
+                    }
+                    finally {
+                        this.publish('updated', record);
+                    }
+                }
+                catch(e) {
+                    action.errors.push(new RamError(RamErrorCode.unknow, e));
                 }
             }
-
-            action.result = result;
-
-            await action.runAsync(() => this.afterUpdateList(result));
-
+            try {
+                const after = await this.afterUpdateList(result);
+                action.errors.push(...after.errors);
+            }
+            catch(e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+            }
             return action;
         });
     };
@@ -1015,18 +1079,50 @@ export abstract class GenericRam<
     public async deleteListWithError(list: ResourceDetails[]): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>[]>> {
         list = this.removeWatch(list);
         let action: ResultRamWithError<RamItem<ResourceDetails, Request>[]> = new ResultRamWithError();
-        action.result = [];
-        await action.runAsync(() => this.beforeDeleteList(list));
-
         const result: RamItem<ResourceDetails, Request>[] = [];
-        for(let item of list) {
-            const resultItem = await action.extractAsync(() => this._delete(item, true));
-            if(!resultItem) return action;
-            result.push(resultItem);
+        action.result = result;
+        await action.runAsync(() => this.beforeDeleteList(list));
+        if(!action.success) return action;
+        for(const item of list) {
+            try {
+                const idResult = this.getIdWithError(item);
+                action.errors.push(...idResult.errors);
+                if(idResult.result === undefined) continue;
+                const id = idResult.result;
+                const record = this.records.get(id);
+                if(!record) {
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, `Item ${id} wasn't found inside RAM`));
+                    continue;
+                }
+                const beforeItem = await this.beforeDeleteItem(record, true);
+                action.errors.push(...beforeItem.errors);
+                if(!beforeItem.success) continue;
+                const beforeRecord = await this.beforeRecordDelete(record);
+                action.errors.push(...beforeRecord.errors);
+                if(!beforeRecord.success) continue;
+                this.records.delete(id);
+                result.push(record);
+                try {
+                    const afterRecord = await this.afterRecordDelete(record);
+                    action.errors.push(...afterRecord.errors);
+                    const afterItem = await this.afterDeleteItem(record, true);
+                    action.errors.push(...afterItem.errors);
+                }
+                finally {
+                    this.publish('deleted', record);
+                    this.recordsSubscribers.delete(id);
+                }
+            }
+            catch(e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+            }
         }
-        if(action.success) {
-            action.result = result;
-            await action.runAsync(() => this.afterDeleteList(result));
+        try {
+            const after = await this.afterDeleteList(result);
+            action.errors.push(...after.errors);
+        }
+        catch(e) {
+            action.errors.push(new RamError(RamErrorCode.unknow, e));
         }
         return action;
     };
