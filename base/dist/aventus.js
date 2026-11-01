@@ -402,6 +402,7 @@ var RamErrorCode;
     RamErrorCode[RamErrorCode["unknow"] = 0] = "unknow";
     RamErrorCode[RamErrorCode["noId"] = 1] = "noId";
     RamErrorCode[RamErrorCode["noItemInsideRam"] = 2] = "noItemInsideRam";
+    RamErrorCode[RamErrorCode["alreadyExists"] = 3] = "alreadyExists";
 })(RamErrorCode || (RamErrorCode = {}));
 __as1(_, 'RamErrorCode', RamErrorCode);
 
@@ -4526,6 +4527,7 @@ let GenericRam=class GenericRam {
      * List of stored item by index key
      */
     records = new Map();
+    creatingIds = new Set();
     actionGuard = new ActionGuard();
     ramMapping = {};
     constructor() {
@@ -5122,13 +5124,23 @@ let GenericRam=class GenericRam {
                 return action;
             const id = await action.extract(() => this.getIdWithError(resource));
             if (id !== undefined) {
-                const resultTemp = await action.extractAsync(() => this.addOrUpdateData(resource));
-                if (!resultTemp)
+                if (this.records.has(id) || this.creatingIds.has(id)) {
+                    action.errors.push(new RamError(RamErrorCode.alreadyExists, `Item ${id} already exists in RAM`));
                     return action;
-                await action.runAsync(() => this.afterCreateItem(resultTemp.value, false));
-                if (action.success) {
-                    action.result = resultTemp.value;
-                    this.publish('created', resultTemp.value);
+                }
+                this.creatingIds.add(id);
+                try {
+                    const resultTemp = await action.extractAsync(() => this.addOrUpdateData(resource));
+                    if (!resultTemp)
+                        return action;
+                    await action.runAsync(() => this.afterCreateItem(resultTemp.value, false));
+                    if (action.success) {
+                        action.result = resultTemp.value;
+                        this.publish('created', resultTemp.value);
+                    }
+                }
+                finally {
+                    this.creatingIds.delete(id);
                 }
             }
             return action;

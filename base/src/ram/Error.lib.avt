@@ -12,7 +12,9 @@ export enum RamErrorCode {
     /** Error code for a missing identifier */
     noId,
     /** Error code for no item inside RAM */
-    noItemInsideRam
+    noItemInsideRam,
+    /** Error code for an identifier that is already stored */
+    alreadyExists
 }
 
 /**
