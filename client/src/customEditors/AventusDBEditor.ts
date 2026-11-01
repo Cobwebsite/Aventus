@@ -27,6 +27,11 @@ export class AventusDBEditor implements CustomTextEditorProvider {
 			this.panelsByUri[uri].dispose();
 		}
 	}
+	public static closeAll() {
+		for (const panel of Object.values(this.panelsByUri)) {
+			panel.dispose();
+		}
+	}
 
 	constructor(
 		private readonly context: ExtensionContext
@@ -60,6 +65,7 @@ export class AventusDBEditor implements CustomTextEditorProvider {
 			for (const subscription of documentSubscriptions) {
 				subscription.dispose();
 			}
+			comm.dispose();
 		})
 
 		this.setHtmlForWebview(this.context, panel.webview);

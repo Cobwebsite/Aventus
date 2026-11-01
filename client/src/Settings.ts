@@ -1,4 +1,4 @@
-import { ConfigurationTarget, ExtensionMode, window, workspace, WorkspaceConfiguration } from 'vscode'
+import { ConfigurationTarget, Disposable, ExtensionMode, window, workspace, WorkspaceConfiguration } from 'vscode'
 import { Singleton } from './Singleton'
 import { join } from 'path'
 
@@ -78,7 +78,8 @@ function getDefaultSettingsHtml(): SettingsHtml {
 	return JSON.parse(JSON.stringify(defaultSettingsHtml));
 }
 export class SettingsManager {
-	private static instance: SettingsManager;
+	private static instance: SettingsManager | undefined;
+	private configurationSubscription: Disposable;
 
 	private _settings: Settings = getDefaultSettings();
 	private _settingsHtml: SettingsHtml = getDefaultSettingsHtml();
@@ -96,12 +97,18 @@ export class SettingsManager {
 		}
 		return this.instance;
 	}
+	public static dispose() {
+		this.instance?.configurationSubscription.dispose();
+		this.instance?.cbOnSettingsChange.splice(0);
+		this.instance?.cbOnSettingsChangeHtml.splice(0);
+		this.instance = undefined;
+	}
 
 	private constructor() {
 		this.applyDefault();
 		this.reload();
 
-		workspace.onDidChangeConfiguration(() => {
+		this.configurationSubscription = workspace.onDidChangeConfiguration(() => {
 			this.reload();
 		})
 
@@ -172,6 +179,10 @@ export class SettingsManager {
 	private cbOnSettingsChange: (() => void)[] = []
 	public onSettingsChange(cb: () => void) {
 		this.cbOnSettingsChange.push(cb);
+		return new Disposable(() => {
+			const index = this.cbOnSettingsChange.indexOf(cb);
+			if (index !== -1) this.cbOnSettingsChange.splice(index, 1);
+		});
 	}
 
 
@@ -185,6 +196,10 @@ export class SettingsManager {
 	private cbOnSettingsChangeHtml: (() => void)[] = []
 	public onSettingsChangeHtml(cb: () => void) {
 		this.cbOnSettingsChangeHtml.push(cb);
+		return new Disposable(() => {
+			const index = this.cbOnSettingsChangeHtml.indexOf(cb);
+			if (index !== -1) this.cbOnSettingsChangeHtml.splice(index, 1);
+		});
 	}
 
 	private isObject(item) {

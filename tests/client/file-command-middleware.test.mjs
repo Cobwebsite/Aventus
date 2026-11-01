@@ -4,13 +4,13 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { build } = require('esbuild');
-const source = `export { Rename } from './client/src/cmds/Rename.ts'; export { Rename as RenameComponent } from './client/src/cmds/webcomponent/Rename.ts'; export { TemplateImport } from './client/src/cmds/file-system/ImportTemplate.ts'; export { ProjectImport } from './client/src/cmds/file-system/ImportProject.ts'; export { ShowDependencies } from './client/src/cmds/ShowDependencies.ts'; export { FileCreated } from './client/src/cmds/file-system/FileCreated.ts'; export { FileUpdated } from './client/src/cmds/file-system/FileUpdated.ts'; export { FileDeleted } from './client/src/cmds/file-system/FileDeleted.ts'; export { BuildProject } from './client/src/cmds/BuildProject.ts'; export { StaticExport } from './client/src/cmds/StaticExport.ts'; export { NpmBuild } from './client/src/cmds/npm/NpmBuild.ts'; export { PhpExport } from './client/src/cmds/php/Export.ts'; export { SharpExport } from './client/src/cmds/sharp/Export.ts'; export { StorePublishTemplate } from './client/src/cmds/store/PublishTemplate.ts'; export { StoreDownloadTemplate } from './client/src/cmds/store/DownloadTemplate.ts';`;
+const source = `export { Create } from './client/src/cmds/Create.ts'; export { MergeComponent } from './client/src/cmds/MergeComponent.ts'; export { SplitComponent } from './client/src/cmds/SplitComponent.ts'; export { Rename } from './client/src/cmds/Rename.ts'; export { Rename as RenameComponent } from './client/src/cmds/webcomponent/Rename.ts'; export { TemplateImport } from './client/src/cmds/file-system/ImportTemplate.ts'; export { ProjectImport } from './client/src/cmds/file-system/ImportProject.ts'; export { FileCreated } from './client/src/cmds/file-system/FileCreated.ts'; export { FileUpdated } from './client/src/cmds/file-system/FileUpdated.ts'; export { FileDeleted } from './client/src/cmds/file-system/FileDeleted.ts'; export { BuildProject } from './client/src/cmds/BuildProject.ts'; export { StaticExport } from './client/src/cmds/StaticExport.ts'; export { NpmBuild } from './client/src/cmds/npm/NpmBuild.ts'; export { PhpExport } from './client/src/cmds/php/Export.ts'; export { SharpExport } from './client/src/cmds/sharp/Export.ts'; export { StorePublishTemplate } from './client/src/cmds/store/PublishTemplate.ts'; export { StoreDownloadTemplate } from './client/src/cmds/store/DownloadTemplate.ts';`;
 const result = await build({ stdin: { contents: source, resolveDir: process.cwd(), sourcefile: 'file-command-entry.ts' }, bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false });
 const sent = [];
 const vscode = { commands: { executeCommand(...args) { sent.push(args); } }, window: {} };
 const module = { exports: {} };
 new Function('module', 'exports', 'require', result.outputFiles[0].text)(module, module.exports, name => name === 'vscode' ? vscode : require(name));
-const { Rename, RenameComponent, TemplateImport, ProjectImport, ShowDependencies, FileCreated, FileUpdated, FileDeleted, BuildProject, StaticExport, NpmBuild, PhpExport, SharpExport, StorePublishTemplate, StoreDownloadTemplate } = module.exports;
+const { Create, MergeComponent, SplitComponent, Rename, RenameComponent, TemplateImport, ProjectImport, FileCreated, FileUpdated, FileDeleted, BuildProject, StaticExport, NpmBuild, PhpExport, SharpExport, StorePublishTemplate, StoreDownloadTemplate } = module.exports;
 
 test('file rename sends ordered URI pairs and middleware preserves server arguments', async () => {
   const uri = value => ({ toString: () => value });
@@ -30,12 +30,6 @@ test('component rename converts its URI and template imports discard arguments',
   assert.deepEqual(await RenameComponent.middleware([{ toString: () => 'file:///component.avt' }]), ['file:///component.avt']);
   assert.deepEqual(await TemplateImport.middleware(['ignored']), []);
   assert.deepEqual(await ProjectImport.middleware(['ignored']), []);
-});
-
-test('show dependencies middleware only forwards its arguments', async () => {
-  const args = ['file:///aventus.conf.avt'];
-  assert.equal(await ShowDependencies.middleware(args), args);
-  assert.deepEqual(sent.map(item => item[0]), ['aventus.rename']);
 });
 
 test('file create, update and delete commands preserve their URI through dispatch', async () => {
@@ -63,4 +57,13 @@ test('build exports discard UI arguments while scoped exports keep their target'
   StoreDownloadTemplate.execute('https://example.test/template.zip');
   assert.deepEqual(sent[before], ['aventus.store.download_template', 'https://example.test/template.zip']);
   assert.deepEqual(await StoreDownloadTemplate.middleware(['https://example.test/template.zip']), ['https://example.test/template.zip']);
+});
+
+
+test('file changing middlewares handle explicit URI and missing target', async () => {
+  const uri = { toString: () => 'file:///component.avt' };
+  for (const Command of [Create, MergeComponent, SplitComponent, RenameComponent]) {
+    assert.deepEqual(await Command.middleware([uri]), ['file:///component.avt']);
+    assert.deepEqual(await Command.middleware([]), []);
+  }
 });

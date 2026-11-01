@@ -34,10 +34,14 @@ export class Client {
 
     public async init(context: ExtensionContext) {
         this.debugFile = new DebugFile();
-        context.subscriptions.push(workspace.registerTextDocumentContentProvider(DebugFile.schema, this.debugFile));
-        context.subscriptions.push(AventusI18nEditor.register(context));
-        context.subscriptions.push(AventusDBEditor.register(context));
-        context.subscriptions.push(new ProtocolHandler());
+        const providers = [
+            workspace.registerTextDocumentContentProvider(DebugFile.schema, this.debugFile),
+            AventusI18nEditor.register(context),
+            AventusDBEditor.register(context),
+            new ProtocolHandler()
+        ];
+        context.subscriptions.push(...providers);
+        this.registrations.push(...providers);
 
         AutoLoader.getInstance();
         this.components = new AvenutsVsComponent();
@@ -63,6 +67,8 @@ export class Client {
         }))
     }
     public stop(): Thenable<void> | undefined {
+        AventusI18nEditor.closeAll();
+        AventusDBEditor.closeAll();
         for (const registration of this.registrations) {
             registration.dispose();
         }
@@ -71,6 +77,10 @@ export class Client {
             this.fileSystem.stop();
             this.fileSystem = undefined;
         }
+        this.components?.dispose();
+        this.components = undefined;
+        AutoLoader.dispose();
+        SettingsManager.dispose();
         if (this.client) {
             return this.client.stop();
         }

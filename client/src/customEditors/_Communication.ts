@@ -1,4 +1,4 @@
-import { TextDocument, Webview } from 'vscode';
+import { Disposable, TextDocument, Webview } from 'vscode';
 
 export interface Route<T = any, U = void> {
 	channel: string;
@@ -23,6 +23,7 @@ export interface Message {
 }
 
 export class Communication {
+	private messageSubscription: Disposable;
 	protected waitingList: { [uuid: string]: (channel: string, data: any) => void; } = {};
 	private waitingChannels: { [uuid: string]: string } = {};
 
@@ -31,7 +32,14 @@ export class Communication {
 	public constructor(
 		private webview: Webview
 	) {
-		webview.onDidReceiveMessage(e => this.onMessage(e));
+		this.messageSubscription = webview.onDidReceiveMessage(e => this.onMessage(e));
+	}
+
+	public dispose() {
+		this.messageSubscription.dispose();
+		this.routes = {};
+		this.waitingList = {};
+		this.waitingChannels = {};
 	}
 
 	public sendWithResponse<T>(options: Options): Promise<T | null> {

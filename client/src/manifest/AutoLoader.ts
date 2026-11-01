@@ -1,9 +1,14 @@
-import { ConfigurationTarget, Uri, window, workspace } from 'vscode';
+import { ConfigurationTarget, Disposable, Uri, window, workspace } from 'vscode';
 
 export class AutoLoader {
 	public static readonly htmlManifest = "vscode.html-custom-data.json";
 	public static readonly emmetManifest = "snippets.json";
 	private static instance: AutoLoader | undefined = undefined
+	private configurationSubscription: Disposable;
+	public static dispose() {
+		this.instance?.configurationSubscription.dispose();
+		this.instance = undefined;
+	}
 	public static getInstance(): AutoLoader {
 		if (!this.instance) {
 			this.instance = new AutoLoader();
@@ -17,7 +22,7 @@ export class AutoLoader {
 	private pending = new Map<string, Promise<void>>();
 	private constructor() {
 		this.load();
-		workspace.onDidChangeConfiguration(() => {
+		this.configurationSubscription = workspace.onDidChangeConfiguration(() => {
 			this.load();
 		})
 	}
