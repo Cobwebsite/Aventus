@@ -1,6 +1,5 @@
 # Points à analyser pour les tests du runtime
 
-- **Écriture avec chemin vide.** `getValueFromObject('', obj)` retourne `obj`, tandis que `setValueToObject('', obj, x)` écrit dans la propriété de clé vide de `obj`. Le test `object-path.test.mjs` vérifie cette asymétrie ; décider si le chemin vide doit être accepté en écriture.
 - **Dates natives dans `compareObject`.** Deux instances JavaScript natives `Date` de timestamps différents sont considérées égales : la comparaison ne reconnaît que les classes calendrier du runtime et voit deux objets sans clés. Le test `compare-object.test.mjs` caractérise ce résultat ; décider si les dates natives appartiennent au contrat de comparaison.
 - **Cycles dans `compareObject`.** Un même objet cyclique comparé à lui-même renvoie `true`, mais deux objets cycliques distincts de même structure entraînent un `RangeError` par récursion sans borne. Le test `compare-object.test.mjs` caractérise ce cas ; décider du résultat attendu pour les graphes cycliques.
 - **Proxy `Watcher` dans `compareObject`.** Un proxy `Watcher` est considéré différent d'un objet ordinaire contenant les mêmes valeurs, avant et après modification du proxy. Le test `compare-object.test.mjs` vérifie ce résultat ; décider si la comparaison doit ignorer les métadonnées du proxy ou imposer une extraction préalable.

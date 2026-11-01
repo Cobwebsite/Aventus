@@ -31,13 +31,13 @@ test('object paths traverse and write actual Map entries in the runtime realm', 
     assert.equal(getValueFromObject('record.value', map), 8);
 });
 
-test('empty object paths return the root on read and set an empty key on write', () => {
+test('empty object paths return the root on read and are rejected on write', () => {
     const { getValueFromObject, setValueToObject } = loadRuntime();
     const object = { existing: 1 };
     assert.equal(getValueFromObject(undefined, object), object);
     assert.equal(getValueFromObject('', object), object);
-    setValueToObject('', object, 9);
-    assert.equal(object[''], 9);
+    assert.throws(() => setValueToObject('', object, 9), { name: 'TypeError', message: /empty object path/ });
+    assert.equal(Object.hasOwn(object, ''), false);
     assert.equal(object.existing, 1);
     assert.equal(getValueFromObject('', object), object);
 });

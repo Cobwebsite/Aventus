@@ -179,6 +179,9 @@ export function getValueFromObject(path: string, obj: any) {
     prefix: "Tools"
 })
 export function setValueToObject(path: string, obj: any, value: any) {
+    if(path === '') {
+        throw new TypeError('Cannot write to an empty object path');
+    }
     // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
 
