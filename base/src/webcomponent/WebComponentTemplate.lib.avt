@@ -279,6 +279,7 @@ export class TemplateInstance {
     public lastChild: HTMLElement | null;
     private computeds: Effect[] = [];
     private renderingComputeds: Effect[] = [];
+    private cleanups: (() => void)[] = [];
     private loopRegisteries: {
         [name: string]: LoopRegistery;
     } = {};
@@ -317,6 +318,10 @@ export class TemplateInstance {
 
     public destructor() {
         this.isDestroyed = true;
+        for(const cleanup of this.cleanups) {
+            cleanup();
+        }
+        this.cleanups = [];
         for(let name in this.loopRegisteries) {
             let register = this.loopRegisteries[name];
             for(let item of register.templates) {
@@ -442,26 +447,30 @@ export class TemplateInstance {
                     customElements.upgrade(el);
                     cb = getValueFromObject(event.eventName, el);
                 }
-                cb?.add((...args: any[]) => {
+                const listener = (...args: any[]) => {
                     // TODO check if it's working
                     try {
                         return event.fct(this.context, args);
                     } catch(e) {
                         console.error(e);
                     }
-                });
+                };
+                cb?.add(listener);
+                if(cb) this.cleanups.push(() => cb.remove(listener));
             }
         }
         else {
             for(let el of this._components[event.id]) {
-                el.addEventListener(event.eventName, (e) => {
+                const listener = (e: Event) => {
                     try {
                         event.fct(e, this.context);
                     } catch(e) {
                         console.error(e);
                     }
 
-                });
+                };
+                el.addEventListener(event.eventName, listener);
+                this.cleanups.push(() => el.removeEventListener(event.eventName, listener));
             }
         }
     }
@@ -481,7 +490,15 @@ export class TemplateInstance {
                 }
             }
             clone.element = this._components[id];
-            PressManager.create(clone);
+            const managers = PressManager.create(clone);
+            if(Array.isArray(managers)) {
+                for(const manager of managers) {
+                    this.cleanups.push(() => manager.destroy());
+                }
+            }
+            else {
+                this.cleanups.push(() => managers.destroy());
+            }
         }
     }
 
@@ -658,12 +675,16 @@ export class TemplateInstance {
                             customElements.upgrade(el);
                             cb = getValueFromObject(binding.injectionName, el);
                         }
-                        cb?.add((value: any) => {
+                        const listener = (value: any) => {
                             let valueToSet = getValueFromObject(binding.injectionName, el);
                             isLocalChange = true;
                             binding.extract(this.context, valueToSet);
                             isLocalChange = false;
-                        });
+                        };
+                        if(cb) {
+                            cb.add(listener);
+                            this.cleanups.push(() => cb.remove(listener));
+                        }
                     }
                 }
             });
@@ -673,12 +694,14 @@ export class TemplateInstance {
                 for(var el of this._components[binding.id]) {
                     customElements.upgrade(el);
                     for(let fct of binding.eventNames) {
-                        el.addEventListener(fct, (e) => {
+                        const listener = (e: Event) => {
                             let valueToSet = getValueFromObject(binding.injectionName, e.target);
                             isLocalChange = true;
                             binding.extract(this.context, valueToSet);
                             isLocalChange = false;
-                        });
+                        };
+                        el.addEventListener(fct, listener);
+                        this.cleanups.push(() => el.removeEventListener(fct, listener));
                     }
                 }
             });
@@ -1078,7 +1101,7 @@ export class TemplateContext {
     public comp: WebComponent;
     private computeds: Computed[] = [];
     private watch: any;
-    private proxyWatches: { [name: string]: Signal<any> } = {};
+    private proxyWatches: { [name: string]: Signal<any>; } = {};
     private registry?: LoopRegistery;
     private isDestroyed: boolean = false;
 

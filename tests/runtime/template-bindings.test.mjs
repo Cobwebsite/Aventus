@@ -10,6 +10,9 @@ class FakeElement {
         this.attrs = new Map();
     }
     addEventListener(type, callback) { this.listeners.set(type, callback); }
+    removeEventListener(type, callback) {
+        if(this.listeners.get(type) === callback) this.listeners.delete(type);
+    }
     dispatch(type) { this.listeners.get(type)?.({ type, target: this }); }
     setAttribute(name, value) { this.attrs.set(name, value); }
     removeAttribute(name) { this.attrs.delete(name); }
@@ -66,6 +69,11 @@ test('TemplateInstance binds text, attributes, events and two-way input values',
     title.value = 'after destruction';
     assert.equal(timers.length, 0);
     assert.equal(text.innerHTML, 'edited');
+    input.value = 'ignored';
+    input.dispatch('change');
+    input.dispatch('click');
+    assert.equal(title.value, 'after destruction');
+    assert.deepEqual(events, ['click']);
 });
 
 test('TemplateInstance replaces conditional branches but leaves the last branch on destruction', () => {
