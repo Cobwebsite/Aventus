@@ -1,13 +1,5 @@
 # Cas client en attente de décision
 
-## Le watcher de fichiers conserve l'écouteur de renommage après `stop()`
-
-`tests/client/file-system.test.mjs` reproduit le cas : `FileSystem.stop()` dispose le watcher, mais le `Disposable` retourné par `workspace.onWillRenameFiles` n'est pas conservé. Une notification de renommage après `stop()` invoque encore `Rename.execute`. Décision attendue : confirmer si `stop()` doit aussi retirer cet écouteur et annuler les notifications différées.
-
-`tests/client/file-system-host.test.mjs` confirme le même effet avec la vraie classe `Rename` et un hôte VS Code simulé : après `stop()`, l'événement envoie encore `aventus.rename` avec les deux URI.
-
-Le même fichier de test montre qu'un `FileCreated` déjà placé dans la pile est encore envoyé quand le timer se déclenche après `stop()`. `triggerTimer()` ne conserve pas le handle de `setTimeout`, donc `stop()` ne peut pas l'annuler actuellement. Décision attendue : confirmer que l'arrêt doit empêcher ces envois tardifs.
-
 ## `Client.stop()` laisse actifs des abonnements créés par `init()`
 
 `tests/client/lifecycle.test.mjs` reproduit le cas : `Client.init()` enregistre une commande interne et un callback `workspace.onDidChangeConfiguration` sans conserver leurs `Disposable` dans `context.subscriptions` ni les libérer dans `stop()`. Après `stop()`, un changement de configuration appelle encore `ReloadSettings.execute`. Décision attendue : définir la durée de vie de ces enregistrements et leur nettoyage explicite lors de l'arrêt ou de la désactivation de l'extension.

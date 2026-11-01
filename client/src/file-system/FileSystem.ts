@@ -1,4 +1,4 @@
-import { FileRenameEvent, FileSystemWatcher, Uri, workspace } from 'vscode';
+import { Disposable, FileRenameEvent, FileSystemWatcher, Uri, workspace } from 'vscode';
 import { FileCreated } from '../cmds/file-system/FileCreated';
 import { FileDeleted } from '../cmds/file-system/FileDeleted';
 import { FileUpdated } from '../cmds/file-system/FileUpdated';
@@ -9,6 +9,8 @@ export class FileSystem {
 	private fs: FileSystemWatcher;
 	private stack: { created: string[], updated: string[], deleted: string[] } = { created: [], deleted: [], updated: [] };
 	private timeout: NodeJS.Timeout | undefined;
+	private renameSubscription: Disposable;
+	private stopped = false;
 	private mutex: Mutex = new Mutex();
 
 	public get htmlManifest() { return AutoLoader.htmlManifest }
@@ -23,11 +25,15 @@ export class FileSystem {
 		this.fs.onDidCreate(this.onCreate)
 		this.fs.onDidChange(this.onChange)
 		this.fs.onDidDelete(this.onDelete)
-		workspace.onWillRenameFiles(this.onRename, this);
+		this.renameSubscription = workspace.onWillRenameFiles(this.onRename, this);
 	}
 
 	private async onCreate(uri: Uri) {
 		await this.mutex.waitOne();
+		if (this.stopped) { 
+			this.mutex.release(); 
+			return; 
+		}
 		const uriTxt = uri.toString();
 		if (uriTxt.endsWith(this.aventusExtension)) {
 			this.onCreateAvt(uri);
@@ -58,6 +64,10 @@ export class FileSystem {
 	}
 	private async onChange(uri: Uri) {
 		await this.mutex.waitOne()
+		if (this.stopped) { 
+			this.mutex.release(); 
+			return; 
+		}
 		const uriTxt = uri.toString();
 		if (uriTxt.endsWith(this.aventusExtension)) {
 			this.onChangeAvt(uri);
@@ -81,6 +91,10 @@ export class FileSystem {
 	}
 	private async onDelete(uri: Uri) {
 		await this.mutex.waitOne();
+		if (this.stopped) { 
+			this.mutex.release(); 
+			return; 
+		}
 
 		const uriTxt = uri.toString();
 		if (uriTxt.endsWith(this.aventusExtension)) {
@@ -114,14 +128,21 @@ export class FileSystem {
 		return "file:///" + uriTxt;
 	}
 	private triggerTimer() {
+		if (this.stopped) return;
+
 		clearTimeout(this.timeout);
-		setTimeout(() => {
+		this.timeout = setTimeout(() => {
+			this.timeout = undefined;
 			this.sendStack();
 		}, 500);
 	}
 
 	private async sendStack() {
 		await this.mutex.waitOne();
+		if (this.stopped) { 
+			this.mutex.release(); 
+			return; 
+		}
 
 		for (let deleted of this.stack.deleted) {
 			FileDeleted.execute(deleted);
@@ -137,10 +158,17 @@ export class FileSystem {
 	}
 
 	private onRename(e: FileRenameEvent) {
+		if (this.stopped) return;
 		Rename.execute(e.files);
 	}
 
 	public stop() {
+		if (this.stopped) return;
+		this.stopped = true;
+		clearTimeout(this.timeout);
+		this.timeout = undefined;
+		this.stack = { created: [], deleted: [], updated: [] };
+		this.renameSubscription.dispose();
 		if (this.fs) {
 			this.fs.dispose();
 		}

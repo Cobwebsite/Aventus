@@ -56,16 +56,16 @@ test('file watcher collapses create/change/delete transitions and flushes notifi
   assert.equal(watcherDisposed, true);
 });
 
-test('rename listener remains active after file watcher stops', () => {
+test('rename listener is disposed when file watcher stops', () => {
   const fs = new FileSystem();
   fs.stop();
-  assert.equal(renameDisposed, false);
+  assert.equal(renameDisposed, true);
   const files = [{ oldUri: uri('file:///old.avt'), newUri: uri('file:///new.avt') }];
   callbacks.rename({ files });
-  assert.deepEqual(events.at(-1), ['Rename', files]);
+  assert.notDeepEqual(events.at(-1), ['Rename', files]);
 });
 
-test('queued file notification still sends after watcher stop', async () => {
+test('queued file notification is cancelled when watcher stops', async () => {
   events.length = 0;
   const scheduled = [];
   const originalSetTimeout = globalThis.setTimeout;
@@ -80,7 +80,7 @@ test('queued file notification still sends after watcher stop', async () => {
     fs.stop();
     scheduled[0]();
     await new Promise(resolve => queueMicrotask(resolve));
-    assert.deepEqual(events, [['FileCreated', 'file:///late.avt']]);
+    assert.deepEqual(events, []);
   } finally {
     globalThis.setTimeout = originalSetTimeout;
     globalThis.clearTimeout = originalClearTimeout;

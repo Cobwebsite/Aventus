@@ -35,13 +35,13 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Panneau i18n : fermeture ciblée par URI et réouverture du même document (`editors-change.test.mjs`).
 - [x] Panneau i18n réouvert : seul le nouveau webview reçoit la modification du document et une seule paire d'abonnements reste active (`editors-change.test.mjs`).
 - [x] Éditeur DB : événements de document encore envoyés après fermeture du panneau (`editors-change.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Watcher VS Code : transitions création/modification/suppression, notifications regroupées et écouteur de renommage conservé après `stop()` (`file-system.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Watcher VS Code : rafale de plusieurs chemins, fichier ignoré et notification différée qui part encore après `stop()` (`file-system.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Watcher VS Code : transitions création/modification/suppression, notifications regroupées et écouteur de renommage libéré par `stop()` (`file-system.test.mjs`).
+- [x] Watcher VS Code : rafale de plusieurs chemins, fichier ignoré et notification différée annulée par `stop()` (`file-system.test.mjs`).
 - [x] `AutoLoader` : acceptation HTML/Emmet sans doublon, refus mémorisé et rechargement après changement de configuration (`auto-loader.test.mjs`).
 - [x] `AutoLoader` : un dossier frère partageant le préfixe du workspace est traité comme interne (`auto-loader.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `AutoLoader` : deux événements concurrents ouvrent deux prompts et enregistrent deux fois le même manifeste (`auto-loader.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Parcours intégré watcher + `AutoLoader` : un manifeste HTML créé est proposé et enregistré, puis un fichier `.avt` est notifié séparément (`file-system-auto-loader.test.mjs`).
-- [x] Hôte VS Code simulé avec fichiers temporaires : création, modification, suppression et renommage transmis aux vraies commandes client ; renommage encore transmis après `stop()` (`file-system-host.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Hôte VS Code simulé avec fichiers temporaires : création, modification, suppression et renommage transmis aux vraies commandes client ; aucun renommage transmis après `stop()` (`file-system-host.test.mjs`).
 - [x] URI de téléchargement de template : route et URL valides, routes inapplicables et libération du handler (`protocol-handler.test.mjs`).
 - [x] Activation client : fournisseurs, notifications, commande interne et démarrage LSP ; `stop()` ferme le watcher et le LSP mais conserve la commande et l'écouteur de configuration (`lifecycle.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Arrêt client : enregistrement d'une notification LSP toujours actif et callback encore invoquable après `stop()` dans l'hôte simulé (`lifecycle.test.mjs`, décision dans `BLOCKERS.md`).
