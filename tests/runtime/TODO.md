@@ -38,7 +38,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `StateManager` : transitions concurrentes, seule la dernière attente est exécutée (`state-manager.test.mjs`).
 - [x] `StateManager` : transition demandée depuis un callback d'activation et exceptions des hooks `onActivate`/`onInactivate` avec état final vérifié (`state-manager.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `HttpRouter` et `HttpRequest` : GET/POST avec URL de base, corps JSON et en-têtes ; erreurs de transport et de décodage (`http-request.test.mjs`).
-- [x] `HttpRequest` : réponse 404 avec JSON valide actuellement classée comme réussite (`http-request.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `HttpRequest` : réponse 404 avec JSON valide classée comme erreur HTTP avec statut, et remplacement possible par middleware (`http-request.test.mjs`).
 - [x] `HttpRequest` : ordre du hook `beforeSend`, du transport et du middleware de réponse (`http-request.test.mjs`).
 - [x] `HttpRequest` : erreur renvoyée par `beforeSend` conservée malgré l'envoi du transport (`http-request.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `HttpCache` : deux requêtes identiques simultanées lancent actuellement deux transports (`http-cache.test.mjs`, décision dans `BLOCKERS.md`).
@@ -61,7 +61,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `ResourceLoader.loadInHead` : chargement script concurrent, nonce, résultat et réutilisation après succès avec DOM simulé (`resource-loader.test.mjs`).
 - [x] `ResourceLoader.loadInHead` : échec CSS suivi d'un second appel actuellement réussi sans nouvel essai (`resource-loader.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `StorableRoute` : routage CRUD complet, corps des requêtes et propagation d'un échec de transport (`storable-route.test.mjs`).
-- [x] `StorableRoute` : réponse avec erreurs applicatives sérialisées et réponse DELETE 204 vide (`storable-route.test.mjs`, décisions dans `BLOCKERS.md`).
+- [x] `StorableRoute` : réponse 422 classée comme erreur HTTP avec statut et réponse DELETE 204 vide (`storable-route.test.mjs`, décision sur DELETE dans `BLOCKERS.md`).
 - [x] `StorableRoute` et `GenericRam` : adaptateur concret testant la synchronisation HTTP/RAM des créations, mises à jour et suppressions avec identité et notifications locales (`storable-route.test.mjs`).
 - [x] `HttpRequest` : corps `FormData` et transformation PUT en POST avec champ `_method` (`http-request.test.mjs`).
 - [x] `uuidv4`, `Async` et `sleep` : format et unicité des UUID, assimilation des valeurs/promesses et temporisation pilotée par un faux timer (`basic-tools.test.mjs`).

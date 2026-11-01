@@ -52,12 +52,31 @@ test('HttpRequest reads a binary response and accepts an empty 204 response', as
     assert.deepEqual(urls, ['/file', '/delete']);
 });
 
-test('HttpRequest currently returns parsed JSON from a non-2xx response as success', async () => {
-    const { HttpRequest } = loadRuntime({ fetch: async () =>
+test('HttpRequest reports a non-2xx response as an error with its status', async () => {
+    const { HttpRequest, HttpErrorCode } = loadRuntime({ fetch: async () =>
         new Response('{"message":"missing"}', { status: 404 }) });
     const result = await new HttpRequest('/missing').queryJSON();
+    assert.equal(result.success, false);
+    assert.equal(result.result, undefined);
+    assert.equal(result.containsCode(HttpErrorCode.status), true);
+    assert.equal(result.errors[0].status, 404);
+});
+
+test('HttpRequest response middleware can replace a non-2xx response', async () => {
+    const { HttpRequest, ResultWithError, HttpResponse, HttpErrorCode } = loadRuntime({ fetch: async () =>
+        new Response('{"message":"missing"}', { status: 404 }) });
+    HttpRequest.configure({ responseMiddleware(result) {
+        assert.equal(result.success, false);
+        assert.equal(result.containsCode(HttpErrorCode.status), true);
+        assert.equal(result.errors[0].status, 404);
+        assert.equal(result.result.status, 404);
+        const replacement = new ResultWithError();
+        replacement.result = new HttpResponse(new Response('{"message":"fallback"}'));
+        return replacement;
+    } });
+    const result = await new HttpRequest('/missing').queryJSON();
     assert.equal(result.success, true);
-    assert.equal(result.result.message, 'missing');
+    assert.equal(result.result.message, 'fallback');
 });
 
 test('HttpRequest applies beforeSend and response middleware around the transport', async () => {
