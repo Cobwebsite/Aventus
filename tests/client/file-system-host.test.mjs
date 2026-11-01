@@ -69,10 +69,10 @@ test('VS Code file events on temporary files reach the actual Aventus commands',
   assert.equal(disposed, true);
 });
 
-test('rename event still dispatches the actual command after FileSystem.stop', () => {
+test('rename event does not dispatch after FileSystem.stop', () => {
   commands.length = 0;
   const fs = new FileSystem();
   fs.stop();
   callbacks.rename({ files: [{ oldUri: { toString: () => 'file:///old.avt' }, newUri: { toString: () => 'file:///new.avt' } }] });
-  assert.deepEqual(commands, [['aventus.rename', [{ oldUri: 'file:///old.avt', newUri: 'file:///new.avt' }]]]);
+  assert.deepEqual(commands, []);
 });
