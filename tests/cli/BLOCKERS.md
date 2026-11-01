@@ -1,9 +1,5 @@
 # Cas CLI en attente de décision
 
-## `watch` ne libère pas son abonnement aux diagnostics lors de SIGINT
-
-`tests/cli/watch-dev.test.mjs` invoque l'écouteur SIGINT de `Watch.run` : il appelle `process.exit(0)`, mais n'enlève pas l'écouteur et ne désabonne pas le callback enregistré par `Server.subscribeErrors`. Le processus réel se termine, ce qui masque ce nettoyage manquant ; un hôte ou test qui intercepte la sortie conserve les ressources. Décision attendue : confirmer si `watch` doit disposer explicitement ces abonnements avant de quitter.
-
 ## Le watcher CLI ne surveille aucun dossier avec son motif glob
 
 `tests/cli/watcher-disk.test.mjs` crée un dossier temporaire Windows et attend l'événement `ready` du vrai Chokidar. `getWatched()` reste vide avec le motif `currentDir + "/**/*.avt"`, et la création d'un fichier `.avt` ne produit aucune notification. Les transitions simulées dans `watcher.test.mjs` passent, mais le parcours disque réel est bloqué. Décision attendue : adapter le motif ou la configuration Chokidar à la version installée, puis couvrir création, modification, suppression et rafales sur disque.

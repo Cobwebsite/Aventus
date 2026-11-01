@@ -3,6 +3,7 @@ import { Server } from '../server/Server';
 import { DiagnosticSeverity, uriToPath } from '../tools';
 import type { CliErrors } from '../server/Connection';
 import { resolve } from 'path';
+import { Diagnostic } from 'vscode-languageserver';
 
 type WatchOptions = {
 	builds?: string[] | false,
@@ -66,16 +67,17 @@ export class Watch extends Action<WatchOptions> {
 
 		fct(errorsByBuild);
 
-		Server.subscribeErrors((errors, build) => {
+		const onErrors = (errors: { [uri: string]: Diagnostic[] }, build: string) => {
 			errorsByBuild[build] = errors;
 			fct(errorsByBuild);
-		});
+		};
+		Server.subscribeErrors(onErrors);
 
-		await new Promise<void>(() => {
-			process.on('SIGINT', () => {
-				process.exit(0);
-			});
+		await new Promise<void>((resolve) => {
+			process.once('SIGINT', resolve);
 		});
+		Server.unsubscribeErrors(onErrors);
+		process.exit(0);
 
 	}
 

@@ -13,6 +13,7 @@ const server = {
   async create() { events.push('server.create'); },
   getErrors() { return watchErrors; },
   subscribeErrors(callback) { errorSubscriber = callback; events.push(['server.subscribeErrors']); },
+  unsubscribeErrors(callback) { assert.equal(callback, errorSubscriber); errorSubscriber = undefined; events.push(['server.unsubscribeErrors']); },
 };
 const selections = ['create', 'log', 'quit'];
 const interaction = {
@@ -116,7 +117,7 @@ test('watch publishes initial JSON and refreshes it after an error and correctio
   }
 });
 
-test('watch SIGINT exits but leaves the server diagnostics subscription registered', async () => {
+test('watch SIGINT removes its diagnostics subscription and signal listener before exiting', async () => {
   events.length = 0;
   errorSubscriber = undefined;
   const previousListeners = new Set(process.listeners('SIGINT'));
@@ -135,10 +136,12 @@ test('watch SIGINT exits but leaves the server diagnostics subscription register
     assert.equal(typeof errorSubscriber, 'function');
     const listener = process.listeners('SIGINT').find(value => !previousListeners.has(value));
     assert.equal(typeof listener, 'function');
-    listener();
+    process.emit('SIGINT');
+    await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(exitCodes, [0]);
-    assert.equal(typeof errorSubscriber, 'function');
-    assert.ok(process.listeners('SIGINT').includes(listener));
+    assert.equal(errorSubscriber, undefined);
+    assert.ok(!process.listeners('SIGINT').includes(listener));
+    assert.deepEqual(events.at(-1), ['server.unsubscribeErrors']);
   } finally {
     process.exit = originalExit;
     console.log = originalLog;
