@@ -40,7 +40,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `HttpRouter` et `HttpRequest` : GET/POST avec URL de base, corps JSON et en-têtes ; erreurs de transport et de décodage (`http-request.test.mjs`).
 - [x] `HttpRequest` : réponse 404 avec JSON valide classée comme erreur HTTP avec statut, et remplacement possible par middleware (`http-request.test.mjs`).
 - [x] `HttpRequest` : ordre du hook `beforeSend`, du transport et du middleware de réponse (`http-request.test.mjs`).
-- [x] `HttpRequest` : erreur renvoyée par `beforeSend` conservée malgré l'envoi du transport (`http-request.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `HttpRequest` : erreur renvoyée par `beforeSend` empêchant le transport et transmise au middleware de réponse (`http-request.test.mjs`).
 - [x] `HttpCache` : partage du transport entre requêtes identiques simultanées et nouvel essai après échec partagé (`http-cache.test.mjs`).
 - [x] `HttpResponse` : lecture texte et blob unique, puis échec de lecture mémorisé sans nouvel essai (`http-cache.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `HttpRouter` : méthodes PUT/DELETE/OPTION et remplacement d'une erreur de transport par middleware (`http-request.test.mjs`).

@@ -102,21 +102,31 @@ test('HttpRequest applies beforeSend and response middleware around the transpor
     assert.deepEqual(events, ['before', 'fetch:true', 'after:true']);
 });
 
-test('HttpRequest currently sends the request even when beforeSend returns errors', async () => {
+test('HttpRequest skips transport after a beforeSend error and runs response middleware', async () => {
     let transports = 0;
+    let middlewareCalls = 0;
     const { HttpRequest, VoidWithError, GenericError } = loadRuntime({ fetch: async () => {
         transports++;
         return new Response('{}');
     } });
-    HttpRequest.configure({ beforeSend() {
-        const result = new VoidWithError();
-        result.errors.push(new GenericError(9, 'stop'));
-        return result;
-    } });
+    HttpRequest.configure({
+        beforeSend() {
+            const result = new VoidWithError();
+            result.errors.push(new GenericError(9, 'stop'));
+            return result;
+        },
+        responseMiddleware(result) {
+            middlewareCalls++;
+            assert.equal(result.success, false);
+            assert.equal(result.containsCode(9), true);
+            return result;
+        },
+    });
     const result = await new HttpRequest('/should-stop').queryJSON();
     assert.equal(result.success, false);
     assert.equal(result.containsCode(9), true);
-    assert.equal(transports, 1);
+    assert.equal(transports, 0);
+    assert.equal(middlewareCalls, 1);
 });
 
 test('HttpRouter sends PUT, DELETE and OPTION with their own methods', async () => {
