@@ -114,7 +114,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [ ] `Converter` : conversion des classes calendrier du runtime après choix de l'environnement Temporal.
 - [x] `DateSettings` : configuration partielle, remplacement des formats, copies indépendantes et refus atomique des valeurs invalides (`date-settings.test.mjs`).
 - [ ] `Date`, `DateTime` et `Time` : parsing, formatage, fuseaux, bornes, comparaisons et entrées invalides après choix de l'environnement Temporal.
-- [x] `ActionGuard` : rejet d'une action et nouvel essai caractérisés dans un processus enfant ; les deux promesses restent en attente (`action-guard.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `ActionGuard` : rejet partagé entre appels de même clé, libération de la clé et nouvel essai après rejet ou exception synchrone (`action-guard.test.mjs`).
 
 ### Composants et DOM
 

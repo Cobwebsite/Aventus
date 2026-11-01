@@ -332,49 +332,39 @@ let ActionGuard=class ActionGuard {
      */
     runningAction = new Map();
     run(keys, action) {
-        return new Promise(async (resolve) => {
-            if (typeof keys == 'function') {
-                action = keys;
-                keys = [];
+        if (typeof keys == 'function') {
+            action = keys;
+            keys = [];
+        }
+        if (!action) {
+            return Promise.reject(new Error("No action inside the Mutex.run"));
+        }
+        for (const runningKeys of this.runningAction.keys()) {
+            if (runningKeys.length === keys.length && runningKeys.every((key, index) => key == keys[index])) {
+                return this.runningAction.get(runningKeys);
             }
-            if (!action) {
-                throw "No action inside the Mutex.run";
-            }
-            let actions = undefined;
-            let runningKeys = Array.from(this.runningAction.keys());
-            for (let runningKey of runningKeys) {
-                if (runningKey.length == keys.length) {
-                    let found = true;
-                    for (let i = 0; i < keys.length; i++) {
-                        if (runningKey[i] != keys[i]) {
-                            found = false;
-                            break;
-                        }
-                    }
-                    if (found) {
-                        actions = this.runningAction.get(runningKey);
-                        break;
-                    }
-                }
-            }
-            if (actions) {
-                actions.push((res) => {
-                    resolve(res);
-                });
-            }
-            else {
-                this.runningAction.set(keys, []);
-                let res = await action();
-                let actions = this.runningAction.get(keys);
-                if (actions) {
-                    for (let action of actions) {
-                        action(res);
-                    }
-                }
-                this.runningAction.delete(keys);
-                resolve(res);
-            }
+        }
+        let resolve;
+        let reject;
+        const promise = new Promise((resolvePromise, rejectPromise) => {
+            resolve = resolvePromise;
+            reject = rejectPromise;
         });
+        this.runningAction.set(keys, promise);
+        try {
+            Promise.resolve(action()).then(value => {
+                this.runningAction.delete(keys);
+                resolve(value);
+            }, error => {
+                this.runningAction.delete(keys);
+                reject(error);
+            });
+        }
+        catch (error) {
+            this.runningAction.delete(keys);
+            reject(error);
+        }
+        return promise;
     }
 }
 ActionGuard.Namespace=`Aventus`;
