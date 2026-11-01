@@ -93,5 +93,5 @@ test('one client routes successive LSP notifications to its status items through
   assert.equal(server.command, 'aventus.liveserver.start');
   await client.stop();
   assert.deepEqual(events, ['start', 'stop']);
-  assert.ok(handles.every(handle => !handle.disposed));
+  assert.ok(handles.every(handle => handle.disposed));
 });
