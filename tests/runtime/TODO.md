@@ -41,7 +41,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `HttpRequest` : réponse 404 avec JSON valide classée comme erreur HTTP avec statut, et remplacement possible par middleware (`http-request.test.mjs`).
 - [x] `HttpRequest` : ordre du hook `beforeSend`, du transport et du middleware de réponse (`http-request.test.mjs`).
 - [x] `HttpRequest` : erreur renvoyée par `beforeSend` conservée malgré l'envoi du transport (`http-request.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] `HttpCache` : deux requêtes identiques simultanées lancent actuellement deux transports (`http-cache.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `HttpCache` : partage du transport entre requêtes identiques simultanées et nouvel essai après échec partagé (`http-cache.test.mjs`).
 - [x] `HttpResponse` : lecture texte et blob unique, puis échec de lecture mémorisé sans nouvel essai (`http-cache.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `HttpRouter` : méthodes PUT/DELETE/OPTION et remplacement d'une erreur de transport par middleware (`http-request.test.mjs`).
 - [x] `GenericRam` : création, lecture, mise à jour en place, suppression, notifications, identifiant absent et enregistrement introuvable (`ram.test.mjs`).

@@ -1,6 +1,5 @@
 # Points à analyser pour les tests du runtime
 
-- **Requêtes simultanées dans `HttpCache`.** Deux appels `HttpCache.fetch` identiques avant la première réponse lancent actuellement deux transports ; seul le résultat terminé est conservé dans le cache. Le test `http-cache.test.mjs` caractérise cette absence de mutualisation. Décider si un appel en cours doit être partagé.
 - **Refus dans `HttpRequest.beforeSend`.** Quand le hook retourne un `VoidWithError` contenant une erreur, le résultat final est en échec mais le transport `fetch` est quand même lancé. Le test `http-request.test.mjs` caractérise ce comportement. Décider si les erreurs du hook doivent empêcher l'envoi.
 - **Création RAM avec identifiant existant.** Un second `GenericRam.create({ id })` modifie l'objet stocké en place et publie encore `created`, sans erreur de conflit ni événement `updated`. Le test `ram.test.mjs` caractérise ce comportement. Décider si la création doit refuser le doublon, le remplacer, ou signaler une mise à jour.
 - **Échec du hook RAM avant écriture.** Quand `beforeRecordSet` retourne une erreur lors d'une création, `createWithError()` échoue mais le nouvel enregistrement est quand même stocké. Le test `ram.test.mjs` vérifie cette mutation partielle et une création suivante sur la même instance. Décider si ce hook doit réellement empêcher l'écriture.

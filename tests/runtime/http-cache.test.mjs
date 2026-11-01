@@ -37,7 +37,7 @@ test('HttpResponse forwards metadata and parses JSON once', async () => {
     assert.equal(reads, 1);
 });
 
-test('HttpCache currently sends duplicate fetches for concurrent identical requests', async () => {
+test('HttpCache shares an in-flight request with matching callers', async () => {
     let release;
     const gate = new Promise(resolve => { release = resolve; });
     let fetches = 0;
@@ -49,9 +49,32 @@ test('HttpCache currently sends duplicate fetches for concurrent identical reque
     const request = { method: 'GET' };
     const first = HttpCache.fetch('/concurrent', request);
     const second = HttpCache.fetch('/concurrent', request);
-    assert.equal(fetches, 2);
+    assert.equal(fetches, 1);
     release();
-    await Promise.all([first, second]);
+    const [firstResponse, secondResponse] = await Promise.all([first, second]);
+    assert.equal(firstResponse, secondResponse);
+    assert.equal(fetches, 1);
+});
+
+test('HttpCache retries after a shared transport failure', async () => {
+    const error = new Error('offline');
+    let reject;
+    const gate = new Promise((resolve, rejectPromise) => { reject = rejectPromise; });
+    let fetches = 0;
+    const { HttpCache } = loadRuntime({ fetch: () => {
+        fetches++;
+        return fetches === 1 ? gate : Promise.resolve(new Response('recovered'));
+    } });
+    const request = { method: 'GET' };
+    const first = HttpCache.fetch('/retry', request);
+    const second = HttpCache.fetch('/retry', request);
+    assert.equal(fetches, 1);
+    reject(error);
+    const failures = await Promise.allSettled([first, second]);
+    assert.deepEqual(failures.map(result => result.status), ['rejected', 'rejected']);
+    assert.equal(failures[0].reason, error);
+    assert.equal(failures[1].reason, error);
+    assert.equal(await (await HttpCache.fetch('/retry', request)).text(), 'recovered');
     assert.equal(fetches, 2);
 });
 
