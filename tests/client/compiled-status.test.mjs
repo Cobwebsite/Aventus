@@ -47,13 +47,10 @@ test('compiled status changes from success to error and opens matching debug fil
   assert.ok(shown >= 3);
 });
 
-test('removeBuild currently leaves running-server status visible after last build is removed', () => {
+test('removeBuild clears compilation and server status after the last build is removed', () => {
   const beforeHide = hidden;
   Compiled.removeBuild('web');
   assert.deepEqual(Compiled.getBuilds(), []);
-  assert.equal(hidden, beforeHide);
-  assert.match(updates.at(-1).text, /^\$\(issue-closed\)/);
-  Compiled.render();
   assert.equal(hidden, beforeHide + 1);
   assert.deepEqual(updates.at(-1), { text: '' });
 });
