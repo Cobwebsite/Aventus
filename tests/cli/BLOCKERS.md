@@ -1,9 +1,5 @@
 # Cas CLI en attente de décision
 
-## Le watcher CLI ne surveille aucun dossier avec son motif glob
-
-`tests/cli/watcher-disk.test.mjs` crée un dossier temporaire Windows et attend l'événement `ready` du vrai Chokidar. `getWatched()` reste vide avec le motif `currentDir + "/**/*.avt"`, et la création d'un fichier `.avt` ne produit aucune notification. Les transitions simulées dans `watcher.test.mjs` passent, mais le parcours disque réel est bloqué. Décision attendue : adapter le motif ou la configuration Chokidar à la version installée, puis couvrir création, modification, suppression et rafales sur disque.
-
 ## Notifications de fichiers et de sorties sans effet côté CLI
 
 Les actions de `RegisterBuild`, `UnregisterBuild`, `RegisterData`, `UnregisterData`, `RegisterStatic`, `UnregisterStatic`, `OpenFile`, `CloseFile`, `EditFile` et `OpenPreview` dans `cli/src/server/notification` sont vides ou n'affectent que des variables locales. Un test d'enregistrement, de retrait, d'édition ou d'ordre d'événements n'a donc pas de résultat observable à vérifier. Décision attendue : confirmer que la CLI ignore volontairement ces notifications ou préciser l'état et les effets à implémenter avant de tester ces parcours.

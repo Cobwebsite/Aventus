@@ -26,7 +26,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] `build --json` sur projet temporaire en processus enfant : sortie actuellement vide malgré un code de succès, puis nettoyage du dossier (`project-process.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `update` : version déjà présente, installation locale dans un dossier temporaire et réponse npm sans version (`update.test.mjs`).
 - [x] Watcher CLI : transitions de fichiers, regroupement des événements et ordre des notifications ; absence de méthode de fermeture (`watcher.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Watcher CLI sur disque : son motif glob n'attache actuellement aucun dossier sur un répertoire temporaire Windows (`watcher-disk.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Watcher CLI sur disque : création, modification, suppression et rafales de fichiers `.avt` sur un répertoire temporaire Windows (`watcher-disk.test.mjs`).
 - [x] Templates, projets et Store : configuration serveur, routage des commandes, identifiants transmis et arrêt de la séquence après échec (`service-commands.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Store : échec de la requête serveur absorbé sans code de sortie d'erreur (`service-commands.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Annulation remontée par le serveur : template, projet et Store arrêtent leur séquence après le rejet et journalisent l'erreur (`service-commands.test.mjs`, politique de sortie dans `BLOCKERS.md`).
@@ -47,7 +47,7 @@ Ces parcours restent à préciser ou à débloquer dans `BLOCKERS.md` avant de f
 - [x] Interaction terminal : prompt de logs Inquirer réel, rafraîchissement des diagnostics, fermeture par Ctrl+L et nettoyage de l'abonnement (`log-prompt.test.mjs`).
 - [x] Interaction terminal : vues Inquirer réelles de sélection, sélection multiple et saisie ; choix désactivé, validation, correction et fermeture (`terminal-prompts.test.mjs`).
 - [x] Interaction terminal : arbre de fichiers Inquirer réel sur dossier temporaire, choix d'un dossier, navigation vers un fichier et annulation (`terminal-prompts.test.mjs`, sortie parasite dans `BLOCKERS.md`).
-- [ ] Watcher : événements du disque réel et rafales après correction du motif ; annulation des timers et fermeture explicite selon les décisions dans `BLOCKERS.md`.
+- [ ] Watcher : annulation des timers et fermeture explicite selon la décision dans `BLOCKERS.md`.
 - [ ] Notifications du serveur CLI : enregistrement/retrait des sorties et fichiers ouverts/modifiés selon la décision dans `BLOCKERS.md` ; transition d'arrêt HTTP selon `BLOCKERS.md`.
 - [ ] Parcours intégré d'un build réel sur un projet temporaire : sorties, diagnostics après correction et nettoyage ; `check --json` est à analyser dans `BLOCKERS.md`.
 

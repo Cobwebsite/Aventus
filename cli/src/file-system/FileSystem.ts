@@ -13,7 +13,7 @@ export class FilesWatcher {
 	private timeout: NodeJS.Timeout | undefined;
 
 	public constructor(currentDir: string) {
-		this.watcher = watch(currentDir + "/**/*.avt", {
+		this.watcher = watch(currentDir, {
 			ignored: /(^|[\/\\])\../, // ignore dotfiles
 			persistent: true
 		});
@@ -25,6 +25,7 @@ export class FilesWatcher {
 	}
 
 	private async onCreate(path: string) {
+		if (!path.endsWith('.avt')) return;
 		await this.mutex.waitOne();
 		let uriTxt = path.toString();
 		if (!this.stack.created.includes(uriTxt)) {
@@ -45,6 +46,7 @@ export class FilesWatcher {
 
 	}
 	private async onChange(path: string) {
+		if (!path.endsWith('.avt')) return;
 		await this.mutex.waitOne()
 		let uriTxt = path.toString();
 		// not in created
@@ -60,6 +62,7 @@ export class FilesWatcher {
 		this.triggerTimer();
 	}
 	private async onDelete(path: string) {
+		if (!path.endsWith('.avt')) return;
 		await this.mutex.waitOne();
 		let uriTxt = path.toString();
 		if (!this.stack.deleted.includes(uriTxt)) {
