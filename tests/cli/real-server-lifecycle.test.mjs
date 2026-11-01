@@ -14,7 +14,7 @@ const result = await build({ entryPoints: ['cli/src/server/RealServer.ts'], absW
       '@server/cmds/Create': 'export const Create = { run: async () => {} };',
       '@server/tools': 'export const pathToUri = path => path;',
       './Connection': 'export class CliConnection { constructor(config) { this.config = config; this._connection = { stop() {} }; this.errorsByBuildByFile = {}; } }',
-      '../file-system/FileSystem': 'export class FilesWatcher { constructor() {} }',
+      '../file-system/FileSystem': 'export class FilesWatcher { constructor() { globalThis.__aventusRealServerTest.events.push("watch"); } async stop() { globalThis.__aventusRealServerTest.events.push("stop watch"); } }',
       './notification/Statistics': 'export const Statistics = { info: { loadFileTime: 0, builds: {}, statics: {}, files: {} } };',
     })[args.path], loader: 'js' }));
   } }],
@@ -55,22 +55,22 @@ test('repeated start waits for an existing startup to finish', async () => {
   assert.deepEqual(events.slice(-2), ['construct', 'start']);
 });
 
-test('real server catches a startup exception but leaves the caller waiting', async () => {
+test('real server rejects a startup exception, cleans up and permits retry', async () => {
   RealServer.server = null;
+  RealServer.cliConnection = null;
   globalThis.__aventusRealServerTest.failStart = true;
-  const originalLog = console.log;
-  const logged = [];
-  console.log = error => logged.push(error);
   try {
-    const pending = RealServer.start({});
-    const outcome = await Promise.race([
-      pending.then(() => 'resolved'),
-      new Promise(resolve => setTimeout(() => resolve('pending'), 20)),
-    ]);
-    assert.equal(outcome, 'pending');
-    assert.equal(logged[0].message, 'start failed');
+    await assert.rejects(RealServer.start({ watchFiles: true }), /start failed/);
+    assert.equal(RealServer.server, null);
+    assert.equal(RealServer.cliConnection, null);
+    assert.equal(RealServer.filesWatcher, null);
+    assert.equal(RealServer.waitingStart, null);
+    assert.deepEqual(events.slice(-4), ['watch', 'construct', 'start', 'stop watch']);
   } finally {
-    console.log = originalLog;
     globalThis.__aventusRealServerTest.failStart = false;
   }
+  const retry = RealServer.start({});
+  RealServer.started();
+  await retry;
+  assert.deepEqual(events.slice(-2), ['construct', 'start']);
 });

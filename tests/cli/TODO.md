@@ -36,7 +36,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Interaction terminal : retour `null` de choix simple/multiple, saisie, mot de passe et arbre avec effacement configuré (`interaction.test.mjs`).
 - [x] Connexion CLI : dispatch de notifications, diagnostics par build avec retrait et désabonnement, réglages et prompts terminaux (`connection.test.mjs`).
 - [x] Cycle de `RealServer` : notification d'initialisation et second `start()` résolu sans redémarrage, ou après le premier démarrage en cours (`real-server-lifecycle.test.mjs`).
-- [x] Cycle de `RealServer` : exception de démarrage laissant actuellement le demandeur en attente (`real-server-lifecycle.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Cycle de `RealServer` : exception de démarrage propagée, watcher et état partiel nettoyés, nouvel essai possible (`real-server-lifecycle.test.mjs`).
 - [x] Registre des notifications CLI : canaux init/HTTP/statistiques, callbacks HTTP retirés pendant la diffusion et signal de fin d'initialisation (`notifications.test.mjs`).
 - [x] Connexion et registre réels : diffusion du démarrage HTTP dans l'ordre des abonnés, arrêt sans diffusion côté CLI et mise à jour des statistiques sur la même connexion (`notification-dispatch.test.mjs`).
 - [x] Notifications destinées à l'éditeur : réception sans effet côté CLI (`notifications.test.mjs`).

@@ -16,6 +16,7 @@ export class RealServer {
 	}
 	private static server: GenericServer | null = null;
 	private static cliConnection: CliConnection | null = null;
+	private static filesWatcher: FilesWatcher | null = null;
 	private static get connection(): FakeConnection | null {
 		return this.cliConnection ? this.cliConnection._connection : null;
 	}
@@ -26,12 +27,12 @@ export class RealServer {
 
 	private static waitingStart: (() => void) | null = null;
 	public static start(config: ServerConfig) {
-		return new Promise<void>((resolve) => {
+		return new Promise<void>((resolve, reject) => {
 			try {
 				if (!this.server) {
 					this.cliConnection = new CliConnection(config);
 					if (config.watchFiles)
-						new FilesWatcher(process.cwd())
+						this.filesWatcher = new FilesWatcher(process.cwd());
 					this.server = new GenericServer(this.cliConnection);
 					if (config.noStart) {
 						resolve();
@@ -56,7 +57,17 @@ export class RealServer {
 					resolve();
 				}
 			} catch (e) {
-				console.log(e);
+				this.waitingStart = null;
+				this.server = null;
+				this.cliConnection = null;
+				const watcher = this.filesWatcher;
+				this.filesWatcher = null;
+				if (watcher) {
+					void watcher.stop().then(() => reject(e), () => reject(e));
+				}
+				else {
+					reject(e);
+				}
 			}
 		})
 	}
