@@ -1,19 +1,5 @@
 # Cas CLI en attente de décision
 
-## Les commandes de service absorbent un échec du serveur
-
-Le test couvre aussi un rejet `prompt cancelled` de `Server.executeCommand` pour template, projet et Store : les trois commandes journalisent actuellement l'erreur et terminent avec le code 1. Décision attendue : distinguer, si nécessaire, l'annulation normale d'un prompt d'une erreur d'installation ou de requête serveur dans la sortie et le code de retour.
-
-Les commandes CLI délèguent le choix et l'installation au serveur. Leurs tests directs couvrent le routage et l'arrêt de séquence ; les installations avec dossiers temporaires sont déjà exercées dans `tests/server/templates` et `tests/server/commands`. Pour un parcours CLI packagé de bout en bout, il faut d'abord résoudre la sortie prématurée des actions asynchrones décrite ci-dessous, puis décider du code de sortie lors d'une annulation ou d'un échec.
-
-## `check --json` packagé se termine sans résultat sur un projet temporaire
-
-`tests/cli/project-process.test.mjs` lance `cli/out/cli.js check <dossier temporaire>/aventus.conf.avt --json` avec deux configurations : `{"module":"Test"}` et une configuration reprenant la structure du modèle `templates/projects/Empty/!aventus.conf.avt` (module, préfixe, build, src et compile). Les deux processus se terminent avec le code 0, mais stdout et stderr sont vides. Les dossiers temporaires sont ensuite supprimés. Les tests unitaires de `Check.run` montrent que la sortie JSON devrait contenir au moins `success` et `builds` si cette méthode atteint le rendu. La version packagée `cli/out/cli.js` utilise bien `program.parse(process.argv)` comme la source. Décision attendue : analyser pourquoi le processus se ferme avant la sortie JSON et définir le code de sortie attendu ; vérifier l'alignement complet des autres fichiers de `cli/out` avec les sources avant une correction séparée.
-
-Le même test reproduit maintenant ce résultat avec `build <config> --json` sur le projet temporaire à structure Empty : code 0, stdout et stderr vides. Le problème concerne donc au moins ces deux commandes packagées.
-
-`tests/cli/arguments.test.mjs` confirme que `program.parse` retourne avant la fin d'une action asynchrone enregistrée par `Action.register`. `cli/src/cli.ts` et `cli/out/cli.js` utilisent bien `program.parse(process.argv)`, tandis que l'action attend `Server.load()`, qui effectue un import dynamique de `RealServer.js`. Cette combinaison est une cause plausible de la sortie vide ; il faut encore confirmer le lien causal dans le processus packagé et vérifier les commandes interactives avant toute correction.
-
 ## Un second démarrage du serveur CLI ne se résout pas
 
 `tests/cli/real-server-lifecycle.test.mjs` reproduit le cas : le premier `RealServer.start()` se résout après `RealServer.started()`, mais un second `start({ noStart: true })` sur la même instance laisse sa promesse en attente. Le corps de la promesse ne traite que `if (!this.server)` et n'a pas de branche lorsque le serveur existe déjà. Décision attendue : définir si les commandes doivent pouvoir réutiliser la même instance de serveur et, dans ce cas, le résultat du second démarrage.

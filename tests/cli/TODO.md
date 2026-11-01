@@ -13,7 +13,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Analyse des arguments d'une action : aide, argument obligatoire, option inconnue et transmission d'options variadiques (`arguments.test.mjs`).
 - [x] Sous-commande réelle dans un groupe partagé : option obligatoire, alias court et transmission des arguments (`arguments.test.mjs`).
 - [x] Parser d'action : valeurs variadiques répétées et rejet des combinaisons `--builds`/`--no-builds`, `--statics`/`--no-statics` et `--verbose`/`--silent` (`arguments.test.mjs`).
-- [x] Point d'entrée CLI : `program.parse` revient avant la fin d'une action asynchrone (`arguments.test.mjs`, lien possible avec la sortie JSON vide dans `BLOCKERS.md`).
+- [x] Point d'entrée CLI : `program.parse` revient avant la fin d'une action asynchrone ; le signal de fin de chargement du serveur permet néanmoins aux commandes packagées testées d'achever leur rendu (`arguments.test.mjs`, `project-process.test.mjs`).
 - [x] Statistiques reçues du serveur : temps de chargement, builds et sorties statiques indépendants, remplacement d'une taille de fichier (`statistics.test.mjs`).
 - [x] `serve` : ordre de démarrage, attente de la notification HTTP, saisie d'arrêt et retrait du callback (`serve.test.mjs`).
 - [x] `watch` : sérialisation JSON des diagnostics, état des builds et exclusion des fichiers contenant seulement des hints (`watch-dev.test.mjs`).
@@ -22,14 +22,14 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] `dev` : démarrage, création, consultation des logs et sortie de la boucle interactive (`watch-dev.test.mjs`).
 - [x] Entrée CLI packagée en processus enfant : aide, version, commande inconnue et option incomplète avec codes de sortie (`process.test.mjs`).
 - [x] Groupes CLI packagés : aides de `template install`, `dependencies help-llm` et `ai prepare` avec codes de sortie (`process.test.mjs`).
-- [x] `check --json` sur deux projets temporaires (minimal et structure du modèle Empty) en processus enfant : sortie actuellement vide malgré un code de succès, puis nettoyage des dossiers (`project-process.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] `build --json` sur projet temporaire en processus enfant : sortie actuellement vide malgré un code de succès, puis nettoyage du dossier (`project-process.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `check --json` sur deux projets temporaires (minimal et structure du modèle Empty) en processus enfant : sortie JSON et code de succès, puis nettoyage des dossiers (`project-process.test.mjs`).
+- [x] `build --json` sur projet temporaire en processus enfant : sortie JSON et code de succès, puis nettoyage du dossier (`project-process.test.mjs`).
 - [x] `update` : version déjà présente, installation locale dans un dossier temporaire et réponse npm sans version (`update.test.mjs`).
 - [x] Watcher CLI : transitions de fichiers, regroupement des événements, ordre des notifications et arrêt explicite avec annulation des événements en attente (`watcher.test.mjs`).
 - [x] Watcher CLI sur disque : création, modification, suppression et rafales de fichiers `.avt` sur un répertoire temporaire Windows (`watcher-disk.test.mjs`).
 - [x] Templates, projets et Store : configuration serveur, routage des commandes, identifiants transmis et code de sortie 1 après échec (`service-commands.test.mjs`).
 - [x] Store : échec de la requête serveur signalé avec le code de sortie 1 (`service-commands.test.mjs`).
-- [x] Annulation remontée par le serveur : template, projet et Store arrêtent leur séquence après le rejet et terminent actuellement avec le code 1 (`service-commands.test.mjs`, politique de sortie dans `BLOCKERS.md`).
+- [x] Annulation normale : les prompts renvoient `null` et le serveur arrête l'action sans erreur ; un rejet de `Server.executeCommand` reste un échec avec code 1 (`interaction.test.mjs`, `service-commands.test.mjs`, tests serveur des templates et commandes).
 - [x] `create`, `dependencies help-llm` et `ai prepare` : configuration serveur, URI du dossier courant, ordre des commandes et arrêt après échec (`service-commands.test.mjs`).
 - [x] Interaction terminal : choix vides et multiples, saisie, mot de passe, filtre d'arbre et abonnement aux logs (`interaction.test.mjs`).
 - [x] Interaction terminal : validation asynchrone et annulation par rejet du prompt, sans effacement de la vue après ce rejet (`interaction.test.mjs`).
@@ -44,9 +44,9 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 Ces parcours restent à préciser ou à débloquer dans `BLOCKERS.md` avant de figer leurs résultats attendus.
 
 - [ ] `watch` : modification puis correction d'une source réelle.
-- [ ] Templates, projets, Store et dépendances : parcours intégré des prompts et installations dans un dossier temporaire, puis nettoyage ; politique d'erreur selon `BLOCKERS.md`. Les commandes CLI délèguent les prompts et l'installation au serveur.
+- [ ] Templates, projets, Store et dépendances : parcours intégré des prompts et installations dans un dossier temporaire, puis nettoyage. Les commandes CLI délèguent les prompts et l'installation au serveur.
 - [x] Interaction terminal : prompt de logs Inquirer réel, rafraîchissement des diagnostics, fermeture par Ctrl+L et nettoyage de l'abonnement (`log-prompt.test.mjs`).
 - [x] Interaction terminal : vues Inquirer réelles de sélection, sélection multiple et saisie ; choix désactivé, validation, correction et fermeture (`terminal-prompts.test.mjs`).
 - [x] Interaction terminal : arbre de fichiers Inquirer réel sur dossier temporaire, choix d'un dossier, navigation vers un fichier et annulation sans sortie de débogage (`terminal-prompts.test.mjs`).
-- [ ] Parcours intégré d'un build réel sur un projet temporaire : sorties, diagnostics après correction et nettoyage ; `check --json` est à analyser dans `BLOCKERS.md`.
+- [ ] Parcours intégré d'un build réel sur un projet temporaire : sorties, diagnostics après correction et nettoyage.
 
