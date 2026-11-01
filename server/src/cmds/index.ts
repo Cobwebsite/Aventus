@@ -46,6 +46,7 @@ import { Dependency } from './ai/Dependency';
 import { Rules } from './ai/Rules';
 import { Emmet } from './Emmet';
 import { SharpUpdateTools } from './sharp/UpdateTools';
+import { CreateSignal } from './webcomponent/CreateSignal';
 
 export const Commands = {
     allCommandes: {
@@ -64,6 +65,7 @@ export const Commands = {
         [CreateAttribute.cmd]: CreateAttribute,
         [CreateProperty.cmd]: CreateProperty,
         [CreateWatch.cmd]: CreateWatch,
+        [CreateSignal.cmd]: CreateSignal,
         [ImportViewElement.cmd]: ImportViewElement,
         [ImportViewMethod.cmd]: ImportViewMethod,
         [FileCreated.cmd]: FileCreated,

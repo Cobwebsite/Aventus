@@ -8,19 +8,12 @@ export class CreateWatch {
 		let result: (string | number | boolean)[] = [];
 		let prefillName = "";
 		if (window.activeTextEditor) {
-			let uri = "";
+			const uri = window.activeTextEditor.document.uri.toString();
 			if (args.length > 0) {
 				if (args[0].toString().startsWith("prefill:")) {
 					prefillName = args[0].toString().replace("prefill:", "");
-					uri = window.activeTextEditor.document.uri.toString();
 				}
-				else {
-					uri = args[0].toString();
-				}
-			}
-			else {
-				// use command with key binding
-				uri = window.activeTextEditor.document.uri.toString();
+				else if (args[0].toString() !== uri) return result;
 			}
 			if (uri != "") {
 				result.push(uri);

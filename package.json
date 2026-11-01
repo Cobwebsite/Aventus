@@ -434,6 +434,10 @@
 				"title": "Aventus : Create watch"
 			},
 			{
+				"command": "aventus.wc.create.signal",
+				"title": "Aventus : Create signal"
+			},
+			{
 				"command": "aventus.wc.import.viewElement",
 				"title": "Aventus : Import view element"
 			},
@@ -648,6 +652,10 @@
 				},
 				{
 					"when": "resourceFilename =~ /^.*\\.(wcl|wc).avt/",
+					"command": "aventus.wc.create.signal"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.(wcl|wc).avt/",
 					"command": "aventus.wc.import.viewElement"
 				},
 				{
@@ -745,6 +753,10 @@
 					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
 				},
 				{
+					"command": "aventus.wc.create.signal",
+					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+				},
+				{
 					"command": "aventus.wc.import.viewElement",
 					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
 				},
@@ -830,27 +842,33 @@
 				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
 			},
 			{
-				"command": "aventus.wc.import.viewElement",
+				"command": "aventus.wc.create.signal",
 				"key": "ctrl+k ctrl+numpad4",
 				"mac": "cmd+f4",
 				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
 			},
 			{
-				"command": "aventus.wc.import.viewMethod",
+				"command": "aventus.wc.import.viewElement",
 				"key": "ctrl+k ctrl+numpad5",
 				"mac": "cmd+f5",
 				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
 			},
 			{
+				"command": "aventus.wc.import.viewMethod",
+				"key": "ctrl+k ctrl+numpad6",
+				"mac": "cmd+f6",
+				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+			},
+			{
 				"command": "aventus.template.quick",
 				"key": "ctrl+k ctrl+v",
-				"mac": "cmd+f6",
+				"mac": "cmd+f7",
 				"when": "true"
 			},
 			{
 				"command": "aventus.template.quick_edit",
 				"key": "ctrl+k ctrl+shift+v",
-				"mac": "cmd+shift+f6",
+				"mac": "cmd+shift+f7",
 				"when": "true"
 			}
 		]

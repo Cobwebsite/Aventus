@@ -4,10 +4,6 @@
 
 `tests/client/settings.test.mjs` bloque volontairement `WorkspaceConfiguration.update` : la promesse de `SetSettings.action` se termine alors que l'écriture n'est pas encore achevée, car l'action n'attend pas `SettingsManager.setSettings`. Décision attendue : préciser si le serveur doit pouvoir savoir que les réglages sont persistés avant de poursuivre et comment lui signaler un échec.
 
-## URI explicite et position de l'éditeur actif peuvent diverger
-
-`tests/client/webcomponent-commands.test.mjs` montre que les middlewares `CreateProperty`, `CreateAttribute`, `CreateWatch`, `CreateCSSVariable`, `ImportViewMethod` et `ImportViewElement` transmettent une URI explicite différente de celle de l'éditeur actif, mais calculent l'offset avec le document et la sélection actifs. Le serveur reçoit donc potentiellement une position qui ne correspond pas au fichier demandé. Décision attendue : préciser si l'URI explicite doit être autorisée dans ce cas et, si oui, comment obtenir une position cohérente.
-
 ## Les réglages invalides remplacent les valeurs par défaut
 
 `tests/client/settings.test.mjs` montre que `liveserver: null`, `readDirs: "src"` et `html.customData: null` sont conservés tels quels par `mergeDeep`, malgré les types attendus. Un changement ultérieur vers une configuration vide restaure les valeurs par défaut. Décision attendue : préciser si ces valeurs doivent être rejetées, ignorées ou normalisées avant utilisation par les autres composants.
