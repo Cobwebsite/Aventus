@@ -8,6 +8,7 @@
             "hideWarnings": true,
             "version": "1.0.4",
             "src": [
+                "./attributes/",
                 "./data/",
                 "./lib/",
                 "./ram/",
