@@ -1,11 +1,5 @@
 # Cas client en attente de décision
 
-## L'éditeur DB conserve ses abonnements après fermeture du panneau
-
-`tests/client/editors-change.test.mjs` reproduit le cas : après `resolveCustomTextEditor`, le panneau est fermé puis une modification et une sauvegarde du même document sont émises. L'ancien webview reçoit encore `is_dirty` et `update_content`. Les abonnements `workspace.onDidChangeTextDocument` et `workspace.onDidSaveTextDocument` sont créés sans conserver ni disposer les `Disposable` lors de `panel.onDidDispose`. Le même schéma existe dans l'éditeur i18n. Décision attendue : confirmer la durée de vie souhaitée des abonnements et leur nettoyage par panneau.
-
-Le test de réouverture i18n montre aussi que deux générations du panneau reçoivent la même modification après fermeture de la première. Les deux abonnements de changement et les deux abonnements de sauvegarde restent enregistrés ; chaque nouvelle ouverture peut donc multiplier les notifications et conserver un ancien webview.
-
 ## Le watcher de fichiers conserve l'écouteur de renommage après `stop()`
 
 `tests/client/file-system.test.mjs` reproduit le cas : `FileSystem.stop()` dispose le watcher, mais le `Disposable` retourné par `workspace.onWillRenameFiles` n'est pas conservé. Une notification de renommage après `stop()` invoque encore `Rename.execute`. Décision attendue : confirmer si `stop()` doit aussi retirer cet écouteur et annuler les notifications différées.

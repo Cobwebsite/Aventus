@@ -40,8 +40,8 @@ const vscode = {
   workspace: {
     applyEdit(edit) { applied.push(edit.changes); return Promise.resolve(true); },
     getConfiguration(section) { assert.equal(section, 'aventus'); return { async update(...args) { configurationWrites.push(args); } }; },
-    onDidChangeTextDocument(callback) { changeListeners.push(callback); return { dispose() {} }; },
-    onDidSaveTextDocument(callback) { saveListeners.push(callback); return { dispose() {} }; },
+    onDidChangeTextDocument(callback) { changeListeners.push(callback); return { dispose() { const index = changeListeners.indexOf(callback); if (index >= 0) changeListeners.splice(index, 1); } }; },
+    onDidSaveTextDocument(callback) { saveListeners.push(callback); return { dispose() { const index = saveListeners.indexOf(callback); if (index >= 0) saveListeners.splice(index, 1); } }; },
   },
 };
 const module = { exports: {} };
@@ -75,7 +75,7 @@ test('DB editor avoids unchanged writes and formats a changed schema', async () 
   assert.deepEqual(applied[0][0].range, new Range(0, 0, 2, 0));
 });
 
-test('DB editor still sends workspace events after its panel is disposed', async () => {
+test('DB editor removes workspace listeners when its panel is disposed', async () => {
   changeListeners.length = 0;
   saveListeners.length = 0;
   const editor = new AventusDBEditor({ extensionUri: { path: '/extension' } });
@@ -94,9 +94,9 @@ test('DB editor still sends workspace events after its panel is disposed', async
   assert.equal(changeListeners.length, 1);
   assert.equal(saveListeners.length, 1);
   disposePanel();
-  await changeListeners[0]({ document: doc });
-  await saveListeners[0](doc);
-  assert.deepEqual(sent.map(message => message.channel), ['is_dirty', 'update_content', 'is_dirty']);
+  assert.equal(changeListeners.length, 0);
+  assert.equal(saveListeners.length, 0);
+  assert.deepEqual(sent, []);
 });
 
 test('DB editor webview routes load, save and apply changes without echoing its own edit', async () => {
@@ -215,7 +215,7 @@ test('i18n translation normalizes locale codes and reports provider errors', asy
   }
 });
 
-test('i18n editor still sends workspace events after its panel is disposed', async () => {
+test('i18n editor removes workspace listeners when its panel is disposed', async () => {
   changeListeners.length = 0;
   saveListeners.length = 0;
   const editor = new AventusI18nEditor({ extensionUri: { path: '/extension' } });
@@ -230,9 +230,9 @@ test('i18n editor still sends workspace events after its panel is disposed', asy
     getText: () => '{"key":{"en":"value"}}', lineCount: 1 };
   await editor.resolveCustomTextEditor(doc, panel, {});
   disposePanel();
-  await changeListeners[0]({ document: doc });
-  await saveListeners[0](doc);
-  assert.deepEqual(sent.map(message => message.channel), ['is_dirty', 'update_content', 'is_dirty']);
+  assert.equal(changeListeners.length, 0);
+  assert.equal(saveListeners.length, 0);
+  assert.deepEqual(sent, []);
 });
 
 test('editor HTML resolves every webview URL, nonce and CSP token', () => {
@@ -275,7 +275,7 @@ test('i18n editor close disposes the matching panel and allows reopening the sam
   assert.equal(panels.length, 2);
 });
 
-test('reopening an i18n panel leaves both generations listening to document changes', async () => {
+test('reopening an i18n panel leaves only the current generation listening', async () => {
   changeListeners.length = 0;
   saveListeners.length = 0;
   const editor = new AventusI18nEditor({ extensionUri: { path: '/extension' } });
@@ -298,12 +298,12 @@ test('reopening an i18n panel leaves both generations listening to document chan
   await editor.resolveCustomTextEditor(doc, panel(), {});
   generations[0].dispose();
   await editor.resolveCustomTextEditor(doc, panel(), {});
-  assert.equal(changeListeners.length, 2);
-  assert.equal(saveListeners.length, 2);
+  assert.equal(changeListeners.length, 1);
+  assert.equal(saveListeners.length, 1);
   doc.version++;
   for (const listener of changeListeners) await listener({ document: doc });
   assert.deepEqual(generations.map(panel => panel.messages.map(message => message.channel)), [
-    ['is_dirty', 'update_content'], ['is_dirty', 'update_content'],
+    [], ['is_dirty', 'update_content'],
   ]);
   generations[1].dispose();
 });

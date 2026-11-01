@@ -56,8 +56,14 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 			delete AventusI18nEditor.filtersByUri[docUri];
 		}
 		AventusI18nEditor.panelsByUri[docUri] = panel;
+		const documentSubscriptions: Disposable[] = [];
 		panel.onDidDispose((e) => {
-			delete AventusI18nEditor.panelsByUri[docUri];
+			if (AventusI18nEditor.panelsByUri[docUri] === panel) {
+				delete AventusI18nEditor.panelsByUri[docUri];
+			}
+			for (const subscription of documentSubscriptions) {
+				subscription.dispose();
+			}
 		})
 
 		this.setHtmlForWebview(this.context, panel.webview);
@@ -129,40 +135,45 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 			}
 		})
 
-		workspace.onDidChangeTextDocument(async (e) => {
-			if (e.document.uri.toString() === document.uri.toString()) {
-				comm.send({
-					channel: "is_dirty",
-					body: document.isDirty
-				})
+		documentSubscriptions.push(
+			workspace.onDidChangeTextDocument(async (e) => {
+				if (e.document.uri.toString() === document.uri.toString()) {
+					comm.send({
+						channel: "is_dirty",
+						body: document.isDirty
+					})
 
-				if (prevent) {
-					prevent = false;
+					if (prevent) {
+						prevent = false;
+						version = document.version;
+						return;
+					}
+					if (document.version == version) return;
 					version = document.version;
-					return;
-				}
-				if (document.version == version) return;
-				version = document.version;
 
-				let content: AventusI18nFileSrcParsed = {};
-				try {
-					content = JSON.parse(document.getText())
+					let content: AventusI18nFileSrcParsed = {};
+					try {
+						content = JSON.parse(document.getText())
+					}
+					catch { }
+					comm.send({
+						channel: "update_content",
+						body: content
+					})
 				}
-				catch { }
-				comm.send({
-					channel: "update_content",
-					body: content
-				})
-			}
-		})
-		workspace.onDidSaveTextDocument(async (doc) => {
-			if (doc.uri.toString() === document.uri.toString()) {
-				comm.send({
-					channel: "is_dirty",
-					body: false
-				})
-			}
-		})
+			})
+		);
+
+		documentSubscriptions.push(
+			workspace.onDidSaveTextDocument(async (doc) => {
+				if (doc.uri.toString() === document.uri.toString()) {
+					comm.send({
+						channel: "is_dirty",
+						body: false
+					})
+				}
+			})
+		);
 	}
 
 	protected async translate(value: string, source: string, destination: string): Promise<{ error?: string, result?: string }> {
