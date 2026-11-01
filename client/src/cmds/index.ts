@@ -29,6 +29,7 @@ import { NpmBuild } from './npm/NpmBuild';
 import { PhpExport } from './php/Export';
 import { StorePublishTemplate } from './store/PublishTemplate';
 import { StoreDownloadTemplate } from './store/DownloadTemplate';
+import { CreateSignal } from './webcomponent/CreateSignal';
 
 
 export const Commands = {
@@ -43,6 +44,7 @@ export const Commands = {
         [CreateAttribute.cmd]: CreateAttribute,
         [CreateProperty.cmd]: CreateProperty,
         [CreateWatch.cmd]: CreateWatch,
+        [CreateSignal.cmd]: CreateSignal,
         [ImportViewElement.cmd]: ImportViewElement,
         [ImportViewMethod.cmd]: ImportViewMethod,
         [FileCreated.cmd]: FileCreated,

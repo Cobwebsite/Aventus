@@ -6,15 +6,8 @@ export class ImportViewMethod {
 	public static async middleware(args: any[]): Promise<any[]> {
 		let result: (string | number)[] = [];
 		if (window.activeTextEditor) {
-			let uri = "";
-			if (args.length > 0) {
-				uri = args[0].toString();
-			}
-			else {
-				// use command with key binding
-				uri = window.activeTextEditor.document.uri.toString();
-			}
-
+			const uri = window.activeTextEditor.document.uri.toString();
+			if (args.length > 0 && args[0].toString() !== uri) return result;
 			if (uri != "") {
 				result.push(uri);
 

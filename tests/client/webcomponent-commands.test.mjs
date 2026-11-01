@@ -34,12 +34,18 @@ test('webcomponent middlewares use the active URI and cursor offset', async () =
   assert.deepEqual(await ImportViewElement.middleware([]), ['file:///component.wc.avt', 42]);
 });
 
-test('property and watch prefill use the active document while explicit URI is forwarded', async () => {
+test('prefill and matching explicit URI use the active document position', async () => {
   assert.deepEqual(await CreateProperty.middleware(['prefill:count']), ['file:///component.wc.avt', 42, 'count']);
   assert.deepEqual(await CreateWatch.middleware(['prefill:ready']), ['file:///component.wc.avt', 42, 'ready']);
   for (const command of commands) {
-    const args = await command.middleware([{ toString: () => 'file:///other.wc.avt' }]);
-    assert.equal(args[0], 'file:///other.wc.avt');
+    const args = await command.middleware([{ toString: () => 'file:///component.wc.avt' }]);
+    assert.equal(args[0], 'file:///component.wc.avt');
     assert.equal(args[1], 42);
+  }
+});
+
+test('webcomponent middlewares reject an explicit URI different from the active document', async () => {
+  for (const command of commands) {
+    assert.deepEqual(await command.middleware([{ toString: () => 'file:///other.wc.avt' }]), []);
   }
 });
