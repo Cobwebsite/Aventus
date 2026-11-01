@@ -367,6 +367,7 @@ export abstract class StateManager implements IStateManager {
                 }
                 stateToUse.onActivate();
             }
+            if(!canChange) return false;
             this.afterStateChanged.trigger();
             return true;
         });

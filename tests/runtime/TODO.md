@@ -106,7 +106,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 
 - [ ] Watcher : retrait et désabonnement des proxys détachés après décision dans `BLOCKERS.md`.
 - [x] Signal : désabonnement et ajout d'un abonné pendant notification ; le nouvel abonné ne reçoit que la prochaine révision (`signal.test.mjs`).
-- [x] State et StateManager : hooks `onActivate`/`onInactivate` et veto de l'état actif caractérisés (`state-manager.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] State et StateManager : hooks `onActivate`/`onInactivate` et veto de l'état actif retournant `false` sans notifier de transition (`state-manager.test.mjs`).
 
 ### Outils et valeurs
 

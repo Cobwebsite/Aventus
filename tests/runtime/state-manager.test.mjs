@@ -41,6 +41,7 @@ test('State hooks run on accepted transitions and active-state veto keeps prior 
     const manager = new (class extends StateManager {})();
     const events = [];
     let allow = false;
+    manager.onAfterStateChanged(() => events.push('changed'));
     class Tracked extends State {
         get name() { return 'tracked'; }
         onActivate() { events.push('activate'); }
@@ -48,13 +49,13 @@ test('State hooks run on accepted transitions and active-state veto keeps prior 
         async askChange() { events.push('ask'); return allow; }
     }
     await manager.setState(new Tracked());
-    assert.equal(await manager.setState('next'), true);
+    assert.equal(await manager.setState('next'), false);
     assert.equal(manager.getState().name, 'tracked');
-    assert.deepEqual(events, ['activate', 'ask']);
+    assert.deepEqual(events, ['activate', 'changed', 'ask']);
     allow = true;
     assert.equal(await manager.setState('next'), true);
     assert.equal(manager.getState().name, 'next');
-    assert.deepEqual(events, ['activate', 'ask', 'ask', 'inactive:next']);
+    assert.deepEqual(events, ['activate', 'changed', 'ask', 'ask', 'inactive:next', 'changed']);
 });
 
 test('StateManager keeps only the last queued transition while an earlier one is active', async () => {

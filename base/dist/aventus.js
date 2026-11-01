@@ -6095,6 +6095,8 @@ let StateManager=class StateManager {
                 }
                 stateToUse.onActivate();
             }
+            if (!canChange)
+                return false;
             this.afterStateChanged.trigger();
             return true;
         });
