@@ -18,7 +18,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] `serve` : ordre de démarrage, attente de la notification HTTP, saisie d'arrêt et retrait du callback (`serve.test.mjs`).
 - [x] `watch` : sérialisation JSON des diagnostics, état des builds et exclusion des fichiers contenant seulement des hints (`watch-dev.test.mjs`).
 - [x] `watch` : abonnement aux diagnostics, erreur puis correction sur la même instance, avec retrait de l'écouteur SIGINT du test (`watch-dev.test.mjs`).
-- [x] `watch` : SIGINT demande une sortie à zéro mais conserve l'abonnement serveur et l'écouteur de signal jusqu'à la fin du processus (`watch-dev.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `watch` : SIGINT retire l'abonnement serveur et l'écouteur de signal avant la sortie à zéro (`watch-dev.test.mjs`).
 - [x] `dev` : démarrage, création, consultation des logs et sortie de la boucle interactive (`watch-dev.test.mjs`).
 - [x] Entrée CLI packagée en processus enfant : aide, version, commande inconnue et option incomplète avec codes de sortie (`process.test.mjs`).
 - [x] Groupes CLI packagés : aides de `template install`, `dependencies help-llm` et `ai prepare` avec codes de sortie (`process.test.mjs`).
@@ -42,7 +42,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 
 Ces parcours restent à préciser ou à débloquer dans `BLOCKERS.md` avant de figer leurs résultats attendus.
 
-- [ ] `watch` : modification puis correction d'une source réelle ; nettoyage de l'abonnement serveur selon `BLOCKERS.md`.
+- [ ] `watch` : modification puis correction d'une source réelle.
 - [ ] Templates, projets, Store et dépendances : parcours intégré des prompts et installations dans un dossier temporaire, puis nettoyage ; politique d'erreur selon `BLOCKERS.md`. Les commandes CLI délèguent les prompts et l'installation au serveur.
 - [x] Interaction terminal : prompt de logs Inquirer réel, rafraîchissement des diagnostics, fermeture par Ctrl+L et nettoyage de l'abonnement (`log-prompt.test.mjs`).
 - [x] Interaction terminal : vues Inquirer réelles de sélection, sélection multiple et saisie ; choix désactivé, validation, correction et fermeture (`terminal-prompts.test.mjs`).
