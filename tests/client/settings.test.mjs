@@ -17,7 +17,7 @@ const workspace = {
   },
   onDidChangeConfiguration(callback) { listeners.push(callback); return { dispose() {} }; },
 };
-const vscode = { workspace, ExtensionMode: { Production: 1 }, ConfigurationTarget: { Global: 1, Workspace: 2 } };
+const vscode = { workspace, window: { showErrorMessage() {} }, ExtensionMode: { Production: 1 }, ConfigurationTarget: { Global: 1, Workspace: 2 } };
 const source = `export { SettingsManager } from './client/src/Settings.ts'; export { SetSettings } from './client/src/notification/SetSettings.ts';`;
 const result = await build({ stdin: { contents: source, resolveDir: process.cwd(), sourcefile: 'settings-entry.ts' }, bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false,
   plugins: [{ name: 'singleton-double', setup(build) {
@@ -103,18 +103,22 @@ test('invalid configuration values keep defaults while valid nested values are m
   assert.deepEqual(manager.settingsHtml.customData, []);
 });
 
-test('setsettings notification forwards settings but finishes before the write completes', async () => {
+test('setsettings notification waits for the write to complete', async () => {
   const before = writes.length;
   let release;
   updateBarrier = new Promise(resolve => { release = resolve; });
   try {
-    const response = await SetSettings.action({ debug: true }, false);
-    assert.equal(response, undefined);
+    let finished = false;
+    const action = SetSettings.action({ debug: true }, false).then(() => { finished = true; });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(finished, false);
     assert.equal(writes.length, before);
+    release();
+    await action;
+    assert.equal(finished, true);
   } finally {
     updateBarrier = undefined;
     release();
   }
-  await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(writes.slice(before), [['debug', true, 2]]);
 });
