@@ -83,7 +83,7 @@ export class AventusMigration {
 
 				for (let _type in old) {
 					const type = _type as keyof DBFile
-					for (let db of data[type]) {
+					for (let db of old[type]) {
 						await this.deletePassword(context, db.UUID);
 					}
 				}
