@@ -9,7 +9,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Commandes `format`, `check` et `build` : séquence d'appel, chemin de configuration, sélection désactivée, options de serveur et sortie JSON vide (`commands.test.mjs`).
 - [x] Sorties JSON de `check` et `build` : diagnostics de plusieurs builds, plages, tailles des sorties et code d'échec (`commands.test.mjs`).
 - [x] Sorties texte : sévérités warning/info/hint de `check`, silence de `build`, échec puis reprise sur la même instance et fichiers de plusieurs builds/statiques (`commands.test.mjs`).
-- [x] `check` texte : un diagnostic d'erreur est affiché, mais le code de sortie reste actuellement à zéro (`commands.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `check` texte : un diagnostic d'erreur est affiché et provoque un code de sortie 1 (`commands.test.mjs`).
 - [x] Analyse des arguments d'une action : aide, argument obligatoire, option inconnue et transmission d'options variadiques (`arguments.test.mjs`).
 - [x] Sous-commande réelle dans un groupe partagé : option obligatoire, alias court et transmission des arguments (`arguments.test.mjs`).
 - [x] Parser d'action : valeurs variadiques répétées et rejet des combinaisons `--builds`/`--no-builds`, `--statics`/`--no-statics` et `--verbose`/`--silent` (`arguments.test.mjs`).

@@ -63,7 +63,7 @@ test('build forwards selection, output flags and verbosity to the server', async
   assert.deepEqual(events[1], ['start', { configPath: undefined, loadFiles: true, buildOnly: true, noBuild: true, builds: [], statics: [], logLevel: 0, errorByBuild: true, useStats: false }]);
 });
 
-test('check text output prints an error diagnostic but currently leaves the process successful', async () => {
+test('check text output prints an error diagnostic and exits with failure', async () => {
   diagnostics = { web: { 'file:///broken.wcl.avt': [{ severity: 1, message: 'broken', range: { start: { line: 2, character: 0 }, end: { line: 2, character: 6 } } }] } };
   const originalLog = console.log;
   const originalError = console.error;
@@ -82,7 +82,7 @@ test('check text output prints an error diagnostic but currently leaves the proc
   }
   assert.equal(errors.length, 1);
   assert.match(errors[0], /\[error\].*broken\.wcl\.avt:3 : broken/);
-  assert.deepEqual(exits, []);
+  assert.deepEqual(exits, [1]);
 });
 
 test('check JSON distinguishes warnings from errors and exits on an error', async () => {
