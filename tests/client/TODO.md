@@ -43,8 +43,8 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Parcours intégré watcher + `AutoLoader` : un manifeste HTML créé est proposé et enregistré, puis un fichier `.avt` est notifié séparément (`file-system-auto-loader.test.mjs`).
 - [x] Hôte VS Code simulé avec fichiers temporaires : création, modification, suppression et renommage transmis aux vraies commandes client ; aucun renommage transmis après `stop()` (`file-system-host.test.mjs`).
 - [x] URI de téléchargement de template : route et URL valides, routes inapplicables et libération du handler (`protocol-handler.test.mjs`).
-- [x] Activation client : fournisseurs, notifications, commande interne et démarrage LSP ; `stop()` ferme le watcher et le LSP mais conserve la commande et l'écouteur de configuration (`lifecycle.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Arrêt client : enregistrement d'une notification LSP toujours actif et callback encore invoquable après `stop()` dans l'hôte simulé (`lifecycle.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Activation client : fournisseurs, notifications, commande interne et démarrage LSP ; `stop()` ferme le watcher et le LSP et libère la commande et l'écouteur de configuration (`lifecycle.test.mjs`).
+- [x] Arrêt client : enregistrement d'une notification LSP libéré par `stop()` dans l'hôte simulé (`lifecycle.test.mjs`).
 - [x] Point d'entrée de l'extension : `activate` attend `Client.init` avec le contexte, `deactivate` transmet la promesse de `Client.stop` (`extension-entry.test.mjs`).
 - [x] Middleware LSP : transformation et annulation de commande, navigation i18n et mémorisation de la clé ciblée (`lifecycle.test.mjs`).
 - [x] Définitions LSP multiples : `Location` et `LocationLink` i18n filtrées, cible non i18n ignorée (`lifecycle.test.mjs`).
@@ -64,7 +64,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Barre d'état : création, commande HTTP, désactivation du build IDE et restauration des détails de compilation (`component-status.test.mjs`).
 - [x] Parcours intégré `Compiled` + barre d'état réelle : erreur, correction et retrait du dernier build après rendu (`component-status.test.mjs`).
 - [x] Parcours intégré HTTP + barre d'état réelle : démarrage avec adresse puis retour à la commande de démarrage après arrêt (`component-status.test.mjs`).
-- [x] Même instance `Client` et vraie barre d'état : notifications LSP successives de compilation et HTTP, arrêt et abonnements LSP encore présents (`notification-lifecycle.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Même instance `Client` et vraie barre d'état : notifications LSP successives de compilation et HTTP, arrêt et abonnements LSP libérés (`notification-lifecycle.test.mjs`).
 - [x] `InitStep` : message initial, notification de fin, démarrage du watcher et rendu différé du statut (`init-step.test.mjs`).
 - [x] Notifications complémentaires : progression Sharp, erreur, ouverture du debug, succès, progression partielle et aperçu conditionné au contexte (`misc-notifications.test.mjs`).
 - [x] Statut partagé : les notifications de compilation Aventus et Sharp écrasent le même affichage dans leur ordre d'arrivée (`misc-notifications.test.mjs`, décision dans `BLOCKERS.md`).

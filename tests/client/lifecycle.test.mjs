@@ -102,13 +102,11 @@ test('definition middleware filters each i18n target in mixed location arrays', 
   assert.equal(globalThis.__aventusLifecycle.filters['file:///plain.avt'], undefined);
 });
 
-test('client stop leaves command and configuration listener registrations active', () => {
+test('client stop disposes command and configuration listener registrations', () => {
   const command = registered.find(item => item.kind === 'command');
   const configuration = registered.find(item => item.kind === 'config');
-  assert.equal(command.disposed, false);
-  assert.equal(configuration.disposed, false);
-  configuration.callback();
-  assert.equal(events.at(-1), 'settings.reload');
+  assert.equal(command.disposed, true);
+  assert.equal(configuration.disposed, true);
 });
 
 test('registered internal command forwards its arguments to the selected middleware', () => {
@@ -173,16 +171,14 @@ test('activation routes notification and internal command through the same clien
   assert.equal(context.subscriptions.length, 4);
 });
 
-test('client stop leaves LSP notification registrations active', async () => {
+test('client stop disposes LSP notification registrations', async () => {
   const client = new Client();
   const context = { subscriptions: [], extensionPath: 'D:/extension', globalStorageUri: { fsPath: 'D:/storage' }, asAbsolutePath: path => `D:/extension/${path}` };
   const start = registered.length;
   await client.init(context);
   const notification = registered.slice(start).find(item => item.kind === 'notification');
   await client.stop();
-  assert.equal(notification.disposed, false);
-  notification.callback(['after-stop']);
-  assert.deepEqual(events.at(-1), ['notification', 'after-stop']);
+  assert.equal(notification.disposed, true);
 });
 
 test('code lens middleware converts reference command URI, position and locations', async () => {

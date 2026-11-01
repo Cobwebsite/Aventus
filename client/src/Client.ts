@@ -20,6 +20,7 @@ export class Client {
     private client: LanguageClient | undefined = undefined;
     public components: AvenutsVsComponent | undefined = undefined;
     private fileSystem: FileSystem | undefined = undefined;
+    private registrations: Disposable[] = [];
     public debugFile!: DebugFile;
     private _isInit = false;
     public get isInit(): boolean {
@@ -57,11 +58,15 @@ export class Client {
         this.addNotification();
         await this.client.start();
 
-        workspace.onDidChangeConfiguration(() => {
+        this.registrations.push(workspace.onDidChangeConfiguration(() => {
             ReloadSettings.execute();
-        })
+        }))
     }
     public stop(): Thenable<void> | undefined {
+        for (const registration of this.registrations) {
+            registration.dispose();
+        }
+        this.registrations = [];
         if (this.fileSystem) {
             this.fileSystem.stop();
         }
@@ -183,13 +188,17 @@ export class Client {
     private addNotification() {
         if (this.client) {
             for (let cmdName in Notifications.allNotifications) {
-                this.client.onNotification(cmdName, (params) => {
-                    (Notifications.allNotifications[cmdName].action as any).call(Notifications.allNotifications[cmdName], ...params)
-                });
+                this.registrations.push(
+                    this.client.onNotification(cmdName, (params) => {
+                        (Notifications.allNotifications[cmdName].action as any).call(Notifications.allNotifications[cmdName], ...params)
+                    })
+                );
             }
 
             for (let command in CommandsInternal.allCommandes) {
-                commands.registerCommand(command, CommandsInternal.allCommandes[command].middleware)
+                this.registrations.push(
+                    commands.registerCommand(command, CommandsInternal.allCommandes[command].middleware)
+                )
             }
         }
     }

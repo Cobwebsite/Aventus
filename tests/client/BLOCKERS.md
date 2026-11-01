@@ -1,11 +1,5 @@
 # Cas client en attente de décision
 
-## `Client.stop()` laisse actifs des abonnements créés par `init()`
-
-`tests/client/lifecycle.test.mjs` reproduit le cas : `Client.init()` enregistre une commande interne et un callback `workspace.onDidChangeConfiguration` sans conserver leurs `Disposable` dans `context.subscriptions` ni les libérer dans `stop()`. Après `stop()`, un changement de configuration appelle encore `ReloadSettings.execute`. Décision attendue : définir la durée de vie de ces enregistrements et leur nettoyage explicite lors de l'arrêt ou de la désactivation de l'extension.
-
-Le même test simule aussi un abonnement LSP retourné par `onNotification` : son handle n'est pas conservé ni disposé par `Client.stop()`, et le callback reste invocable après l'arrêt dans cet hôte simulé. Il faut préciser si `LanguageClient.stop()` garantit lui-même cette libération ; sinon le client doit conserver les handles de notification.
-
 ## Le retrait du dernier build ne rafraîchit pas le statut
 
 `tests/client/compiled-status.test.mjs` reproduit le cas : après une compilation, `Compiled.removeBuild('web')` vide le registre, mais n'appelle pas `render()`. L'indicateur `runningServer` reste visible et le statut de dernière compilation reste affiché ; un appel manuel à `render()` les efface. Décision attendue : confirmer le statut attendu après le retrait du dernier build.
