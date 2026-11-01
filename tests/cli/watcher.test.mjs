@@ -36,11 +36,12 @@ test('CLI watcher coalesces transitions and emits deletion before creation and u
   globalThis.clearTimeout = () => {};
   try {
     const watcher = new FilesWatcher('D:/project');
-    assert.equal(globalThis.__aventusCliWatcher.pattern, 'D:/project/**/*.avt');
+    assert.equal(globalThis.__aventusCliWatcher.pattern, 'D:/project');
     assert.equal(globalThis.__aventusCliWatcher.options.persistent, true);
     await handlers.add('new.avt');
     await handlers.change('new.avt');
     await handlers.change('updated.avt');
+    await handlers.add('ignored.txt');
     await handlers.add('removed.avt');
     await handlers.unlink('removed.avt');
     await watcher.sendStack();
