@@ -96,7 +96,7 @@ test('nested action shares its group and requires its named option', async () =>
   assert.deepEqual(received, [{ args: ['target'], template: 'Empty' }]);
 });
 
-test('registered parser accepts repeated selections and contradictory build flags', async () => {
+test('registered parser accepts repeated selections and rejects contradictory build flags', async () => {
   Action.actions = {};
   const received = [];
   class BuildLike extends Action {
@@ -104,32 +104,39 @@ test('registered parser accepts repeated selections and contradictory build flag
     get description() { return 'Build'; }
     registerArgs() {}
     registerOptions(add) {
-      add({ name: 'builds', type: 'name', typeIsArray: true, description: 'Selected builds' });
+      add({ name: 'builds', type: 'name', typeIsArray: true, description: 'Selected builds', conflicts: 'no-builds' });
       add({ name: 'no-builds', description: 'Disable builds' });
-      add({ name: 'verbose', description: 'Verbose' });
+      add({ name: 'statics', type: 'name', typeIsArray: true, description: 'Selected statics', conflicts: 'no-statics' });
+      add({ name: 'no-statics', description: 'Disable statics' });
+      add({ name: 'verbose', description: 'Verbose', conflicts: 'silent' });
       add({ name: 'silent', description: 'Silent' });
     }
     run(args, options) { received.push({ args, options }); }
   }
   const program = new Command();
   program.exitOverride();
-  program.configureOutput({ writeErr() {}, writeOut() {} });
+  const errors = [];
+  program.configureOutput({ writeErr(value) { errors.push(value); }, writeOut() {} });
   new BuildLike().register(program);
   const originalExit = process.exit;
   const done = new Error('action completed');
   process.exit = code => { assert.equal(code, 0); throw done; };
   try {
     await assert.rejects(program.parseAsync(['build', '--builds', 'web', '--builds', 'api'], { from: 'user' }), error => error === done);
-    await assert.rejects(program.parseAsync(['build', '--builds', 'web', '--builds', 'api', '--no-builds', '--verbose', '--silent'], { from: 'user' }), error => error === done);
+    for (const flags of [
+      ['--builds', 'web', '--no-builds'],
+      ['--statics', 'assets', '--no-statics'],
+      ['--verbose', '--silent'],
+    ]) {
+      await assert.rejects(program.parseAsync(['build', ...flags], { from: 'user' }), error => error.code === 'commander.conflictingOption' && error.exitCode !== 0);
+    }
   } finally {
     process.exit = originalExit;
   }
-  assert.equal(received.length, 2);
+  assert.equal(received.length, 1);
   assert.deepEqual(received[0].args, []);
   assert.deepEqual(received[0].options.builds, ['web', 'api']);
-  assert.equal(received[1].options.builds, false);
-  assert.equal(received[1].options.verbose, true);
-  assert.equal(received[1].options.silent, true);
+  assert.equal(errors.length, 3);
 });
 
 test('synchronous parse returns before an asynchronous action finishes', async () => {

@@ -9,6 +9,7 @@ export type ActionOption<T extends { [name: string]: any }> = {
 	typeIsRequired?: boolean,
 	description: string,
 	defaultValue?: string | boolean | string[]
+	conflicts?: string | string[]
 }
 export type ArgOption = {
 	type?: string,
@@ -83,7 +84,14 @@ export abstract class Action<T extends { [name: string]: any }> {
 
 
 	private _registerOptions(program: Command) {
+		const seen = new Set<string>();
+		const conflicts: [string, string][] = [];
 		this.registerOptions((option: ActionOption<T>) => {
+			const name = option.name as string;
+			program.on(`option:${name}`, () => seen.add(name));
+			for (const other of option.conflicts ? ([] as string[]).concat(option.conflicts) : []) {
+				conflicts.push([name, other]);
+			}
 
 			let names: string[] = [];
 			if (option.shortName) {
@@ -114,6 +122,13 @@ export abstract class Action<T extends { [name: string]: any }> {
 			}
 			else {
 				program = program.option(part1, option.description, option.defaultValue);
+			}
+		});
+		program.hook('preAction', () => {
+			const conflict = conflicts.find(([first, second]) => seen.has(first) && seen.has(second));
+			seen.clear();
+			if (conflict) {
+				program.error(`options '--${conflict[0]}' and '--${conflict[1]}' cannot be used together`, { code: 'commander.conflictingOption' });
 			}
 		});
 		return program;

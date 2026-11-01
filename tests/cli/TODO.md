@@ -12,7 +12,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] `check` texte : un diagnostic d'erreur est affiché, mais le code de sortie reste actuellement à zéro (`commands.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Analyse des arguments d'une action : aide, argument obligatoire, option inconnue et transmission d'options variadiques (`arguments.test.mjs`).
 - [x] Sous-commande réelle dans un groupe partagé : option obligatoire, alias court et transmission des arguments (`arguments.test.mjs`).
-- [x] Parser d'action : valeurs variadiques répétées et drapeaux `--builds`/`--no-builds` ainsi que `--verbose`/`--silent` simultanés (`arguments.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Parser d'action : valeurs variadiques répétées et rejet des combinaisons `--builds`/`--no-builds`, `--statics`/`--no-statics` et `--verbose`/`--silent` (`arguments.test.mjs`).
 - [x] Point d'entrée CLI : `program.parse` revient avant la fin d'une action asynchrone (`arguments.test.mjs`, lien possible avec la sortie JSON vide dans `BLOCKERS.md`).
 - [x] Statistiques reçues du serveur : temps de chargement, builds et sorties statiques indépendants, remplacement d'une taille de fichier (`statistics.test.mjs`).
 - [x] `serve` : ordre de démarrage, attente de la notification HTTP, saisie d'arrêt et retrait du callback (`serve.test.mjs`).
