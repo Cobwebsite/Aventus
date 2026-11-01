@@ -37,7 +37,7 @@ test('CLI watcher reports .avt creation, changes, deletion and coalesced bursts 
   const ignoredFile = join(directory, 'sample.txt');
   const watcher = new FilesWatcher(directory);
   t.after(async () => {
-    await watcher.watcher.close();
+    await watcher.stop();
     rmSync(directory, { recursive: true, force: true });
   });
   await new Promise((resolve, reject) => {

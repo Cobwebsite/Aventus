@@ -22,7 +22,7 @@ const result = await build({ entryPoints: ['cli/src/file-system/FileSystem.ts'],
 globalThis.__aventusCliWatcher.watch = (pattern, options) => {
   globalThis.__aventusCliWatcher.pattern = pattern;
   globalThis.__aventusCliWatcher.options = options;
-  return { on(name, callback) { handlers[name] = callback; return this; }, close() { closeCalls++; } };
+  return { on(name, callback) { handlers[name] = callback; return this; }, async close() { closeCalls++; } };
 };
 const module = { exports: {} };
 new Function('module', 'exports', 'require', result.outputFiles[0].text)(module, module.exports, require);
@@ -52,6 +52,30 @@ test('CLI watcher coalesces transitions and emits deletion before creation and u
     ]);
     assert.equal(scheduled.length, 5);
     assert.equal(closeCalls, 0);
-    assert.equal(typeof watcher.stop, 'undefined');
+    await watcher.stop();
+    assert.equal(closeCalls, 1);
+  } finally { globalThis.setTimeout = originalSetTimeout; globalThis.clearTimeout = originalClearTimeout; }
+});
+
+test('CLI watcher stop cancels pending notifications and ignores later events', async () => {
+  notifications.length = 0;
+  const originalSetTimeout = globalThis.setTimeout;
+  const originalClearTimeout = globalThis.clearTimeout;
+  const scheduled = [];
+  const cancelled = [];
+  globalThis.setTimeout = callback => { scheduled.push(callback); return scheduled.length; };
+  globalThis.clearTimeout = timer => cancelled.push(timer);
+  try {
+    const watcher = new FilesWatcher('D:/project');
+    await handlers.add('pending.avt');
+    const closing = watcher.stop();
+    assert.equal(watcher.stop(), closing);
+    await closing;
+    assert.equal(closeCalls, 2);
+    assert.ok(cancelled.includes(1));
+    scheduled[0]();
+    await handlers.change('later.avt');
+    await watcher.sendStack();
+    assert.deepEqual(notifications, []);
   } finally { globalThis.setTimeout = originalSetTimeout; globalThis.clearTimeout = originalClearTimeout; }
 });
