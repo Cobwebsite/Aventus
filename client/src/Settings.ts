@@ -1,4 +1,4 @@
-import { ConfigurationTarget, ExtensionMode, workspace, WorkspaceConfiguration } from 'vscode'
+import { ConfigurationTarget, ExtensionMode, window, workspace, WorkspaceConfiguration } from 'vscode'
 import { Singleton } from './Singleton'
 import { join } from 'path'
 
@@ -137,7 +137,7 @@ export class SettingsManager {
 			try {
 				await settingsEmmet.update("extensionsPath", settingsEmmet.extensionsPath, ConfigurationTarget.Global, undefined);
 			} catch (e) {
-				// console.log(e);
+				window.showErrorMessage(e + '')
 			}
 		}
 	}
@@ -155,10 +155,10 @@ export class SettingsManager {
 		const config = workspace.getConfiguration("aventus");
 		try {
 			for (let key in newSettings) {
-				const result = await config.update(key, newSettings[key], global ? ConfigurationTarget.Global : ConfigurationTarget.Workspace);
+				await config.update(key, newSettings[key], global ? ConfigurationTarget.Global : ConfigurationTarget.Workspace);
 			}
 		} catch (e) {
-			console.log(e)
+			window.showErrorMessage(e + '')
 		}
 	}
 	private initSettings(newSettings: Partial<Settings>) {
@@ -198,7 +198,7 @@ export class SettingsManager {
 			for (const key in source) {
 				const value = source[key];
 				if (value === null || value === undefined) continue;
-				
+
 				const defaultValue = target[key];
 				if (defaultValue === undefined) {
 					target[key] = value;

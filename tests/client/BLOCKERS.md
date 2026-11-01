@@ -1,9 +1,5 @@
 # Cas client en attente de décision
 
-## `setsettings` ne permet pas d'attendre la persistance
-
-`tests/client/settings.test.mjs` bloque volontairement `WorkspaceConfiguration.update` : la promesse de `SetSettings.action` se termine alors que l'écriture n'est pas encore achevée, car l'action n'attend pas `SettingsManager.setSettings`. Décision attendue : préciser si le serveur doit pouvoir savoir que les réglages sont persistés avant de poursuivre et comment lui signaler un échec.
-
 ## Une écriture Emmet échouée ne se réessaie pas
 
 `tests/client/settings-emmet.test.mjs` simule un échec de `settingsEmmet.update`. `applyDefault` absorbe l'erreur après avoir modifié `extensionsPath` en mémoire. Un appel suivant retrouve déjà le nouveau chemin et ne retente pas l'écriture persistante. Décision attendue : préciser si l'extension doit réessayer la sauvegarde et comment signaler cet échec.
