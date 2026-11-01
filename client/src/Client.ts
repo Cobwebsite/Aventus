@@ -69,6 +69,7 @@ export class Client {
         this.registrations = [];
         if (this.fileSystem) {
             this.fileSystem.stop();
+            this.fileSystem = undefined;
         }
         if (this.client) {
             return this.client.stop();
@@ -76,6 +77,7 @@ export class Client {
         return undefined;
     }
     public startFileSystem() {
+        if (this.fileSystem) return;
         this.fileSystem = new FileSystem();
     }
 

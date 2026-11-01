@@ -129,15 +129,15 @@ test('initialization callbacks run once even if initDone is called twice', async
   assert.equal(calls, 2);
 });
 
-test('starting file system twice replaces the watcher without stopping the first one', async () => {
+test('starting file system twice keeps a single watcher', async () => {
   const client = new Client();
   events.length = 0;
   client.startFileSystem();
   client.startFileSystem();
-  assert.deepEqual(events.map(event => event[0]), ['fileSystem.create', 'fileSystem.create']);
+  assert.deepEqual(events.map(event => event[0]), ['fileSystem.create']);
   await client.stop();
-  assert.deepEqual(events.map(event => event[0]), ['fileSystem.create', 'fileSystem.create', 'fileSystem.stop']);
-  assert.equal(events[2][1], events[1][1]);
+  assert.deepEqual(events.map(event => event[0]), ['fileSystem.create', 'fileSystem.stop']);
+  assert.equal(events[1][1], events[0][1]);
 });
 
 test('client intercepts code action resolve failures and delegates other failures', async () => {

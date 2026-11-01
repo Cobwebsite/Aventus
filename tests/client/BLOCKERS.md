@@ -1,9 +1,5 @@
 # Cas client en attente de décision
 
-## Un second `startFileSystem()` abandonne le watcher précédent
-
-`tests/client/lifecycle.test.mjs` reproduit le cas : deux appels à `Client.startFileSystem()` créent deux instances de `FileSystem` sans arrêter la première ; `Client.stop()` arrête uniquement la seconde. Une notification `InitStep` répétée peut déclencher ce chemin. Décision attendue : préciser si l'initialisation est idempotente et comment libérer l'ancien watcher.
-
 ## Compatibilité de la migration avec le vrai processus `db-query`
 
 `tests/client/migration-real-process.test.mjs` exécute le `db-query` installé avec SQLite en mémoire. `SELECT 1 as result` renvoie `{ result: "1" }` ; la vraie route `testConnection` renvoie bien `true`, car elle compare `result[0].result == 1` et accepte la chaîne par coercition. Décision attendue : préciser le type contractuel et choisir une validation explicite pour ce résultat.
