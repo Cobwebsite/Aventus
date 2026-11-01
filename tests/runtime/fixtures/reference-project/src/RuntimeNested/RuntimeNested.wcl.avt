@@ -1,0 +1,7 @@
+export class RuntimeNested extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Watch()
+    public groups: { name: string; entries: string[] }[] = [
+        { name: "first", entries: ["a", "b"] },
+        { name: "second", entries: ["c"] },
+    ];
+}

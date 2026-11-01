@@ -5270,6 +5270,91 @@ const _ = {};
 
 
 let _n;
+const RuntimeNested = class RuntimeNested extends Aventus.WebComponent {
+    get 'groups'() {
+						return this.__watch["groups"];
+					}
+					set 'groups'(val) {
+						this.__watch["groups"] = val;
+					}
+    __registerWatchesActions() {
+    this.__addWatchesActions("groups");
+    super.__registerWatchesActions();
+}
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeNested;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeNested.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<template _id="runtimenested_0"></template>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+    <section class="group">
+        <h2 _id="runtimenested_1"></h2>
+        <template _id="runtimenested_2"></template>
+    </section>
+`);
+templ0.setActions({
+  "content": {
+    "runtimenested_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__88e0be73daa36913fb1c341e6e3fabc5method3(c.data.group))}`,
+      "once": true
+    }
+  },
+  "contextEdits": [
+    {
+      "fct": (c) => c.comp.__88e0be73daa36913fb1c341e6e3fabc5method1(c.data.i)
+    }
+  ]
+});
+this.__getStatic().__template.addLoop({
+                    anchorId: 'runtimenested_0',
+                    template: templ0,
+                simple:{data: `this.groups`,index:`i`}
+});
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+            <span class="entry" _id="runtimenested_3"></span>
+        `);
+templ2.setActions({
+  "content": {
+    "runtimenested_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__88e0be73daa36913fb1c341e6e3fabc5method4(c.data.entry))}`,
+      "once": true
+    }
+  }
+});
+templ0.addLoop({
+                    anchorId: 'runtimenested_2',
+                    template: templ2,
+                simple:{data: `group.entries`,item:`entry`}
+});
+ }
+    getClassName() {
+        return "RuntimeNested";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["groups"] = [
+        { name: "first", entries: ["a", "b"] },
+        { name: "second", entries: ["c"] },
+    ];
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('groups');
+ }
+}
+RuntimeNested.Namespace=`RuntimeReference`;
+RuntimeNested.Tag=`rt-runtime-nested`;
+__as1(_, 'RuntimeNested', RuntimeNested);
+if(!window.customElements.get('rt-runtime-nested')){window.customElements.define('rt-runtime-nested', RuntimeNested);Aventus.WebComponentInstance.registerDefinition(RuntimeNested);}
+
 const RuntimeBranches = class RuntimeBranches extends Aventus.WebComponent {
     get 'count'() {
 						return this.__watch["count"];

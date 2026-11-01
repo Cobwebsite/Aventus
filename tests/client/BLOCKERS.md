@@ -4,10 +4,6 @@
 
 `tests/client/settings.test.mjs` bloque volontairement `WorkspaceConfiguration.update` : la promesse de `SetSettings.action` se termine alors que l'écriture n'est pas encore achevée, car l'action n'attend pas `SettingsManager.setSettings`. Décision attendue : préciser si le serveur doit pouvoir savoir que les réglages sont persistés avant de poursuivre et comment lui signaler un échec.
 
-## L'aperçu ne trouve pas son fichier HTML
-
-`tests/client/preview-view.test.mjs` appelle `AventusPeview.getPreview` avec l'arborescence réelle de l'extension. Le panneau est créé, puis la lecture de `client/views/preview/index.html` échoue avec `ENOENT` : ce dossier n'existe pas. L'URI du script fournie à `getPreview` n'est pas utilisée non plus. Décision attendue : préciser si cette vue est toujours prise en charge et, si oui, fournir son HTML et le passage du script à prévisualiser.
-
 ## La vue des dépendances ignore l'URI et utilise des ressources à la racine
 
 `tests/client/dependencies-view.test.mjs` charge le vrai `client/views/configuration/index.html`. `AventusDependenciesView.getView(context, uri)` n'utilise pas l'URI fournie. Les liens webview avec nonce et CSP sont dans un commentaire HTML ; les balises actives chargent `/js/index.js` et `/css/index.css` depuis la racine, sans URI webview. Décision attendue : préciser comment la vue doit recevoir la configuration et charger ses ressources dans VS Code.
