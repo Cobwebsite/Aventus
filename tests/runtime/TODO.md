@@ -134,7 +134,8 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [ ] Build du projet : vérifier le détail des chemins de sorties et le nettoyage de la sortie après échec selon la décision dans `BLOCKERS.md`.
 - [x] Révisions du projet : modifier la vue, la logique et le style dans la copie temporaire ; recompiler, vérifier que la nouvelle sortie reflète chaque changement et que l'ancienne définition ne subsiste pas (`compiled-project.test.mjs`).
 - [x] Boucle `for...of` et `@bind` de `RuntimeList` dans `jsdom` : rendu initial, mise à jour de `value`, saisie `input`/`change`, ajout et retrait d'items, retrait de l'instance du registre après destruction (`compiled-project.test.mjs`).
-- [ ] Après destruction du composant compilé : vérifier l'arrêt des effets du template et des événements du binding, puis décider du comportement attendu si les callbacks persistent.
+- [x] Après destruction de `RuntimeList` : retrait du registre mais effet de binding encore actif dans le shadow DOM détaché (`compiled-project.test.mjs`, décision dans `BLOCKERS.md`).
+- [ ] Après décision sur la destruction : vérifier l'arrêt des effets du template et des événements du binding.
 - [ ] Templates `for`, `for...in` et `for...of` : étendre le projet avec un tableau, un objet, une boucle imbriquée et `@Context` ; vérifier les indices/clés, ajout, retrait, réordonnancement et destruction (`wc/loop.md`).
 - [x] Projet compilé : `for...in` sur objet avec ajout/suppression de clé, `if`/`else` basculé par clic, et boucle `for` imbriquée avec `@Context` dont le groupe supprimé est retiré ; `push()` dans la liste enfant ne met pas à jour le DOM (`compiled-project.test.mjs`, décision dans `BLOCKERS.md`).
 - [ ] Templates `if`/`else` : étendre le projet avec des branches imbriquées ; vérifier changement de condition, instances remplacées et destruction de la branche finale (`wc/condition.md`, décision dans `BLOCKERS.md`).

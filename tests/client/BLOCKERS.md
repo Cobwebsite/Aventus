@@ -4,12 +4,6 @@
 
 `tests/client/settings.test.mjs` bloque volontairement `WorkspaceConfiguration.update` : la promesse de `SetSettings.action` se termine alors que l'écriture n'est pas encore achevée, car l'action n'attend pas `SettingsManager.setSettings`. Décision attendue : préciser si le serveur doit pouvoir savoir que les réglages sont persistés avant de poursuivre et comment lui signaler un échec.
 
-## La vue des dépendances ignore l'URI et utilise des ressources à la racine
-
-`tests/client/dependencies-view.test.mjs` charge le vrai `client/views/configuration/index.html`. `AventusDependenciesView.getView(context, uri)` n'utilise pas l'URI fournie. Les liens webview avec nonce et CSP sont dans un commentaire HTML ; les balises actives chargent `/js/index.js` et `/css/index.css` depuis la racine, sans URI webview. Décision attendue : préciser comment la vue doit recevoir la configuration et charger ses ressources dans VS Code.
-
-`tests/client/file-command-middleware.test.mjs` montre que `ShowDependencies.middleware` renvoie simplement ses arguments. Le code qui ouvrirait `AventusDependenciesView` est commenté ; cette commande ne crée donc aucun panneau côté client. Décision attendue : préciser si la vue doit être ouverte par cette commande ou si la commande est destinée uniquement au serveur.
-
 ## L'installation acceptée de `db-query` n'est pas attendue
 
 `tests/client/migration-process.test.mjs` simule l'acceptation de l'installation lorsque `db-query` manque. `showLoadingMessage` déclenche la commande `dotnet tool install`, puis `executeDbQuery` vérifie immédiatement de nouveau la présence de `db-query` et rejette avant la fin de l'installation. Le test observe ensuite l'outil devenu disponible. Décision attendue : préciser si la requête doit attendre l'installation et reprendre automatiquement, et comment signaler un refus ou un échec d'installation.

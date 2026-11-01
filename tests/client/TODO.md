@@ -30,7 +30,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Éditeur i18n : sauvegarde globale de clé API, modification locale puis externe, traduction simulée avec succès/échec et événements après fermeture du panneau (`editors-change.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Rendu HTML réel des éditeurs i18n/DB : résolution des chemins webview, nonce et source CSP dans les fichiers `index.html` (`editors-change.test.mjs`).
 - [x] Vue des dépendances : création du panneau et rendu HTML réel ; URI de configuration ignorée et ressources actives en chemins absolus (`dependencies-view.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] Commande `ShowDependencies` : middleware qui transmet seulement les arguments, sans ouvrir la vue (`file-command-middleware.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Commande `ShowDependencies` : middleware qui transmet seulement les arguments ; la vue client a été supprimée (`file-command-middleware.test.mjs`).
 - [x] Aperçu : création du panneau puis échec ENOENT dû au fichier HTML absent (`preview-view.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Panneau i18n : fermeture ciblée par URI et réouverture du même document (`editors-change.test.mjs`).
 - [x] Panneau i18n réouvert : l'ancien et le nouveau webview reçoivent tous deux la modification du document, avec deux paires d'abonnements conservées (`editors-change.test.mjs`, décision dans `BLOCKERS.md`).
