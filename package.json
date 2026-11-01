@@ -934,6 +934,7 @@
 		"postcss-sorting": "^10.0.0",
 		"rimraf": "^6.1.3",
 		"rolldown": "^1.1.0",
+		"temporal-polyfill": "^1.0.6",
 		"ts-loader": "^9.5.7",
 		"ts-patch": "^3.3.0",
 		"tsc-alias": "^1.8.16",
