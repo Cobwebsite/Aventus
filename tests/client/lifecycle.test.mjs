@@ -115,7 +115,7 @@ test('registered internal command forwards its arguments to the selected middlew
   assert.deepEqual(events.at(-1), ['internal', ['first', { id: 2 }]]);
 });
 
-test('initialization callbacks currently run again if initDone is called twice', async () => {
+test('initialization callbacks run once even if initDone is called twice', async () => {
   const client = new Client();
   let calls = 0;
   client.onInit(() => calls++);
@@ -126,7 +126,7 @@ test('initialization callbacks currently run again if initDone is called twice',
   client.onInit(() => calls++);
   assert.equal(calls, 2);
   client.initDone();
-  assert.equal(calls, 3);
+  assert.equal(calls, 2);
 });
 
 test('starting file system twice replaces the watcher without stopping the first one', async () => {

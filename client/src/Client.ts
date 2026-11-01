@@ -211,6 +211,7 @@ export class Client {
     public initDone() {
         this._isInit = true;
         const cbs = [...this.initCbs];
+        this.initCbs = [];
         for (let cb of cbs) {
             cb();
         }

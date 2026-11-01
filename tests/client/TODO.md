@@ -56,7 +56,7 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Renommage de fichiers et de composants : conversion des URI, ordre des paires et transmission des arguments ; imports de template/projet sans arguments (`file-command-middleware.test.mjs`).
 - [x] Commandes de création, modification et suppression de fichier : transmission de l'URI de `execute` au middleware (`file-command-middleware.test.mjs`).
 - [x] Build/export/Store : commandes globales sans arguments, exports ciblés par URI et URL de téléchargement préservée (`file-command-middleware.test.mjs`).
-- [x] Initialisation client : attente avant `initDone`, callback immédiat après, et rappel d'un ancien callback après un second `initDone` (`lifecycle.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Initialisation client : attente avant `initDone`, callback immédiat après et exécution unique des callbacks malgré un second `initDone` (`lifecycle.test.mjs`).
 - [x] Watcher du client : deux appels à `startFileSystem()` remplacent l'instance sans arrêter la première (`lifecycle.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Statut de compilation : succès, erreur, ouverture des fichiers de débogage et effacement du statut après retrait du dernier build (`compiled-status.test.mjs`).
 - [x] Messages de chargement : deux opérations indépendantes, arrêt et arrêt reçu avant le démarrage (`loading-message.test.mjs`).
