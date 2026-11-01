@@ -4741,9 +4741,10 @@ let GenericRam=class GenericRam {
             if (this.records.has(id)) {
                 let uniqueRecord = this.records.get(id);
                 await resultTemp.runAsync(() => this.beforeRecordSet(uniqueRecord));
+                if (!resultTemp.success)
+                    return resultTemp;
                 // this.unlinkRamItem(uniqueRecord);
-                if (resultTemp.success)
-                    this.mergeObject(uniqueRecord, item);
+                this.mergeObject(uniqueRecord, item);
                 await resultTemp.runAsync(() => this.afterRecordSet(uniqueRecord));
                 // this.linkRamItem(uniqueRecord);
                 resultTemp.result = {
@@ -4754,6 +4755,8 @@ let GenericRam=class GenericRam {
             else {
                 let realObject = this.getObjectForRam(item);
                 await resultTemp.runAsync(() => this.beforeRecordSet(realObject));
+                if (!resultTemp.success)
+                    return resultTemp;
                 this.records.set(id, realObject);
                 await resultTemp.runAsync(() => this.afterRecordSet(realObject));
                 // this.linkRamItem(realObject);

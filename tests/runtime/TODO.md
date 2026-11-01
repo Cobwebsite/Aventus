@@ -45,13 +45,13 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `HttpResponse` : lecture texte et blob unique, puis échec de lecture mémorisé sans nouvel essai (`http-cache.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `HttpRouter` : méthodes PUT/DELETE/OPTION et remplacement d'une erreur de transport par middleware (`http-request.test.mjs`).
 - [x] `GenericRam` : création, lecture, mise à jour en place, suppression, notifications, identifiant absent et enregistrement introuvable (`ram.test.mjs`).
-- [x] `GenericRam` : création répétée sur un identifiant existant, caractérisée comme mise à jour en place avec événement `created` (`ram.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `GenericRam` : création répétée sur un identifiant existant refusée sans modifier l'enregistrement ni publier `created` ; `update()` reste disponible (`ram.test.mjs`).
 - [x] `Data` : métadonnées de type, sérialisation et clonage indépendant via `Converter` (`data.test.mjs`).
 - [x] `GenericRam` : création/mise à jour/suppression de listes, lecture par plusieurs identifiants et abonnements locaux (`ram.test.mjs`).
-- [x] `GenericRam` : erreur de `beforeRecordSet` lors d'une création, stockage partiel et reprise caractérisés (`ram.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `GenericRam` : erreur de `beforeRecordSet` empêchant la création sans stockage ni notification, suivie d'un nouvel essai réussi (`ram.test.mjs`).
 - [x] `GenericRam` : erreurs de `afterRecordSet` et de `beforeRecordDelete`, état stocké et notifications vérifiés (`ram.test.mjs`, décisions dans `BLOCKERS.md`).
 - [x] `GenericRam` : création et suppression de listes partiellement invalides, état conservé après échec et reprise ; créations concurrentes du même objet de requête (`ram.test.mjs`, décision de liste dans `BLOCKERS.md`).
-- [x] `GenericRam` : mise à jour de liste partiellement invalide et reprise ; requêtes de création distinctes concurrentes visant le même identifiant, avec identité et notifications vérifiées (`ram.test.mjs`, décisions dans `BLOCKERS.md`).
+- [x] `GenericRam` : mise à jour de liste partiellement invalide et reprise ; la seconde création concurrente visant le même identifiant est refusée sans modifier la première (`ram.test.mjs`, décision de liste dans `BLOCKERS.md`).
 - [x] `Json` : champs non modifiables, préservation des champs absents et option `replaceUndefined` (`json.test.mjs`).
 - [x] `Json` : entrées `null`, collision de clés renommées, ordre des transformations et priorité des clés exactes sur leurs variantes capitalisées (`json.test.mjs`, décisions dans `BLOCKERS.md`).
 - [x] Résultats avec erreur : extraction asynchrone, arrêt après échec et résultat falsy caractérisé (`error-result.test.mjs`, décision dans `BLOCKERS.md`).
