@@ -16,7 +16,7 @@ export function compareObject(obj1: any, obj2: any, tableOrder: boolean = true):
     return compareObjectRecursive(obj1, obj2, tableOrder, new WeakMap());
 }
 
-function compareObjectRecursive(obj1: any, obj2: any, tableOrder: boolean, active: WeakMap<object, WeakSet<object>>): boolean {
+function compareObjectRecursive(obj1: any, obj2: any, tableOrder: boolean, active: WeakMap<object, WeakSet<object>>, proxyData1: boolean = false, proxyData2: boolean = false): boolean {
     if(obj1 !== null && obj2 !== null && typeof obj1 === 'object' && typeof obj2 === 'object') {
         let matches = active.get(obj1);
         if(matches?.has(obj2)) {
@@ -28,16 +28,16 @@ function compareObjectRecursive(obj1: any, obj2: any, tableOrder: boolean, activ
         }
         matches.add(obj2);
         try {
-            return compareObjectValue(obj1, obj2, tableOrder, active);
+            return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
         }
         finally {
             matches.delete(obj2);
         }
     }
-    return compareObjectValue(obj1, obj2, tableOrder, active);
+    return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
 }
 
-function compareObjectValue(obj1: any, obj2: any, tableOrder: boolean, active: WeakMap<object, WeakSet<object>>): boolean {
+function compareObjectValue(obj1: any, obj2: any, tableOrder: boolean, active: WeakMap<object, WeakSet<object>>, proxyData1: boolean, proxyData2: boolean): boolean {
     if(Array.isArray(obj1)) {
         // array
         if(!Array.isArray(obj2)) {
@@ -49,7 +49,7 @@ function compareObjectValue(obj1: any, obj2: any, tableOrder: boolean, active: W
         }
         if(tableOrder) {
             for(let i = 0; i < obj1.length; i++) {
-                if(!compareObjectRecursive(obj1[i], obj2[i], true, active)) {
+                if(!compareObjectRecursive(obj1[i], obj2[i], true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -59,7 +59,7 @@ function compareObjectValue(obj1: any, obj2: any, tableOrder: boolean, active: W
             for(let i = 0; i < obj1.length; i++) {
                 let foundElement = false;
                 for(let j = 0; j < obj2.length; j++) {
-                    if(compareObjectRecursive(obj1[i], obj2[j], true, active)) {
+                    if(compareObjectRecursive(obj1[i], obj2[j], true, active, proxyData1, proxyData2)) {
                         obj2.splice(j, 1);
                         foundElement = true;
                         break;
@@ -92,13 +92,12 @@ function compareObjectValue(obj1: any, obj2: any, tableOrder: boolean, active: W
             return false;
         }
 
-        let oneProxy = false;
         if(Watcher.is(obj1)) {
-            oneProxy = true;
+            proxyData1 = true;
             obj1 = Watcher.extract(obj1, false);
         }
         if(Watcher.is(obj2)) {
-            oneProxy = true;
+            proxyData2 = true;
             obj2 = Watcher.extract(obj2, false);
         }
 
@@ -113,7 +112,7 @@ function compareObjectValue(obj1: any, obj2: any, tableOrder: boolean, active: W
                     return false;
                 }
                 // object values are equals
-                if(!compareObjectRecursive(obj1.get(key), obj2.get(key), true, active)) {
+                if(!compareObjectRecursive(obj1.get(key), obj2.get(key), true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -121,20 +120,18 @@ function compareObjectValue(obj1: any, obj2: any, tableOrder: boolean, active: W
         }
         else {
             // not same keys length
-            if(Object.keys(obj1).length !== Object.keys(obj2).length) {
+            const keys1 = Object.keys(obj1).filter(key => !proxyData1 || !Watcher['__reservedName'][key]);
+            const keys2 = Object.keys(obj2).filter(key => !proxyData2 || !Watcher['__reservedName'][key]);
+            if(keys1.length !== keys2.length) {
                 return false;
             }
-            for(let key in obj1) {
-                // avoid checking reserved name inside proxy
-                if(oneProxy && Watcher['__reservedName'][key]) {
-                    continue;
-                }
+            for(let key of keys1) {
                 // obj2 has key ?
-                if(!(key in obj2)) {
+                if(!keys2.includes(key)) {
                     return false;
                 }
                 // object values are equals
-                if(!compareObjectRecursive(obj1[key], obj2[key], true, active)) {
+                if(!compareObjectRecursive(obj1[key], obj2[key], true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
