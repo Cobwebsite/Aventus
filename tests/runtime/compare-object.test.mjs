@@ -59,14 +59,30 @@ test('compareObject compares cyclic structures without overflowing', () => {
     assert.equal(compareObject(leftArray, rightArray), true);
 });
 
-test('compareObject currently treats a Watcher proxy and matching plain data as different', () => {
+test('compareObject compares Watcher proxy data with plain objects', () => {
     const context = loadRuntimeContext();
     const { compareObject, Watcher } = context.Aventus;
     const model = Watcher.get(runInNewContext('({ child: { count: 1 } })', context));
     const before = runInNewContext('({ child: { count: 1 } })', context);
     const after = runInNewContext('({ child: { count: 2 } })', context);
-    assert.equal(compareObject(model, before), false);
+    assert.equal(compareObject(model, before), true);
+    assert.equal(compareObject(before, model), true);
     model.child.count = 2;
     assert.equal(compareObject(model, before), false);
-    assert.equal(compareObject(model, after), false);
+    assert.equal(compareObject(model, after), true);
+    assert.equal(compareObject(model.child, after.child), true);
+    assert.equal(Object.hasOwn(before, '__path'), false);
+    assert.equal(Object.hasOwn(after, '__path'), false);
+});
+
+test('compareObject preserves Watcher paths and subsequent notifications', () => {
+    const context = loadRuntimeContext();
+    const { compareObject, Watcher } = context.Aventus;
+    const paths = [];
+    const model = Watcher.get(runInNewContext('({ child: { count: 1 } })', context), (_action, path) => paths.push(path));
+    const plain = runInNewContext('({ child: { count: 1 } })', context);
+    assert.equal(compareObject(model, plain), true);
+    assert.equal(Watcher.extract(model.child, false).__path, 'child');
+    model.child.count = 2;
+    assert.equal(paths.includes('child.count'), true);
 });
