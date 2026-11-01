@@ -202,6 +202,7 @@ export class HttpRequest {
             if(HttpRequest.options?.beforeSend) {
                 const beforeSendResult = await HttpRequest.options.beforeSend(this);
                 result.errors = beforeSendResult.errors;
+                if(!result.success) return result;
             }
             const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
             if(this.useCache) {
