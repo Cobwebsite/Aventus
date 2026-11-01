@@ -1469,8 +1469,26 @@ let ConverterTransform=class ConverterTransform {
                     obj = obj.fromJSON(data);
                 }
                 else {
+                    const registeredSchema = Converter.getSchema(data.$type);
+                    const staticSchema = obj instanceof Data ? obj.constructor.$schema : undefined;
                     obj = Json.classFromJson(obj, data, {
                         transformValue: (key, value) => {
+                            const schemaType = registeredSchema?.[key] ?? staticSchema?.[key];
+                            if (schemaType === 'boolean')
+                                return !!value;
+                            if (schemaType === 'number')
+                                return isNaN(Number(value)) ? 0 : Number(value);
+                            if (schemaType === 'string')
+                                return value == null ? value : String(value);
+                            if (schemaType && ['Date', 'Aventus.Date', 'date'].includes(schemaType)) {
+                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
+                            }
+                            if (schemaType && ['DateTime', 'Aventus.DateTime', 'datetime'].includes(schemaType)) {
+                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
+                            }
+                            if (schemaType && ['Time', 'Aventus.Time', 'time'].includes(schemaType)) {
+                                return value == null ? null : value instanceof Time ? value : Time.parse(value);
+                            }
                             if (obj[key] instanceof Date) {
                                 return value == null ? null : value instanceof Date ? value : Date.parse(value);
                             }
@@ -1489,27 +1507,6 @@ let ConverterTransform=class ConverterTransform {
                                     map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
                                 }
                                 return map;
-                            }
-                            else if (obj instanceof Data) {
-                                let cst = obj.constructor;
-                                if (['Time', 'Aventus.Time', 'time'].includes(cst.$schema[key])) {
-                                    return value == null ? null : value instanceof Time ? value : Time.parse(value);
-                                }
-                                else if (cst.$schema[key] == 'boolean') {
-                                    return value ? true : false;
-                                }
-                                else if (cst.$schema[key] == 'number') {
-                                    return isNaN(Number(value)) ? 0 : Number(value);
-                                }
-                                else if (cst.$schema[key] == 'number') {
-                                    return isNaN(Number(value)) ? 0 : Number(value);
-                                }
-                                else if (cst.$schema[key] == 'Date' || cst.$schema[key] == 'Aventus.Date' || cst.$schema[key] == 'date') {
-                                    return value == null ? null : value instanceof Date ? value : Date.parse(value);
-                                }
-                                else if (cst.$schema[key] == "DateTime" || cst.$schema[key] == "Aventus.DateTime" || cst.$schema[key] == "datetime") {
-                                    return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
-                                }
                             }
                             return this.transformLoop(value);
                         }
@@ -1581,6 +1578,9 @@ let Converter=class Converter {
     * Map storing schemas for registered types.
     */
     static schema = new Map();
+    static getSchema($type) {
+        return this.schema.get($type);
+    }
     /**
      * Internal converter instance.
      */

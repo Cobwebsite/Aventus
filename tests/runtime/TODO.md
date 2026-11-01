@@ -110,7 +110,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 
 ### Outils et valeurs
 
-- [x] `Converter` : conversion des booléens et nombres selon `$schema` statique de `Data` ; schéma fourni à `register()` conservé mais non appliqué (`converter.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `Converter` : conversion selon `$schema` statique de `Data` et schéma fourni à `register()`, avec priorité du schéma enregistré par champ (`converter.test.mjs`).
 - [ ] `Converter` : conversion des classes calendrier du runtime avec `temporal-polyfill` injecté dans le contexte de test.
 - [x] `DateSettings` : configuration partielle, remplacement des formats, copies indépendantes et refus atomique des valeurs invalides (`date-settings.test.mjs`).
 - [x] `Date`, `DateTime` et `Time` : opérations Temporal de base avec `temporal-polyfill` (`calendar-temporal.test.mjs`).

@@ -89,11 +89,24 @@ test('Converter applies Data static schemas to boolean and numeric fields', () =
     assert.equal(result.count, 42);
 });
 
-test('Converter currently stores but does not apply the schema passed to register', () => {
+test('Converter applies registered schemas to ordinary classes', () => {
     const { Converter } = loadRuntime();
     class Record { constructor() { this.count = 0; } }
     Converter.register('test.RegisteredSchema', Record, { count: 'number' });
     const result = Converter.transform({ $type: 'test.RegisteredSchema', count: '42' });
     assert.equal(result instanceof Record, true);
-    assert.equal(result.count, '42');
+    assert.equal(result.count, 42);
+});
+
+test('Converter gives registered fields priority and falls back to the Data static schema', () => {
+    const { Converter, Data } = loadRuntime();
+    class Record extends Data {
+        static $schema = { count: 'boolean', enabled: 'boolean', label: 'number' };
+        constructor() { super(); this.count = false; this.enabled = false; this.label = 0; }
+    }
+    Converter.register('test.SchemaPriority', Record, { count: 'number', label: 'string' });
+    const result = Converter.transform({ $type: 'test.SchemaPriority', count: '42', enabled: 1, label: 7 });
+    assert.equal(result.count, 42);
+    assert.equal(result.enabled, true);
+    assert.equal(result.label, '7');
 });
