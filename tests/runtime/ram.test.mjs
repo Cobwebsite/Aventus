@@ -139,19 +139,23 @@ test('GenericRam reports an after-set error and publishes the stored creation', 
     assert.deepEqual(events, [11]);
 });
 
-test('GenericRam deletes a record when the before-delete hook fails, without publishing deletion', async () => {
-    const { ram, RamErrorCode } = makeRam();
-    await ram.create({ id: 12, name: 'stored' });
+test('GenericRam preserves a record when the before-delete hook fails and permits retry', async () => {
+    const { ram } = makeRam();
+    const item = await ram.create({ id: 12, name: 'stored' });
     const events = [];
     ram.onDeleted(item => events.push(item.id));
     ram.rejectDelete = true;
     const result = await ram.deleteByIdWithError(12);
     assert.equal(result.success, false);
     assert.equal(result.containsCode(97), true);
-    assert.equal(await ram.getById(12), undefined);
+    assert.equal(await ram.getById(12), item);
     assert.deepEqual(events, []);
+    ram.rejectDelete = false;
     const repeated = await ram.deleteByIdWithError(12);
-    assert.equal(repeated.containsCode(RamErrorCode.noItemInsideRam), true);
+    assert.equal(repeated.success, true);
+    assert.equal(repeated.result, item);
+    assert.equal(await ram.getById(12), undefined);
+    assert.deepEqual(events, [12]);
 });
 
 test('GenericRam keeps earlier list creations when a later item has no identifier', async () => {

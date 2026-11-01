@@ -1083,6 +1083,7 @@ export abstract class GenericRam<
             if(oldItem) {
                 await action.runAsync(() => this.beforeDeleteItem(oldItem, fromList));
                 await action.runAsync(() => this.beforeRecordDelete(oldItem));
+                if(!action.success) return action;
                 this.records.delete(id);
                 await action.runAsync(() => this.afterRecordDelete(oldItem));
                 await action.runAsync(() => this.afterDeleteItem(oldItem, fromList));

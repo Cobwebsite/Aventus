@@ -49,7 +49,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `Data` : métadonnées de type, sérialisation et clonage indépendant via `Converter` (`data.test.mjs`).
 - [x] `GenericRam` : création/mise à jour/suppression de listes, lecture par plusieurs identifiants et abonnements locaux (`ram.test.mjs`).
 - [x] `GenericRam` : erreur de `beforeRecordSet` empêchant la création sans stockage ni notification, suivie d'un nouvel essai réussi (`ram.test.mjs`).
-- [x] `GenericRam` : erreur de `afterRecordSet` conservée dans le résultat avec enregistrement et notification `created` ; erreur de `beforeRecordDelete` encore à décider (`ram.test.mjs`, décision de suppression dans `BLOCKERS.md`).
+- [x] `GenericRam` : erreur de `afterRecordSet` conservée dans le résultat avec enregistrement et notification `created` ; erreur de `beforeRecordDelete` empêchant la suppression et permettant un nouvel essai (`ram.test.mjs`).
 - [x] `GenericRam` : création et suppression de listes partiellement invalides, état conservé après échec et reprise ; créations concurrentes du même objet de requête (`ram.test.mjs`, décision de liste dans `BLOCKERS.md`).
 - [x] `GenericRam` : mise à jour de liste partiellement invalide et reprise ; la seconde création concurrente visant le même identifiant est refusée sans modifier la première (`ram.test.mjs`, décision de liste dans `BLOCKERS.md`).
 - [x] `Json` : champs non modifiables, préservation des champs absents et option `replaceUndefined` (`json.test.mjs`).
