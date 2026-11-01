@@ -125,7 +125,6 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 
 ### Données, HTTP et intégrations
 
-- [ ] `Communication` et `I18n` : messages, locales, valeurs manquantes et changement de langue, après décision sur leurs API publiques dans `BLOCKERS.md`.
 
 ### Projet Aventus de référence : génération et exécution
 
@@ -145,4 +144,3 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [ ] WebComponent compilé : propriétés et attributs typés, `@Watch`, `@Signal`, état local, slots/blocs, héritage et cycle `postCreation`/`postDestruction` (`wc/property.md`, `attribute.md`, `watch.md`, `signal.md`, `state.md`, `create.md`, `inheritance.md`).
 - [ ] Styles de composant : style local/hérité/externe, modification globale et thème dans un DOM de référence (`wc/style.md`).
 - [ ] `Data` compilé et `@Convertible` : génération de `Fullname`, `$type`, `$schema`, restauration et clonage typés (`data/create.md`, `lib/converter.md`).
-- [ ] Traduction compilée : `t()` global, `this.t()` de composant, substitution de variables et changement de locale avec fichiers de traduction (`i18n/config.md`, `i18n/usage.md` ; API absente du bundle de base, voir `BLOCKERS.md`).
