@@ -77,7 +77,7 @@ test('a real Aventus project compiles its loop and two-way binding into an execu
     assert.equal(registrations.get('rt-runtime-list'), globals.RuntimeReference.RuntimeList);
 });
 
-test('an invalid source reports a diagnostic but still writes an output', t => {
+test('an invalid first build reports a diagnostic without publishing an output', t => {
     const root = copyProject(t);
     const logic = join(root, 'src/RuntimeList/RuntimeList.wcl.avt');
     writeFileSync(logic, readFileSync(logic, 'utf8').replace('= "initial";', '= ;'));
@@ -87,7 +87,22 @@ test('an invalid source reports a diagnostic but still writes an output', t => {
     assert.equal(report.success, false);
     assert.equal(report.builds['RuntimeReference@Main'].success, false);
     assert.match(JSON.stringify(report.builds['RuntimeReference@Main'].diagnostics), /RuntimeList\.wcl\.avt/);
-    assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), true);
+    assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
+});
+
+test('an invalid rebuild keeps the last valid output', t => {
+    const root = copyProject(t);
+    const output = join(root, 'dist/runtime-reference.js');
+    const { code } = buildProject(root);
+    const logic = join(root, 'src/RuntimeList/RuntimeList.wcl.avt');
+    writeFileSync(logic, readFileSync(logic, 'utf8').replace('= "initial";', '= ;'));
+    const result = runBuild(root);
+    assert.equal(result.error, undefined, result.error?.message);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.success, false);
+    assert.equal(report.builds['RuntimeReference@Main'].success, false);
+    assert.match(JSON.stringify(report.builds['RuntimeReference@Main'].diagnostics), /RuntimeList\.wcl\.avt/);
+    assert.equal(readFileSync(output, 'utf8'), code);
 });
 
 test('rebuilding the reference project replaces view, logic and style in the generated bundle', t => {

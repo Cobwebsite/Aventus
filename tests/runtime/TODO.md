@@ -130,8 +130,8 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 
 - [x] Projet Aventus de référence : configuration, compilation par le CLI, sortie contenant une boucle simple et un binding bidirectionnel, chargement du bundle et enregistrement du composant (`fixtures/reference-project`, `compiled-project.test.mjs`).
 - [x] Build du projet : réussite du CLI, nom de build, sortie fraîche dans une copie temporaire sans `dist` préexistant et enregistrement du composant (`compiled-project.test.mjs`).
-- [x] Build du projet invalide : diagnostic et échec du rapport, mais sortie tout de même créée (`compiled-project.test.mjs`, décision dans `BLOCKERS.md`).
-- [ ] Build du projet : vérifier le détail des chemins de sorties et le nettoyage de la sortie après échec selon la décision dans `BLOCKERS.md`.
+- [x] Build du projet invalide : diagnostic et échec du rapport sans publier de sortie lors du premier build (`compiled-project.test.mjs`).
+- [x] Build du projet : un échec de recompilation conserve la dernière sortie valide (`compiled-project.test.mjs`).
 - [x] Révisions du projet : modifier la vue, la logique et le style dans la copie temporaire ; recompiler, vérifier que la nouvelle sortie reflète chaque changement et que l'ancienne définition ne subsiste pas (`compiled-project.test.mjs`).
 - [x] Boucle `for...of` et `@bind` de `RuntimeList` dans Chromium via Playwright : rendu initial, mise à jour de `value`, saisie `input`/`change`, ajout et retrait d'items, retrait de l'instance du registre après destruction (`compiled-project.test.mjs`).
 - [x] Après destruction de `RuntimeList` : retrait du registre mais effet de binding encore actif dans le shadow DOM détaché (`compiled-project.test.mjs`, décision dans `BLOCKERS.md`).
