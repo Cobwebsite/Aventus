@@ -3,27 +3,49 @@ import { HttpResponse } from "./HttpResponse.lib.avt";
 export class HttpCache {
 
     private static cache: Map<string, HttpResponse> = new Map();
+    private static pending: Map<string, Promise<HttpResponse>> = new Map();
 
-    public static async fetch(fullUrl: string, request: RequestInit): Promise<HttpResponse> {
+    public static fetch(fullUrl: string, request: RequestInit): Promise<HttpResponse> {
         const key = this.generateCacheKey(fullUrl, request);
         if(key) {
             const value = this.cache.get(key);
-            if(value) return value;
+            if(value) return Promise.resolve(value);
+            const pending = this.pending.get(key);
+            if(pending) return pending;
         }
 
-        const result = await fetch(fullUrl, request);
-        const response = new HttpResponse(result);
-        if(key)
-            this.cache.set(key, response);
-        return response;
+        let transport: Promise<Response>;
+        try {
+            transport = fetch(fullUrl, request);
+        }
+        catch(error) {
+            return Promise.reject(error);
+        }
+        let pending: Promise<HttpResponse>;
+        pending = Promise.resolve(transport).then(result => {
+            const response = new HttpResponse(result);
+            if(key && this.pending.get(key) === pending) {
+                this.cache.set(key, response);
+            }
+            return response;
+        }).finally(() => {
+            if(key && this.pending.get(key) === pending) {
+                this.pending.delete(key);
+            }
+        });
+        if(key) {
+            this.pending.set(key, pending);
+        }
+        return pending;
     }
 
-	public static clear(fullUrl: string, request: RequestInit): void {
+    public static clear(fullUrl: string, request: RequestInit): void {
         const key = this.generateCacheKey(fullUrl, request);
         if(key) {
+            this.pending.delete(key);
             if(this.cache.has(key)) {
-				this.cache.delete(key)
-			}
+                this.cache.delete(key);
+            }
         }
     }
 
