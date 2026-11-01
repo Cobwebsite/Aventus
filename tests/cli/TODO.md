@@ -40,14 +40,14 @@ Cocher uniquement après vérification automatisée. Couvrir le cas nominal, les
 - [x] Registre des notifications CLI : canaux init/HTTP/statistiques, callbacks HTTP retirés pendant la diffusion et signal de fin d'initialisation (`notifications.test.mjs`).
 - [x] Connexion et registre réels : diffusion du démarrage HTTP dans l'ordre des abonnés, arrêt sans diffusion côté CLI et mise à jour des statistiques sur la même connexion (`notification-dispatch.test.mjs`).
 - [x] Notifications destinées à l'éditeur : réception sans effet côté CLI (`notifications.test.mjs`).
-## Après analyse des blocages
+## Parcours intégrés
 
-Ces parcours restent à préciser ou à débloquer dans `BLOCKERS.md` avant de figer leurs résultats attendus.
+Les décisions de `BLOCKERS.md` sont résolues. Chaque parcours ci-dessous a été vérifié automatiquement.
 
-- [ ] `watch` : modification puis correction d'une source réelle.
-- [ ] Templates, projets, Store et dépendances : parcours intégré des prompts et installations dans un dossier temporaire, puis nettoyage. Les commandes CLI délèguent les prompts et l'installation au serveur.
+- [x] `watch` packagé : modification puis correction d'une source réelle, avec arrêt et nettoyage (`watch-project-process.test.mjs`).
+- [x] Templates, projets, Store et dépendances packagés : prompts, installations locales dans un dossier temporaire, annulation de connexion Store, génération du dossier de dépendances et nettoyage (`service-project-process.test.mjs`).
 - [x] Interaction terminal : prompt de logs Inquirer réel, rafraîchissement des diagnostics, fermeture par Ctrl+L et nettoyage de l'abonnement (`log-prompt.test.mjs`).
 - [x] Interaction terminal : vues Inquirer réelles de sélection, sélection multiple et saisie ; choix désactivé, validation, correction et fermeture (`terminal-prompts.test.mjs`).
 - [x] Interaction terminal : arbre de fichiers Inquirer réel sur dossier temporaire, choix d'un dossier, navigation vers un fichier et annulation sans sortie de débogage (`terminal-prompts.test.mjs`).
-- [ ] Parcours intégré d'un build réel sur un projet temporaire : sorties, diagnostics après correction et nettoyage.
+- [x] Build packagé sur un projet temporaire : sortie écrite, diagnostic d'erreur, succès après correction et nettoyage (`build-project-process.test.mjs`).
 
