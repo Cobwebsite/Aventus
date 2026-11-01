@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import { loadRuntime } from './helpers/load-runtime.mjs';
 
@@ -28,31 +27,29 @@ test('ActionGuard runs different key sets independently', async () => {
     assert.deepEqual(results, [1, 2]);
 });
 
-test('ActionGuard currently leaves a rejected action and its retry pending', () => {
-    const loader = new URL('./helpers/load-runtime.mjs', import.meta.url).href;
-    const script = `
-        import { loadRuntime } from ${JSON.stringify(loader)};
-        const { ActionGuard } = loadRuntime();
-        const guard = new ActionGuard();
-        const rejections = [];
-        process.on('unhandledRejection', error => rejections.push(error.message));
-        const first = guard.run(['key'], async () => { throw new Error('action failed'); });
-        await new Promise(resolve => setImmediate(resolve));
-        let retryExecuted = false;
-        const retry = guard.run(['key'], async () => { retryExecuted = true; return 'recovered'; });
-        const status = await Promise.race([
-            Promise.allSettled([first, retry]).then(() => 'settled'),
-            new Promise(resolve => setTimeout(() => resolve('pending'), 20)),
-        ]);
-        process.stdout.write(JSON.stringify({ rejections, retryExecuted, status }));
-    `;
-    const child = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
-        encoding: 'utf8', timeout: 5000,
-        env: { ...process.env },
-    });
-    assert.equal(child.error, undefined);
-    assert.equal(child.status, 0, child.stderr);
-    assert.deepEqual(JSON.parse(child.stdout), {
-        rejections: ['action failed'], retryExecuted: false, status: 'pending',
-    });
+test('ActionGuard rejects every matching caller and releases the key for a retry', async () => {
+    const { ActionGuard } = loadRuntime();
+    const guard = new ActionGuard();
+    const error = new Error('action failed');
+    let fail;
+    const gate = new Promise((resolve, reject) => { fail = reject; });
+    let executions = 0;
+    const first = guard.run(['key'], () => { executions++; return gate; });
+    const second = guard.run(['key'], async () => { executions++; return 'unexpected'; });
+    assert.equal(executions, 1);
+    fail(error);
+    const results = await Promise.allSettled([first, second]);
+    assert.deepEqual(results.map(result => result.status), ['rejected', 'rejected']);
+    assert.equal(results[0].reason, error);
+    assert.equal(results[1].reason, error);
+    assert.equal(await guard.run(['key'], async () => { executions++; return 'recovered'; }), 'recovered');
+    assert.equal(executions, 2);
+});
+
+test('ActionGuard also releases the key after a synchronous throw', async () => {
+    const { ActionGuard } = loadRuntime();
+    const guard = new ActionGuard();
+    const error = new Error('synchronous failure');
+    await assert.rejects(guard.run(['key'], () => { throw error; }), reason => reason === error);
+    assert.equal(await guard.run(['key'], async () => 'recovered'), 'recovered');
 });
