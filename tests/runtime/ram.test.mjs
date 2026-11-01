@@ -79,16 +79,20 @@ test('GenericRam local subscribers receive updates and deletion until the record
     assert.equal(await ram.getById(7), undefined);
 });
 
-test('GenericRam currently stores a new record despite a rejected record-set hook', async () => {
+test('GenericRam does not store a new record after a rejected record-set hook', async () => {
     const { ram } = makeRam();
+    const events = [];
+    ram.onCreated(item => events.push(item.id));
     ram.rejectSet = true;
     const result = await ram.createWithError({ id: 8, name: 'blocked' });
     assert.equal(result.success, false);
     assert.equal(result.containsCode(99), true);
-    assert.equal((await ram.getById(8)).name, 'blocked');
+    assert.equal(await ram.getById(8), undefined);
+    assert.deepEqual(events, []);
     ram.rejectSet = false;
-    assert.equal((await ram.update({ id: 8, name: 'allowed' })).name, 'allowed');
+    assert.equal((await ram.create({ id: 8, name: 'allowed' })).name, 'allowed');
     assert.equal((await ram.getById(8)).name, 'allowed');
+    assert.deepEqual(events, [8]);
 });
 
 test('GenericRam reports missing identifiers and missing records without changing storage', async () => {
