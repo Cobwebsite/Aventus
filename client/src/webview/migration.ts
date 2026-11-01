@@ -109,8 +109,8 @@ export class AventusMigration {
 					Username: data.Username
 				}
 				try {
-					const result = await this.executeDbQuery<{ result: number }>(payload);
-					return result[0].result == 1;
+					const result = await this.executeDbQuery<{ result: number | string }>(payload);
+					return result[0]?.result === 1 || result[0]?.result === '1';
 				} catch (e) {
 					return false;
 				}
@@ -283,12 +283,12 @@ export class AventusMigration {
 					const result = JSON.parse(responseData) as {
 						Success: boolean,
 						Result: T[],
-						Errors: string[]
+						Errors: (string | { Message?: string })[]
 					};
 					if (result.Success) {
 						resolve(result.Result);
 					} else {
-						reject(new Error(result.Errors.join(",")));
+						reject(new Error(result.Errors.map(error => typeof error === 'string' ? error : error.Message ?? String(error)).join(",")));
 					}
 				} catch (e) {
 					reject(new Error("Impossible de parser la réponse JSON du binaire .NET"));
