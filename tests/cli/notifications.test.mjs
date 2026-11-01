@@ -25,6 +25,24 @@ test('CLI notification registry exposes init, HTTP and statistics channels', () 
   ]) assert.equal(typeof registry[command]?.action, 'function', command);
 });
 
+test('editor notifications are accepted without CLI side effects', async () => {
+  const payloads = [
+    ['aventus/registerBuild', { pathConfig: 'config.avt', buildName: 'web' }],
+    ['aventus/unregisterBuild', { pathConfig: 'config.avt', buildName: 'web' }],
+    ['aventus/registerData', [['data.avt'], 'web']],
+    ['aventus/unregisterData', 'data.avt'],
+    ['aventus/registerStatic', [['static.avt'], 'web']],
+    ['aventus/unregisterStatic', 'static.avt'],
+    ['aventus/openfile', 'file:///source.avt'],
+    ['aventus/closefile', 'file:///source.avt'],
+    ['aventus/editFile', { uri: 'file:///source.avt', transformations: [] }],
+  ];
+  for (const [command, payload] of payloads) {
+    assert.equal(typeof registry[command]?.action, 'function', command);
+    assert.equal(await registry[command].action(payload), undefined, command);
+  }
+});
+
 test('init notification starts the server only on the final message', () => {
   registry['aventus/initStep'].action('$(loading~spin) Aventus : Loading');
   assert.deepEqual(events, []);
