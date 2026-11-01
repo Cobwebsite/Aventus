@@ -1,0 +1,9 @@
+{
+    "module": "RuntimeReference",
+    "componentPrefix": "rt",
+    "build": [{
+        "name": "Main",
+        "src": ["./src/*"],
+        "compile": [{ "output": "./dist/runtime-reference.js" }]
+    }]
+}

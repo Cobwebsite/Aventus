@@ -1,0 +1,7 @@
+export class RuntimeList extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Watch()
+    public items: string[] = ["alpha", "beta"];
+
+    @Watch()
+    public value: string = "initial";
+}
