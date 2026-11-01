@@ -15,7 +15,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `Json` : sérialisation des valeurs propres et getters hérités avec filtre et transformations ; désérialisation des propriétés modifiables, setters hérités et `undefined` explicite (`json.test.mjs`).
 - [x] `Uri` : extraction des segments nommés, nombres, routes invalides, wildcard et normalisation des chemins (`uri.test.mjs`).
 - [x] Chemins d'objet : lecture point/crochet, segments absents, écriture imbriquée et clés `Map` (`object-path.test.mjs`).
-- [x] Chemins d'objet : chemins vides, lecture à travers une valeur primitive et écriture à travers des intermédiaires falsy ou primitifs (`object-path.test.mjs`, décisions dans `BLOCKERS.md`).
+- [x] Chemins d'objet : chemins vides, lecture à travers une valeur primitive et refus d'écrire à travers un intermédiaire primitif existant (`object-path.test.mjs` ; décision sur le chemin vide dans `BLOCKERS.md`).
 - [x] Résultats avec erreur : arrêt après échec, recherche de code, conversion générique, extraction et propagation (`error-result.test.mjs`).
 - [x] `Effect`, `Computed` et `Watcher.untrack` sur signaux : dépendances conditionnelles, calcul différé, absence de notification si la valeur calculée reste égale, destruction et lecture non suivie (`reactivity.test.mjs`).
 - [x] `Watcher.get` : édition imbriquée et création/suppression à la racine avec chemins publics vérifiés sur des objets du même realm (`reactivity.test.mjs`).
