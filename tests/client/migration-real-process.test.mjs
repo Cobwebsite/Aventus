@@ -36,7 +36,7 @@ const payload = Query => ({ Type: 'sqlite', Host: '', Username: '', Password: ''
 test('real db-query process executes SQLite in memory and returns an application error', { skip: !available, timeout: 15000 }, async () => {
   const rows = await migration.executeDbQuery(payload('SELECT 1 as result'));
   assert.deepEqual(rows, [{ result: '1' }]);
-  await assert.rejects(migration.executeDbQuery(payload('SELECT * FROM missing_table')), /\[object Object\]/);
+  await assert.rejects(migration.executeDbQuery(payload('SELECT * FROM missing_table')), /missing_table/);
   assert.deepEqual(messages, []);
 });
 

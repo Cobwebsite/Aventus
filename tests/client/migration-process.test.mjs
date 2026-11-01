@@ -60,6 +60,8 @@ test('migration process sends JSON payload and resolves a successful response', 
 test('migration process rejects tool errors, exit failures and invalid JSON', async () => {
   state.response = JSON.stringify({ Success: false, Result: [], Errors: ['bad query'] });
   await assert.rejects(migration.executeDbQuery(query), /bad query/);
+  state.response = JSON.stringify({ Success: false, Result: [], Errors: [{ Message: 'missing table' }] });
+  await assert.rejects(migration.executeDbQuery(query), /missing table/);
   state.exitCode = 2;
   await assert.rejects(migration.executeDbQuery(query), /code 2: process failed/);
   state.exitCode = 0;
