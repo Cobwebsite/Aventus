@@ -92,7 +92,7 @@ export class Json {
         let props = Object.getOwnPropertyNames(obj);
         for(let prop of props) {
             let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-            let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+            let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
             if(value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                 let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
                 if(propInfo?.writable) {
@@ -107,7 +107,7 @@ export class Json {
             props = Object.getOwnPropertyNames(cstTemp.prototype);
             for(let prop of props) {
                 let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-                let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+                let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
                 if(value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                     let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
                     if(propInfo?.set) {
