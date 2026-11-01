@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { build } = require('esbuild');
-const state = { tools: { dotnet: true, 'db-query': true }, response: '', exitCode: 0, payloads: [], errors: [], spawned: [], installs: [] };
+const state = { tools: { dotnet: true, 'db-query': true }, response: '', exitCode: 0, payloads: [], errors: [], spawned: [], installs: [], installError: null };
 globalThis.__aventusMigrationProcess = state;
 const result = await build({ entryPoints: ['client/src/webview/migration.ts'], absWorkingDir: process.cwd(), bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false,
   plugins: [{ name: 'migration-doubles', setup(build) {
@@ -42,7 +42,7 @@ const vscode = { window: {
 const module = { exports: {} };
 new Function('module', 'exports', 'require', result.outputFiles[0].text)(module, module.exports, name => {
   if (name === 'vscode') return vscode;
-  if (name === 'child_process') return { spawn, exec(_command, callback) { setImmediate(() => { state.tools['db-query'] = true; callback(null, '', ''); }); } };
+  if (name === 'child_process') return { spawn, exec(_command, callback) { setImmediate(() => { if (!state.installError) state.tools['db-query'] = true; callback(state.installError, '', ''); }); } };
   return require(name);
 });
 const { AventusMigration } = module.exports;
@@ -87,17 +87,36 @@ test('migration process reports missing db-query after declining installation', 
   } finally { state.tools['db-query'] = true; }
 });
 
-test('accepted db-query installation is not awaited before checking availability again', async () => {
+test('accepted db-query installation completes before the query resumes', async () => {
   state.tools['db-query'] = false;
+  state.response = JSON.stringify({ Success: true, Result: [{ result: 1 }], Errors: [] });
   const originalPrompt = vscode.window.showInformationMessage;
   vscode.window.showInformationMessage = async () => ({ title: 'Yes' });
   try {
-    await assert.rejects(migration.executeDbQuery(query), /Can't find the db-query/);
+    const before = state.spawned.length;
+    assert.deepEqual(await migration.executeDbQuery(query), [{ result: 1 }]);
     assert.equal(state.installs.at(-1).title, 'Installing AventusSharp.DatabaseQuery');
-    await new Promise(resolve => setImmediate(resolve));
     assert.equal(state.tools['db-query'], true);
+    assert.equal(state.spawned.length, before + 1);
   } finally {
     vscode.window.showInformationMessage = originalPrompt;
+    state.tools['db-query'] = true;
+  }
+});
+
+test('failed db-query installation reports the installation error without running the query', async () => {
+  state.tools['db-query'] = false;
+  state.installError = new Error('installation failed');
+  const originalPrompt = vscode.window.showInformationMessage;
+  vscode.window.showInformationMessage = async () => ({ title: 'Yes' });
+  const before = state.spawned.length;
+  try {
+    await assert.rejects(migration.executeDbQuery(query), /installation failed/);
+    assert.match(state.errors.at(-1), /installation failed/);
+    assert.equal(state.spawned.length, before);
+  } finally {
+    vscode.window.showInformationMessage = originalPrompt;
+    state.installError = null;
     state.tools['db-query'] = true;
   }
 });

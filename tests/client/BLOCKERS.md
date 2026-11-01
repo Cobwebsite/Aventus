@@ -4,10 +4,6 @@
 
 `tests/client/settings.test.mjs` bloque volontairement `WorkspaceConfiguration.update` : la promesse de `SetSettings.action` se termine alors que l'écriture n'est pas encore achevée, car l'action n'attend pas `SettingsManager.setSettings`. Décision attendue : préciser si le serveur doit pouvoir savoir que les réglages sont persistés avant de poursuivre et comment lui signaler un échec.
 
-## L'installation acceptée de `db-query` n'est pas attendue
-
-`tests/client/migration-process.test.mjs` simule l'acceptation de l'installation lorsque `db-query` manque. `showLoadingMessage` déclenche la commande `dotnet tool install`, puis `executeDbQuery` vérifie immédiatement de nouveau la présence de `db-query` et rejette avant la fin de l'installation. Le test observe ensuite l'outil devenu disponible. Décision attendue : préciser si la requête doit attendre l'installation et reprendre automatiquement, et comment signaler un refus ou un échec d'installation.
-
 ## URI explicite et position de l'éditeur actif peuvent diverger
 
 `tests/client/webcomponent-commands.test.mjs` montre que les middlewares `CreateProperty`, `CreateAttribute`, `CreateWatch`, `CreateCSSVariable`, `ImportViewMethod` et `ImportViewElement` transmettent une URI explicite différente de celle de l'éditeur actif, mais calculent l'offset avec le document et la sélection actifs. Le serveur reçoit donc potentiellement une position qui ne correspond pas au fichier demandé. Décision attendue : préciser si l'URI explicite doit être autorisée dans ce cas et, si oui, comment obtenir une position cohérente.

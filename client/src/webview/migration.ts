@@ -214,8 +214,8 @@ export class AventusMigration {
 		const res = await window.showInformationMessage(msg, { title: "Yes" }, { title: "No" });
 		return res?.title == "Yes"
 	}
-	private showLoadingMessage(msg: string, action: (progress: Progress<{ message?: string; increment?: number; }>) => Thenable<void>): void {
-		window.withProgress(
+	private showLoadingMessage(msg: string, action: (progress: Progress<{ message?: string; increment?: number; }>) => Thenable<void>): Thenable<void> {
+		return window.withProgress(
 			{
 				location: ProgressLocation.Notification,
 				title: msg,
@@ -235,7 +235,7 @@ export class AventusMigration {
 			if (!exist("db-query")) {
 				try {
 					if (await this.ask("db-query is missing. Can I install it?")) {
-						this.showLoadingMessage("Installing AventusSharp.DatabaseQuery", async () => {
+						await this.showLoadingMessage("Installing AventusSharp.DatabaseQuery", async () => {
 							await execAsync("dotnet tool install --global AventusSharp.DatabaseQuery");
 						})
 					}
