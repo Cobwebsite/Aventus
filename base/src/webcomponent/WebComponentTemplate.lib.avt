@@ -1,4 +1,4 @@
-import { Computed, ComputedNoRecomputed, type Effect, WatchAction, Watcher, type WatcherFunction } from "../lib/Watcher.lib.avt";
+import { Computed, ComputedNoRecomputed, type Effect, Signal, WatchAction, Watcher, type WatcherFunction } from "../lib/Watcher.lib.avt";
 import { NormalizedEvent, PressManager, type PressManagerOptions } from "../lib/PressManager.lib.avt";
 import { WebComponent } from "./WebComponent.lib.avt";
 import { getValueFromObject, setValueToObject } from "../tools/CompareObject.lib.avt";
@@ -1078,6 +1078,7 @@ export class TemplateContext {
     public comp: WebComponent;
     private computeds: Computed[] = [];
     private watch: any;
+    private proxyWatches: { [name: string]: Signal<any> } = {};
     private registry?: LoopRegistery;
     private isDestroyed: boolean = false;
 
@@ -1246,6 +1247,10 @@ export class TemplateContext {
 
     public destructor() {
         this.isDestroyed = true;
+        for(let signal of Object.values(this.proxyWatches)) {
+            signal.destroy();
+        }
+        this.proxyWatches = {};
         for(let computed of this.computeds) {
             computed.destroy();
         }
@@ -1254,6 +1259,16 @@ export class TemplateContext {
 
     public registerWatch(name: string, value: any) {
         let that = this;
+        if(Watcher.is(value)) {
+            const signal = new Signal(value);
+            this.proxyWatches[name] = signal;
+            Object.defineProperty(this.data, name, {
+                get() {
+                    return signal.value;
+                }
+            });
+            return;
+        }
         that.watch[name] = value;
         Object.defineProperty(that.data, name, {
             get() {
@@ -1262,6 +1277,10 @@ export class TemplateContext {
         });
     }
     public updateWatch(name: string, value: any, dones: any[]) {
+        if(this.proxyWatches[name]) {
+            this.proxyWatches[name].value = value;
+            return;
+        }
         if(Watcher.is(this.watch[name])) {
             this.watch[name].__injectedDones(dones);
         }
