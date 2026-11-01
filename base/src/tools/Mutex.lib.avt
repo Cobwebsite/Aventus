@@ -7,9 +7,9 @@
 export class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
-     * @type {((run: boolean) => void)[]}
+     * @type {{ run: (acquired: boolean) => void; reject: (reason: Error) => void; }[]}
      */
-    private waitingList: ((run: boolean) => void)[] = [];
+    private waitingList: { run: (acquired: boolean) => void; reject: (reason: Error) => void; }[] = [];
     /**
     * Indicates whether the mutex is currently locked or not.
     * @type {boolean}
@@ -20,11 +20,9 @@ export class Mutex {
     * @returns {Promise<boolean>} A Promise that resolves to true if the mutex was acquired successfully.
     */
     public waitOne() {
-        return new Promise<boolean>((resolve) => {
+        return new Promise<boolean>((resolve, reject) => {
             if(this.isLocked) {
-                this.waitingList.push((run: boolean) => {
-                    resolve(run);
-                });
+                this.waitingList.push({ run: resolve, reject });
             }
             else {
                 this.isLocked = true;
@@ -38,7 +36,7 @@ export class Mutex {
     public release() {
         let nextFct = this.waitingList.shift();
         if(nextFct) {
-            nextFct(true);
+            nextFct.run(true);
         }
         else {
             this.isLocked = false;
@@ -52,11 +50,11 @@ export class Mutex {
         if(this.waitingList.length > 0) {
             let lastFct = this.waitingList.pop();
             for(let fct of this.waitingList) {
-                fct(false);
+                fct.run(false);
             }
             this.waitingList = [];
             if(lastFct) {
-                lastFct(true);
+                lastFct.run(true);
             }
         }
         else {
@@ -65,11 +63,15 @@ export class Mutex {
     }
 
     /**
-     * Clears the mutex, removing all waiting functions and releasing the lock.
+     * Rejects pending waiters and releases the lock for new calls.
      */
     public dispose() {
+        const waiting = this.waitingList;
         this.waitingList = [];
         this.isLocked = false;
+        for(const waiter of waiting) {
+            waiter.reject(new Error('Mutex disposed'));
+        }
     }
 
     /**

@@ -57,7 +57,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] Résultats avec erreur : extraction asynchrone, arrêt après échec et résultat falsy caractérisé (`error-result.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] Résultats avec erreur : accumulation de plusieurs erreurs, filtrage des codes par sous-classe, conversion générique avec résultat partiel et message d'une exception (`error-result.test.mjs`).
 - [x] Mutex : coalescence des appels asynchrones `safeRunLastAsync`, annulation des attentes intermédiaires et réutilisation (`mutex.test.mjs`).
-- [x] Mutex : sélection du dernier callback synchrone `safeRunLast` et comportement de `dispose` avec une attente en cours (`mutex.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Mutex : sélection du dernier callback synchrone `safeRunLast` et rejet des attentes en cours par `dispose`, sans exécuter leurs callbacks (`mutex.test.mjs`).
 - [x] `ResourceLoader.loadInHead` : chargement script concurrent, nonce, résultat et réutilisation après succès avec DOM simulé (`resource-loader.test.mjs`).
 - [x] `ResourceLoader.loadInHead` : échec CSS suivi d'un second appel actuellement réussi sans nouvel essai (`resource-loader.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `StorableRoute` : routage CRUD complet, corps des requêtes et propagation d'un échec de transport (`storable-route.test.mjs`).

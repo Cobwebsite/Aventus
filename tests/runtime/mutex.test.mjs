@@ -81,17 +81,23 @@ test('Mutex safeRunLast runs only the latest queued synchronous callback', async
     assert.equal(await mutex.safeRunLast(() => 4), 4);
 });
 
-test('Mutex dispose releases the lock but leaves existing waiters unresolved', async () => {
+test('Mutex dispose rejects pending waiters and remains reusable', async () => {
     const { Mutex } = loadRuntime();
     const mutex = new Mutex();
     await mutex.waitOne();
-    let settled = false;
-    mutex.waitOne().then(() => { settled = true; });
+    const calls = [];
+    const pending = [
+        mutex.waitOne(),
+        mutex.safeRun(() => calls.push('safeRun')),
+        mutex.safeRunAsync(async () => calls.push('safeRunAsync')),
+        mutex.safeRunLast(() => calls.push('safeRunLast')),
+        mutex.safeRunLastAsync(async () => calls.push('safeRunLastAsync')),
+    ];
     mutex.dispose();
-    await Promise.resolve();
-    assert.equal(settled, false);
+    const settled = await Promise.allSettled(pending);
+    assert.equal(settled.every(result => result.status === 'rejected' && result.reason?.message === 'Mutex disposed'), true);
+    assert.deepEqual(calls, []);
     assert.equal(await mutex.waitOne(), true);
     mutex.release();
-    await Promise.resolve();
-    assert.equal(settled, false);
+    assert.equal(await mutex.safeRun(() => 4), 4);
 });
