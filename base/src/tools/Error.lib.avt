@@ -134,7 +134,7 @@ export class VoidWithError<T extends GenericError = GenericError> {
     public extract<X>(fct: (() => ResultWithError<X, T>)): X | undefined {
         if(this.success) {
             let result = fct();
-            if(result.success && result.result) {
+            if(result.success && result.result !== undefined) {
                 return result.result;
             }
             this.errors = [...this.errors, ...result.errors];
@@ -145,7 +145,7 @@ export class VoidWithError<T extends GenericError = GenericError> {
     public async extractAsync<X>(fct: (() => Promise<ResultWithError<X, T>>)): Promise<X | undefined> {
         if(this.success) {
             let result = await fct();
-            if(result.success && result.result) {
+            if(result.success && result.result !== undefined) {
                 return result.result;
             }
             this.errors = [...this.errors, ...result.errors];
@@ -185,14 +185,12 @@ export class ResultWithError<U, T extends GenericError = GenericError> extends V
 
     public override run(fct: (() => T[]) | (() => VoidWithError<T>) | (() => ResultWithError<U, T>)): this {
         if(this.success) {
-            let result = fct();
-            if(!Array.isArray(result)) {
-                result = result.errors;
+            const result = fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if(errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
             }
-            if(result.length > 0) {
-                this.errors = [...this.errors, ...result];
-            }
-            if(result instanceof ResultWithError && result.success && result.result) {
+            if(result instanceof ResultWithError && result.success && result.result !== undefined) {
                 this.result = result.result;
             }
         }
@@ -201,14 +199,12 @@ export class ResultWithError<U, T extends GenericError = GenericError> extends V
 
     public override async runAsync(fct: (() => Promise<T[]>) | (() => Promise<VoidWithError<T>>) | (() => ResultWithError<U, T>)): Promise<this> {
         if(this.success) {
-            let result = await fct();
-            if(!Array.isArray(result)) {
-                result = result.errors;
+            const result = await fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if(errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
             }
-            if(result.length > 0) {
-                this.errors = [...this.errors, ...result];
-            }
-            if(result instanceof ResultWithError && result.success && result.result) {
+            if(result instanceof ResultWithError && result.success && result.result !== undefined) {
                 this.result = result.result;
             }
         }
