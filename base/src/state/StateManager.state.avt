@@ -313,7 +313,12 @@ export abstract class StateManager implements IStateManager {
                     // We can change -> reset active params / slug, then triggers all inactive callbacks and then triggers all active callbacks
                     const oldState = this.activeState;
                     this.activeState = stateToUse;
-                    oldState.onInactivate(stateToUse);
+                    try {
+                        oldState.onInactivate(stateToUse);
+                    }
+                    catch(error) {
+                        console.error(error);
+                    }
 
                     for(let subscriber of activeToInactive) {
                         // We pass the subscriber to inactive
@@ -348,7 +353,12 @@ export abstract class StateManager implements IStateManager {
                             callback(stateToUse, trigger.params);
                         }
                     }
-                    stateToUse.onActivate();
+                    try {
+                        stateToUse.onActivate();
+                    }
+                    catch(error) {
+                        console.error(error);
+                    }
                 }
             }
             else {
@@ -365,7 +375,12 @@ export abstract class StateManager implements IStateManager {
                         }
                     }
                 }
-                stateToUse.onActivate();
+                try {
+                    stateToUse.onActivate();
+                }
+                catch(error) {
+                    console.error(error);
+                }
             }
             if(!canChange) return false;
             this.afterStateChanged.trigger();

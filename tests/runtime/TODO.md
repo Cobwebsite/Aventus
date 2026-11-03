@@ -36,7 +36,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `ResourceLoader.load` : mutualisation d'un chargement en cours, cache du contenu et indépendance des URL (`resource-loader.test.mjs`).
 - [x] `StateManager` : activation par motif, extraction des paramètres, inactivation, désabonnement, veto et reprise (`state-manager.test.mjs`).
 - [x] `StateManager` : transitions concurrentes, seule la dernière attente est exécutée (`state-manager.test.mjs`).
-- [x] `StateManager` : transition demandée depuis un callback d'activation et exceptions des hooks `onActivate`/`onInactivate` avec état final vérifié (`state-manager.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `StateManager` : transition demandée depuis un callback d'activation et exceptions des hooks `onActivate`/`onInactivate` signalées sans interrompre la transition ni les notifications (`state-manager.test.mjs`).
 - [x] `HttpRouter` et `HttpRequest` : GET/POST avec URL de base, corps JSON et en-têtes ; erreurs de transport et de décodage (`http-request.test.mjs`).
 - [x] `HttpRequest` : réponse 404 avec JSON valide classée comme erreur HTTP avec statut, et remplacement possible par middleware (`http-request.test.mjs`).
 - [x] `HttpRequest` : ordre du hook `beforeSend`, du transport et du middleware de réponse (`http-request.test.mjs`).
