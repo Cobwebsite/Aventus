@@ -63,7 +63,12 @@ export class ResourceLoader {
             }
             document.head.appendChild(tagEl);
             let result = await this.loadTag(tagEl, _options.url);
-            this.headerLoaded[_options.url] = true;
+            if(result) {
+                this.headerLoaded[_options.url] = true;
+            }
+            else {
+                tagEl.remove();
+            }
             this.releaseAwaitFctHead(_options.url, result);
             return result;
         }

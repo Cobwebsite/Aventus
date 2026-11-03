@@ -59,7 +59,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] Mutex : coalescence des appels asynchrones `safeRunLastAsync`, annulation des attentes intermédiaires et réutilisation (`mutex.test.mjs`).
 - [x] Mutex : sélection du dernier callback synchrone `safeRunLast` et rejet des attentes en cours par `dispose`, sans exécuter leurs callbacks (`mutex.test.mjs`).
 - [x] `ResourceLoader.loadInHead` : chargement script concurrent, nonce, résultat et réutilisation après succès avec DOM simulé (`resource-loader.test.mjs`).
-- [x] `ResourceLoader.loadInHead` : échec CSS suivi d'un second appel actuellement réussi sans nouvel essai (`resource-loader.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `ResourceLoader.loadInHead` : échec CSS partagé entre appels concurrents, lien retiré et nouvel essai possible au prochain appel (`resource-loader.test.mjs`).
 - [x] `StorableRoute` : routage CRUD complet, corps des requêtes et propagation d'un échec de transport (`storable-route.test.mjs`).
 - [x] `StorableRoute` : corps JSON décodé sur réponse 422, erreur de statut remplacée par les erreurs applicatives typées si présentes ; DELETE accepte une réponse 204 vide et propage les erreurs HTTP (`storable-route.test.mjs`).
 - [x] `StorableRoute` et `GenericRam` : adaptateur concret testant la synchronisation HTTP/RAM des créations, mises à jour et suppressions avec identité et notifications locales (`storable-route.test.mjs`).
