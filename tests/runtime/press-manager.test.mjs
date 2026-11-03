@@ -94,7 +94,7 @@ test('PressManager starts dragging only after the configured distance and ends o
     manager.destroy();
 });
 
-test('PressManager currently treats pointercancel like a completed simple press', () => {
+test('PressManager cancels a simple press without firing its action', () => {
     const element = new FakeTarget();
     const document = new FakeTarget();
     const calls = [];
@@ -108,7 +108,27 @@ test('PressManager currently treats pointercancel like a completed simple press'
         pageX: 0, pageY: 0, clientX: 0, clientY: 0, stopImmediatePropagation() {} });
     element.dispatchEvent(event('pointerdown'));
     document.dispatchEvent(event('pointercancel'));
-    assert.deepEqual(calls, ['start', 'press', 'end']);
+    assert.deepEqual(calls, ['start', 'end']);
+    assert.equal(document.listeners.size, 0);
+    manager.destroy();
+});
+
+test('PressManager cancels a drag without firing onDragEnd', () => {
+    const element = new FakeTarget();
+    const document = new FakeTarget();
+    const calls = [];
+    const { PressManager } = loadRuntime({ document, CustomEvent: FakeCustomEvent });
+    const manager = new PressManager({ element, offsetDrag: 5,
+        onDragStart: () => calls.push('drag-start'),
+        onDragEnd: () => calls.push('drag-end'),
+        onPressEnd: () => calls.push('end'),
+    });
+    const event = (type, x) => ({ type, pointerId: 1, pointerType: 'mouse', button: 0,
+        pageX: x, pageY: 0, clientX: x, clientY: 0, stopImmediatePropagation() {} });
+    element.dispatchEvent(event('pointerdown', 0));
+    document.dispatchEvent(event('pointermove', 8));
+    document.dispatchEvent(event('pointercancel', 8));
+    assert.deepEqual(calls, ['drag-start', 'end']);
     assert.equal(document.listeners.size, 0);
     manager.destroy();
 });
