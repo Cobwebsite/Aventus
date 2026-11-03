@@ -268,7 +268,6 @@ export class HttpRequest {
         let result = new ResultWithError<T>();
         if(!resultTemp.success) {
             result.errors = resultTemp.errors;
-            return result;
         }
         try {
             if(!resultTemp.result) {
@@ -276,6 +275,9 @@ export class HttpRequest {
             }
             let tempResult = await resultTemp.result.json();
             if(tempResult instanceof VoidWithError) {
+                if(tempResult.errors.length > 0) {
+                    result.errors = result.errors.filter(error => !(error instanceof HttpError && error.code === HttpErrorCode.status && error.status === resultTemp.result?.status));
+                }
                 for(let error of tempResult.errors) {
                     result.errors.push(error);
                 }
