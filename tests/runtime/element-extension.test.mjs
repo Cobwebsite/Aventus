@@ -16,7 +16,7 @@ function elementHarness() {
     return { ElementExtension, Element, ShadowRoot };
 }
 
-test('ElementExtension finds parents by tag and class; stop node is checked after traversal', () => {
+test('ElementExtension includes the stop node but does not search beyond it', () => {
     const { ElementExtension, Element } = elementHarness();
     const root = new Element('APP', null, ['root']);
     const section = new Element('SECTION', root, ['panel']);
@@ -24,8 +24,10 @@ test('ElementExtension finds parents by tag and class; stop node is checked afte
     assert.equal(ElementExtension.findParentByTag(leaf, 'section'), section);
     assert.equal(ElementExtension.findParentByClass(leaf, 'root'), root);
     assert.equal(ElementExtension.findParentByTag(leaf, 'missing'), null);
-    assert.equal(ElementExtension.findParentByClass(leaf, 'root', section), root);
+    assert.equal(ElementExtension.findParentByClass(leaf, 'root', section), null);
+    assert.equal(ElementExtension.findParentByClass(leaf, 'panel', section), section);
     assert.deepEqual(Array.from(ElementExtension.findParentsByTag(leaf, ['section', 'app'])), [section, root]);
+    assert.deepEqual(Array.from(ElementExtension.findParentsByTag(leaf, ['section', 'app'], section)), [section]);
 });
 
 test('ElementExtension crosses a shadow root to find the host ancestry', () => {

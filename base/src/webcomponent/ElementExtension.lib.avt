@@ -21,13 +21,13 @@ export class ElementExtension {
             if(check(el)) {
                 return el as T;
             }
+            if(el == untilNode) {
+                break;
+            }
             if(el instanceof ShadowRoot) {
                 el = el.host;
             } else {
                 el = el.parentNode;
-            }
-            if(el == untilNode) {
-                break;
             }
         }
         return null;
@@ -50,13 +50,13 @@ export class ElementExtension {
             if(check(el)) {
                 result.push(el as T);
             }
+            if(el == untilNode) {
+                break;
+            }
             if(el instanceof ShadowRoot) {
                 el = el.host;
             } else {
                 el = el.parentNode;
-            }
-            if(el == untilNode) {
-                break;
             }
         }
         return result;
