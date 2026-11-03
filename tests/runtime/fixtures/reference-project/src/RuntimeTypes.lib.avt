@@ -1,0 +1,8 @@
+export function acceptTypes(
+    values: Aventus.Enum,
+    value: Aventus.EnumValue<{ ready: 1; waiting: 2 }>,
+    constructorType: Aventus.Constructor<Aventus.WebComponent>,
+    anyConstructor: Aventus.AnyConstructor,
+): Aventus.StringLiteral<'ready'> {
+    return 'ready';
+}

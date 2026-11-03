@@ -129,6 +129,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 ### Projet Aventus de référence : génération et exécution
 
 - [x] Projet Aventus de référence : configuration, compilation par le CLI, sortie contenant une boucle simple et un binding bidirectionnel, chargement du bundle et enregistrement du composant (`fixtures/reference-project`, `compiled-project.test.mjs`).
+- [x] Projet Aventus de référence : utilisation compilée des types `Enum`, `EnumValue`, `Constructor`, `AnyConstructor` et `StringLiteral` sans diagnostic du CLI (`fixtures/reference-project`, `compiled-project.test.mjs`).
 - [x] Build du projet : réussite du CLI, nom de build, sortie fraîche dans une copie temporaire sans `dist` préexistant et enregistrement du composant (`compiled-project.test.mjs`).
 - [x] Build du projet invalide : diagnostic et échec du rapport sans publier de sortie lors du premier build (`compiled-project.test.mjs`).
 - [x] Build du projet : un échec de recompilation conserve la dernière sortie valide (`compiled-project.test.mjs`).
