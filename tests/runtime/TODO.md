@@ -74,7 +74,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `ElementExtension` : recherche d'ancêtres par tag/classe, borne d'arrêt inclusive et traversée d'une racine shadow (`element-extension.test.mjs`).
 - [x] `Animation` : cadence pilotée par l'horloge, arrêt différé après la dernière animation, arrêt immédiat, annulation de frame et modification du FPS (`animation.test.mjs`).
 - [x] `ResizeObserver` : instance native partagée, livraison par cible, désabonnement et déconnexion (`resize-observer.test.mjs`).
-- [x] `ResizeObserver` : déconnexion d'un abonné sur une cible partagée retirant actuellement la surveillance native (`resize-observer.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `ResizeObserver` : cible partagée surveillée jusqu'au désabonnement du dernier wrapper (`resize-observer.test.mjs`).
 - [x] `Style.load` : chargements concurrents mutualisés et absence de nouveau transport après chargement (`style.test.mjs`).
 - [x] `Style.load` : échec du transport suivi d'une attente non résolue au nouvel essai (`style.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `PressManager` : installation et retrait des listeners, création pour plusieurs éléments et isolation des instances (`press-manager.test.mjs`).

@@ -59,17 +59,23 @@ test('ResizeObserver unobserve prevents later delivery', () => {
     assert.equal(harness.native.observed.size, 0);
 });
 
-test('ResizeObserver currently unobserves a shared native target when one wrapper disconnects', () => {
+test('ResizeObserver keeps a shared target observed until its last wrapper disconnects', () => {
     const harness = resizeHarness();
     const target = {};
-    const first = new harness.ResizeObserver({ callback() {} });
-    const second = new harness.ResizeObserver({ callback() {} });
+    const received = [];
+    const first = new harness.ResizeObserver({ callback: () => received.push('first') });
+    const second = new harness.ResizeObserver({ callback: () => received.push('second') });
     first.observe(target);
+    second.observe(target);
     second.observe(target);
     assert.equal(harness.native.observed.has(target), true);
     first.disconnect();
-    assert.equal(harness.native.observed.has(target), false);
+    assert.equal(harness.native.observed.has(target), true);
+    harness.native.emit([{ target }]);
+    harness.flush();
+    assert.deepEqual(received, ['second']);
     second.disconnect();
+    assert.equal(harness.native.observed.has(target), false);
 });
 
 test('ResizeObserver delays callbacks until its FPS interval has elapsed', () => {
