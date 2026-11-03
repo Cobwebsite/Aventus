@@ -32,28 +32,50 @@ export class HttpResponse {
 
     private bodyUsed: boolean = false;
     private bodyContent: any;
+    private bodyFailure?: { error: any; };
 
     public async json<T = any>(): Promise<T> {
 		if(!this.bodyUsed) {
             this.bodyUsed = true;
-			this.bodyContent = await this.response.json();
+            try {
+			    this.bodyContent = await this.response.json();
+            }
+            catch(error) {
+                this.bodyFailure = { error };
+                throw error;
+            }
         }
+        if(this.bodyFailure) throw this.bodyFailure.error;
         return Converter.transform(this.bodyContent);
     }
 
     public async blob(): Promise<Blob> {
 		if(!this.bodyUsed) {
             this.bodyUsed = true;
-			this.bodyContent = await this.response.blob();
+			try {
+                this.bodyContent = await this.response.blob();
+            }
+            catch(error) {
+                this.bodyFailure = { error };
+                throw error;
+            }
 		}
+        if(this.bodyFailure) throw this.bodyFailure.error;
         return this.bodyContent;
     }
 
     public async text(): Promise<string> {
 		if(!this.bodyUsed) {
             this.bodyUsed = true;
-			this.bodyContent = await this.response.text();
+			try {
+                this.bodyContent = await this.response.text();
+            }
+            catch(error) {
+                this.bodyFailure = { error };
+                throw error;
+            }
 		}
+        if(this.bodyFailure) throw this.bodyFailure.error;
         return this.bodyContent;
     }
 
