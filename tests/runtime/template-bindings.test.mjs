@@ -76,7 +76,7 @@ test('TemplateInstance binds text, attributes, events and two-way input values',
     assert.deepEqual(events, ['click']);
 });
 
-test('TemplateInstance replaces conditional branches but leaves the last branch on destruction', () => {
+test('TemplateInstance destroys the active conditional branch with its parent', () => {
     const inserted = [];
     const removed = [];
     const { Signal, TemplateInstance } = loadRuntime({
@@ -108,7 +108,7 @@ test('TemplateInstance replaces conditional branches but leaves the last branch 
     assert.equal(removed.includes(inserted[0]), true);
     instance.destructor();
     assert.equal(anchor.removed, true);
-    assert.equal(inserted.at(-1).removed, undefined);
+    assert.equal(inserted.at(-1).removed, true);
 });
 
 test('TemplateInstance rebuilds a simple loop when its Signal collection is reordered', async () => {

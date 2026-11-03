@@ -91,7 +91,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `WebComponent` : construction, première connexion, passage à `isReady`, changement d'attribut, déconnexion différée et destruction avec DOM simulé et rendu de template remplacé dans la sous-classe de test (`webcomponent-lifecycle.test.mjs`).
 - [x] `TemplateContext` : héritage de données, conversion texte et choix d'un nom d'index libre (`template-context.test.mjs`).
 - [x] `TemplateInstance` : liaison texte, attribut, événement et valeur bidirectionnelle ; mise à jour réactive et arrêt des recalculs après destruction (`template-bindings.test.mjs`).
-- [x] `TemplateInstance` : alternance de branches conditionnelles et destruction de la branche remplacée ; branche finale non détruite caractérisée (`template-bindings.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `TemplateInstance` : alternance de branches conditionnelles et destruction de la branche remplacée ainsi que de la branche finale avec le parent (`template-bindings.test.mjs`).
 - [x] `EffectNoRecomputed` et `ComputedNoRecomputed` : exécution unique de l'effet et actualisation de la valeur calculée sur dépendance fixe (`reactivity.test.mjs`).
 - [x] `Effect` et `Computed` : dépendances imbriquées, exception dans un callback avec reprise et changement de signal pendant l'exécution (`reactivity.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `ElementExtension` : éléments et nœuds assignés à un slot par défaut (`element-extension.test.mjs`).
