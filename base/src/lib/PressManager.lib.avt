@@ -493,6 +493,14 @@ export class PressManager {
             }
         }
     }
+    protected cancelAction(state: PressManagerState) {
+        clearTimeout(this.timeoutLongPress);
+        clearTimeout(this.timeoutDblPress);
+        this.nbPress = 0;
+        if(state.oneActionTriggered == this) {
+            state.oneActionTriggered = null;
+        }
+    }
     protected upAction(_ev: Event) {
         const ev = _ev as PointerEvent | TouchEvent;
         if(!this.unregisterEvent(ev)) {
@@ -517,7 +525,12 @@ export class PressManager {
             document.removeEventListener("touchcancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
-        this.genericUpAction(this.state, e);
+        if(ev.type === 'pointercancel' || ev.type === 'touchcancel') {
+            this.cancelAction(this.state);
+        }
+        else {
+            this.genericUpAction(this.state, e);
+        }
 
         if(this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
@@ -602,7 +615,12 @@ export class PressManager {
         }
         if(this.lastEmitEvent == e.detail.realEvent) return;
 
-        this.genericUpAction(e.detail.state, e.detail.realEvent);
+        if(e.detail.realEvent.event.type === 'pointercancel' || e.detail.realEvent.event.type === 'touchcancel') {
+            this.cancelAction(e.detail.state);
+        }
+        else {
+            this.genericUpAction(e.detail.state, e.detail.realEvent);
+        }
         if(this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }

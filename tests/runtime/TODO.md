@@ -80,7 +80,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `PressManager` : installation et retrait des listeners, création pour plusieurs éléments et isolation des instances (`press-manager.test.mjs`).
 - [x] `PressManager` : cycle pointerdown/pointerup simple, ordre des callbacks et nettoyage des listeners document (`press-manager.test.mjs`).
 - [x] `PressManager` : seuil de déclenchement du drag, mouvements et fin du geste sans callback de simple pression (`press-manager.test.mjs`).
-- [x] `PressManager` : geste touch, double pression pilotée par timers et `pointercancel` avec nettoyage des listeners (`press-manager.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `PressManager` : geste touch, double pression pilotée par timers et `pointercancel` nettoyant le geste sans déclencher l'action, avec `onPressEnd` conservé (`press-manager.test.mjs`).
 - [x] `ResourceLoader` : feuille CSS déjà présente et réponse HTML à la place d'une image (`resource-loader.test.mjs`).
 - [x] `ResizeObserver` : livraison différée jusqu'à la période FPS configurée (`resize-observer.test.mjs`).
 - [x] `HttpRequest` : objet imbriqué avec fichier converti en `FormData` et méthode DELETE simulée par POST (`http-request.test.mjs`).
