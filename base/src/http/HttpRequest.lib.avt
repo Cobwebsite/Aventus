@@ -185,7 +185,14 @@ export class HttpRequest {
         if(!this.request.headers) {
             this.request.headers = [];
         }
-        (this.request.headers as [string, string][]).push([name, value]);
+        const headers = this.request.headers as [string, string][];
+        const existing = headers.findIndex(([key]) => key.toLowerCase() === name.toLowerCase());
+        if(existing >= 0) {
+            headers[existing] = [name, value];
+        }
+        else {
+            headers.push([name, value]);
+        }
     }
 
     public setCredentials(credentials: RequestCredentials) {

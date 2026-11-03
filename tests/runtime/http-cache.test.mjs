@@ -19,6 +19,25 @@ test('HttpCache reuses matching requests and refetches after targeted invalidati
     assert.deepEqual(calls, [['/items', 'GET'], ['/items', 'POST'], ['/items', 'POST'], ['/items', 'GET']]);
 });
 
+test('HttpCache separates JSON and text requests for the same URL', async () => {
+    const accepts = [];
+    const { HttpRequest } = loadRuntime({ fetch: async (_url, options) => {
+        const accept = new Headers(options.headers).get('Accept');
+        accepts.push(accept);
+        return new Response(accept === 'application/json' ? '{"value":1}' : 'plain');
+    } });
+    const jsonRequest = new HttpRequest('/formats');
+    jsonRequest.enableCache();
+    const textRequest = new HttpRequest('/formats');
+    textRequest.enableCache();
+    assert.equal((await jsonRequest.queryJSON()).result.value, 1);
+    assert.equal((await textRequest.queryTxt()).result, 'plain');
+    const repeatedJson = new HttpRequest('/formats');
+    repeatedJson.enableCache();
+    assert.equal((await repeatedJson.queryJSON()).result.value, 1);
+    assert.deepEqual(accepts, ['application/json', 'text/plain']);
+});
+
 test('HttpResponse forwards metadata and parses JSON once', async () => {
     const { HttpResponse } = loadRuntime();
     let reads = 0;
@@ -100,12 +119,12 @@ test('HttpResponse replays a failed body read without retrying the source', asyn
     const response = new HttpResponse({ async text() { reads++; throw failure; } });
     await assert.rejects(response.text(), error => error === failure);
     await assert.rejects(response.text(), error => error === failure);
-    await assert.rejects(response.json(), error => error === failure);
-    await assert.rejects(response.blob(), error => error === failure);
+    await assert.rejects(response.json(), error => error?.name === 'TypeError');
+    await assert.rejects(response.blob(), error => error?.name === 'TypeError');
     assert.equal(reads, 1);
 });
 
-test('HttpResponse currently returns undefined to a concurrent second body reader', async () => {
+test('HttpResponse shares a concurrent body read of the same format', async () => {
     const { HttpResponse } = loadRuntime();
     let release;
     const gate = new Promise(resolve => { release = resolve; });
@@ -113,15 +132,16 @@ test('HttpResponse currently returns undefined to a concurrent second body reade
     const response = new HttpResponse({ async text() { reads++; await gate; return 'body'; } });
     const first = response.text();
     const second = response.text();
-    assert.equal(await second, undefined);
     release();
-    assert.equal(await first, 'body');
+    assert.deepEqual(await Promise.all([first, second]), ['body', 'body']);
     assert.equal(reads, 1);
 });
 
-test('HttpResponse currently returns the first body format to a later different reader', async () => {
+test('HttpResponse rejects a different body format during and after reading', async () => {
     const { HttpResponse } = loadRuntime();
     const response = new HttpResponse({ async text() { return 'plain'; }, async json() { return { value: 1 }; } });
-    assert.equal(await response.text(), 'plain');
-    assert.equal(await response.json(), 'plain');
+    const text = response.text();
+    await assert.rejects(response.json(), error => error?.name === 'TypeError');
+    assert.equal(await text, 'plain');
+    await assert.rejects(response.json(), error => error?.name === 'TypeError');
 });
