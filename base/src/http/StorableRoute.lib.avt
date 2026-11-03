@@ -35,8 +35,7 @@ export abstract class StorableRoute<T extends IData> extends HttpRoute {
 
 	public async Delete(id: number) {
 		const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.DELETE);
-		type TypeResult = T;
-		return await request.queryJSON<TypeResult>(this.router);
+		return await request.queryVoid(this.router);
 	}
 
 	public abstract StorableName(): string;
