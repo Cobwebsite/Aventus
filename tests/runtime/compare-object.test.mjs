@@ -22,14 +22,18 @@ test('compareObject does not mutate unordered input arrays', () => {
     assert.deepEqual(right, [{ id: 2 }, { id: 1 }]);
 });
 
-test('compareObject currently treats equal-size Maps with different values as equal', () => {
+test('compareObject compares Map keys and nested values without insertion order', () => {
     const context = loadRuntimeContext();
     const { compareObject } = context.Aventus;
-    const left = runInNewContext('new Map([["one", 1], ["two", 2]])', context);
-    const same = runInNewContext('new Map([["one", 1], ["two", 2]])', context);
-    const different = runInNewContext('new Map([["one", 1], ["two", 3]])', context);
+    const left = runInNewContext('new Map([["one", { count: 1 }], ["two", 2]])', context);
+    const same = runInNewContext('new Map([["two", 2], ["one", { count: 1 }]])', context);
+    const different = runInNewContext('new Map([["one", { count: 3 }], ["two", 2]])', context);
+    const otherKeys = runInNewContext('new Map([["one", { count: 1 }], ["three", 2]])', context);
     assert.equal(compareObject(left, same), true);
-    assert.equal(compareObject(left, different), true);
+    assert.equal(compareObject(left, different), false);
+    assert.equal(compareObject(left, otherKeys), false);
+    assert.equal(compareObject(left, {}), false);
+    assert.equal(compareObject({}, left), false);
 });
 
 test('compareObject rejects Maps of different sizes', () => {

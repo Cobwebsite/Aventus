@@ -24,7 +24,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `Watcher.get` : édition d'un ancien sous-objet après suppression de son parent, notification résiduelle au chemin `undefined.count` (`reactivity.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `Watcher.get` : alias entre deux proxys racines, propagation du changement puis arrêt des notifications après retrait de l'alias (`reactivity.test.mjs`).
 - [x] `Watcher.get` : même sous-objet partagé par deux propriétés, valeurs synchronisées, notification du chemin accédé et retrait d'une référence (`reactivity.test.mjs`, décision dans `BLOCKERS.md`).
-- [x] `compareObject` : maps de même taille et valeurs différentes actuellement considérées égales (`compare-object.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `compareObject` : égalité des `Map` selon leurs clés et valeurs récursives, indépendante de l'ordre d'insertion (`compare-object.test.mjs`).
 - [x] `compareObject` : maps de tailles différentes, dates natives hors contrat Aventus, comparaison des cycles d'objets distincts et données d'un proxy `Watcher` comparées à un objet ordinaire (`compare-object.test.mjs`).
 - [x] `Watcher.get` : abonnement, désabonnement et extraction du contenu courant (`reactivity.test.mjs`).
 - [x] `ActionGuard` : partage du résultat entre appels de même clé, exécution indépendante pour des clés différentes et nouvel appel après achèvement (`action-guard.test.mjs`).
