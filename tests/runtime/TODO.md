@@ -54,7 +54,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `GenericRam` : mise à jour de liste arrêtée avant transformation si un hook préalable échoue, puis traitement des ressources poursuivi après erreur d'un élément, identité des objets conservée et événement `updated` ; la seconde création concurrente visant le même identifiant est refusée sans modifier la première (`ram.test.mjs`).
 - [x] `Json` : champs non modifiables, préservation des champs absents et option `replaceUndefined` (`json.test.mjs`).
 - [x] `Json` : entrées `null` rejetées par `TypeError` sans modifier la cible, dernière valeur conservée lors d'une collision de renommage, ordre des transformations et priorité des clés exactes même si leur valeur est `undefined` (`json.test.mjs`).
-- [x] Résultats avec erreur : extraction asynchrone, arrêt après échec et résultat falsy caractérisé (`error-result.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] Résultats avec erreur : extraction asynchrone, arrêt après échec et propagation des résultats réussis falsy (`error-result.test.mjs`).
 - [x] Résultats avec erreur : accumulation de plusieurs erreurs, filtrage des codes par sous-classe, conversion générique avec résultat partiel et message d'une exception (`error-result.test.mjs`).
 - [x] Mutex : coalescence des appels asynchrones `safeRunLastAsync`, annulation des attentes intermédiaires et réutilisation (`mutex.test.mjs`).
 - [x] Mutex : sélection du dernier callback synchrone `safeRunLast` et rejet des attentes en cours par `dispose`, sans exécuter leurs callbacks (`mutex.test.mjs`).

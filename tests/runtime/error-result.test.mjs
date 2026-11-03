@@ -47,14 +47,20 @@ test('async result extraction propagates errors and prevents subsequent callback
     assert.equal(outer.containsCode(6), true);
 });
 
-test('ResultWithError currently drops a falsy successful result from run and extract', () => {
+test('ResultWithError propagates successful values including falsy ones', async () => {
     const { ResultWithError, VoidWithError } = loadRuntime();
-    const inner = new ResultWithError();
-    inner.result = 0;
-    const outer = new ResultWithError();
-    outer.run(() => inner);
-    assert.equal(outer.result, undefined);
-    assert.equal(new VoidWithError().extract(() => inner), undefined);
+    for(const value of [0, false, '', null, 'value']) {
+        const inner = new ResultWithError();
+        inner.result = value;
+        const outer = new ResultWithError();
+        outer.run(() => inner);
+        assert.equal(outer.result, value);
+        const asyncOuter = new ResultWithError();
+        await asyncOuter.runAsync(async () => inner);
+        assert.equal(asyncOuter.result, value);
+        assert.equal(new VoidWithError().extract(() => inner), value);
+        assert.equal(await new VoidWithError().extractAsync(async () => inner), value);
+    }
 });
 
 test('VoidWithError accumulates multiple errors and filters codes by error subclass', async () => {
