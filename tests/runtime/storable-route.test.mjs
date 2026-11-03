@@ -65,14 +65,26 @@ test('StorableRoute uses typed application errors instead of the HTTP status err
     assert.equal(result.errors[0].message, 'invalid');
 });
 
-test('StorableRoute Delete treats an empty 204 response as a decoding error', async () => {
-    const { HttpRouter, StorableRoute, HttpErrorCode } = loadRuntime({ fetch: async () =>
+test('StorableRoute Delete accepts an empty 204 response', async () => {
+    const { HttpRouter, StorableRoute } = loadRuntime({ fetch: async () =>
         new Response(null, { status: 204 }) });
     HttpRouter.configure({ url: 'https://example.test' });
     class Items extends StorableRoute { StorableName() { return 'items'; } }
     const result = await new Items(new HttpRouter()).Delete(1);
+    assert.equal(result.success, true);
+    assert.deepEqual(Array.from(result.errors), []);
+    assert.equal(Object.hasOwn(result, 'result'), false);
+});
+
+test('StorableRoute Delete retains HTTP errors', async () => {
+    const { HttpRouter, StorableRoute, HttpErrorCode } = loadRuntime({ fetch: async () =>
+        new Response(null, { status: 404 }) });
+    HttpRouter.configure({ url: 'https://example.test' });
+    class Items extends StorableRoute { StorableName() { return 'items'; } }
+    const result = await new Items(new HttpRouter()).Delete(1);
     assert.equal(result.success, false);
-    assert.equal(result.containsCode(HttpErrorCode.unknow), true);
+    assert.equal(result.containsCode(HttpErrorCode.status), true);
+    assert.equal(result.errors[0].status, 404);
 });
 
 test('GenericRam adapter backed by StorableRoute synchronizes remote CRUD with local records', async () => {
