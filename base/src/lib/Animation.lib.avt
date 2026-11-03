@@ -50,14 +50,19 @@ export class Animation {
         }
         this.nextFrame = now - (elapsed % this.fpsInterval);
 
+        const stopping = !this.continueAnimation;
         setTimeout(() => {
-            this.options.animate();
+            try {
+                this.options.animate();
+            }
+            finally {
+                if(stopping) {
+                    this.options.stopped();
+                }
+            }
         }, 0);
-        if(this.continueAnimation) {
+        if(!stopping) {
             this.frame_id = requestAnimationFrame(() => this.animate());
-        }
-        else {
-            this.options.stopped();
         }
     }
     /**
