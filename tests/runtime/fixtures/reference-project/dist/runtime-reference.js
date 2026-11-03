@@ -5349,11 +5349,123 @@ templ0.addLoop({
  }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('groups');
  }
+    __88e0be73daa36913fb1c341e6e3fabc5method3(group) {
+        return group.name;
+    }
+    __88e0be73daa36913fb1c341e6e3fabc5method4(entry) {
+        return entry;
+    }
+    __88e0be73daa36913fb1c341e6e3fabc5method1(i) {
+        return { 'group': this.groups[i] };
+    }
 }
 RuntimeNested.Namespace=`RuntimeReference`;
 RuntimeNested.Tag=`rt-runtime-nested`;
 __as1(_, 'RuntimeNested', RuntimeNested);
 if(!window.customElements.get('rt-runtime-nested')){window.customElements.define('rt-runtime-nested', RuntimeNested);Aventus.WebComponentInstance.registerDefinition(RuntimeNested);}
+
+const RuntimeList = class RuntimeList extends Aventus.WebComponent {
+    get 'items'() {
+						return this.__watch["items"];
+					}
+					set 'items'(val) {
+						this.__watch["items"] = val;
+					}
+get 'value'() {
+						return this.__watch["value"];
+					}
+					set 'value'(val) {
+						this.__watch["value"] = val;
+					}
+    __registerWatchesActions() {
+    this.__addWatchesActions("items");
+this.__addWatchesActions("value");
+    super.__registerWatchesActions();
+}
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeList;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeList.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<input _id="runtimelist_0" /><p class="current" _id="runtimelist_1"></p><ul>
+    <template _id="runtimelist_2"></template>
+</ul>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "content": {
+    "runtimelist_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__2a37ca5fe138a996e0b2473ba33140a8method3())}`,
+      "once": true
+    }
+  },
+  "bindings": [
+    {
+      "id": "runtimelist_0",
+      "injectionName": "value",
+      "eventNames": [
+        "change",
+        "input"
+      ],
+      "inject": (c) => c.comp.__2a37ca5fe138a996e0b2473ba33140a8method1(),
+      "extract": (c, v) => c.comp.__2a37ca5fe138a996e0b2473ba33140a8method2(v),
+      "once": true
+    }
+  ]
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+        <li _id="runtimelist_3"></li>
+    `);
+templ0.setActions({
+  "content": {
+    "runtimelist_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__2a37ca5fe138a996e0b2473ba33140a8method4(c.data.item))}`,
+      "once": true
+    }
+  }
+});
+this.__getStatic().__template.addLoop({
+                    anchorId: 'runtimelist_2',
+                    template: templ0,
+                simple:{data: `this.items`,item:`item`}
+});
+ }
+    getClassName() {
+        return "RuntimeList";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["items"] = ["alpha", "beta"];
+w["value"] = "initial";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('items');
+this.__correctGetter('value');
+ }
+    __2a37ca5fe138a996e0b2473ba33140a8method3() {
+        return this.value;
+    }
+    __2a37ca5fe138a996e0b2473ba33140a8method4(item) {
+        return item;
+    }
+    __2a37ca5fe138a996e0b2473ba33140a8method1() {
+        return (this.value);
+    }
+    __2a37ca5fe138a996e0b2473ba33140a8method2(v) {
+        if (this) {
+            this.value = v;
+        }
+    }
+}
+RuntimeList.Namespace=`RuntimeReference`;
+RuntimeList.Tag=`rt-runtime-list`;
+__as1(_, 'RuntimeList', RuntimeList);
+if(!window.customElements.get('rt-runtime-list')){window.customElements.define('rt-runtime-list', RuntimeList);Aventus.WebComponentInstance.registerDefinition(RuntimeList);}
 
 const RuntimeBranches = class RuntimeBranches extends Aventus.WebComponent {
     get 'count'() {
@@ -5462,100 +5574,23 @@ this.__correctGetter('labels');
     increment() {
         this.count++;
     }
+    __84dee09c18be291203ed39a41f8f178amethod2() {
+        return this.count;
+    }
+    __84dee09c18be291203ed39a41f8f178amethod3(key) {
+        return key;
+    }
+    __84dee09c18be291203ed39a41f8f178amethod4(key) {
+        return this.labels[key];
+    }
+    __84dee09c18be291203ed39a41f8f178amethod0() {
+        return this.count % 2 === 0;
+    }
 }
 RuntimeBranches.Namespace=`RuntimeReference`;
 RuntimeBranches.Tag=`rt-runtime-branches`;
 __as1(_, 'RuntimeBranches', RuntimeBranches);
 if(!window.customElements.get('rt-runtime-branches')){window.customElements.define('rt-runtime-branches', RuntimeBranches);Aventus.WebComponentInstance.registerDefinition(RuntimeBranches);}
-
-const RuntimeList = class RuntimeList extends Aventus.WebComponent {
-    get 'items'() {
-						return this.__watch["items"];
-					}
-					set 'items'(val) {
-						this.__watch["items"] = val;
-					}
-get 'value'() {
-						return this.__watch["value"];
-					}
-					set 'value'(val) {
-						this.__watch["value"] = val;
-					}
-    __registerWatchesActions() {
-    this.__addWatchesActions("items");
-this.__addWatchesActions("value");
-    super.__registerWatchesActions();
-}
-    static __style = `:host{display:block}`;
-    __getStatic() {
-        return RuntimeList;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(RuntimeList.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<input _id="runtimelist_0" /><p class="current" _id="runtimelist_1"></p><ul>
-    <template _id="runtimelist_2"></template>
-</ul>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
-  "content": {
-    "runtimelist_1°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__2a37ca5fe138a996e0b2473ba33140a8method3())}`,
-      "once": true
-    }
-  },
-  "bindings": [
-    {
-      "id": "runtimelist_0",
-      "injectionName": "value",
-      "eventNames": [
-        "change",
-        "input"
-      ],
-      "inject": (c) => c.comp.__2a37ca5fe138a996e0b2473ba33140a8method1(),
-      "extract": (c, v) => c.comp.__2a37ca5fe138a996e0b2473ba33140a8method2(v),
-      "once": true
-    }
-  ]
-});
-const templ0 = new Aventus.Template(this);
-templ0.setTemplate(`
-        <li _id="runtimelist_3"></li>
-    `);
-templ0.setActions({
-  "content": {
-    "runtimelist_3°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__2a37ca5fe138a996e0b2473ba33140a8method4(c.data.item))}`,
-      "once": true
-    }
-  }
-});
-this.__getStatic().__template.addLoop({
-                    anchorId: 'runtimelist_2',
-                    template: templ0,
-                simple:{data: `this.items`,item:`item`}
-});
- }
-    getClassName() {
-        return "RuntimeList";
-    }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["items"] = ["alpha", "beta"];
-w["value"] = "initial";
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('items');
-this.__correctGetter('value');
- }
-}
-RuntimeList.Namespace=`RuntimeReference`;
-RuntimeList.Tag=`rt-runtime-list`;
-__as1(_, 'RuntimeList', RuntimeList);
-if(!window.customElements.get('rt-runtime-list')){window.customElements.define('rt-runtime-list', RuntimeList);Aventus.WebComponentInstance.registerDefinition(RuntimeList);}
 
 
 for(let key in _) { RuntimeReference[key] = _[key] }

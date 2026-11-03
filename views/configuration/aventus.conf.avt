@@ -18,10 +18,10 @@
 		}
 	],
 	"static": [
-		{
-			"name": "Main",
-			"input": "./src/static/",
-			"output": "../../client/views/configuration"
-		}
+		// {
+		// 	"name": "Main",
+		// 	"input": "./src/static/",
+		// 	"output": "../../client/views/configuration"
+		// }
 	]
 }

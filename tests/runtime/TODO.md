@@ -61,7 +61,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `ResourceLoader.loadInHead` : chargement script concurrent, nonce, résultat et réutilisation après succès avec DOM simulé (`resource-loader.test.mjs`).
 - [x] `ResourceLoader.loadInHead` : échec CSS suivi d'un second appel actuellement réussi sans nouvel essai (`resource-loader.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `StorableRoute` : routage CRUD complet, corps des requêtes et propagation d'un échec de transport (`storable-route.test.mjs`).
-- [x] `StorableRoute` : réponse 422 classée comme erreur HTTP avec statut et réponse DELETE 204 vide (`storable-route.test.mjs`, décision sur DELETE dans `BLOCKERS.md`).
+- [x] `StorableRoute` : corps JSON décodé sur réponse 422, erreur de statut remplacée par les erreurs applicatives typées si présentes ; réponse DELETE 204 vide caractérisée (`storable-route.test.mjs`, décision sur DELETE dans `BLOCKERS.md`).
 - [x] `StorableRoute` et `GenericRam` : adaptateur concret testant la synchronisation HTTP/RAM des créations, mises à jour et suppressions avec identité et notifications locales (`storable-route.test.mjs`).
 - [x] `HttpRequest` : corps `FormData` et transformation PUT en POST avec champ `_method` (`http-request.test.mjs`).
 - [x] `uuidv4`, `Async` et `sleep` : format et unicité des UUID, assimilation des valeurs/promesses et temporisation pilotée par un faux timer (`basic-tools.test.mjs`).

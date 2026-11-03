@@ -57,7 +57,7 @@ test('HttpRequest reports a non-2xx response as an error with its status', async
         new Response('{"message":"missing"}', { status: 404 }) });
     const result = await new HttpRequest('/missing').queryJSON();
     assert.equal(result.success, false);
-    assert.equal(result.result, undefined);
+    assert.equal(result.result.message, 'missing');
     assert.equal(result.containsCode(HttpErrorCode.status), true);
     assert.equal(result.errors[0].status, 404);
 });

@@ -156,12 +156,16 @@ let isClass=function isClass(v) {
 __as1(_, 'isClass', isClass);
 
 let setValueToObject=function setValueToObject(path, obj, value) {
+    if (path === '') {
+        throw new TypeError('Cannot write to an empty object path');
+    }
     path = path.replace(/\[(.*?)\]/g, '.$1');
     let splitted = path.split(".");
     for (let i = 0; i < splitted.length - 1; i++) {
         let split = splitted[i];
         let value = obj instanceof Map ? obj.get(split) : obj[split];
-        if (!value) {
+        const exists = obj instanceof Map ? obj.has(split) : split in Object(obj);
+        if (!exists) {
             value = {};
             if (obj instanceof Map) {
                 obj.set(split, value);
@@ -169,6 +173,9 @@ let setValueToObject=function setValueToObject(path, obj, value) {
             else {
                 obj[split] = value;
             }
+        }
+        else if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+            throw new TypeError(`Cannot write through primitive path segment "${split}"`);
         }
         obj = value;
     }
@@ -184,7 +191,7 @@ __as1(_, 'setValueToObject', setValueToObject);
 let Mutex=class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
-     * @type {((run: boolean) => void)[]}
+     * @type {{ run: (acquired: boolean) => void; reject: (reason: Error) => void; }[]}
      */
     waitingList = [];
     /**
@@ -197,11 +204,9 @@ let Mutex=class Mutex {
     * @returns {Promise<boolean>} A Promise that resolves to true if the mutex was acquired successfully.
     */
     waitOne() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (this.isLocked) {
-                this.waitingList.push((run) => {
-                    resolve(run);
-                });
+                this.waitingList.push({ run: resolve, reject });
             }
             else {
                 this.isLocked = true;
@@ -215,7 +220,7 @@ let Mutex=class Mutex {
     release() {
         let nextFct = this.waitingList.shift();
         if (nextFct) {
-            nextFct(true);
+            nextFct.run(true);
         }
         else {
             this.isLocked = false;
@@ -228,11 +233,11 @@ let Mutex=class Mutex {
         if (this.waitingList.length > 0) {
             let lastFct = this.waitingList.pop();
             for (let fct of this.waitingList) {
-                fct(false);
+                fct.run(false);
             }
             this.waitingList = [];
             if (lastFct) {
-                lastFct(true);
+                lastFct.run(true);
             }
         }
         else {
@@ -240,11 +245,15 @@ let Mutex=class Mutex {
         }
     }
     /**
-     * Clears the mutex, removing all waiting functions and releasing the lock.
+     * Rejects pending waiters and releases the lock for new calls.
      */
     dispose() {
+        const waiting = this.waitingList;
         this.waitingList = [];
         this.isLocked = false;
+        for (const waiter of waiting) {
+            waiter.reject(new Error('Mutex disposed'));
+        }
     }
     /**
      * Executes a callback function safely within the mutex lock and releases the lock afterward.
@@ -1212,7 +1221,7 @@ let DateTime=class DateTime {
 DateTime.Namespace=`Aventus`;
 __as1(_, 'DateTime', DateTime);
 
-let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
+let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -1223,7 +1232,7 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
         }
         if (tableOrder) {
             for (let i = 0; i < obj1.length; i++) {
-                if (!compareObject(obj1[i], obj2[i])) {
+                if (!compareObjectRecursive(obj1[i], obj2[i], true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1233,7 +1242,7 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
             for (let i = 0; i < obj1.length; i++) {
                 let foundElement = false;
                 for (let j = 0; j < obj2.length; j++) {
-                    if (compareObject(obj1[i], obj2[j])) {
+                    if (compareObjectRecursive(obj1[i], obj2[j], true, active, proxyData1, proxyData2)) {
                         obj2.splice(j, 1);
                         foundElement = true;
                         break;
@@ -1262,13 +1271,12 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
         if (obj2 instanceof Date || obj2 instanceof DateTime || obj2 instanceof Time) {
             return false;
         }
-        let oneProxy = false;
         if (Watcher.is(obj1)) {
-            oneProxy = true;
+            proxyData1 = true;
             obj1 = Watcher.extract(obj1, false);
         }
         if (Watcher.is(obj2)) {
-            oneProxy = true;
+            proxyData2 = true;
             obj2 = Watcher.extract(obj2, false);
         }
         if (obj1 instanceof Map && obj2 instanceof Map) {
@@ -1280,24 +1288,23 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
                 if (!obj2.has(key)) {
                     return false;
                 }
-                if (!compareObject(obj1.get(key), obj2.get(key))) {
+                if (!compareObjectRecursive(obj1.get(key), obj2.get(key), true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
             return true;
         }
         else {
-            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+            const keys1 = Object.keys(obj1).filter(key => !proxyData1 || !Watcher['__reservedName'][key]);
+            const keys2 = Object.keys(obj2).filter(key => !proxyData2 || !Watcher['__reservedName'][key]);
+            if (keys1.length !== keys2.length) {
                 return false;
             }
-            for (let key in obj1) {
-                if (oneProxy && Watcher['__reservedName'][key]) {
-                    continue;
-                }
-                if (!(key in obj2)) {
+            for (let key of keys1) {
+                if (!keys2.includes(key)) {
                     return false;
                 }
-                if (!compareObject(obj1[key], obj2[key])) {
+                if (!compareObjectRecursive(obj1[key], obj2[key], true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1308,7 +1315,6 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
         return obj1 === obj2;
     }
 }
-__as1(_, 'compareObject', compareObject);
 
 let DateConverter=class DateConverter {
     static __converter = new DateConverter();
@@ -1392,7 +1398,7 @@ let Json=class Json {
         let props = Object.getOwnPropertyNames(obj);
         for (let prop of props) {
             let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-            let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+            let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
             if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                 let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
                 if (propInfo?.writable) {
@@ -1406,7 +1412,7 @@ let Json=class Json {
             props = Object.getOwnPropertyNames(cstTemp.prototype);
             for (let prop of props) {
                 let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-                let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+                let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
                 if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                     let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
                     if (propInfo?.set) {
@@ -2240,6 +2246,32 @@ let Computed=class Computed extends Effect {
 }
 Computed.Namespace=`Aventus`;
 __as1(_, 'Computed', Computed);
+
+let compareObjectRecursive=function compareObjectRecursive(obj1, obj2, tableOrder, active, proxyData1 = false, proxyData2 = false) {
+    if (obj1 !== null && obj2 !== null && typeof obj1 === 'object' && typeof obj2 === 'object') {
+        let matches = active.get(obj1);
+        if (matches?.has(obj2)) {
+            return true;
+        }
+        if (!matches) {
+            matches = new WeakSet();
+            active.set(obj1, matches);
+        }
+        matches.add(obj2);
+        try {
+            return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
+        }
+        finally {
+            matches.delete(obj2);
+        }
+    }
+    return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
+}
+
+let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
+    return compareObjectRecursive(obj1, obj2, tableOrder, new WeakMap());
+}
+__as1(_, 'compareObject', compareObject);
 
 let Watcher=class Watcher {
     static isNative(obj) {
@@ -3449,7 +3481,6 @@ let HttpRequest=class HttpRequest {
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
-            return result;
         }
         try {
             if (!resultTemp.result) {
@@ -3457,6 +3488,9 @@ let HttpRequest=class HttpRequest {
             }
             let tempResult = await resultTemp.result.json();
             if (tempResult instanceof VoidWithError) {
+                if (tempResult.errors.length > 0) {
+                    result.errors = result.errors.filter(error => !(error instanceof HttpError && error.code === HttpErrorCode.status && error.status === resultTemp.result?.status));
+                }
                 for (let error of tempResult.errors) {
                     result.errors.push(error);
                 }
@@ -5270,13 +5304,23 @@ let GenericRam=class GenericRam {
     publish(type, data) {
         let callbacks = [...this.subscribers[type]];
         for (let callback of callbacks) {
-            callback(data);
+            try {
+                callback(data);
+            }
+            catch (error) {
+                console.error(error);
+            }
         }
         let sub = this.recordsSubscribers.get(this.getId(data));
         if (sub) {
             let localCallbacks = [...sub[type]];
             for (let localCallback of localCallbacks) {
-                localCallback(data);
+                try {
+                    localCallback(data);
+                }
+                catch (error) {
+                    console.error(error);
+                }
             }
         }
     }
@@ -5525,26 +5569,62 @@ let GenericRam=class GenericRam {
         list = this.removeWatch(list);
         return this.actionGuard.run(['_createList'], async () => {
             let action = new ResultRamWithError();
+            const result = [];
+            action.result = result;
             await action.runAsync(() => this.beforeCreateList(list));
-            for (let item of list) {
+            for (const item of list) {
                 await action.runAsync(() => this.beforeCreateItem(item, true));
             }
-            const resources = await action.extractAsync(() => this.transformCreateRequestListToItem(list));
-            if (!resources)
+            if (!action.success)
                 return action;
-            const result = [];
-            for (let item of resources) {
-                const resultItem = await action.extractAsync(() => this.addOrUpdateData(item));
-                if (!resultItem)
+            let resources;
+            try {
+                const transformed = await this.transformCreateRequestListToItem(list);
+                action.errors.push(...transformed.errors);
+                if (!transformed.success || !transformed.result)
                     return action;
-                await action.runAsync(() => this.afterCreateItem(resultItem.value, true));
-                if (action.success) {
-                    result.push(resultItem.value);
-                    this.publish('created', resultItem.value);
+                resources = transformed.result;
+            }
+            catch (e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+                return action;
+            }
+            for (const item of resources) {
+                try {
+                    const idResult = this.getIdWithError(item);
+                    action.errors.push(...idResult.errors);
+                    if (idResult.result === undefined)
+                        continue;
+                    const id = idResult.result;
+                    if (this.records.has(id)) {
+                        action.errors.push(new RamError(RamErrorCode.alreadyExists, `Item ${id} already exists in RAM`));
+                        continue;
+                    }
+                    const added = await this.addOrUpdateData(item);
+                    action.errors.push(...added.errors);
+                    if (!added.result)
+                        continue;
+                    const record = added.result.value;
+                    result.push(record);
+                    try {
+                        const after = await this.afterCreateItem(record, true);
+                        action.errors.push(...after.errors);
+                    }
+                    finally {
+                        this.publish('created', record);
+                    }
+                }
+                catch (e) {
+                    action.errors.push(new RamError(RamErrorCode.unknow, e));
                 }
             }
-            action.result = result;
-            await action.runAsync(() => this.afterCreateList(result));
+            try {
+                const after = await this.afterCreateList(result);
+                action.errors.push(...after.errors);
+            }
+            catch (e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+            }
             return action;
         });
     }
@@ -5635,26 +5715,62 @@ let GenericRam=class GenericRam {
         list = this.removeWatch(list);
         return this.actionGuard.run(['_updateList'], async () => {
             let action = new ResultRamWithError();
+            const result = [];
+            action.result = result;
             await action.runAsync(() => this.beforeUpdateList(list));
-            for (let item of list) {
+            for (const item of list) {
                 await action.runAsync(() => this.beforeUpdateItem(item, true));
             }
-            const resources = await action.extractAsync(() => this.transformUpdateRequestListToItem(list));
-            if (!resources)
+            if (!action.success)
                 return action;
-            const result = [];
-            for (let item of resources) {
-                const resultItem = await action.extractAsync(() => this.addOrUpdateData(item));
-                if (!resultItem)
+            let resources;
+            try {
+                const transformed = await this.transformUpdateRequestListToItem(list);
+                action.errors.push(...transformed.errors);
+                if (!transformed.success || !transformed.result)
                     return action;
-                await action.runAsync(() => this.afterUpdateItem(resultItem.value, true));
-                if (action.success) {
-                    result.push(resultItem.value);
-                    this.publish('created', resultItem.value);
+                resources = transformed.result;
+            }
+            catch (e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+                return action;
+            }
+            for (const item of resources) {
+                try {
+                    const idResult = this.getIdWithError(item);
+                    action.errors.push(...idResult.errors);
+                    if (idResult.result === undefined)
+                        continue;
+                    const id = idResult.result;
+                    if (!this.records.has(id)) {
+                        action.errors.push(new RamError(RamErrorCode.noItemInsideRam, `Item ${id} wasn't found inside RAM`));
+                        continue;
+                    }
+                    const updated = await this.addOrUpdateData(item);
+                    action.errors.push(...updated.errors);
+                    if (!updated.result)
+                        continue;
+                    const record = updated.result.value;
+                    result.push(record);
+                    try {
+                        const after = await this.afterUpdateItem(record, true);
+                        action.errors.push(...after.errors);
+                    }
+                    finally {
+                        this.publish('updated', record);
+                    }
+                }
+                catch (e) {
+                    action.errors.push(new RamError(RamErrorCode.unknow, e));
                 }
             }
-            action.result = result;
-            await action.runAsync(() => this.afterUpdateList(result));
+            try {
+                const after = await this.afterUpdateList(result);
+                action.errors.push(...after.errors);
+            }
+            catch (e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+            }
             return action;
         });
     }
@@ -5745,18 +5861,54 @@ let GenericRam=class GenericRam {
     async deleteListWithError(list) {
         list = this.removeWatch(list);
         let action = new ResultRamWithError();
-        action.result = [];
-        await action.runAsync(() => this.beforeDeleteList(list));
         const result = [];
-        for (let item of list) {
-            const resultItem = await action.extractAsync(() => this._delete(item, true));
-            if (!resultItem)
-                return action;
-            result.push(resultItem);
+        action.result = result;
+        await action.runAsync(() => this.beforeDeleteList(list));
+        if (!action.success)
+            return action;
+        for (const item of list) {
+            try {
+                const idResult = this.getIdWithError(item);
+                action.errors.push(...idResult.errors);
+                if (idResult.result === undefined)
+                    continue;
+                const id = idResult.result;
+                const record = this.records.get(id);
+                if (!record) {
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, `Item ${id} wasn't found inside RAM`));
+                    continue;
+                }
+                const beforeItem = await this.beforeDeleteItem(record, true);
+                action.errors.push(...beforeItem.errors);
+                if (!beforeItem.success)
+                    continue;
+                const beforeRecord = await this.beforeRecordDelete(record);
+                action.errors.push(...beforeRecord.errors);
+                if (!beforeRecord.success)
+                    continue;
+                this.records.delete(id);
+                result.push(record);
+                try {
+                    const afterRecord = await this.afterRecordDelete(record);
+                    action.errors.push(...afterRecord.errors);
+                    const afterItem = await this.afterDeleteItem(record, true);
+                    action.errors.push(...afterItem.errors);
+                }
+                finally {
+                    this.publish('deleted', record);
+                    this.recordsSubscribers.delete(id);
+                }
+            }
+            catch (e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+            }
         }
-        if (action.success) {
-            action.result = result;
-            await action.runAsync(() => this.afterDeleteList(result));
+        try {
+            const after = await this.afterDeleteList(result);
+            action.errors.push(...after.errors);
+        }
+        catch (e) {
+            action.errors.push(new RamError(RamErrorCode.unknow, e));
         }
         return action;
     }
@@ -5812,6 +5964,8 @@ let GenericRam=class GenericRam {
             if (oldItem) {
                 await action.runAsync(() => this.beforeDeleteItem(oldItem, fromList));
                 await action.runAsync(() => this.beforeRecordDelete(oldItem));
+                if (!action.success)
+                    return action;
                 this.records.delete(id);
                 await action.runAsync(() => this.afterRecordDelete(oldItem));
                 await action.runAsync(() => this.afterDeleteItem(oldItem, fromList));

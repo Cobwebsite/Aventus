@@ -38,7 +38,7 @@ test('StorableRoute propagates transport failures through result errors', async 
     assert.equal(result.containsCode(HttpErrorCode.unknow), true);
 });
 
-test('StorableRoute propagates a 422 response as an HTTP status error', async () => {
+test('StorableRoute decodes a plain 422 response while retaining its HTTP status error', async () => {
     const { HttpRouter, StorableRoute, HttpErrorCode } = loadRuntime({ fetch: async () =>
         new Response(JSON.stringify({ errors: [{ code: 12, message: 'invalid' }] }), { status: 422 }) });
     HttpRouter.configure({ url: 'https://example.test' });
@@ -47,7 +47,22 @@ test('StorableRoute propagates a 422 response as an HTTP status error', async ()
     assert.equal(result.success, false);
     assert.equal(result.containsCode(HttpErrorCode.status), true);
     assert.equal(result.errors[0].status, 422);
-    assert.equal(result.result, undefined);
+    assert.equal(result.result.errors[0].message, 'invalid');
+});
+
+test('StorableRoute uses typed application errors instead of the HTTP status error', async () => {
+    const { HttpRouter, StorableRoute, HttpErrorCode } = loadRuntime({ fetch: async () =>
+        new Response(JSON.stringify({
+            $type: 'Aventus.VoidWithError',
+            errors: [{ $type: 'Aventus.GenericError', code: 12, message: 'invalid' }],
+        }), { status: 422 }) });
+    HttpRouter.configure({ url: 'https://example.test' });
+    class Items extends StorableRoute { StorableName() { return 'items'; } }
+    const result = await new Items(new HttpRouter()).Create({ item: { id: 1 } });
+    assert.equal(result.success, false);
+    assert.equal(result.containsCode(HttpErrorCode.status), false);
+    assert.equal(result.containsCode(12), true);
+    assert.equal(result.errors[0].message, 'invalid');
 });
 
 test('StorableRoute Delete treats an empty 204 response as a decoding error', async () => {
