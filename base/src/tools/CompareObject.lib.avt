@@ -101,18 +101,15 @@ function compareObjectValue(obj1: any, obj2: any, tableOrder: boolean, active: W
             obj2 = Watcher.extract(obj2, false);
         }
 
-        if(obj1 instanceof Map && obj2 instanceof Map) {
-            if(obj1.size != obj2.size) {
+        if(obj1 instanceof Map || obj2 instanceof Map) {
+            if(!(obj1 instanceof Map && obj2 instanceof Map) || obj1.size !== obj2.size) {
                 return false;
             }
-            const keys = obj1.keys();
-            for(let key in keys) {
-                // obj2 has key ?
+            for(const [key, value] of obj1) {
                 if(!obj2.has(key)) {
                     return false;
                 }
-                // object values are equals
-                if(!compareObjectRecursive(obj1.get(key), obj2.get(key), true, active, proxyData1, proxyData2)) {
+                if(!compareObjectRecursive(value, obj2.get(key), true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
