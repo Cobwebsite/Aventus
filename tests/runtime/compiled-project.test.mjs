@@ -53,6 +53,7 @@ test('a real Aventus project compiles its loop and two-way binding into an execu
     const root = copyProject(t);
     const { code } = buildProject(root);
     assert.match(code, /RuntimeList\.Tag=`rt-runtime-list`/);
+    assert.match(code, /acceptTypes\(/);
     assert.match(code, /simple:\{data: `this\.items`,item:`item`\}/);
     assert.match(code, /"injectionName": "value"/);
     assert.match(code, /"eventNames": \[\s*"change",\s*"input"/);
