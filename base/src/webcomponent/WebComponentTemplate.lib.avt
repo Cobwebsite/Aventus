@@ -1090,6 +1090,10 @@ export class TemplateInstance {
             createContext();
         };
 
+        this.cleanups.push(() => {
+            currentActive?.destructor();
+            currentActive = undefined;
+        });
         calculateActive();
     }
 }
