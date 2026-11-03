@@ -76,7 +76,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `ResizeObserver` : instance native partagée, livraison par cible, désabonnement et déconnexion (`resize-observer.test.mjs`).
 - [x] `ResizeObserver` : cible partagée surveillée jusqu'au désabonnement du dernier wrapper (`resize-observer.test.mjs`).
 - [x] `Style.load` : chargements concurrents mutualisés et absence de nouveau transport après chargement (`style.test.mjs`).
-- [x] `Style.load` : échec du transport suivi d'une attente non résolue au nouvel essai (`style.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `Style.load` : échec partagé entre appels concurrents, promesses rejetées et nouvel essai possible (`style.test.mjs`).
 - [x] `PressManager` : installation et retrait des listeners, création pour plusieurs éléments et isolation des instances (`press-manager.test.mjs`).
 - [x] `PressManager` : cycle pointerdown/pointerup simple, ordre des callbacks et nettoyage des listeners document (`press-manager.test.mjs`).
 - [x] `PressManager` : seuil de déclenchement du drag, mouvements et fin du geste sans callback de simple pression (`press-manager.test.mjs`).

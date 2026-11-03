@@ -62,12 +62,26 @@ test('Style shares a pending remote load and preserves the loaded sheet on repea
     assert.equal(fetches, 1);
 });
 
-test('Style currently leaves a failed remote load waiting forever on retry', async () => {
+test('Style shares a failed load and retries on the next call', async () => {
     let fetches = 0;
-    const { Style } = styleHarness(async () => { fetches++; throw new Error('offline'); });
-    assert.equal(await Style.load('failed', '/missing.css'), undefined);
-    const retry = Style.load('failed', '/missing.css');
-    const status = await Promise.race([retry.then(() => 'settled'), Promise.resolve('pending')]);
-    assert.equal(status, 'pending');
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    const failure = new Error('offline');
+    const { Style } = styleHarness(async () => {
+        fetches++;
+        if(fetches === 1) {
+            await gate;
+            throw failure;
+        }
+        return { async text() { return '.recovered{display:block}'; } };
+    });
+    const first = Style.load('failed', '/missing.css');
+    const concurrent = Style.load('failed', '/missing.css');
     assert.equal(fetches, 1);
+    release();
+    const failures = await Promise.allSettled([first, concurrent]);
+    assert.equal(failures.every(result => result.status === 'rejected' && result.reason === failure), true);
+    await Style.load('failed', '/missing.css');
+    assert.equal(fetches, 2);
+    assert.equal(Style.getAsString('failed'), '.recovered{display:block}');
 });
