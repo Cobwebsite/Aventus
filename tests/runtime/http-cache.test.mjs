@@ -93,12 +93,15 @@ test('HttpResponse reads text and blob bodies at most once per response', async 
     assert.equal(blobReads, 1);
 });
 
-test('HttpResponse currently does not retry after a failed body read', async () => {
+test('HttpResponse replays a failed body read without retrying the source', async () => {
     const { HttpResponse } = loadRuntime();
     let reads = 0;
-    const response = new HttpResponse({ async text() { reads++; throw new Error('broken'); } });
-    await assert.rejects(response.text(), /broken/);
-    assert.equal(await response.text(), undefined);
+    const failure = new Error('broken');
+    const response = new HttpResponse({ async text() { reads++; throw failure; } });
+    await assert.rejects(response.text(), error => error === failure);
+    await assert.rejects(response.text(), error => error === failure);
+    await assert.rejects(response.json(), error => error === failure);
+    await assert.rejects(response.blob(), error => error === failure);
     assert.equal(reads, 1);
 });
 
