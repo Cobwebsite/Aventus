@@ -37,7 +37,7 @@ test('Animation schedules frames at its FPS and stops after the next frame', () 
     assert.deepEqual(calls, ['animate']);
     animation.stop();
     harness.tick(50);
-    assert.deepEqual(calls, ['animate', 'stopped', 'animate']);
+    assert.deepEqual(calls, ['animate', 'animate', 'stopped']);
     assert.equal(animation.isStarted(), false);
     assert.equal(harness.frames.size, 0);
 });

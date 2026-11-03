@@ -72,7 +72,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `ResourceLoader.load` : conversion d'un blob image en URL de données et mise en cache (`resource-loader.test.mjs`).
 - [x] `Style` : ajout et remplacement de feuilles, rafraîchissement du `<head>`, feuille vide et styles par défaut (`style.test.mjs`).
 - [x] `ElementExtension` : recherche d'ancêtres par tag/classe, borne d'arrêt inclusive et traversée d'une racine shadow (`element-extension.test.mjs`).
-- [x] `Animation` : cadence pilotée par l'horloge, arrêt différé et immédiat, annulation de frame et modification du FPS (`animation.test.mjs`, ordre d'arrêt dans `BLOCKERS.md`).
+- [x] `Animation` : cadence pilotée par l'horloge, arrêt différé après la dernière animation, arrêt immédiat, annulation de frame et modification du FPS (`animation.test.mjs`).
 - [x] `ResizeObserver` : instance native partagée, livraison par cible, désabonnement et déconnexion (`resize-observer.test.mjs`).
 - [x] `ResizeObserver` : déconnexion d'un abonné sur une cible partagée retirant actuellement la surveillance native (`resize-observer.test.mjs`, décision dans `BLOCKERS.md`).
 - [x] `Style.load` : chargements concurrents mutualisés et absence de nouveau transport après chargement (`style.test.mjs`).
