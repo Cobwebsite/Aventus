@@ -60,25 +60,32 @@ test('ResourceLoader.loadInHead shares a pending script and reuses its success',
     assert.equal(appended.length, 1);
 });
 
-test('ResourceLoader.loadInHead currently caches a failed stylesheet as loaded', async () => {
+test('ResourceLoader.loadInHead shares a stylesheet failure and retries on the next call', async () => {
+    const appended = [];
+    let removed = 0;
     class FakeLink {
         listeners = new Map();
         attributes = new Map();
         addEventListener(type, callback) { this.listeners.set(type, callback); }
         setAttribute(name, value) {
             this.attributes.set(name, value);
-            if(name === 'href') queueMicrotask(() => this.listeners.get('error')?.());
+            if(name === 'href') queueMicrotask(() => this.listeners.get(appended.length === 1 ? 'error' : 'load')?.());
         }
+        remove() { removed++; }
     }
-    const appended = [];
     const document = {
         createElement: () => new FakeLink(), querySelector: () => null,
         head: { appendChild(tag) { appended.push(tag); } },
     };
     const { ResourceLoader } = loadRuntime({ document, HTMLLinkElement: FakeLink });
-    assert.equal(await ResourceLoader.loadInHead({ url: '/missing.css', type: 'css' }), false);
+    const first = ResourceLoader.loadInHead({ url: '/missing.css', type: 'css' });
+    const concurrent = ResourceLoader.loadInHead({ url: '/missing.css', type: 'css' });
+    assert.deepEqual(await Promise.all([first, concurrent]), [false, false]);
+    assert.equal(removed, 1);
     assert.equal(await ResourceLoader.loadInHead({ url: '/missing.css', type: 'css' }), true);
-    assert.equal(appended.length, 1);
+    assert.equal(appended.length, 2);
+    assert.equal(await ResourceLoader.loadInHead({ url: '/missing.css', type: 'css' }), true);
+    assert.equal(appended.length, 2);
 });
 
 test('ResourceLoader loads an image blob as a data URL and caches it', async () => {
