@@ -52,6 +52,7 @@ export class HttpCache {
     private static generateCacheKey(fullUrl: string, request: RequestInit): string | undefined {
         const method = request.method;
         const body = request.body;
+        const accept = request.headers ? new Headers(request.headers).get('Accept') ?? '' : '';
         let bodyKey: string = "";
         if(typeof body == 'string') {
             bodyKey = this.hashStringToInt(body) + '';
@@ -60,7 +61,7 @@ export class HttpCache {
             // si file => no key
         }
 
-        return fullUrl + "°" + method + "°" + bodyKey;
+        return fullUrl + "°" + method + "°" + bodyKey + "°" + accept;
     }
 
     private static hashStringToInt(str: string): number {

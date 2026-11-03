@@ -430,7 +430,12 @@ let ResourceLoader=class ResourceLoader {
             }
             document.head.appendChild(tagEl);
             let result = await this.loadTag(tagEl, _options.url);
-            this.headerLoaded[_options.url] = true;
+            if (result) {
+                this.headerLoaded[_options.url] = true;
+            }
+            else {
+                tagEl.remove();
+            }
             this.releaseAwaitFctHead(_options.url, result);
             return result;
         }
@@ -1279,16 +1284,15 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
             proxyData2 = true;
             obj2 = Watcher.extract(obj2, false);
         }
-        if (obj1 instanceof Map && obj2 instanceof Map) {
-            if (obj1.size != obj2.size) {
+        if (obj1 instanceof Map || obj2 instanceof Map) {
+            if (!(obj1 instanceof Map && obj2 instanceof Map) || obj1.size !== obj2.size) {
                 return false;
             }
-            const keys = obj1.keys();
-            for (let key in keys) {
+            for (const [key, value] of obj1) {
                 if (!obj2.has(key)) {
                     return false;
                 }
-                if (!compareObjectRecursive(obj1.get(key), obj2.get(key), true, active, proxyData1, proxyData2)) {
+                if (!compareObjectRecursive(value, obj2.get(key), true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1681,28 +1685,26 @@ let HttpResponse=class HttpResponse {
     constructor(response) {
         this.response = response;
     }
-    bodyUsed = false;
-    bodyContent;
-    async json() {
-        if (!this.bodyUsed) {
-            this.bodyUsed = true;
-            this.bodyContent = await this.response.json();
+    bodyFormat;
+    bodyPromise;
+    async readBody(format, read) {
+        if (this.bodyFormat && this.bodyFormat !== format) {
+            throw new TypeError(`Response body already read as ${this.bodyFormat}`);
         }
-        return Converter.transform(this.bodyContent);
+        if (!this.bodyPromise) {
+            this.bodyFormat = format;
+            this.bodyPromise = read();
+        }
+        return this.bodyPromise;
     }
-    async blob() {
-        if (!this.bodyUsed) {
-            this.bodyUsed = true;
-            this.bodyContent = await this.response.blob();
-        }
-        return this.bodyContent;
+    json() {
+        return this.readBody('json', async () => Converter.transform(await this.response.json()));
     }
-    async text() {
-        if (!this.bodyUsed) {
-            this.bodyUsed = true;
-            this.bodyContent = await this.response.text();
-        }
-        return this.bodyContent;
+    blob() {
+        return this.readBody('blob', () => this.response.blob());
+    }
+    text() {
+        return this.readBody('text', () => this.response.text());
     }
 }
 HttpResponse.Namespace=`Aventus`;
@@ -1811,13 +1813,14 @@ let HttpCache=class HttpCache {
     static generateCacheKey(fullUrl, request) {
         const method = request.method;
         const body = request.body;
+        const accept = request.headers ? new Headers(request.headers).get('Accept') ?? '' : '';
         let bodyKey = "";
         if (typeof body == 'string') {
             bodyKey = this.hashStringToInt(body) + '';
         }
         else if (body instanceof FormData) {
         }
-        return fullUrl + "°" + method + "°" + bodyKey;
+        return fullUrl + "°" + method + "°" + bodyKey + "°" + accept;
     }
     static hashStringToInt(str) {
         let hash = 0x811c9dc5;
@@ -1942,7 +1945,7 @@ let VoidWithError=class VoidWithError {
     extract(fct) {
         if (this.success) {
             let result = fct();
-            if (result.success && result.result) {
+            if (result.success && result.result !== undefined) {
                 return result.result;
             }
             this.errors = [...this.errors, ...result.errors];
@@ -1952,7 +1955,7 @@ let VoidWithError=class VoidWithError {
     async extractAsync(fct) {
         if (this.success) {
             let result = await fct();
-            if (result.success && result.result) {
+            if (result.success && result.result !== undefined) {
                 return result.result;
             }
             this.errors = [...this.errors, ...result.errors];
@@ -1984,14 +1987,12 @@ let ResultWithError=class ResultWithError extends VoidWithError {
     }
     run(fct) {
         if (this.success) {
-            let result = fct();
-            if (!Array.isArray(result)) {
-                result = result.errors;
+            const result = fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if (errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
             }
-            if (result.length > 0) {
-                this.errors = [...this.errors, ...result];
-            }
-            if (result instanceof ResultWithError && result.success && result.result) {
+            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
                 this.result = result.result;
             }
         }
@@ -1999,14 +2000,12 @@ let ResultWithError=class ResultWithError extends VoidWithError {
     }
     async runAsync(fct) {
         if (this.success) {
-            let result = await fct();
-            if (!Array.isArray(result)) {
-                result = result.errors;
+            const result = await fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if (errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
             }
-            if (result.length > 0) {
-                this.errors = [...this.errors, ...result];
-            }
-            if (result instanceof ResultWithError && result.success && result.result) {
+            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
                 this.result = result.result;
             }
         }
@@ -3409,7 +3408,14 @@ let HttpRequest=class HttpRequest {
         if (!this.request.headers) {
             this.request.headers = [];
         }
-        this.request.headers.push([name, value]);
+        const headers = this.request.headers;
+        const existing = headers.findIndex(([key]) => key.toLowerCase() === name.toLowerCase());
+        if (existing >= 0) {
+            headers[existing] = [name, value];
+        }
+        else {
+            headers.push([name, value]);
+        }
     }
     setCredentials(credentials) {
         this.request.credentials = credentials;
@@ -3578,7 +3584,7 @@ let StorableRoute=class StorableRoute extends HttpRoute {
     }
     async Delete(id) {
         const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.DELETE);
-        return await request.queryJSON(this.router);
+        return await request.queryVoid(this.router);
     }
 }
 StorableRoute.Namespace=`Aventus`;
@@ -4006,6 +4012,14 @@ let PressManager=class PressManager {
             }
         }
     }
+    cancelAction(state) {
+        clearTimeout(this.timeoutLongPress);
+        clearTimeout(this.timeoutDblPress);
+        this.nbPress = 0;
+        if (state.oneActionTriggered == this) {
+            state.oneActionTriggered = null;
+        }
+    }
     upAction(_ev) {
         const ev = _ev;
         if (!this.unregisterEvent(ev)) {
@@ -4029,7 +4043,12 @@ let PressManager=class PressManager {
             document.removeEventListener("touchcancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
-        this.genericUpAction(this.state, e);
+        if (ev.type === 'pointercancel' || ev.type === 'touchcancel') {
+            this.cancelAction(this.state);
+        }
+        else {
+            this.genericUpAction(this.state, e);
+        }
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
             this.lastEmitEvent = e;
@@ -4102,7 +4121,12 @@ let PressManager=class PressManager {
         }
         if (this.lastEmitEvent == e.detail.realEvent)
             return;
-        this.genericUpAction(e.detail.state, e.detail.realEvent);
+        if (e.detail.realEvent.event.type === 'pointercancel' || e.detail.realEvent.event.type === 'touchcancel') {
+            this.cancelAction(e.detail.state);
+        }
+        else {
+            this.genericUpAction(e.detail.state, e.detail.realEvent);
+        }
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
@@ -6245,7 +6269,12 @@ let StateManager=class StateManager {
                 if (canChange) {
                     const oldState = this.activeState;
                     this.activeState = stateToUse;
-                    oldState.onInactivate(stateToUse);
+                    try {
+                        oldState.onInactivate(stateToUse);
+                    }
+                    catch (error) {
+                        console.error(error);
+                    }
                     for (let subscriber of activeToInactive) {
                         subscriber.isActive = false;
                         let oldSlug = Uri.getParams(subscriber, oldState.name);
@@ -6270,7 +6299,12 @@ let StateManager=class StateManager {
                             callback(stateToUse, trigger.params);
                         }
                     }
-                    stateToUse.onActivate();
+                    try {
+                        stateToUse.onActivate();
+                    }
+                    catch (error) {
+                        console.error(error);
+                    }
                 }
             }
             else {
@@ -6286,7 +6320,12 @@ let StateManager=class StateManager {
                         }
                     }
                 }
-                stateToUse.onActivate();
+                try {
+                    stateToUse.onActivate();
+                }
+                catch (error) {
+                    console.error(error);
+                }
             }
             if (!canChange)
                 return false;
@@ -7131,6 +7170,10 @@ let TemplateInstance=class TemplateInstance {
             currentActiveNb = newActive;
             createContext();
         };
+        this.cleanups.push(() => {
+            currentActive?.destructor();
+            currentActive = undefined;
+        });
         calculateActive();
     }
 }

@@ -31,7 +31,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `Instance` : unicité par classe, injection explicite, suppression et recréation (`instance.test.mjs`).
 - [x] Mutex : les quatre variantes `safeRun` libèrent le verrou après une exception et acceptent un nouvel appel (`mutex.test.mjs`).
 - [x] `compareObject` : structures imbriquées, tableaux ordonnés ou non, doublons, types incompatibles et absence de mutation (`compare-object.test.mjs`).
-- [x] `HttpCache` et `HttpResponse` : cache par URL/méthode/corps, invalidation ciblée, métadonnées et lecture JSON unique (`http-cache.test.mjs`).
+- [x] `HttpCache` et `HttpResponse` : cache par URL/méthode/corps/format `Accept`, invalidation ciblée, métadonnées et lecture JSON unique (`http-cache.test.mjs`).
 - [x] `Converter` : restauration de classes enregistrées dans des tableaux imbriqués, type inconnu, valeurs nulles et copie filtrée avec setter hérité (`converter.test.mjs`).
 - [x] `ResourceLoader.load` : mutualisation d'un chargement en cours, cache du contenu et indépendance des URL (`resource-loader.test.mjs`).
 - [x] `StateManager` : activation par motif, extraction des paramètres, inactivation, désabonnement, veto et reprise (`state-manager.test.mjs`).
@@ -68,7 +68,7 @@ Le projet `fixtures/reference-project` fournit désormais une compilation réell
 - [x] `uuidv4` : erreur lorsque `crypto` est indisponible ; `sleep` : délais zéro, négatif et positif, et résolution indépendante selon l'ordre des timers (`basic-tools.test.mjs`).
 - [x] `Converter` : restauration de `Map` sérialisées et transformation de leurs valeurs ; `clone` : copie imbriquée indépendante (`converter.test.mjs`).
 - [x] `Converter` : type inconnu imbriqué conservé, date native hors contrat Aventus transformée en objet vide ; `clone` : erreurs JSON sur cycle et `BigInt` (`converter.test.mjs`).
-- [x] `HttpResponse` : second lecteur concurrent renvoyant `undefined` et changement de format après lecture renvoyant le contenu initial (`http-cache.test.mjs`, décision dans `BLOCKERS.md`).
+- [x] `HttpResponse` : lecture concurrente du même format partageant la promesse et format incompatible rejeté avant ou après la lecture (`http-cache.test.mjs`).
 - [x] `ResourceLoader.load` : conversion d'un blob image en URL de données et mise en cache (`resource-loader.test.mjs`).
 - [x] `Style` : ajout et remplacement de feuilles, rafraîchissement du `<head>`, feuille vide et styles par défaut (`style.test.mjs`).
 - [x] `ElementExtension` : recherche d'ancêtres par tag/classe, borne d'arrêt caractérisée et traversée d'une racine shadow (`element-extension.test.mjs`, décision dans `BLOCKERS.md`).

@@ -30,53 +30,30 @@ export class HttpResponse {
         this.response = response;
     }
 
-    private bodyUsed: boolean = false;
-    private bodyContent: any;
-    private bodyFailure?: { error: any; };
+    private bodyFormat?: 'json' | 'blob' | 'text';
+    private bodyPromise?: Promise<any>;
 
-    public async json<T = any>(): Promise<T> {
-		if(!this.bodyUsed) {
-            this.bodyUsed = true;
-            try {
-			    this.bodyContent = await this.response.json();
-            }
-            catch(error) {
-                this.bodyFailure = { error };
-                throw error;
-            }
+    private async readBody<T>(format: 'json' | 'blob' | 'text', read: () => Promise<T>): Promise<T> {
+        if(this.bodyFormat && this.bodyFormat !== format) {
+            throw new TypeError(`Response body already read as ${this.bodyFormat}`);
         }
-        if(this.bodyFailure) throw this.bodyFailure.error;
-        return Converter.transform(this.bodyContent);
+        if(!this.bodyPromise) {
+            this.bodyFormat = format;
+            this.bodyPromise = read();
+        }
+        return this.bodyPromise;
     }
 
-    public async blob(): Promise<Blob> {
-		if(!this.bodyUsed) {
-            this.bodyUsed = true;
-			try {
-                this.bodyContent = await this.response.blob();
-            }
-            catch(error) {
-                this.bodyFailure = { error };
-                throw error;
-            }
-		}
-        if(this.bodyFailure) throw this.bodyFailure.error;
-        return this.bodyContent;
+    public json<T = any>(): Promise<T> {
+        return this.readBody('json', async () => Converter.transform<T>(await this.response.json()));
     }
 
-    public async text(): Promise<string> {
-		if(!this.bodyUsed) {
-            this.bodyUsed = true;
-			try {
-                this.bodyContent = await this.response.text();
-            }
-            catch(error) {
-                this.bodyFailure = { error };
-                throw error;
-            }
-		}
-        if(this.bodyFailure) throw this.bodyFailure.error;
-        return this.bodyContent;
+    public blob(): Promise<Blob> {
+        return this.readBody('blob', () => this.response.blob());
+    }
+
+    public text(): Promise<string> {
+        return this.readBody('text', () => this.response.text());
     }
 
 }
