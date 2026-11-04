@@ -1,0 +1,1 @@
+export class RuntimeInvalidParent extends UnknownParent implements Aventus.DefaultComponent {}

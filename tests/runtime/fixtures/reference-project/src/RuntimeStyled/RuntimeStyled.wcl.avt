@@ -1,0 +1,6 @@
+export class RuntimeStyled extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    protected override styleBefore(addStyle: (name: string) => void): void {
+        super.styleBefore(addStyle);
+        addStyle("@Utility");
+    }
+}

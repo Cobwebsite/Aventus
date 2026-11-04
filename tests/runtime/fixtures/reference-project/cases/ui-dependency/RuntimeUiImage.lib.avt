@@ -1,0 +1,7 @@
+import { Img } from "Aventus@UI:Aventus.package.avt";
+
+export class RuntimeUiImage {
+    public static getTag(): string {
+        return Img.Tag;
+    }
+}

@@ -1,0 +1,2 @@
+@Dependencies([{ type: Aventus.CallbackGroup, strong: true }])
+export class RuntimeForcedCallbackGroup { }

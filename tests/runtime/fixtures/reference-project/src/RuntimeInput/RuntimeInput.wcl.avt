@@ -1,0 +1,14 @@
+export class RuntimeInput extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Property()
+    public val: string = "";
+
+    @ViewElement()
+    protected inputEl!: HTMLInputElement;
+
+    public onNewVal: Aventus.Callback<() => void> = new Aventus.Callback();
+
+    protected triggerChange() {
+        this.val = this.inputEl.value;
+        this.onNewVal.trigger();
+    }
+}

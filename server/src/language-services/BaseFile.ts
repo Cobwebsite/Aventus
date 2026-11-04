@@ -2,6 +2,7 @@ import { CodeAction, CodeLens, CompletionItem, CompletionList, Diagnostic, Diagn
 import { AventusFile, InternalAventusFile } from '../files/AventusFile';
 import { Build } from "../project/Build";
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { AventusErrorCode } from '../definition';
 
 
 export abstract class AventusBaseFile {
@@ -109,6 +110,9 @@ export abstract class AventusBaseFile {
         result = [...result, ...await this.onValidate()];
         if (this._build && this.build.hideWarnings) {
             result = result.filter(p => p.severity != DiagnosticSeverity.Warning)
+        }
+        else if (this._build && !this.build.forceDocumentation) {
+            result = result.filter(p => p.code != AventusErrorCode.MissingDocumentation)
         }
         this.oldResult = result;
 

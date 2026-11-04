@@ -1,0 +1,3 @@
+export class RuntimeMissingFullname extends Aventus.Data implements Aventus.IData {
+    public value: string = 'value';
+}

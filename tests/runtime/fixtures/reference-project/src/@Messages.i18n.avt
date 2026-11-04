@@ -1,0 +1,10 @@
+{
+    "hello": {
+        "en-gb": "Hello",
+        "fr-fr": "Bonjour"
+    },
+    "{qty} items": {
+        "en-gb": "{qty} items",
+        "fr-fr": "{qty} articles"
+    }
+}

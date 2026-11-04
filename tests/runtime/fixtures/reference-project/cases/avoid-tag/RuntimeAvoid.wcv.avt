@@ -1,0 +1,2 @@
+<av-code><span @element="ignored">{{ this.value }}</span></av-code>
+<p class="outside">{{ this.value }}</p>

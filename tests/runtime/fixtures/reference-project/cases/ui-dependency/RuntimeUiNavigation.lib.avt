@@ -1,0 +1,16 @@
+import { Link } from "Aventus@UI:Aventus.Navigation.package.avt";
+import { RouterStateManager } from "Aventus@UI:Aventus.package.avt";
+
+export class RuntimeUiNavigation {
+    public static getTag(): string {
+        return Link.Tag;
+    }
+
+    public static async navigate(path: string): Promise<boolean> {
+        return Aventus.Instance.get(RouterStateManager).setState(path);
+    }
+
+    public static currentState(): string | undefined {
+        return Aventus.Instance.get(RouterStateManager).getState()?.name;
+    }
+}

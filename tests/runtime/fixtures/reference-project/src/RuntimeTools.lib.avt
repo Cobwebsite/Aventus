@@ -1,0 +1,43 @@
+export class RuntimeTools {
+    public static utilityAvailability() {
+        const uuidAvailable = typeof Aventus.uuidv4 === "function";
+        const sleepAvailable = typeof Aventus.sleep === "function";
+        return { uuidAvailable, sleepAvailable };
+    }
+
+    public static async mutexOrder(): Promise<string[]> {
+        const mutex = new Aventus.Mutex();
+        const order: string[] = [];
+        const tasks = [1, 2, 3].map(id => mutex.safeRunAsync(async () => {
+            order.push(`start:${id}`);
+            await Promise.resolve();
+            order.push(`end:${id}`);
+        }));
+        await Promise.all(tasks);
+        return order;
+    }
+
+    public static inspect() {
+        const first = { name: "John", todos: ["todo1", "todo2"] };
+        const reordered = { name: "John", todos: ["todo2", "todo1"] };
+        const changed = { name: "John", todos: ["todo1", "todo3"] };
+        const profile: { user?: { profile?: { city?: string } } } = {};
+        Aventus.setValueToObject("user.profile.city", profile, "New York");
+        const city = Aventus.getValueFromObject("user.profile.city", profile);
+        const missing = Aventus.getValueFromObject("user.profile.country", profile);
+        const source = { name: "Ada", age: 30 };
+        const json = Aventus.Json.classToJson(source);
+        const restored = { name: "", age: 0 };
+        Aventus.Json.classFromJson(restored, json);
+        return {
+            reorderedDefault: Aventus.compareObject(first, reordered),
+            reorderedIgnoringOrder: Aventus.compareObject(first, reordered, false),
+            arrayIgnoringOrder: Aventus.compareObject(first.todos, reordered.todos, false),
+            changed: Aventus.compareObject(first, changed),
+            city,
+            missing: missing === undefined,
+            json,
+            restored,
+        };
+    }
+}

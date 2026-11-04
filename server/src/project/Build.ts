@@ -156,6 +156,9 @@ export class Build {
     public get hideWarnings() {
         return this.buildConfig.hideWarnings;
     }
+    public get forceDocumentation() {
+        return this.buildConfig.forceDocumentation;
+    }
     public get nodeModulesDir(): string {
         return this.buildConfig.nodeModulesDir
     }
@@ -406,6 +409,9 @@ export class Build {
                 let finalErrors = [...errors, ...file.getDiagnostics()];
                 if (this.hideWarnings) {
                     finalErrors = finalErrors.filter(p => p.severity != DiagnosticSeverity.Warning)
+                }
+                else if (!this.forceDocumentation) {
+                    finalErrors = finalErrors.filter(p => p.code != AventusErrorCode.MissingDocumentation)
                 }
                 GenericServer.sendDiagnostics({
                     uri: file.file.uri,

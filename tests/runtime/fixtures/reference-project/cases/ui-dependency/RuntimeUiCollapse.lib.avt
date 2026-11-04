@@ -1,0 +1,7 @@
+import { Collapse } from "Aventus@UI:Aventus.package.avt";
+
+export class RuntimeUiCollapse {
+    public static getTag(): string {
+        return Collapse.Tag;
+    }
+}

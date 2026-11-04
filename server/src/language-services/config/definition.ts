@@ -2,6 +2,7 @@ export interface IAventusConfig {
     module: string;
     version?: string;
     hideWarnings?: boolean;
+    forceDocumentation?: boolean;
     componentPrefix?: string;
     dependencies?: IDependency[];
     namespaceStrategy?: 'manual' | 'followFolders' | 'followFoldersCamelCase' | 'rules';
@@ -26,6 +27,7 @@ interface IBuildConfig {
     version?: string;
     disabled?: boolean;
     hideWarnings?: boolean;
+    forceDocumentation?: boolean;
     componentPrefix?: string;
     src: string[];
     stories?: IStoriesConfig;

@@ -1,0 +1,5 @@
+@Storybook({ group: 'Runtime', noDefaultStory: true })
+export class RuntimeStorybook extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @StoryValue('example')
+    public label: string = 'actual';
+}

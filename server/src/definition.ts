@@ -71,4 +71,5 @@ export enum AventusErrorCode {
     ConvertionImpossible,
     ExclamationMarkMissing,
     QuestionMarkMissing,
+    MissingDocumentation
 }

@@ -1,0 +1,7 @@
+import { Page } from "Aventus@Main:Aventus.package.avt";
+
+export class RuntimeDocumentedPage extends Page implements Aventus.DefaultComponent {
+    public override configure(): Aventus.Navigation.PageConfig {
+        return { title: 'Documented page' };
+    }
+}

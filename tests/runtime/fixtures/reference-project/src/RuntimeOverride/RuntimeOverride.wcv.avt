@@ -1,0 +1,1 @@
+<section class="override"><span>{{ this.label }}</span><slot name="highlight"></slot></section>

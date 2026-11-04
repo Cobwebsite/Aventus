@@ -1,0 +1,4 @@
+export class RuntimeBase extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Property()
+    public label: string = "base";
+}

@@ -1,0 +1,11 @@
+export class RuntimeResize {
+    public static available(): boolean {
+        return typeof Aventus.ResizeObserver === "function";
+    }
+
+    public static observe(target: Element, callback: ResizeObserverCallback): Aventus.ResizeObserver {
+        const observer = new Aventus.ResizeObserver(callback);
+        observer.observe(target);
+        return observer;
+    }
+}

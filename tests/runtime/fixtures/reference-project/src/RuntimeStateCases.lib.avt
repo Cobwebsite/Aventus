@@ -1,0 +1,32 @@
+import { RuntimeStateManager } from './RuntimeStateManager.state.avt';
+import { RuntimeNamedState } from './RuntimeNamedState.state.avt';
+
+export class RuntimeStateCases {
+    public static async inspect() {
+        const manager = RuntimeStateManager.getInstance();
+        const events: string[] = [];
+        const actions: Aventus.StateAction = {
+            active: (state, slugs) => events.push('active:' + slugs.id),
+            inactive: (state, nextState) => events.push('inactive:' + nextState.name),
+            askChange: async (state, nextState, slugs) => {
+                events.push('ask:' + slugs.id + '>' + nextState.name);
+                return nextState.name !== '/user/3';
+            },
+        };
+        manager.subscribe('/user/{id:number}', actions);
+        const stringApplied = await manager.setState('/user/2');
+        const stringType = manager.getState()?.constructor.name;
+        const denied = await manager.setState('/user/3');
+        const afterDenied = manager.getState()?.name;
+        const named = new RuntimeNamedState();
+        named.payload = 'person';
+        const objectApplied = await manager.setState(named);
+        const sameObject = manager.getState() === named;
+        const staticApplied = await Aventus.State.activate('/user/4', manager);
+        const afterStatic = manager.getState()?.name;
+        manager.unsubscribe('/user/{id:number}', actions);
+        await manager.setState('/other');
+        return { stringApplied, stringType, denied, afterDenied, objectApplied,
+            sameObject, staticApplied, afterStatic, events };
+    }
+}

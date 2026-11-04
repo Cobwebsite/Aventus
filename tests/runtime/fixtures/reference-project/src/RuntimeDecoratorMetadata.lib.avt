@@ -1,0 +1,13 @@
+export class RuntimeDecoratorMetadata {
+    @NoType()
+    public details = { value: 3 };
+
+    @Deprecated('Use current instead')
+    public legacy(): number {
+        return 4;
+    }
+
+    public current(): number {
+        return this.details.value + 1;
+    }
+}

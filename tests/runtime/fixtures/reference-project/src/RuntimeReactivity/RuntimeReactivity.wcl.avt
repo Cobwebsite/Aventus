@@ -1,0 +1,16 @@
+@Debugger({ enableWatchHistory: true })
+export class RuntimeReactivity extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Watch()
+    public model: { child: { count: number }, items: string[] } = {
+        child: { count: 1 }, items: ["alpha"]
+    };
+
+    @Signal()
+    public signalModel: { count: number } = { count: 1 };
+
+    @Property()
+    public label: string = "initial";
+
+    @Watch()
+    public injected: { count: number } = { count: 0 };
+}

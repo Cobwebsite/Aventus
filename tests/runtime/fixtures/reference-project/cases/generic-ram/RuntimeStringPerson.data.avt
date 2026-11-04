@@ -1,0 +1,4 @@
+export class RuntimeStringPerson extends Aventus.Data implements Aventus.IData {
+    public id: string = '';
+    public name: string = '';
+}

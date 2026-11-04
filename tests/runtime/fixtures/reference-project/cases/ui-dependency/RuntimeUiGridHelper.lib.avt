@@ -1,0 +1,7 @@
+import { GridHelper } from "Aventus@UI:Aventus.Layout.package.avt";
+
+export class RuntimeUiGridHelper {
+    public static getTag(): string {
+        return GridHelper.Tag;
+    }
+}

@@ -1,0 +1,4 @@
+@Required()
+export class RuntimeRequired {
+    public static value(): string { return "required"; }
+}

@@ -1,0 +1,13 @@
+export class RuntimeInternalProtected {
+    @InternalProtected()
+    public value: number = 3;
+
+    @InternalProtected()
+    public double(): number {
+        return this.value * 2;
+    }
+
+    public read(): number {
+        return this.double();
+    }
+}

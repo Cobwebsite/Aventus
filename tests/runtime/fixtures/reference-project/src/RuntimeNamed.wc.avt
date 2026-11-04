@@ -1,0 +1,7 @@
+<script>
+@TagName("rt-custom-name")
+export class RuntimeNamed extends Aventus.WebComponent implements Aventus.DefaultComponent {
+}
+</script>
+<template><p>named component</p></template>
+<style>:host { display: block; }</style>

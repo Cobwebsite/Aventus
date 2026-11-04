@@ -1,0 +1,10 @@
+export function runtimeUpper(value: string): string {
+    return value.toUpperCase();
+}
+
+export const runtimeNumber = 7;
+
+export enum RuntimeFunctionMode {
+    First = 1,
+    Second = 2,
+}

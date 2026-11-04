@@ -176,6 +176,32 @@ test('Watcher propagates changes through an alias to a second root proxy', () =>
     assert.equal(targetPaths.includes('alias.count'), true);
 });
 
+test('Watcher forwards changes across a chain of injected proxies and stops at a replaced link', () => {
+    const context = loadRuntimeContext();
+    const { Watcher } = context.Aventus;
+    const make = source => runInNewContext(source, context);
+    const sourcePaths = [];
+    const middlePaths = [];
+    const targetPaths = [];
+    const source = Watcher.get(make('({ child: { count: 1 } })'), (_action, path) => sourcePaths.push(path));
+    const middle = Watcher.get(make('({ nested: null })'), (_action, path) => middlePaths.push(path));
+    const target = Watcher.get(make('({ nested: null })'), (_action, path) => targetPaths.push(path));
+    middle.nested = source.child;
+    target.nested = middle.nested;
+    source.child.count = 2;
+    assert.equal(target.nested.count, 2);
+    assert.equal(Watcher.extract(target).nested.count, 2);
+    assert.equal(sourcePaths.includes('child.count'), true);
+    assert.equal(middlePaths.includes('nested.count'), true);
+    assert.equal(targetPaths.includes('nested.count'), true);
+    target.nested = make('({ count: 10 })');
+    const before = targetPaths.length;
+    source.child.count = 3;
+    assert.equal(target.nested.count, 10);
+    assert.equal(targetPaths.length, before);
+    assert.equal(middle.nested.count, 3);
+});
+
 test('Watcher stops forwarding alias changes after the target removes the alias', () => {
     const context = loadRuntimeContext();
     const { Watcher } = context.Aventus;

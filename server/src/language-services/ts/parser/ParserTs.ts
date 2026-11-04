@@ -22,7 +22,7 @@ import {
 } from "typescript";
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { AventusLanguageId } from '../../../definition';
+import { AventusErrorCode, AventusLanguageId } from '../../../definition';
 import { AliasInfo } from './AliasInfo';
 import { BaseInfo } from "./BaseInfo";
 import { ClassInfo } from "./ClassInfo";
@@ -70,13 +70,14 @@ export class ParserTs {
             this.currentParsingDoc.errors.push(error);
         }
     }
-    public static addWarning(start: number, end: number, msg: string) {
+    public static addWarning(start: number, end: number, msg: string, code?: AventusErrorCode) {
         if (this.currentParsingDoc && !this.currentParsingDoc.isExternal) {
-            let error = {
+            let error: Diagnostic = {
                 range: Range.create(this.currentParsingDoc.document.positionAt(start), this.currentParsingDoc.document.positionAt(end)),
                 severity: DiagnosticSeverity.Warning,
                 source: AventusLanguageId.TypeScript,
-                message: flattenDiagnosticMessageText(msg, '\n')
+                message: flattenDiagnosticMessageText(msg, '\n'),
+                code: code
             }
             this.currentParsingDoc.errors.push(error);
         }

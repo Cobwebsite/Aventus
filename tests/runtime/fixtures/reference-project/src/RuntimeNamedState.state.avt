@@ -1,0 +1,7 @@
+export class RuntimeNamedState extends Aventus.State implements Aventus.IState {
+    public payload: string = '';
+
+    public override get name(): string {
+        return '/person/create';
+    }
+}

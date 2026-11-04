@@ -822,6 +822,7 @@ export class AventusJSONLanguageService {
         return {
             module: '',
             hideWarnings: SettingsManager.getInstance().settings.defaultHideWarnings,
+            forceDocumentation: SettingsManager.getInstance().settings.defaultForceDocumentation,
             version: '1.0.0',
             componentPrefix: '',
             tags: [],
@@ -849,6 +850,7 @@ export class AventusJSONLanguageService {
             documentation: config.documentation,
             disabled: false,
             hideWarnings: config.hideWarnings,
+            forceDocumentation: config.forceDocumentation,
             src: [],
             srcPath: [],
             stories: undefined,

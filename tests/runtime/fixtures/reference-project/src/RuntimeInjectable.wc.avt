@@ -1,0 +1,12 @@
+<script>
+export class RuntimeInjectable extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Injectable()
+    public message: string = 'initial';
+
+    public readMessage(): string {
+        return this.message;
+    }
+}
+</script>
+<template><p>injectable</p></template>
+<style>:host { display: block; }</style>

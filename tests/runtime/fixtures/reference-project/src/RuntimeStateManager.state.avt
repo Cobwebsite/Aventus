@@ -1,0 +1,5 @@
+export class RuntimeStateManager extends Aventus.StateManager implements Aventus.IStateManager {
+    public static getInstance() {
+        return Aventus.Instance.get(RuntimeStateManager);
+    }
+}

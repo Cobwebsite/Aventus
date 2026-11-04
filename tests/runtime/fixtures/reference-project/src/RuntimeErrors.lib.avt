@@ -1,0 +1,45 @@
+export enum RuntimeErrorCode {
+    EmptyString = 400,
+}
+
+export class RuntimeStringError extends Aventus.GenericError<RuntimeErrorCode> { }
+
+export class RuntimeStringResult extends Aventus.ResultWithError<{ lower: string }, RuntimeStringError> { }
+
+export class RuntimeErrors {
+    public static toLower(value: string): RuntimeStringResult {
+        const result = new RuntimeStringResult();
+        if (value.length === 0) {
+            result.errors.push(new RuntimeStringError(RuntimeErrorCode.EmptyString, "Please provide a string"));
+        } else {
+            result.result = { lower: value.toLowerCase() };
+        }
+        return result;
+    }
+
+    public static inspect() {
+        const valid = this.toLower("HELLO");
+        const invalid = this.toLower("");
+        const validation = new Aventus.VoidWithError<RuntimeStringError>();
+        const extracted = validation.extract(() => this.toLower("WORLD"));
+        validation.run(() => invalid);
+        let skipped = false;
+        validation.run(() => { skipped = true; return []; });
+        return {
+            valid: { success: valid.success, result: valid.result, errors: valid.errors.length },
+            invalid: {
+                success: invalid.success,
+                missingResult: invalid.result === undefined,
+                code: invalid.errors[0].code,
+                message: invalid.errors[0].message,
+                containsCode: invalid.containsCode(RuntimeErrorCode.EmptyString, RuntimeStringError),
+            },
+            validation: {
+                success: validation.success,
+                extracted,
+                skipped,
+                genericSuccess: validation.toGeneric().success,
+            },
+        };
+    }
+}

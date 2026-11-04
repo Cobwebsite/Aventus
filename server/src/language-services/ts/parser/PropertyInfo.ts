@@ -9,6 +9,7 @@ import { DocumentationInfo } from './DocumentationInfo';
 import { StoryValueDecorator } from './decorators/StoryValueDecorator';
 import { DeprecatedDecorator } from './decorators/DeprecatedDecorator';
 import { NoTypeDecorator } from './decorators/NoTypeDecorator';
+import { AventusErrorCode } from '../../../definition';
 
 type PropType = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | (PropertySignature & { exclamationToken?: boolean });
 export class PropertyInfo {
@@ -195,7 +196,7 @@ export class PropertyInfo {
 
         }
         if (!this.documentation && !this.isOverride && !this.isPrivate) {
-            ParserTs.addWarning(this.nameStart, this.nameEnd, "You should add documentation for " + this.name);
+            ParserTs.addWarning(this.nameStart, this.nameEnd, "You should add documentation for " + this.name, AventusErrorCode.MissingDocumentation);
         }
         if (accessModDefine === false) {
             ParserTs.addError(prop.getStart(), prop.getEnd(), "A accessibility modifier (public / private / protected) is mandatory for " + this.name);

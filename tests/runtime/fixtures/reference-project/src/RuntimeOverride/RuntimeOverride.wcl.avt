@@ -1,0 +1,5 @@
+import { RuntimeBase } from "../RuntimeBase/RuntimeBase.wcl.avt";
+
+@OverrideView()
+export class RuntimeOverride extends RuntimeBase implements Aventus.DefaultComponent {
+}

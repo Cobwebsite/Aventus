@@ -1,0 +1,10 @@
+export class RuntimeInvalidNullability extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Attribute()
+    public count: number;
+
+    @Property()
+    public label: string;
+
+    @ViewElement()
+    protected selected: HTMLParagraphElement;
+}

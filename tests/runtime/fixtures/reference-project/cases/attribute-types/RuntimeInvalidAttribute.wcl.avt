@@ -1,0 +1,4 @@
+export class RuntimeInvalidAttribute extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Attribute()
+    public details: { value: number } = { value: 1 };
+}

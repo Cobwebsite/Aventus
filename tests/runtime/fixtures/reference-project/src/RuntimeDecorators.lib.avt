@@ -1,0 +1,11 @@
+@Internal()
+export class RuntimeInternal {
+    public static value(): string { return "internal"; }
+}
+
+@Dependencies([{ type: RuntimeInternal, strong: true }])
+export class RuntimeDecoratorConsumer {
+    public static inspect(): string {
+        return RuntimeInternal.value();
+    }
+}

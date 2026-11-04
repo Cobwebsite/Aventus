@@ -1,0 +1,4 @@
+@Convertible()
+export class RuntimeMissingConvertible {
+    public value: string = 'value';
+}

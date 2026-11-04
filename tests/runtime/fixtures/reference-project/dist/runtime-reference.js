@@ -33,6 +33,94 @@ const _ = {};
 
 
 let _n;
+var RamErrorCode;
+(function (RamErrorCode) {
+    RamErrorCode[RamErrorCode["unknow"] = 0] = "unknow";
+    RamErrorCode[RamErrorCode["noId"] = 1] = "noId";
+    RamErrorCode[RamErrorCode["noItemInsideRam"] = 2] = "noItemInsideRam";
+    RamErrorCode[RamErrorCode["alreadyExists"] = 3] = "alreadyExists";
+})(RamErrorCode || (RamErrorCode = {}));
+__as1(_, 'RamErrorCode', RamErrorCode);
+
+let ActionGuard=class ActionGuard {
+    /**
+     * Map to store actions that are currently running.
+     * @type {Map<any[], ((res: any) => void)[]>}
+     * @private
+     */
+    runningAction = new Map();
+    run(keys, action) {
+        if (typeof keys == 'function') {
+            action = keys;
+            keys = [];
+        }
+        if (!action) {
+            return Promise.reject(new Error("No action inside the Mutex.run"));
+        }
+        for (const runningKeys of this.runningAction.keys()) {
+            if (runningKeys.length === keys.length && runningKeys.every((key, index) => key == keys[index])) {
+                return this.runningAction.get(runningKeys);
+            }
+        }
+        let resolve;
+        let reject;
+        const promise = new Promise((resolvePromise, rejectPromise) => {
+            resolve = resolvePromise;
+            reject = rejectPromise;
+        });
+        this.runningAction.set(keys, promise);
+        try {
+            Promise.resolve(action()).then(value => {
+                this.runningAction.delete(keys);
+                resolve(value);
+            }, error => {
+                this.runningAction.delete(keys);
+                reject(error);
+            });
+        }
+        catch (error) {
+            this.runningAction.delete(keys);
+            reject(error);
+        }
+        return promise;
+    }
+}
+ActionGuard.Namespace=`Aventus`;
+__as1(_, 'ActionGuard', ActionGuard);
+
+let Resource=class Resource {
+}
+Resource.Namespace=`Aventus`;
+__as1(_, 'Resource', Resource);
+
+let Request=class Request {
+}
+Request.Namespace=`Aventus`;
+__as1(_, 'Request', Request);
+
+var HttpErrorCode;
+(function (HttpErrorCode) {
+    HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
+    HttpErrorCode[HttpErrorCode["status"] = 1] = "status";
+})(HttpErrorCode || (HttpErrorCode = {}));
+__as1(_, 'HttpErrorCode', HttpErrorCode);
+
+var HttpMethod;
+(function (HttpMethod) {
+    HttpMethod["GET"] = "GET";
+    HttpMethod["POST"] = "POST";
+    HttpMethod["DELETE"] = "DELETE";
+    HttpMethod["PUT"] = "PUT";
+    HttpMethod["OPTION"] = "OPTION";
+})(HttpMethod || (HttpMethod = {}));
+__as1(_, 'HttpMethod', HttpMethod);
+
+let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
+__as1(_, 'DragElementXYType', DragElementXYType);
+
+let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
+__as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
+
 let ElementExtension=class ElementExtension {
     /**
      * Find a parent by custom check
@@ -434,12 +522,16 @@ Style.Namespace=`Aventus`;
 __as1(_, 'Style', Style);
 
 let setValueToObject=function setValueToObject(path, obj, value) {
+    if (path === '') {
+        throw new TypeError('Cannot write to an empty object path');
+    }
     path = path.replace(/\[(.*?)\]/g, '.$1');
     let splitted = path.split(".");
     for (let i = 0; i < splitted.length - 1; i++) {
         let split = splitted[i];
         let value = obj instanceof Map ? obj.get(split) : obj[split];
-        if (!value) {
+        const exists = obj instanceof Map ? obj.has(split) : split in Object(obj);
+        if (!exists) {
             value = {};
             if (obj instanceof Map) {
                 obj.set(split, value);
@@ -447,6 +539,9 @@ let setValueToObject=function setValueToObject(path, obj, value) {
             else {
                 obj[split] = value;
             }
+        }
+        else if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+            throw new TypeError(`Cannot write through primitive path segment "${split}"`);
         }
         obj = value;
     }
@@ -462,7 +557,7 @@ __as1(_, 'setValueToObject', setValueToObject);
 let Mutex=class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
-     * @type {((run: boolean) => void)[]}
+     * @type {{ run: (acquired: boolean) => void; reject: (reason: Error) => void; }[]}
      */
     waitingList = [];
     /**
@@ -475,11 +570,9 @@ let Mutex=class Mutex {
     * @returns {Promise<boolean>} A Promise that resolves to true if the mutex was acquired successfully.
     */
     waitOne() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (this.isLocked) {
-                this.waitingList.push((run) => {
-                    resolve(run);
-                });
+                this.waitingList.push({ run: resolve, reject });
             }
             else {
                 this.isLocked = true;
@@ -493,7 +586,7 @@ let Mutex=class Mutex {
     release() {
         let nextFct = this.waitingList.shift();
         if (nextFct) {
-            nextFct(true);
+            nextFct.run(true);
         }
         else {
             this.isLocked = false;
@@ -506,11 +599,11 @@ let Mutex=class Mutex {
         if (this.waitingList.length > 0) {
             let lastFct = this.waitingList.pop();
             for (let fct of this.waitingList) {
-                fct(false);
+                fct.run(false);
             }
             this.waitingList = [];
             if (lastFct) {
-                lastFct(true);
+                lastFct.run(true);
             }
         }
         else {
@@ -518,11 +611,15 @@ let Mutex=class Mutex {
         }
     }
     /**
-     * Clears the mutex, removing all waiting functions and releasing the lock.
+     * Rejects pending waiters and releases the lock for new calls.
      */
     dispose() {
+        const waiting = this.waitingList;
         this.waitingList = [];
         this.isLocked = false;
+        for (const waiter of waiting) {
+            waiter.reject(new Error('Mutex disposed'));
+        }
     }
     /**
      * Executes a callback function safely within the mutex lock and releases the lock afterward.
@@ -1334,7 +1431,28 @@ let DateTime=class DateTime {
 DateTime.Namespace=`Aventus`;
 __as1(_, 'DateTime', DateTime);
 
-let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
+let DateConverter=class DateConverter {
+    static __converter = new DateConverter();
+    static get converter() {
+        return this.__converter;
+    }
+    static set converter(value) {
+        this.__converter = value;
+    }
+    isStringDate(txt) {
+        return /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?)?$/.test(txt);
+    }
+    fromString(txt) {
+        return txt.includes('T') ? DateTime.tryParse(txt) : Date.tryParse(txt);
+    }
+    toString(date) {
+        return date.toJSON();
+    }
+}
+DateConverter.Namespace=`Aventus`;
+__as1(_, 'DateConverter', DateConverter);
+
+let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -1345,7 +1463,7 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
         }
         if (tableOrder) {
             for (let i = 0; i < obj1.length; i++) {
-                if (!compareObject(obj1[i], obj2[i])) {
+                if (!compareObjectRecursive(obj1[i], obj2[i], true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1355,7 +1473,7 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
             for (let i = 0; i < obj1.length; i++) {
                 let foundElement = false;
                 for (let j = 0; j < obj2.length; j++) {
-                    if (compareObject(obj1[i], obj2[j])) {
+                    if (compareObjectRecursive(obj1[i], obj2[j], true, active, proxyData1, proxyData2)) {
                         obj2.splice(j, 1);
                         foundElement = true;
                         break;
@@ -1384,42 +1502,39 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
         if (obj2 instanceof Date || obj2 instanceof DateTime || obj2 instanceof Time) {
             return false;
         }
-        let oneProxy = false;
         if (Watcher.is(obj1)) {
-            oneProxy = true;
+            proxyData1 = true;
             obj1 = Watcher.extract(obj1, false);
         }
         if (Watcher.is(obj2)) {
-            oneProxy = true;
+            proxyData2 = true;
             obj2 = Watcher.extract(obj2, false);
         }
-        if (obj1 instanceof Map && obj2 instanceof Map) {
-            if (obj1.size != obj2.size) {
+        if (obj1 instanceof Map || obj2 instanceof Map) {
+            if (!(obj1 instanceof Map && obj2 instanceof Map) || obj1.size !== obj2.size) {
                 return false;
             }
-            const keys = obj1.keys();
-            for (let key in keys) {
+            for (const [key, value] of obj1) {
                 if (!obj2.has(key)) {
                     return false;
                 }
-                if (!compareObject(obj1.get(key), obj2.get(key))) {
+                if (!compareObjectRecursive(value, obj2.get(key), true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
             return true;
         }
         else {
-            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+            const keys1 = Object.keys(obj1).filter(key => !proxyData1 || !Watcher['__reservedName'][key]);
+            const keys2 = Object.keys(obj2).filter(key => !proxyData2 || !Watcher['__reservedName'][key]);
+            if (keys1.length !== keys2.length) {
                 return false;
             }
-            for (let key in obj1) {
-                if (oneProxy && Watcher['__reservedName'][key]) {
-                    continue;
-                }
-                if (!(key in obj2)) {
+            for (let key of keys1) {
+                if (!keys2.includes(key)) {
                     return false;
                 }
-                if (!compareObject(obj1[key], obj2[key])) {
+                if (!compareObjectRecursive(obj1[key], obj2[key], true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1430,7 +1545,74 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
         return obj1 === obj2;
     }
 }
+
+let compareObjectRecursive=function compareObjectRecursive(obj1, obj2, tableOrder, active, proxyData1 = false, proxyData2 = false) {
+    if (obj1 !== null && obj2 !== null && typeof obj1 === 'object' && typeof obj2 === 'object') {
+        let matches = active.get(obj1);
+        if (matches?.has(obj2)) {
+            return true;
+        }
+        if (!matches) {
+            matches = new WeakSet();
+            active.set(obj1, matches);
+        }
+        matches.add(obj2);
+        try {
+            return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
+        }
+        finally {
+            matches.delete(obj2);
+        }
+    }
+    return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
+}
+
+let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
+    return compareObjectRecursive(obj1, obj2, tableOrder, new WeakMap());
+}
 __as1(_, 'compareObject', compareObject);
+
+let Computed=class Computed extends Effect {
+    _value;
+    __path = "*";
+    get value() {
+        if (!this.isInit) {
+            this.init();
+        }
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    autoInit() {
+        return false;
+    }
+    constructor(fct) {
+        super(fct);
+    }
+    init() {
+        this.isInit = true;
+        this.computedValue();
+    }
+    computedValue() {
+        this._value = this.run();
+    }
+    onChange(action, changePath, value, dones) {
+        if (!this.checkCanChange(action, changePath, value, dones)) {
+            return;
+        }
+        let oldValue = this._value;
+        this.computedValue();
+        if (oldValue === this._value) {
+            return;
+        }
+        for (let fct of [...this.__subscribes]) {
+            Watcher.isolate(() => {
+                fct(action, changePath, value, dones);
+            });
+        }
+    }
+}
+Computed.Namespace=`Aventus`;
+__as1(_, 'Computed', Computed);
 
 let Watcher=class Watcher {
     static isNative(obj) {
@@ -2332,48 +2514,6 @@ let Watcher=class Watcher {
 Watcher.Namespace=`Aventus`;
 __as1(_, 'Watcher', Watcher);
 
-let Computed=class Computed extends Effect {
-    _value;
-    __path = "*";
-    get value() {
-        if (!this.isInit) {
-            this.init();
-        }
-        Watcher._register?.register(this, "*", Watcher._register.version, "*");
-        return this._value;
-    }
-    autoInit() {
-        return false;
-    }
-    constructor(fct) {
-        super(fct);
-    }
-    init() {
-        this.isInit = true;
-        this.computedValue();
-    }
-    computedValue() {
-        this._value = this.run();
-    }
-    onChange(action, changePath, value, dones) {
-        if (!this.checkCanChange(action, changePath, value, dones)) {
-            return;
-        }
-        let oldValue = this._value;
-        this.computedValue();
-        if (oldValue === this._value) {
-            return;
-        }
-        for (let fct of [...this.__subscribes]) {
-            Watcher.isolate(() => {
-                fct(action, changePath, value, dones);
-            });
-        }
-    }
-}
-Computed.Namespace=`Aventus`;
-__as1(_, 'Computed', Computed);
-
 let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
@@ -2734,6 +2874,14 @@ let PressManager=class PressManager {
             }
         }
     }
+    cancelAction(state) {
+        clearTimeout(this.timeoutLongPress);
+        clearTimeout(this.timeoutDblPress);
+        this.nbPress = 0;
+        if (state.oneActionTriggered == this) {
+            state.oneActionTriggered = null;
+        }
+    }
     upAction(_ev) {
         const ev = _ev;
         if (!this.unregisterEvent(ev)) {
@@ -2757,7 +2905,12 @@ let PressManager=class PressManager {
             document.removeEventListener("touchcancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
-        this.genericUpAction(this.state, e);
+        if (ev.type === 'pointercancel' || ev.type === 'touchcancel') {
+            this.cancelAction(this.state);
+        }
+        else {
+            this.genericUpAction(this.state, e);
+        }
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
             this.lastEmitEvent = e;
@@ -2830,7 +2983,12 @@ let PressManager=class PressManager {
         }
         if (this.lastEmitEvent == e.detail.realEvent)
             return;
-        this.genericUpAction(e.detail.state, e.detail.realEvent);
+        if (e.detail.realEvent.event.type === 'pointercancel' || e.detail.realEvent.event.type === 'touchcancel') {
+            this.cancelAction(e.detail.state);
+        }
+        else {
+            this.genericUpAction(e.detail.state, e.detail.realEvent);
+        }
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
@@ -3227,7 +3385,12 @@ let StateManager=class StateManager {
                 if (canChange) {
                     const oldState = this.activeState;
                     this.activeState = stateToUse;
-                    oldState.onInactivate(stateToUse);
+                    try {
+                        oldState.onInactivate(stateToUse);
+                    }
+                    catch (error) {
+                        console.error(error);
+                    }
                     for (let subscriber of activeToInactive) {
                         subscriber.isActive = false;
                         let oldSlug = Uri.getParams(subscriber, oldState.name);
@@ -3252,7 +3415,12 @@ let StateManager=class StateManager {
                             callback(stateToUse, trigger.params);
                         }
                     }
-                    stateToUse.onActivate();
+                    try {
+                        stateToUse.onActivate();
+                    }
+                    catch (error) {
+                        console.error(error);
+                    }
                 }
             }
             else {
@@ -3268,8 +3436,15 @@ let StateManager=class StateManager {
                         }
                     }
                 }
-                stateToUse.onActivate();
+                try {
+                    stateToUse.onActivate();
+                }
+                catch (error) {
+                    console.error(error);
+                }
             }
+            if (!canChange)
+                return false;
             this.afterStateChanged.trigger();
             return true;
         });
@@ -3314,6 +3489,7 @@ let TemplateContext=class TemplateContext {
     comp;
     computeds = [];
     watch;
+    proxyWatches = {};
     registry;
     isDestroyed = false;
     constructor(component, data = {}, parentContext, registry) {
@@ -3450,6 +3626,10 @@ let TemplateContext=class TemplateContext {
     }
     destructor() {
         this.isDestroyed = true;
+        for (let signal of Object.values(this.proxyWatches)) {
+            signal.destroy();
+        }
+        this.proxyWatches = {};
         for (let computed of this.computeds) {
             computed.destroy();
         }
@@ -3457,6 +3637,16 @@ let TemplateContext=class TemplateContext {
     }
     registerWatch(name, value) {
         let that = this;
+        if (Watcher.is(value)) {
+            const signal = new Signal(value);
+            this.proxyWatches[name] = signal;
+            Object.defineProperty(this.data, name, {
+                get() {
+                    return signal.value;
+                }
+            });
+            return;
+        }
         that.watch[name] = value;
         Object.defineProperty(that.data, name, {
             get() {
@@ -3465,6 +3655,10 @@ let TemplateContext=class TemplateContext {
         });
     }
     updateWatch(name, value, dones) {
+        if (this.proxyWatches[name]) {
+            this.proxyWatches[name].value = value;
+            return;
+        }
         if (Watcher.is(this.watch[name])) {
             this.watch[name].__injectedDones(dones);
         }
@@ -3518,6 +3712,7 @@ let TemplateInstance=class TemplateInstance {
     lastChild;
     computeds = [];
     renderingComputeds = [];
+    cleanups = [];
     loopRegisteries = {};
     loops = [];
     ifs = [];
@@ -3547,6 +3742,10 @@ let TemplateInstance=class TemplateInstance {
     }
     destructor() {
         this.isDestroyed = true;
+        for (const cleanup of this.cleanups) {
+            cleanup();
+        }
+        this.cleanups = [];
         for (let name in this.loopRegisteries) {
             let register = this.loopRegisteries[name];
             for (let item of register.templates) {
@@ -3668,26 +3867,31 @@ let TemplateInstance=class TemplateInstance {
                     customElements.upgrade(el);
                     cb = getValueFromObject(event.eventName, el);
                 }
-                cb?.add((...args) => {
+                const listener = (...args) => {
                     try {
                         return event.fct(this.context, args);
                     }
                     catch (e) {
                         console.error(e);
                     }
-                });
+                };
+                cb?.add(listener);
+                if (cb)
+                    this.cleanups.push(() => cb.remove(listener));
             }
         }
         else {
             for (let el of this._components[event.id]) {
-                el.addEventListener(event.eventName, (e) => {
+                const listener = (e) => {
                     try {
                         event.fct(e, this.context);
                     }
                     catch (e) {
                         console.error(e);
                     }
-                });
+                };
+                el.addEventListener(event.eventName, listener);
+                this.cleanups.push(() => el.removeEventListener(event.eventName, listener));
             }
         }
     }
@@ -3707,7 +3911,15 @@ let TemplateInstance=class TemplateInstance {
                 }
             }
             clone.element = this._components[id];
-            PressManager.create(clone);
+            const managers = PressManager.create(clone);
+            if (Array.isArray(managers)) {
+                for (const manager of managers) {
+                    this.cleanups.push(() => manager.destroy());
+                }
+            }
+            else {
+                this.cleanups.push(() => managers.destroy());
+            }
         }
     }
     transformActionsListening() {
@@ -3876,12 +4088,16 @@ let TemplateInstance=class TemplateInstance {
                             customElements.upgrade(el);
                             cb = getValueFromObject(binding.injectionName, el);
                         }
-                        cb?.add((value) => {
+                        const listener = (value) => {
                             let valueToSet = getValueFromObject(binding.injectionName, el);
                             isLocalChange = true;
                             binding.extract(this.context, valueToSet);
                             isLocalChange = false;
-                        });
+                        };
+                        if (cb) {
+                            cb.add(listener);
+                            this.cleanups.push(() => cb.remove(listener));
+                        }
                     }
                 }
             });
@@ -3891,12 +4107,14 @@ let TemplateInstance=class TemplateInstance {
                 for (var el of this._components[binding.id]) {
                     customElements.upgrade(el);
                     for (let fct of binding.eventNames) {
-                        el.addEventListener(fct, (e) => {
+                        const listener = (e) => {
                             let valueToSet = getValueFromObject(binding.injectionName, e.target);
                             isLocalChange = true;
                             binding.extract(this.context, valueToSet);
                             isLocalChange = false;
-                        });
+                        };
+                        el.addEventListener(fct, listener);
+                        this.cleanups.push(() => el.removeEventListener(fct, listener));
                     }
                 }
             });
@@ -4243,6 +4461,10 @@ let TemplateInstance=class TemplateInstance {
             currentActiveNb = newActive;
             createContext();
         };
+        this.cleanups.push(() => {
+            currentActive?.destructor();
+            currentActive = undefined;
+        });
         calculateActive();
     }
 }
@@ -4524,6 +4746,8 @@ let WebComponent=class WebComponent extends HTMLElement {
         // TODO add missing info for destructor();
         this.postDestruction();
         this.destructChildren();
+        this.__templateInstance?.destructor();
+        this.__templateInstance = undefined;
     }
     destructChildren() {
         const recu = (el) => {
@@ -5257,6 +5481,2995 @@ let WebComponentInstance=class WebComponentInstance {
 WebComponentInstance.Namespace=`Aventus`;
 __as1(_, 'WebComponentInstance', WebComponentInstance);
 
+let DragAndDrop=class DragAndDrop {
+    /**
+     * Default offset before drag element
+     */
+    static defaultOffsetDrag = 20;
+    pressManager;
+    options;
+    startCursorPosition = { x: 0, y: 0 };
+    startElementPosition = { x: 0, y: 0 };
+    isEnable = true;
+    draggableElement;
+    constructor(options) {
+        this.options = this.getDefaultOptions(options.element);
+        this.mergeProperties(options);
+        this.mergeFunctions(options);
+        this.options.elementTrigger.style.touchAction = 'none';
+        this.pressManager = new PressManager({
+            element: this.options.elementTrigger,
+            onPressStart: this.onPressStart.bind(this),
+            onPressEnd: this.onPressEnd.bind(this),
+            onDragStart: this.onDragStart.bind(this),
+            onDrag: this.onDrag.bind(this),
+            onDragEnd: this.onDragEnd.bind(this),
+            offsetDrag: this.options.offsetDrag,
+            dragDirection: this.options.dragDirection,
+            stopPropagation: this.options.stopPropagation
+        });
+    }
+    getDefaultOptions(element) {
+        return {
+            applyDrag: true,
+            element: element,
+            elementTrigger: element,
+            offsetDrag: DragAndDrop.defaultOffsetDrag,
+            dragDirection: 'XY',
+            shadow: {
+                enable: false,
+                container: document.body,
+                removeOnStop: true,
+                transform: () => { },
+                delete: (el) => {
+                    el.remove();
+                }
+            },
+            strict: false,
+            targets: [],
+            usePercent: false,
+            stopPropagation: true,
+            useMouseFinalPosition: false,
+            useTransform: false,
+            isDragEnable: () => true,
+            getZoom: () => 1,
+            getOffsetX: () => 0,
+            getOffsetY: () => 0,
+            onPointerDown: (e) => { },
+            onPointerUp: (e) => { },
+            onStart: (e) => { },
+            onMove: (e) => { },
+            onStop: (e) => { },
+            onDrop: (element, targets) => { },
+            correctPosition: (position) => position
+        };
+    }
+    mergeProperties(options) {
+        if (options.element === void 0) {
+            throw "You must define the element for the drag&drop";
+        }
+        this.options.element = options.element;
+        if (options.elementTrigger === void 0) {
+            this.options.elementTrigger = this.options.element;
+        }
+        else {
+            this.options.elementTrigger = options.elementTrigger;
+        }
+        this.defaultMerge(options, "applyDrag");
+        this.defaultMerge(options, "offsetDrag");
+        this.defaultMerge(options, "dragDirection");
+        this.defaultMerge(options, "strict");
+        this.defaultMerge(options, "targets");
+        this.defaultMerge(options, "usePercent");
+        this.defaultMerge(options, "stopPropagation");
+        this.defaultMerge(options, "useMouseFinalPosition");
+        this.defaultMerge(options, "useTransform");
+        if (options.shadow !== void 0) {
+            this.options.shadow.enable = options.shadow.enable;
+            if (options.shadow.container !== void 0) {
+                this.options.shadow.container = options.shadow.container;
+            }
+            else {
+                this.options.shadow.container = document.body;
+            }
+            if (options.shadow.removeOnStop !== void 0) {
+                this.options.shadow.removeOnStop = options.shadow.removeOnStop;
+            }
+            if (options.shadow.transform !== void 0) {
+                this.options.shadow.transform = options.shadow.transform;
+            }
+            if (options.shadow.delete !== void 0) {
+                this.options.shadow.delete = options.shadow.delete;
+            }
+        }
+    }
+    mergeFunctions(options) {
+        this.defaultMerge(options, "isDragEnable");
+        this.defaultMerge(options, "getZoom");
+        this.defaultMerge(options, "getOffsetX");
+        this.defaultMerge(options, "getOffsetY");
+        this.defaultMerge(options, "onPointerDown");
+        this.defaultMerge(options, "onPointerUp");
+        this.defaultMerge(options, "onStart");
+        this.defaultMerge(options, "onMove");
+        this.defaultMerge(options, "onStop");
+        this.defaultMerge(options, "onDrop");
+        this.defaultMerge(options, "correctPosition");
+    }
+    defaultMerge(options, name) {
+        if (options[name] !== void 0) {
+            const opts = this.options;
+            opts[name] = options[name];
+        }
+    }
+    positionShadowRelativeToElement = { x: 0, y: 0 };
+    onPressStart(e) {
+        this.options.onPointerDown(e);
+    }
+    onPressEnd(e) {
+        this.options.onPointerUp(e);
+    }
+    onDragStart(e) {
+        this.isEnable = this.options.isDragEnable();
+        if (!this.isEnable) {
+            return false;
+        }
+        let draggableElement = this.options.element;
+        this.startCursorPosition = {
+            x: e.pageX,
+            y: e.pageY
+        };
+        this.startElementPosition = this.getBoundingBoxRelative(draggableElement);
+        if (this.options.shadow.enable) {
+            draggableElement = this.options.element.cloneNode(true);
+            let elBox = this.options.element.getBoundingClientRect();
+            let containerBox = this.options.shadow.container.getBoundingClientRect();
+            this.positionShadowRelativeToElement = {
+                x: elBox.x - containerBox.x,
+                y: elBox.y - containerBox.y
+            };
+            if (this.options.applyDrag) {
+                draggableElement.style.position = "absolute";
+                draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
+                draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
+                this.options.shadow.transform(draggableElement);
+                this.options.shadow.container.appendChild(draggableElement);
+            }
+        }
+        this.draggableElement = draggableElement;
+        const result = this.options.onStart(e);
+        if (result !== false) {
+            document.body.style.userSelect = 'none';
+            if (window.getSelection) {
+                window.getSelection()?.removeAllRanges();
+            }
+        }
+        return result;
+    }
+    onDrag(e) {
+        if (!this.isEnable) {
+            return;
+        }
+        let zoom = this.options.getZoom();
+        let diff = {
+            x: 0,
+            y: 0
+        };
+        if (this.options.shadow.enable) {
+            diff = {
+                x: (e.pageX - this.startCursorPosition.x) + this.positionShadowRelativeToElement.x + this.options.getOffsetX(),
+                y: (e.pageY - this.startCursorPosition.y) + this.positionShadowRelativeToElement.y + this.options.getOffsetY(),
+            };
+        }
+        else {
+            diff = {
+                x: (e.pageX - this.startCursorPosition.x) / zoom + this.startElementPosition.x + this.options.getOffsetX(),
+                y: (e.pageY - this.startCursorPosition.y) / zoom + this.startElementPosition.y + this.options.getOffsetY()
+            };
+        }
+        let newPos = this.setPosition(diff);
+        this.options.onMove(e, newPos);
+    }
+    onDragEnd(e) {
+        if (!this.isEnable) {
+            return;
+        }
+        document.body.style.userSelect = '';
+        let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
+            x: e.clientX,
+            y: e.clientY
+        }) : this.getMatchingTargets();
+        let draggableElement = this.draggableElement;
+        if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
+            this.options.shadow.delete(draggableElement);
+        }
+        if (targets.length > 0) {
+            this.options.onDrop(this.options.element, targets);
+        }
+        this.options.onStop(e);
+    }
+    setPosition(position) {
+        let draggableElement = this.draggableElement;
+        if (this.options.usePercent) {
+            let elementParent = this.getOffsetParent(draggableElement);
+            if (elementParent instanceof HTMLElement) {
+                let percentPosition = {
+                    x: (position.x / elementParent.offsetWidth) * 100,
+                    y: (position.y / elementParent.offsetHeight) * 100
+                };
+                percentPosition = this.options.correctPosition(percentPosition);
+                if (this.options.applyDrag) {
+                    draggableElement.style.left = percentPosition.x + '%';
+                    draggableElement.style.top = percentPosition.y + '%';
+                }
+                return percentPosition;
+            }
+            else {
+                console.error("Can't find parent. Contact an admin", draggableElement);
+            }
+        }
+        else {
+            position = this.options.correctPosition(position);
+            if (this.options.applyDrag) {
+                if (this.isLeftTopElement(draggableElement)) {
+                    draggableElement.style.left = position.x + 'px';
+                    draggableElement.style.top = position.y + 'px';
+                }
+                else {
+                    if (this.options.useTransform) {
+                        draggableElement.setAttribute("transform", `translate(${position.x},${position.y})`);
+                    }
+                    else {
+                        draggableElement.style.left = position.x + 'px';
+                        draggableElement.style.top = position.y + 'px';
+                    }
+                }
+            }
+        }
+        return position;
+    }
+    getTargets() {
+        if (typeof this.options.targets == "function") {
+            return this.options.targets();
+        }
+        else {
+            return this.options.targets;
+        }
+    }
+    /**
+     * Get targets within the current element position is matching
+     */
+    getMatchingTargets() {
+        let draggableElement = this.draggableElement;
+        let matchingTargets = [];
+        let srcTargets = this.getTargets();
+        for (let target of srcTargets) {
+            let elementCoordinates = this.getBoundingBoxAbsolute(draggableElement);
+            let targetCoordinates = this.getBoundingBoxAbsolute(target);
+            let offsetX = this.options.getOffsetX();
+            let offsetY = this.options.getOffsetY();
+            let zoom = this.options.getZoom();
+            targetCoordinates.x += offsetX;
+            targetCoordinates.y += offsetY;
+            targetCoordinates.width *= zoom;
+            targetCoordinates.height *= zoom;
+            if (this.options.strict) {
+                if ((elementCoordinates.x >= targetCoordinates.x && elementCoordinates.x + elementCoordinates.width <= targetCoordinates.x + targetCoordinates.width) &&
+                    (elementCoordinates.y >= targetCoordinates.y && elementCoordinates.y + elementCoordinates.height <= targetCoordinates.y + targetCoordinates.height)) {
+                    matchingTargets.push(target);
+                }
+            }
+            else {
+                let elementLeft = elementCoordinates.x;
+                let elementRight = elementCoordinates.x + elementCoordinates.width;
+                let elementTop = elementCoordinates.y;
+                let elementBottom = elementCoordinates.y + elementCoordinates.height;
+                let targetLeft = targetCoordinates.x;
+                let targetRight = targetCoordinates.x + targetCoordinates.width;
+                let targetTop = targetCoordinates.y;
+                let targetBottom = targetCoordinates.y + targetCoordinates.height;
+                if (!(elementRight < targetLeft ||
+                    elementLeft > targetRight ||
+                    elementBottom < targetTop ||
+                    elementTop > targetBottom)) {
+                    matchingTargets.push(target);
+                }
+            }
+        }
+        return matchingTargets;
+    }
+    /**
+     * This function will return the targets that are matching with the mouse position
+     * @param mouse The mouse position
+     */
+    getMatchingTargetsWithMousePosition(mouse) {
+        let matchingTargets = [];
+        if (this.options.shadow.enable == false || this.options.shadow.container == null) {
+            console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
+            return matchingTargets;
+        }
+        const container = this.options.shadow.container;
+        let xCorrected = mouse.x - container.getBoundingClientRect().left;
+        let yCorrected = mouse.y - container.getBoundingClientRect().top;
+        for (let target of this.getTargets()) {
+            if (this.isLeftTopElement(target)) {
+                if (this.matchPosition(target, { x: mouse.x, y: mouse.y })) {
+                    matchingTargets.push(target);
+                }
+            }
+            else {
+                if (this.matchPosition(target, { x: xCorrected, y: yCorrected })) {
+                    matchingTargets.push(target);
+                }
+            }
+        }
+        return matchingTargets;
+    }
+    matchPosition(element, point) {
+        let elementCoordinates = this.getBoundingBoxAbsolute(element);
+        if (point.x >= elementCoordinates.x &&
+            point.x <= elementCoordinates.x + elementCoordinates.width &&
+            point.y >= elementCoordinates.y &&
+            point.y <= elementCoordinates.y + elementCoordinates.height) {
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Get element currently dragging
+     */
+    getElementDrag() {
+        return this.options.element;
+    }
+    /**
+     * Set targets where to drop
+     */
+    setTargets(targets) {
+        this.options.targets = targets;
+    }
+    /**
+     * Set targets where to drop
+     */
+    setTargetsFct(targets) {
+        this.options.targets = targets;
+    }
+    /**
+     * Destroy the current drag&drop instance
+     */
+    destroy() {
+        this.pressManager.destroy();
+    }
+    isLeftTopElement(element) {
+        for (let Type of DragElementLeftTopType) {
+            if (element instanceof Type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    isXYElement(element) {
+        for (let Type of DragElementXYType) {
+            if (element instanceof Type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    getCoordinateFromAttribute(element) {
+        if (this.options.useTransform) {
+            const transform = element.getAttribute("transform");
+            const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
+            const x = tvalue ? parseFloat(tvalue[1]) : 0;
+            const y = tvalue ? parseFloat(tvalue[2]) : 0;
+            return {
+                x: x,
+                y: y
+            };
+        }
+        return {
+            x: parseFloat(element.getAttribute("x")),
+            y: parseFloat(element.getAttribute("y"))
+        };
+    }
+    XYElementToRelativeBox(element) {
+        let coordinates = this.getCoordinateFromAttribute(element);
+        const width = parseFloat(element.getAttribute("width"));
+        const height = parseFloat(element.getAttribute("height"));
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    XYElementToAbsoluteBox(element) {
+        let coordinates = this.getCoordinateFromAttribute(element);
+        const parent = this.getOffsetParent(element);
+        if (parent) {
+            const box = parent.getBoundingClientRect();
+            coordinates = {
+                x: coordinates.x + box.x,
+                y: coordinates.y + box.y
+            };
+        }
+        const width = parseFloat(element.getAttribute("width"));
+        const height = parseFloat(element.getAttribute("height"));
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getBoundingBoxAbsolute(element) {
+        if (this.isLeftTopElement(element)) {
+            if (element instanceof HTMLElement) {
+                const bounds = element.getBoundingClientRect();
+                return {
+                    x: bounds.x,
+                    y: bounds.y,
+                    width: bounds.width,
+                    height: bounds.height,
+                    bottom: bounds.bottom,
+                    right: bounds.right,
+                    top: bounds.top,
+                    left: bounds.left,
+                    toJSON() {
+                        return JSON.stringify(this);
+                    }
+                };
+            }
+        }
+        else if (this.isXYElement(element)) {
+            return this.XYElementToAbsoluteBox(element);
+        }
+        const parent = this.getOffsetParent(element);
+        if (parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
+            return {
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
+                toJSON() {
+                    return JSON.stringify(this);
+                }
+            };
+        }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getBoundingBoxRelative(element) {
+        if (this.isLeftTopElement(element)) {
+            if (element instanceof HTMLElement) {
+                return {
+                    x: element.offsetLeft,
+                    y: element.offsetTop,
+                    width: element.offsetWidth,
+                    height: element.offsetHeight,
+                    bottom: element.offsetTop + element.offsetHeight,
+                    right: element.offsetLeft + element.offsetWidth,
+                    top: element.offsetTop,
+                    left: element.offsetLeft,
+                    toJSON() {
+                        return JSON.stringify(this);
+                    }
+                };
+            }
+        }
+        else if (this.isXYElement(element)) {
+            return this.XYElementToRelativeBox(element);
+        }
+        const parent = this.getOffsetParent(element);
+        if (parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
+            return {
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
+                toJSON() {
+                    return JSON.stringify(this);
+                }
+            };
+        }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getOffsetParent(element) {
+        if (element instanceof HTMLElement) {
+            return element.offsetParent;
+        }
+        let current = element.parentNode;
+        while (current) {
+            if (current instanceof Element) {
+                const style = getComputedStyle(current);
+                if (style.position !== 'static') {
+                    return current;
+                }
+            }
+            if (current instanceof ShadowRoot) {
+                current = current.host;
+            }
+            else {
+                current = current.parentNode;
+            }
+        }
+        return null;
+    }
+}
+DragAndDrop.Namespace=`Aventus`;
+__as1(_, 'DragAndDrop', DragAndDrop);
+
+let ConverterTransform=class ConverterTransform {
+    transform(data) {
+        return this.transformLoop(data);
+    }
+    createInstance(data) {
+        if (data.$type) {
+            let cst = Converter.info.get(data.$type);
+            if (cst) {
+                return new cst();
+            }
+        }
+        return undefined;
+    }
+    beforeTransformObject(obj) {
+    }
+    afterTransformObject(obj) {
+    }
+    transformLoop(data) {
+        if (data === null) {
+            return data;
+        }
+        if (Array.isArray(data)) {
+            let result = [];
+            for (let element of data) {
+                result.push(this.transformLoop(element));
+            }
+            return result;
+        }
+        if (data instanceof Date || data instanceof DateTime || data instanceof Time) {
+            return data;
+        }
+        if (typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
+            let objTemp = this.createInstance(data);
+            if (objTemp) {
+                if (objTemp instanceof Map) {
+                    if (data.values) {
+                        for (const keyValue of data.values) {
+                            objTemp.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                        }
+                    }
+                    return objTemp;
+                }
+                let obj = objTemp;
+                this.beforeTransformObject(obj);
+                if (obj.fromJSON) {
+                    obj = obj.fromJSON(data);
+                }
+                else {
+                    const registeredSchema = Converter.getSchema(data.$type);
+                    const staticSchema = obj instanceof Data ? obj.constructor.$schema : undefined;
+                    obj = Json.classFromJson(obj, data, {
+                        transformValue: (key, value) => {
+                            const schemaType = registeredSchema?.[key] ?? staticSchema?.[key];
+                            if (schemaType === 'boolean')
+                                return !!value;
+                            if (schemaType === 'number')
+                                return isNaN(Number(value)) ? 0 : Number(value);
+                            if (schemaType === 'string')
+                                return value == null ? value : String(value);
+                            if (schemaType && ['Date', 'Aventus.Date', 'date'].includes(schemaType)) {
+                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
+                            }
+                            if (schemaType && ['DateTime', 'Aventus.DateTime', 'datetime'].includes(schemaType)) {
+                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
+                            }
+                            if (schemaType && ['Time', 'Aventus.Time', 'time'].includes(schemaType)) {
+                                return value == null ? null : value instanceof Time ? value : Time.parse(value);
+                            }
+                            if (obj[key] instanceof Date) {
+                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
+                            }
+                            else if (obj[key] instanceof DateTime) {
+                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
+                            }
+                            else if (obj[key] instanceof Time) {
+                                return value == null ? null : value instanceof Time ? value : Time.parse(value);
+                            }
+                            else if (obj[key] instanceof Map) {
+                                let map = new Map();
+                                if ("$type" in value && value['$type'] == "Aventus.Map") {
+                                    value = value.values;
+                                }
+                                for (const keyValue of value) {
+                                    map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                                }
+                                return map;
+                            }
+                            return this.transformLoop(value);
+                        }
+                    });
+                }
+                this.afterTransformObject(obj);
+                return obj;
+            }
+            let result = {};
+            for (let key in data) {
+                result[key] = this.transformLoop(data[key]);
+            }
+            return result;
+        }
+        if (typeof data === 'string' && /^\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/.test(data)) {
+            return Time.tryParse(data) ?? data;
+        }
+        if (typeof data == 'string' && DateConverter.converter.isStringDate(data)) {
+            return DateConverter.converter.fromString(data) ?? data;
+        }
+        return data;
+    }
+    copyValuesClass(target, src, options) {
+        const realOptions = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+        };
+        this.__classCopyValues(target, src, realOptions);
+    }
+    __classCopyValues(target, src, options) {
+        let props = Object.getOwnPropertyNames(target);
+        for (let prop of props) {
+            let propInfo = Object.getOwnPropertyDescriptor(target, prop);
+            if (propInfo?.writable) {
+                if (options.isValidKey(prop)) {
+                    const _target = target;
+                    const _src = src;
+                    _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
+                }
+            }
+        }
+        let cstTemp = target.constructor;
+        while (cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for (let prop of props) {
+                let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                if (propInfo?.set && propInfo.get) {
+                    if (options.isValidKey(prop)) {
+                        const _target = target;
+                        const _src = src;
+                        _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
+                    }
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+    }
+}
+ConverterTransform.Namespace=`Aventus`;
+__as1(_, 'ConverterTransform', ConverterTransform);
+
+let Json=class Json {
+    /**
+     * Converts a JavaScript class instance to a JSON object.
+     * @template T - The type of the object to convert.
+     * @param {T} obj - The object to convert to JSON.
+     * @param {JsonToOptions} [options] - Options for JSON conversion.
+     * @returns {{ [key: string | number]: any; }} Returns the JSON representation of the object.
+     */
+    static classToJson(obj, options) {
+        const realOptions = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+            beforeEnd: options?.beforeEnd ?? ((res) => res)
+        };
+        return this.__classToJson(obj, realOptions);
+    }
+    static __classToJson(obj, options) {
+        let result = {};
+        let descriptors = Object.getOwnPropertyDescriptors(obj);
+        for (let key in descriptors) {
+            if (options.isValidKey(key))
+                result[options.replaceKey(key)] = options.transformValue(key, descriptors[key].value);
+        }
+        let cst = obj.constructor;
+        while (cst.prototype && cst != Object.prototype) {
+            let descriptorsClass = Object.getOwnPropertyDescriptors(cst.prototype);
+            for (let key in descriptorsClass) {
+                if (options.isValidKey(key)) {
+                    let descriptor = descriptorsClass[key];
+                    if (descriptor?.get) {
+                        const o = obj;
+                        result[options.replaceKey(key)] = options.transformValue(key, o[key]);
+                    }
+                }
+            }
+            cst = Object.getPrototypeOf(cst);
+        }
+        result = options.beforeEnd(result);
+        return result;
+    }
+    /**
+    * Converts a JSON object to a JavaScript class instance.
+    * @template T - The type of the object to convert.
+    * @param {T} obj - The object to populate with JSON data.
+    * @param {*} data - The JSON data to populate the object with.
+    * @param {JsonFromOptions} [options] - Options for JSON deserialization.
+    * @returns {T} Returns the populated object.
+    */
+    static classFromJson(obj, data, options) {
+        let realOptions = {
+            transformValue: options?.transformValue ?? ((key, value) => value),
+            replaceUndefined: options?.replaceUndefined ?? false,
+            replaceUndefinedWithKey: options?.replaceUndefinedWithKey ?? false,
+        };
+        return this.__classFromJson(obj, data, realOptions);
+    }
+    static __classFromJson(obj, data, options) {
+        let props = Object.getOwnPropertyNames(obj);
+        for (let prop of props) {
+            let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+            let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
+            if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
+                let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
+                if (propInfo?.writable) {
+                    const o = obj;
+                    o[prop] = options.transformValue(prop, value);
+                }
+            }
+        }
+        let cstTemp = obj.constructor;
+        while (cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for (let prop of props) {
+                let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+                let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
+                if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
+                    let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                    if (propInfo?.set) {
+                        const o = obj;
+                        o[prop] = options.transformValue(prop, value);
+                    }
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+        return obj;
+    }
+}
+Json.Namespace=`Aventus`;
+__as1(_, 'Json', Json);
+
+let Converter=class Converter {
+    /**
+    * Map storing information about registered types.
+    */
+    static info = new Map([["Aventus.Map", Map]]);
+    /**
+    * Map storing schemas for registered types.
+    */
+    static schema = new Map();
+    static getSchema($type) {
+        return this.schema.get($type);
+    }
+    /**
+     * Internal converter instance.
+     */
+    static __converter = new ConverterTransform();
+    /**
+     * Getter for the internal converter instance.
+     */
+    static get converterTransform() {
+        return this.__converter;
+    }
+    /**
+    * Sets the converter instance.
+    * @param converter The converter instance to set.
+    */
+    static setConverter(converter) {
+        this.__converter = converter;
+    }
+    /**
+    * Registers a unique string type for any class.
+    * @param $type The unique string type identifier.
+    * @param cst The constructor function for the class.
+    * @param schema Optional schema for the registered type.
+    */
+    static register($type, cst, schema) {
+        this.info.set($type, cst);
+        if (schema) {
+            this.schema.set($type, schema);
+        }
+    }
+    /**
+     * Transforms the provided data using the current converter instance.
+     * @template T
+     * @param {*} data The data to transform.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for transformation.
+     * @returns {T} Returns the transformed data.
+     */
+    static transform(data, converter) {
+        if (!converter) {
+            converter = this.converterTransform;
+        }
+        return converter.transform(data);
+    }
+    /**
+     * Copies values from one class instance to another using the current converter instance.
+     * @template T
+     * @param {T} to The destination class instance to copy values into.
+     * @param {T} from The source class instance to copy values from.
+     * @param {ClassCopyOptions} [options] Optional options for the copy operation.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for the copy operation.
+     * @returns {T} Returns the destination class instance with copied values.
+     */
+    static copyValuesClass(to, from, options, converter) {
+        if (!converter) {
+            converter = this.converterTransform;
+        }
+        return converter.copyValuesClass(to, from, options);
+    }
+}
+Converter.Namespace=`Aventus`;
+__as1(_, 'Converter', Converter);
+
+let HttpResponse=class HttpResponse {
+    get status() {
+        return this.response.status;
+    }
+    get statusText() {
+        return this.response.statusText;
+    }
+    get redirected() {
+        return this.response.redirected;
+    }
+    get ok() {
+        return this.response.ok;
+    }
+    get type() {
+        return this.response.type;
+    }
+    get url() {
+        return this.response.url;
+    }
+    get headers() {
+        return this.response.headers;
+    }
+    response;
+    constructor(response) {
+        this.response = response;
+    }
+    bodyFormat;
+    bodyPromise;
+    async readBody(format, read) {
+        if (this.bodyFormat && this.bodyFormat !== format) {
+            throw new TypeError(`Response body already read as ${this.bodyFormat}`);
+        }
+        if (!this.bodyPromise) {
+            this.bodyFormat = format;
+            this.bodyPromise = read();
+        }
+        return this.bodyPromise;
+    }
+    json() {
+        return this.readBody('json', async () => Converter.transform(await this.response.json()));
+    }
+    blob() {
+        return this.readBody('blob', () => this.response.blob());
+    }
+    text() {
+        return this.readBody('text', () => this.response.text());
+    }
+}
+HttpResponse.Namespace=`Aventus`;
+__as1(_, 'HttpResponse', HttpResponse);
+
+let HttpCache=class HttpCache {
+    static cache = new Map();
+    static pending = new Map();
+    static fetch(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            const value = this.cache.get(key);
+            if (value)
+                return Promise.resolve(value);
+            const pending = this.pending.get(key);
+            if (pending)
+                return pending;
+        }
+        let transport;
+        try {
+            transport = fetch(fullUrl, request);
+        }
+        catch (error) {
+            return Promise.reject(error);
+        }
+        let pending;
+        pending = Promise.resolve(transport).then(result => {
+            const response = new HttpResponse(result);
+            if (key && this.pending.get(key) === pending) {
+                this.cache.set(key, response);
+            }
+            return response;
+        }).finally(() => {
+            if (key && this.pending.get(key) === pending) {
+                this.pending.delete(key);
+            }
+        });
+        if (key) {
+            this.pending.set(key, pending);
+        }
+        return pending;
+    }
+    static clear(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            this.pending.delete(key);
+            if (this.cache.has(key)) {
+                this.cache.delete(key);
+            }
+        }
+    }
+    static generateCacheKey(fullUrl, request) {
+        const method = request.method;
+        const body = request.body;
+        const accept = request.headers ? new Headers(request.headers).get('Accept') ?? '' : '';
+        let bodyKey = "";
+        if (typeof body == 'string') {
+            bodyKey = this.hashStringToInt(body) + '';
+        }
+        else if (body instanceof FormData) {
+        }
+        return fullUrl + "°" + method + "°" + bodyKey + "°" + accept;
+    }
+    static hashStringToInt(str) {
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < str.length; i++) {
+            hash ^= str.charCodeAt(i);
+            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+        }
+        return hash >>> 0;
+    }
+}
+HttpCache.Namespace=`Aventus`;
+__as1(_, 'HttpCache', HttpCache);
+
+let Data=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+class Data {
+    static converter = new Converter();
+    /**
+     * The schema for the class
+     */
+    static $schema;
+    /**
+     * The current namespace
+     */
+    static Namespace = "";
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    static get Fullname() { return this.Namespace + "." + this.name; }
+    /**
+     * The current namespace
+     */
+    get namespace() {
+        return this.constructor['Namespace'];
+    }
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    get $type() {
+        return this.constructor['Fullname'];
+    }
+    /**
+     * Get the name of the class
+     */
+    get className() {
+        return this.constructor.name;
+    }
+    /**
+     * Get a JSON for the current object
+     */
+    toJSON() {
+        let toAvoid = ['className', 'namespace'];
+        return Json.classToJson(this, {
+            isValidKey: (key) => !toAvoid.includes(key)
+        });
+    }
+    /**
+     * Clone the object by transforming a parsed JSON string back into the original type
+     */
+    clone() {
+        return Converter.transform(JSON.parse(JSON.stringify(this)));
+    }
+}
+Data.Namespace=`Aventus`;
+Data.$schema={"namespace":"string","$type":"string","className":"string"};
+Converter.register(Data.Fullname, Data);
+__as1(_, 'Data', Data);
+
+let GenericError=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+class GenericError {
+    static converter = new Converter();
+    static get Fullname() { return "Aventus.GenericError"; }
+    /**
+     * Code for the error
+     */
+    code;
+    /**
+     * Description of the error
+     */
+    message;
+    /**
+     * Additional details related to the error.
+     */
+    details = [];
+    /**
+     * Creates a new instance of GenericError.
+     * @param {EnumValue<T>} code - The error code.
+     * @param {string | Error | unknown} message - The error message.
+     */
+    constructor(code, message) {
+        this.code = code;
+        if (message instanceof Error) {
+            this.message = message.message;
+        }
+        else {
+            this.message = message + '';
+        }
+    }
+}
+GenericError.Namespace=`Aventus`;
+GenericError.$schema={"code":"Aventus.EnumValue","message":"string"};
+Converter.register(GenericError.Fullname, GenericError);
+__as1(_, 'GenericError', GenericError);
+
+let VoidWithError=class VoidWithError {
+    static get Fullname() { return "Aventus.VoidWithError"; }
+    /**
+     * Determine if the action is a success
+     */
+    get success() {
+        return this.errors.length == 0;
+    }
+    /**
+     * List of errors
+     */
+    errors = [];
+    /**
+     * Converts the current instance to a VoidWithError object.
+     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
+     */
+    toGeneric() {
+        const result = new VoidWithError();
+        result.errors = this.errors;
+        return result;
+    }
+    /**
+    * Checks if the error list contains a specific error code.
+    * @template U - The type of error, extending GenericError.
+    * @template T - The type of the error code, which extends either number or Enum.
+    * @param {EnumValue<T>} code - The error code to check for.
+    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
+    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
+    */
+    containsCode(code, type) {
+        if (type) {
+            for (let error of this.errors) {
+                if (error instanceof type) {
+                    if (error.code == code) {
+                        return true;
+                    }
+                }
+            }
+        }
+        else {
+            for (let error of this.errors) {
+                if (error.code == code) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    run(fct) {
+        if (this.success) {
+            let result = fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+    async runAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+    extract(fct) {
+        if (this.success) {
+            let result = fct();
+            if (result.success && result.result !== undefined) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
+    async extractAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (result.success && result.result !== undefined) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
+}
+VoidWithError.Namespace=`Aventus`;
+VoidWithError.$schema={"success":"boolean","errors":"T[]"};
+Converter.register(VoidWithError.Fullname, VoidWithError);
+__as1(_, 'VoidWithError', VoidWithError);
+
+let ResultWithError=class ResultWithError extends VoidWithError {
+    static get Fullname() { return "Aventus.ResultWithError"; }
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
+    run(fct) {
+        if (this.success) {
+            const result = fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if (errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
+            }
+            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
+    async runAsync(fct) {
+        if (this.success) {
+            const result = await fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if (errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
+            }
+            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
+}
+ResultWithError.Namespace=`Aventus`;
+ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
+Converter.register(ResultWithError.Fullname, ResultWithError);
+__as1(_, 'ResultWithError', ResultWithError);
+
+let HttpError=class HttpError extends GenericError {
+    status;
+    constructor(code, message, status) {
+        super(code, message);
+        this.status = status;
+    }
+}
+HttpError.Namespace=`Aventus`;
+HttpError.$schema={...(GenericError?.$schema ?? {}), "status":"number"};
+Converter.register(HttpError.Fullname, HttpError);
+__as1(_, 'HttpError', HttpError);
+
+let HttpRequest=class HttpRequest {
+    static options;
+    static configure(options) {
+        HttpRequest.options = options;
+    }
+    request;
+    url;
+    methodSpoofing = false;
+    useCache = false;
+    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false, useCache = false) {
+        this.url = url;
+        this.request = {};
+        this.methodSpoofing = methodSpoofing;
+        this.useCache = useCache;
+        this.setMethod(method);
+        this.prepareBody(body);
+    }
+    setUrl(url) {
+        this.url = url;
+    }
+    toString() {
+        return this.url + " : " + JSON.stringify(this.request);
+    }
+    setBody(body) {
+        this.prepareBody(body);
+    }
+    setMethod(method) {
+        this.request.method = method;
+    }
+    /**
+     * Replace method Put/Delete by _method:"put" inside a form
+     */
+    enableMethodSpoofing() {
+        this.methodSpoofing = true;
+    }
+    enableCache() {
+        this.useCache = true;
+    }
+    disableCache() {
+        this.useCache = false;
+    }
+    objectToFormData(obj, formData, parentKey) {
+        formData = formData || new FormData();
+        let byPass = obj;
+        if (byPass.__isProxy) {
+            obj = byPass.getTarget();
+        }
+        const keys = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            let value = obj[key];
+            const newKey = parentKey ? `${parentKey}[${key}]` : key;
+            if (value instanceof Date || value instanceof DateTime || value instanceof Time) {
+                formData.append(newKey, DateConverter.converter.toString(value));
+            }
+            else if (typeof value === 'object' &&
+                value !== null &&
+                !(value instanceof File)) {
+                if (Array.isArray(value)) {
+                    for (let j = 0; j < value.length; j++) {
+                        const arrayKey = `${newKey}[${j}]`;
+                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
+                    }
+                }
+                else {
+                    this.objectToFormData(value, formData, newKey);
+                }
+            }
+            else {
+                if (value === undefined || value === null) {
+                    value = "";
+                }
+                else if (Watcher.is(value)) {
+                    value = Watcher.extract(value);
+                }
+                formData.append(newKey, value);
+            }
+        }
+        return formData;
+    }
+    jsonReplacer(key, value) {
+        const t = this;
+        if (t[key] instanceof Date || t[key] instanceof DateTime || t[key] instanceof Time) {
+            return DateConverter.converter.toString(t[key]);
+        }
+        return value;
+    }
+    prepareBody(data) {
+        if (!data) {
+            return;
+        }
+        else if (data instanceof FormData) {
+            this.request.body = data;
+        }
+        else {
+            let useFormData = false;
+            const analyseFormData = (obj) => {
+                for (let key in obj) {
+                    if (obj[key] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date) && !(obj[key] instanceof DateTime) && !(obj[key] instanceof Time)) {
+                        analyseFormData(obj[key]);
+                        if (useFormData) {
+                            break;
+                        }
+                    }
+                }
+            };
+            analyseFormData(data);
+            if (useFormData) {
+                this.request.body = this.objectToFormData(data);
+            }
+            else {
+                this.request.body = JSON.stringify(data, this.jsonReplacer);
+                this.setHeader("Content-Type", "Application/json");
+            }
+        }
+        if (this.methodSpoofing) {
+            if (this.request.method?.toUpperCase() == Aventus.HttpMethod.PUT) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.PUT);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+            else if (this.request.method?.toUpperCase() == Aventus.HttpMethod.DELETE) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.DELETE);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+        }
+    }
+    setHeader(name, value) {
+        if (!this.request.headers) {
+            this.request.headers = [];
+        }
+        const headers = this.request.headers;
+        const existing = headers.findIndex(([key]) => key.toLowerCase() === name.toLowerCase());
+        if (existing >= 0) {
+            headers[existing] = [name, value];
+        }
+        else {
+            headers.push([name, value]);
+        }
+    }
+    setCredentials(credentials) {
+        this.request.credentials = credentials;
+    }
+    async _query(router) {
+        let result = new ResultWithError();
+        try {
+            const isFull = this.url.match("https?://");
+            if (!this.url.startsWith("/") && !isFull) {
+                this.url = "/" + this.url;
+            }
+            if (HttpRequest.options?.beforeSend) {
+                const beforeSendResult = await HttpRequest.options.beforeSend(this);
+                result.errors = beforeSendResult.errors;
+                if (!result.success)
+                    return result;
+            }
+            const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
+            if (this.useCache) {
+                result.result = await HttpCache.fetch(fullUrl, this.request);
+            }
+            else {
+                let response = await fetch(fullUrl, this.request);
+                result.result = new HttpResponse(response);
+            }
+            if (result.result && !result.result.ok) {
+                result.errors.push(new HttpError(HttpErrorCode.status, `${result.result.status} ${result.result.statusText}`.trim(), result.result.status));
+            }
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async query(router) {
+        let result = await this._query(router);
+        if (HttpRequest.options?.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
+        return result;
+    }
+    async queryVoid(router) {
+        let resultTemp = await this.query(router);
+        let result = new VoidWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            if (resultTemp.result.status != 204) {
+                let tempResult = await resultTemp.result.json();
+                if (tempResult instanceof VoidWithError) {
+                    for (let error of tempResult.errors) {
+                        result.errors.push(error);
+                    }
+                }
+            }
+        }
+        catch (e) {
+        }
+        return result;
+    }
+    async queryJSON(router) {
+        this.setHeader("Accept", "application/json");
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            let tempResult = await resultTemp.result.json();
+            if (tempResult instanceof VoidWithError) {
+                if (tempResult.errors.length > 0) {
+                    result.errors = result.errors.filter(error => !(error instanceof HttpError && error.code === HttpErrorCode.status && error.status === resultTemp.result?.status));
+                }
+                for (let error of tempResult.errors) {
+                    result.errors.push(error);
+                }
+                if (tempResult instanceof ResultWithError) {
+                    result.result = tempResult.result;
+                }
+            }
+            else {
+                result.result = tempResult;
+            }
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async queryTxt(router) {
+        this.setHeader("Accept", "text/plain");
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.text();
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async queryBlob(router) {
+        this.setHeader("Accept", "application/octet-stream");
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.blob();
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    clearCache(router) {
+        const isFull = this.url.match("https?://");
+        if (!this.url.startsWith("/") && !isFull) {
+            this.url = "/" + this.url;
+        }
+        const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
+        HttpCache.clear(fullUrl, this.request);
+    }
+}
+HttpRequest.Namespace=`Aventus`;
+__as1(_, 'HttpRequest', HttpRequest);
+
+let HttpRouter=class HttpRouter {
+    static options;
+    static configure(options) {
+        HttpRouter.options = options;
+    }
+    options;
+    constructor() {
+        this.options = this.defineOptions(this.defaultOptionsValue());
+    }
+    defaultOptionsValue() {
+        return HttpRouter.options ?? {
+            url: location.protocol + "//" + location.host
+        };
+    }
+    defineOptions(options) {
+        return options;
+    }
+    async get(url) {
+        return await new HttpRequest(url).queryJSON(this);
+    }
+    async post(url, data) {
+        return await new HttpRequest(url, HttpMethod.POST, data).queryJSON(this);
+    }
+    async put(url, data) {
+        return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON(this);
+    }
+    async delete(url, data) {
+        return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON(this);
+    }
+    async option(url, data) {
+        return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON(this);
+    }
+}
+HttpRouter.Namespace=`Aventus`;
+__as1(_, 'HttpRouter', HttpRouter);
+
+let HttpRoute=class HttpRoute {
+    router;
+    constructor(router) {
+        this.router = router ?? new HttpRouter();
+    }
+    getPrefix() {
+        return "";
+    }
+}
+HttpRoute.Namespace=`Aventus`;
+__as1(_, 'HttpRoute', HttpRoute);
+
+let RamError=class RamError extends GenericError {
+}
+RamError.Namespace=`Aventus`;
+RamError.$schema={...(GenericError?.$schema ?? {}), };
+Converter.register(RamError.Fullname, RamError);
+__as1(_, 'RamError', RamError);
+
+let VoidRamWithError=class VoidRamWithError extends VoidWithError {
+}
+VoidRamWithError.Namespace=`Aventus`;
+VoidRamWithError.$schema={...(VoidWithError?.$schema ?? {}), };
+Converter.register(VoidRamWithError.Fullname, VoidRamWithError);
+__as1(_, 'VoidRamWithError', VoidRamWithError);
+
+let ResultRamWithError=class ResultRamWithError extends ResultWithError {
+}
+ResultRamWithError.Namespace=`Aventus`;
+ResultRamWithError.$schema={...(ResultWithError?.$schema ?? {}), };
+Converter.register(ResultRamWithError.Fullname, ResultRamWithError);
+__as1(_, 'ResultRamWithError', ResultRamWithError);
+
+let GenericRam=class GenericRam {
+    static info = new Map([]);
+    /**
+     * The current namespace
+     */
+    static Namespace = "";
+    // public static get Namespace(): string { return ""; }
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    static get Fullname() { return this.Namespace + "." + this.name; }
+    subscribers = {
+        created: [],
+        updated: [],
+        deleted: [],
+    };
+    recordsSubscribers = new Map();
+    /**
+     * List of stored item by index key
+     */
+    records = new Map();
+    creatingIds = new Set();
+    actionGuard = new ActionGuard();
+    ramMapping = {};
+    constructor() {
+        if (this.constructor == GenericRam) {
+            throw "can't instanciate an abstract class";
+        }
+        // RamManager.check();
+        this.getIdWithError = this.getIdWithError.bind(this);
+        this.getId = this.getId.bind(this);
+        this.save = this.save.bind(this);
+        this.saveWithError = this.saveWithError.bind(this);
+        this.onCreated = this.onCreated.bind(this);
+        this.offCreated = this.offCreated.bind(this);
+        this.onUpdated = this.onUpdated.bind(this);
+        this.offUpdated = this.offUpdated.bind(this);
+        this.onDeleted = this.onDeleted.bind(this);
+        this.offDeleted = this.offDeleted.bind(this);
+        this.get = this.get.bind(this);
+        this.getWithError = this.getWithError.bind(this);
+        this.getById = this.getById.bind(this);
+        this.getByIdWithError = this.getByIdWithError.bind(this);
+        this.getByIds = this.getByIds.bind(this);
+        this.getByIdsWithError = this.getByIdsWithError.bind(this);
+        this.getAll = this.getAll.bind(this);
+        this.getAllWithError = this.getAllWithError.bind(this);
+        this.getList = this.getList.bind(this);
+        this.getListWithError = this.getListWithError.bind(this);
+        this.getRecords = this.getRecords.bind(this);
+        this.getRecordsWithError = this.getRecordsWithError.bind(this);
+        this.createList = this.createList.bind(this);
+        this.createListWithError = this.createListWithError.bind(this);
+        this.create = this.create.bind(this);
+        this.createWithError = this.createWithError.bind(this);
+        this.updateList = this.updateList.bind(this);
+        this.updateListWithError = this.updateListWithError.bind(this);
+        this.update = this.update.bind(this);
+        this.updateWithError = this.updateWithError.bind(this);
+        this.deleteList = this.deleteList.bind(this);
+        this.deleteListWithError = this.deleteListWithError.bind(this);
+        this.delete = this.delete.bind(this);
+        this.deleteWithError = this.deleteWithError.bind(this);
+        this.deleteById = this.deleteById.bind(this);
+        this.deleteByIdWithError = this.deleteByIdWithError.bind(this);
+    }
+    /**
+     * Get item id
+     */
+    getIdWithError(item) {
+        let action = new ResultRamWithError();
+        let idTemp = item[this.defineIndexKey()];
+        if (idTemp !== undefined) {
+            action.result = idTemp;
+        }
+        else {
+            action.errors.push(new RamError(RamErrorCode.noId, "no key found for item"));
+        }
+        return action;
+    }
+    /**
+     * Get item id
+     */
+    getId(item) {
+        let result = this.getIdWithError(item);
+        if (result.success) {
+            return result.result;
+        }
+        throw 'no key found for item';
+    }
+    /**
+     * Prevent adding Watch element
+     */
+    removeWatch(element) {
+        let byPass = element;
+        if (byPass.__isProxy) {
+            return byPass.getTarget();
+        }
+        return element;
+    }
+    /**
+     * Add function update, onUpdate, offUpdate, delete, onDelete, offDelete
+     */
+    addRamAction(Base) {
+        let that = this;
+        return class ActionClass extends Base {
+            static get className() {
+                return Base.className || Base.name;
+            }
+            get className() {
+                return Base.className || Base.name;
+            }
+            async update(newData) {
+                return (await that.update(newData));
+            }
+            async updateWithError(newData) {
+                return (await that.updateWithError(newData));
+            }
+            onUpdate(callback) {
+                let id = that.getId(this);
+                if (!that.recordsSubscribers.has(id)) {
+                    that.recordsSubscribers.set(id, {
+                        created: [],
+                        updated: [],
+                        deleted: []
+                    });
+                }
+                let sub = that.recordsSubscribers.get(id);
+                if (sub && !sub.updated.includes(callback)) {
+                    sub.updated.push(callback);
+                }
+            }
+            offUpdate(callback) {
+                let id = that.getId(this);
+                let sub = that.recordsSubscribers.get(id);
+                if (sub) {
+                    let index = sub.updated.indexOf(callback);
+                    if (index != -1) {
+                        sub.updated.splice(index, 1);
+                    }
+                }
+            }
+            async delete() {
+                let id = that.getId(this);
+                await that.deleteById(id);
+            }
+            async deleteWithError() {
+                const result = new VoidRamWithError();
+                let queryId = that.getIdWithError(this);
+                if (!queryId.success || !queryId.result) {
+                    result.errors = queryId.errors;
+                    return result;
+                }
+                const queryDelete = await that.deleteByIdWithError(queryId.result);
+                result.errors = queryDelete.errors;
+                return result;
+            }
+            onDelete(callback) {
+                let id = that.getId(this);
+                if (!that.recordsSubscribers.has(id)) {
+                    that.recordsSubscribers.set(id, {
+                        created: [],
+                        updated: [],
+                        deleted: []
+                    });
+                }
+                let sub = that.recordsSubscribers.get(id);
+                if (sub && !sub.deleted.includes(callback)) {
+                    sub.deleted.push(callback);
+                }
+            }
+            offDelete(callback) {
+                let id = that.getId(this);
+                let sub = that.recordsSubscribers.get(id);
+                if (sub) {
+                    let index = sub.deleted.indexOf(callback);
+                    if (index != -1) {
+                        sub.deleted.splice(index, 1);
+                    }
+                }
+            }
+        };
+    }
+    /**
+     * Define all the types you ram is capable of
+     */
+    ramForTypes() {
+        return [this.getTypeForData({})];
+    }
+    /**
+     * Transform the object into the object stored inside Ram
+     */
+    getObjectForRam(objJson) {
+        let Item = this.addRamAction(this.getTypeForData(objJson));
+        let item = new Item();
+        this.mergeObject(item, objJson);
+        return item;
+    }
+    //     onCreated: (item: any) => void;
+    //     onUpdated: (item: any) => void;
+    //     onDeleted: (item: any) => void;
+    // }> = new Map();
+    // private linkInfo: { [key: string | number]: { [id: string | number]: Request[]; }; } = {};
+    // private linkRamItem(item: Request) {
+    //     for(let key in this.ramMapping) {
+    //         this.linkRamItemByKey(item, key);
+    // private linkRamItemByKey(item: Request, key: string) {
+    //     if(key in item) {
+    //         if(mapping.asArray) {
+    //             if(Array.isArray(item[key])) {
+    //                 console.error(key + " in type " + item + " must be an array");
+    //             const id = mapping.ram.getId(item[key]);
+    //             if(!this.linkFct.has(mapping.ram)) {
+    //                     onCreated: (item) => {
+    //                     onUpdated: (item) => {
+    //                     onDeleted: (item) => {
+    //                 this.linkFct.set(mapping.ram, fcts);
+    //                 mapping.ram.onCreated(fcts.onCreated);
+    //                 mapping.ram.onUpdated(fcts.onUpdated);
+    //                 mapping.ram.onDeleted(fcts.onDeleted);
+    //             if(!this.linkInfo[key])
+    //             if(!this.linkInfo[key][id])
+    //             this.linkInfo[key][id].push(item);
+    /**
+     * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
+     */
+    async addOrUpdateData(item) {
+        const resultTemp = new ResultWithError();
+        try {
+            const id = resultTemp.extract(() => this.getIdWithError(item));
+            if (id === undefined)
+                return resultTemp;
+            if (this.records.has(id)) {
+                let uniqueRecord = this.records.get(id);
+                await resultTemp.runAsync(() => this.beforeRecordSet(uniqueRecord));
+                if (!resultTemp.success)
+                    return resultTemp;
+                // this.unlinkRamItem(uniqueRecord);
+                this.mergeObject(uniqueRecord, item);
+                await resultTemp.runAsync(() => this.afterRecordSet(uniqueRecord));
+                // this.linkRamItem(uniqueRecord);
+                resultTemp.result = {
+                    kind: 'updated',
+                    value: this.records.get(id)
+                };
+            }
+            else {
+                let realObject = this.getObjectForRam(item);
+                await resultTemp.runAsync(() => this.beforeRecordSet(realObject));
+                if (!resultTemp.success)
+                    return resultTemp;
+                this.records.set(id, realObject);
+                await resultTemp.runAsync(() => this.afterRecordSet(realObject));
+                // this.linkRamItem(realObject);
+                resultTemp.result = {
+                    kind: 'created',
+                    value: this.records.get(id)
+                };
+            }
+        }
+        catch (e) {
+            resultTemp.errors.push(new RamError(RamErrorCode.unknow, e));
+        }
+        return resultTemp;
+    }
+    /**
+     * Merge object and create real instance of class
+     */
+    mergeObject(item, objJson, options) {
+        if (!item) {
+            return;
+        }
+        if (!options) {
+            options = {
+                replaceUndefined: true
+            };
+        }
+        Json.classFromJson(item, objJson, options);
+    }
+    /**
+     * Create or update the item
+     */
+    async save(item, ...args) {
+        let action = await this.saveWithError(item, ...args);
+        if (action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+     * Create or update the item
+     */
+    async saveWithError(item, ...args) {
+        let action = new ResultRamWithError();
+        const id = action.extract(() => this.getIdWithError(item));
+        if (id !== undefined) {
+            if (id) {
+                return this.updateWithError(item, ...args);
+            }
+            else {
+                return this.createWithError(item, ...args);
+            }
+        }
+        return action;
+    }
+    async beforeRecordSet(item) {
+        return new VoidWithError();
+    }
+    async afterRecordSet(item) {
+        return new VoidWithError();
+    }
+    async beforeRecordDelete(item) {
+        return new VoidWithError();
+    }
+    async afterRecordDelete(item) {
+        return new VoidWithError();
+    }
+    publish(type, data) {
+        let callbacks = [...this.subscribers[type]];
+        for (let callback of callbacks) {
+            try {
+                callback(data);
+            }
+            catch (error) {
+                console.error(error);
+            }
+        }
+        let sub = this.recordsSubscribers.get(this.getId(data));
+        if (sub) {
+            let localCallbacks = [...sub[type]];
+            for (let localCallback of localCallbacks) {
+                try {
+                    localCallback(data);
+                }
+                catch (error) {
+                    console.error(error);
+                }
+            }
+        }
+    }
+    subscribe(type, cb) {
+        if (!this.subscribers[type].includes(cb)) {
+            this.subscribers[type].push(cb);
+        }
+    }
+    unsubscribe(type, cb) {
+        let index = this.subscribers[type].indexOf(cb);
+        if (index != -1) {
+            this.subscribers[type].splice(index, 1);
+        }
+    }
+    /**
+    * Add a callback that ll be triggered when a new item is stored
+    */
+    onCreated(cb) {
+        this.subscribe('created', cb);
+    }
+    /**
+     * Remove a created callback
+     */
+    offCreated(cb) {
+        this.unsubscribe('created', cb);
+    }
+    /**
+     * Add a callback that ll be triggered when an item is updated
+     */
+    onUpdated(cb) {
+        this.subscribe('updated', cb);
+    }
+    /**
+     * Remove an updated callback
+     */
+    offUpdated(cb) {
+        this.unsubscribe('updated', cb);
+    }
+    /**
+     * Add a callback that ll be triggered when an item is deleted
+     */
+    onDeleted(cb) {
+        this.subscribe('deleted', cb);
+    }
+    /**
+     * Remove an deleted callback
+     */
+    offDeleted(cb) {
+        this.unsubscribe('deleted', cb);
+    }
+    /**
+     * Get an item by id if exist (alias for getById)
+     */
+    async get(id) {
+        return await this.getById(id);
+    }
+    ;
+    /**
+     * Get an item by id if exist (alias for getById)
+     */
+    async getWithError(id) {
+        return await this.getByIdWithError(id);
+    }
+    ;
+    /**
+     * Get an item by id if exist
+     */
+    async getById(id) {
+        let action = await this.getByIdWithError(id);
+        if (action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+     * Get an item by id if exist
+     */
+    async getByIdWithError(id) {
+        return this.actionGuard.run(['getByIdWithError', id], async () => {
+            let action = new ResultRamWithError();
+            await action.runAsync(() => this.beforeGetById(id));
+            if (action.success) {
+                if (this.records.has(id)) {
+                    const item = this.records.get(id);
+                    action.result = item;
+                    await action.runAsync(() => this.afterGetById(item));
+                }
+                else {
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
+                }
+            }
+            return action;
+        });
+    }
+    /**
+     * Trigger before getting an item by id
+     */
+    async beforeGetById(id) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger after getting an item by id
+     */
+    async afterGetById(result) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Get multiple items by ids
+     */
+    async getByIds(ids) {
+        let result = await this.getByIdsWithError(ids);
+        if (result.success) {
+            return result.result ?? [];
+        }
+        return [];
+    }
+    ;
+    /**
+     * Get multiple items by ids
+     */
+    async getByIdsWithError(ids) {
+        return this.actionGuard.run(['getByIdsWithError', ids], async () => {
+            const action = new ResultRamWithError();
+            await action.runAsync(() => this.beforeGetByIds(ids));
+            if (action.success) {
+                const result = [];
+                for (let id of ids) {
+                    let rec = this.records.get(id);
+                    if (rec) {
+                        result.push(rec);
+                    }
+                    else {
+                        action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
+                    }
+                }
+                if (action.success) {
+                    action.result = result;
+                    await action.runAsync(() => this.afterGetByIds(result));
+                }
+            }
+            return action;
+        });
+    }
+    ;
+    /**
+     * Trigger before getting a list of items by id
+     */
+    async beforeGetByIds(ids) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger after getting a list of items by id
+     */
+    async afterGetByIds(result) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Get all elements inside the Ram
+     */
+    async getAll() {
+        let result = await this.getAllWithError();
+        if (result.success) {
+            return result.result ?? [];
+        }
+        return [];
+    }
+    /**
+     * Get all elements inside the Ram
+     */
+    async getAllWithError() {
+        return this.actionGuard.run(['getAllWithError'], async () => {
+            let action = new ResultRamWithError();
+            await action.runAsync(() => this.beforeGetAll());
+            if (action.success) {
+                const result = this.records.values().toArray();
+                action.result = result;
+                await action.runAsync(() => this.afterGetAll(result));
+            }
+            return action;
+        });
+    }
+    /**
+     * Trigger before getting all items inside Ram
+     */
+    async beforeGetAll() {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger after getting all items inside Ram
+     */
+    async afterGetAll(result) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Get all elements inside the Ram
+     */
+    async getList() {
+        return await this.getAll();
+    }
+    ;
+    /**
+     * Get all elements inside the Ram
+     */
+    async getListWithError() {
+        return await this.getAllWithError();
+    }
+    /**
+     * Get all elements inside the Ram
+     */
+    async getRecords() {
+        const result = await this.getRecordsWithError();
+        if (result.success) {
+            return result.result ?? new Map();
+        }
+        return new Map();
+    }
+    ;
+    /**
+     * Get all elements inside the Ram
+     */
+    async getRecordsWithError() {
+        let action = new ResultRamWithError();
+        action.runAsync(() => this.getAllWithError());
+        if (action.success) {
+            action.result = this.records;
+        }
+        return action;
+    }
+    /**
+     * Create a list of items inside ram
+     */
+    async createList(list) {
+        let result = await this.createListWithError(list);
+        return result.result ?? [];
+    }
+    /**
+     * Create a list of items inside ram
+     */
+    async createListWithError(list) {
+        list = this.removeWatch(list);
+        return this.actionGuard.run(['_createList'], async () => {
+            let action = new ResultRamWithError();
+            const result = [];
+            action.result = result;
+            await action.runAsync(() => this.beforeCreateList(list));
+            for (const item of list) {
+                await action.runAsync(() => this.beforeCreateItem(item, true));
+            }
+            if (!action.success)
+                return action;
+            let resources;
+            try {
+                const transformed = await this.transformCreateRequestListToItem(list);
+                action.errors.push(...transformed.errors);
+                if (!transformed.success || !transformed.result)
+                    return action;
+                resources = transformed.result;
+            }
+            catch (e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+                return action;
+            }
+            for (const item of resources) {
+                try {
+                    const idResult = this.getIdWithError(item);
+                    action.errors.push(...idResult.errors);
+                    if (idResult.result === undefined)
+                        continue;
+                    const id = idResult.result;
+                    if (this.records.has(id)) {
+                        action.errors.push(new RamError(RamErrorCode.alreadyExists, `Item ${id} already exists in RAM`));
+                        continue;
+                    }
+                    const added = await this.addOrUpdateData(item);
+                    action.errors.push(...added.errors);
+                    if (!added.result)
+                        continue;
+                    const record = added.result.value;
+                    result.push(record);
+                    try {
+                        const after = await this.afterCreateItem(record, true);
+                        action.errors.push(...after.errors);
+                    }
+                    finally {
+                        this.publish('created', record);
+                    }
+                }
+                catch (e) {
+                    action.errors.push(new RamError(RamErrorCode.unknow, e));
+                }
+            }
+            try {
+                const after = await this.afterCreateList(result);
+                action.errors.push(...after.errors);
+            }
+            catch (e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+            }
+            return action;
+        });
+    }
+    /**
+     * Create an item inside ram
+     */
+    async create(item, ...args) {
+        let action = await this.createWithError(item, args);
+        if (action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+     * Create an item inside ram
+     */
+    async createWithError(item, ...args) {
+        item = this.removeWatch(item);
+        return this.actionGuard.run(['_create', item], async () => {
+            let action = new ResultRamWithError();
+            await action.runAsync(() => this.beforeCreateItem(item, false));
+            const resource = await action.extractAsync(() => this.transformCreateRequestToItem(item));
+            if (!resource)
+                return action;
+            const id = await action.extract(() => this.getIdWithError(resource));
+            if (id !== undefined) {
+                if (this.records.has(id) || this.creatingIds.has(id)) {
+                    action.errors.push(new RamError(RamErrorCode.alreadyExists, `Item ${id} already exists in RAM`));
+                    return action;
+                }
+                this.creatingIds.add(id);
+                try {
+                    const resultTemp = await this.addOrUpdateData(resource);
+                    action.errors.push(...resultTemp.errors);
+                    if (!resultTemp.result)
+                        return action;
+                    action.result = resultTemp.result.value;
+                    await action.runAsync(() => this.afterCreateItem(resultTemp.result.value, false));
+                    this.publish('created', resultTemp.result.value);
+                }
+                finally {
+                    this.creatingIds.delete(id);
+                }
+            }
+            return action;
+        });
+    }
+    /**
+     * Trigger before creating a list of items
+     */
+    async beforeCreateList(list) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger before creating an item
+     */
+    async beforeCreateItem(item, fromList) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger after creating an item
+     */
+    async afterCreateItem(result, fromList) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger after creating a list of items
+     */
+    async afterCreateList(result) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Update a list of items inside ram
+     */
+    async updateList(list) {
+        let result = await this.updateListWithError(list);
+        return result.result ?? [];
+    }
+    ;
+    /**
+     * Update a list of items inside ram
+     */
+    async updateListWithError(list) {
+        list = this.removeWatch(list);
+        return this.actionGuard.run(['_updateList'], async () => {
+            let action = new ResultRamWithError();
+            const result = [];
+            action.result = result;
+            await action.runAsync(() => this.beforeUpdateList(list));
+            for (const item of list) {
+                await action.runAsync(() => this.beforeUpdateItem(item, true));
+            }
+            if (!action.success)
+                return action;
+            let resources;
+            try {
+                const transformed = await this.transformUpdateRequestListToItem(list);
+                action.errors.push(...transformed.errors);
+                if (!transformed.success || !transformed.result)
+                    return action;
+                resources = transformed.result;
+            }
+            catch (e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+                return action;
+            }
+            for (const item of resources) {
+                try {
+                    const idResult = this.getIdWithError(item);
+                    action.errors.push(...idResult.errors);
+                    if (idResult.result === undefined)
+                        continue;
+                    const id = idResult.result;
+                    if (!this.records.has(id)) {
+                        action.errors.push(new RamError(RamErrorCode.noItemInsideRam, `Item ${id} wasn't found inside RAM`));
+                        continue;
+                    }
+                    const updated = await this.addOrUpdateData(item);
+                    action.errors.push(...updated.errors);
+                    if (!updated.result)
+                        continue;
+                    const record = updated.result.value;
+                    result.push(record);
+                    try {
+                        const after = await this.afterUpdateItem(record, true);
+                        action.errors.push(...after.errors);
+                    }
+                    finally {
+                        this.publish('updated', record);
+                    }
+                }
+                catch (e) {
+                    action.errors.push(new RamError(RamErrorCode.unknow, e));
+                }
+            }
+            try {
+                const after = await this.afterUpdateList(result);
+                action.errors.push(...after.errors);
+            }
+            catch (e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+            }
+            return action;
+        });
+    }
+    ;
+    /**
+     * Update an item inside ram
+     */
+    async update(item, ...args) {
+        let action = await this.updateWithError(item, args);
+        if (action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+     * Update an item inside ram
+     */
+    async updateWithError(item, ...args) {
+        item = this.removeWatch(item);
+        return this.actionGuard.run(['_update', item], async () => {
+            let action = new ResultRamWithError();
+            const id = await action.extract(() => this.getIdWithError(item));
+            if (id === undefined)
+                return action;
+            if (this.records.has(id)) {
+                const currentEl = this.records.get(id);
+                if (currentEl == item) {
+                    console.warn("You are updating the same item. You should clone the object first to avoid weird effect");
+                }
+                await action.runAsync(() => this.beforeUpdateItem(item, false));
+                const resource = await action.extractAsync(() => this.transformUpdateRequestToItem(item));
+                if (!resource)
+                    return action;
+                const resultTemp = await action.extractAsync(() => this.addOrUpdateData(resource));
+                if (!resultTemp)
+                    return action;
+                await action.runAsync(() => this.afterUpdateItem(resultTemp.value, false));
+                if (action.success) {
+                    action.result = resultTemp.value;
+                    this.publish('updated', resultTemp.value);
+                }
+            }
+            else {
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + id + " because it wasn't found inside ram"));
+            }
+            return action;
+        });
+    }
+    /**
+     * Trigger before updating a list of items
+     */
+    async beforeUpdateList(list) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+    * Trigger before updating an item
+    */
+    async beforeUpdateItem(item, fromList) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger after updating an item
+     */
+    async afterUpdateItem(result, fromList) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger after updating a list of items
+     */
+    async afterUpdateList(result) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Delete a list of items inside ram
+     */
+    async deleteList(list) {
+        let result = await this.deleteListWithError(list);
+        return result.result ?? [];
+    }
+    ;
+    /**
+     * Delete a list of items inside ram
+     */
+    async deleteListWithError(list) {
+        list = this.removeWatch(list);
+        let action = new ResultRamWithError();
+        const result = [];
+        action.result = result;
+        await action.runAsync(() => this.beforeDeleteList(list));
+        if (!action.success)
+            return action;
+        for (const item of list) {
+            try {
+                const idResult = this.getIdWithError(item);
+                action.errors.push(...idResult.errors);
+                if (idResult.result === undefined)
+                    continue;
+                const id = idResult.result;
+                const record = this.records.get(id);
+                if (!record) {
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, `Item ${id} wasn't found inside RAM`));
+                    continue;
+                }
+                const beforeItem = await this.beforeDeleteItem(record, true);
+                action.errors.push(...beforeItem.errors);
+                if (!beforeItem.success)
+                    continue;
+                const beforeRecord = await this.beforeRecordDelete(record);
+                action.errors.push(...beforeRecord.errors);
+                if (!beforeRecord.success)
+                    continue;
+                this.records.delete(id);
+                result.push(record);
+                try {
+                    const afterRecord = await this.afterRecordDelete(record);
+                    action.errors.push(...afterRecord.errors);
+                    const afterItem = await this.afterDeleteItem(record, true);
+                    action.errors.push(...afterItem.errors);
+                }
+                finally {
+                    this.publish('deleted', record);
+                    this.recordsSubscribers.delete(id);
+                }
+            }
+            catch (e) {
+                action.errors.push(new RamError(RamErrorCode.unknow, e));
+            }
+        }
+        try {
+            const after = await this.afterDeleteList(result);
+            action.errors.push(...after.errors);
+        }
+        catch (e) {
+            action.errors.push(new RamError(RamErrorCode.unknow, e));
+        }
+        return action;
+    }
+    ;
+    /**
+     * Delete an item inside ram
+     */
+    async delete(item, ...args) {
+        let action = await this.deleteWithError(item, args);
+        if (action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    ;
+    /**
+    * Delete an item inside ram
+    */
+    async deleteWithError(item, ...args) {
+        return await this._delete(item, false);
+    }
+    ;
+    /**
+     * Delete an item by id inside ram
+     */
+    async deleteById(id) {
+        let action = await this.deleteByIdWithError(id);
+        if (action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+    * Delete an item by id inside ram
+    */
+    async deleteByIdWithError(id) {
+        let item = this.records.get(id);
+        if (item) {
+            return await this._delete(item, false);
+        }
+        let result = new ResultRamWithError();
+        result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + id + " because it wasn't found inside ram"));
+        return result;
+    }
+    async _delete(item, fromList) {
+        item = this.removeWatch(item);
+        return this.actionGuard.run(['_delete', item], async () => {
+            let action = new ResultRamWithError();
+            const id = action.extract(() => this.getIdWithError(item));
+            if (id === undefined)
+                return action;
+            let oldItem = this.records.get(id);
+            if (oldItem) {
+                await action.runAsync(() => this.beforeDeleteItem(oldItem, fromList));
+                await action.runAsync(() => this.beforeRecordDelete(oldItem));
+                if (!action.success)
+                    return action;
+                this.records.delete(id);
+                await action.runAsync(() => this.afterRecordDelete(oldItem));
+                await action.runAsync(() => this.afterDeleteItem(oldItem, fromList));
+                if (action.success) {
+                    action.result = oldItem;
+                    this.publish('deleted', oldItem);
+                }
+                this.recordsSubscribers.delete(id);
+            }
+            else {
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + id + " because it wasn't found inside ram"));
+            }
+            return action;
+        });
+    }
+    /**
+     * Trigger before deleting a list of items
+     */
+    async beforeDeleteList(list) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger before deleting an item
+     */
+    async beforeDeleteItem(item, fromList) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger after deleting an item
+     */
+    async afterDeleteItem(result, fromList) {
+        return new VoidWithError();
+    }
+    ;
+    /**
+     * Trigger after deleting a list of items
+     */
+    async afterDeleteList(result) {
+        return new VoidWithError();
+    }
+}
+GenericRam.Namespace=`Aventus`;
+__as1(_, 'GenericRam', GenericRam);
+
+let Ram=class Ram extends GenericRam {
+}
+Ram.Namespace=`Aventus`;
+__as1(_, 'Ram', Ram);
+
+let ResizeObserver=class ResizeObserver {
+    callback;
+    targets;
+    fpsInterval = -1;
+    nextFrame;
+    entriesChangedEvent;
+    willTrigger;
+    static resizeObserverClassByObject = {};
+    static uniqueInstance;
+    static getUniqueInstance() {
+        if (!ResizeObserver.uniqueInstance) {
+            ResizeObserver.uniqueInstance = new window.ResizeObserver(entries => {
+                let allClasses = [];
+                for (let j = 0; j < entries.length; j++) {
+                    let entry = entries[j];
+                    const target = entry.target;
+                    let index = target['sourceIndex'];
+                    if (ResizeObserver.resizeObserverClassByObject[index]) {
+                        for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
+                            let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
+                            classTemp.entryChanged(entry);
+                            if (allClasses.indexOf(classTemp) == -1) {
+                                allClasses.push(classTemp);
+                            }
+                        }
+                    }
+                }
+                for (let i = 0; i < allClasses.length; i++) {
+                    allClasses[i].triggerCb();
+                }
+            });
+        }
+        return ResizeObserver.uniqueInstance;
+    }
+    constructor(options) {
+        let realOption;
+        if (options instanceof Function) {
+            realOption = {
+                callback: options,
+            };
+        }
+        else {
+            realOption = options;
+        }
+        this.callback = realOption.callback;
+        this.targets = [];
+        if (!realOption.fps) {
+            realOption.fps = 60;
+        }
+        if (realOption.fps != -1) {
+            this.fpsInterval = 1000 / realOption.fps;
+        }
+        this.nextFrame = 0;
+        this.entriesChangedEvent = {};
+        this.willTrigger = false;
+    }
+    /**
+     * Observe size changing for the element
+     */
+    observe(target) {
+        const _target = target;
+        if (!_target["sourceIndex"]) {
+            _target["sourceIndex"] = Math.random().toString(36);
+            this.targets.push(_target);
+            ResizeObserver.getUniqueInstance().observe(_target);
+        }
+        if (!ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]]) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]] = [];
+        }
+        if (ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].indexOf(this) == -1) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].push(this);
+        }
+    }
+    /**
+     * Stop observing size changing for the element
+     */
+    unobserve(target) {
+        const _target = target;
+        for (let i = 0; this.targets.length; i++) {
+            let tempTarget = this.targets[i];
+            if (tempTarget == _target) {
+                let position = ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].indexOf(this);
+                if (position != -1) {
+                    ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].splice(position, 1);
+                }
+                if (ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].length == 0) {
+                    delete ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
+                }
+                ResizeObserver.getUniqueInstance().unobserve(_target);
+                this.targets.splice(i, 1);
+                return;
+            }
+        }
+    }
+    /**
+     * Destroy the resize observer
+     */
+    disconnect() {
+        for (let i = 0; this.targets.length; i++) {
+            this.unobserve(this.targets[i]);
+        }
+    }
+    entryChanged(entry) {
+        const _target = entry.target;
+        let index = _target.sourceIndex;
+        this.entriesChangedEvent[index] = entry;
+    }
+    triggerCb() {
+        if (!this.willTrigger) {
+            this.willTrigger = true;
+            this._triggerCb();
+        }
+    }
+    _triggerCb() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
+            requestAnimationFrame(() => {
+                this._triggerCb();
+            });
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        let changed = Object.values(this.entriesChangedEvent);
+        this.entriesChangedEvent = {};
+        this.willTrigger = false;
+        setTimeout(() => {
+            this.callback(changed, ResizeObserver.uniqueInstance);
+        }, 0);
+    }
+}
+ResizeObserver.Namespace=`Aventus`;
+__as1(_, 'ResizeObserver', ResizeObserver);
+
+
+for(let key in _) { Aventus[key] = _[key] }
+})(Aventus);
+
+(() => {
+    if(!Object.hasOwn(window, "t")) {
+
+        Object.defineProperty(window, "t", {
+            get() {return Aventus.I18n.t;}
+        });
+
+        Object.defineProperty(window, "tDyn", {
+            get() {return Aventus.I18n.t;}
+        });
+
+        Aventus.WebComponent.prototype.t = function(key, params = {}) {
+            const i18n = Aventus.I18n;
+            const localeKey = this.$type.replace(/\./g, '°') + "°" + key;
+            if(i18n.hasKey(localeKey)) {
+                return i18n.t(localeKey, params);
+            }
+            return i18n.t(key, params);
+        }
+        Aventus.WebComponent.prototype.tDyn = function(key, params = {}) {
+            const i18n = Aventus.I18n;
+            const localeKey = this.$type.replace(/\./g, '°') + "°" + key;
+            if(i18n.hasKey(localeKey)) {
+                return i18n.t(localeKey, params);
+            }
+            return i18n.t(key, params);
+        }
+	}
+
+})();
+
+
+var Aventus;
+(Aventus||(Aventus = {}));
+(function (Aventus) {
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
+const moduleName = `Aventus`;
+const _ = {};
+
+
+let _n;
+let I18nClass=class I18nClass {
+    constructor() { this.t = this.t.bind(this); }
+    currentLocale = "en-GB";
+    availableLocales = [];
+    fallback = "en-GB";
+    langMutex = new Aventus.ActionGuard();
+    onLocaleChange = new Aventus.Callback();
+    watcher = Aventus.Watcher.get({
+        locale: {}
+    });
+    get locale() {
+        return this.watcher['locale'];
+    }
+    set locale(value) {
+        this.watcher['locale'] = value;
+    }
+    files = [];
+    waitingFiles = [];
+    __translations = {};
+    async setLocale(lang) {
+        if (!this.availableLocales.includes(lang)) {
+            throw `The locale ${lang} can't be found inside the locales : ${this.availableLocales.join(", ")}`;
+        }
+        let oldLocale = this.currentLocale;
+        this.currentLocale = lang;
+        localStorage.setItem("AventusI18nLang", lang);
+        if (!this.__translations[lang]) {
+            await this.langMutex.run([""], async () => {
+                const proms = [];
+                for (let file of this.files) {
+                    let uri = file.replace(/\$locale/g, lang);
+                    proms.push(Aventus.ResourceLoader.load(uri));
+                }
+                const results = await Promise.all(proms);
+                let items = {};
+                for (let result of results) {
+                    try {
+                        this.merge(items, JSON.parse(result));
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
+                }
+                this.__translations[lang] = items;
+            });
+        }
+        this.locale = this.__translations[lang];
+        this.onLocaleChange.trigger(oldLocale, lang);
+    }
+    getLocale() {
+        return this.currentLocale;
+    }
+    merge(from, to) {
+        for (let key in to) {
+            let val = to[key];
+            if (typeof val == 'object') {
+                let temp = {};
+                this.merge(temp, val);
+                from[key] = temp;
+            }
+            else {
+                from[key] = val;
+            }
+        }
+    }
+    registerLocales(locales) {
+        for (let locale of locales) {
+            if (!this.availableLocales.includes(locale)) {
+                this.availableLocales.push(locale);
+            }
+        }
+    }
+    registerFallback(fallback) {
+        if (!this.availableLocales.includes(fallback)) {
+            throw `The fallback ${fallback} can't be found inside the locales : ${this.availableLocales.join(", ")}`;
+        }
+        this.fallback = fallback;
+        const userLang = localStorage.getItem("AventusI18nLang") ?? navigator.language;
+        if (this.availableLocales.includes(userLang)) {
+            this.currentLocale = userLang;
+            return;
+        }
+        let prefix = userLang.split("-")[0];
+        if (this.availableLocales.includes(prefix)) {
+            this.currentLocale = prefix;
+            return;
+        }
+        this.currentLocale = this.fallback;
+        this.onLocaleChange.trigger(this.currentLocale, this.currentLocale);
+    }
+    registerFileTimeout = 0;
+    registerFile(file, options) {
+        if (this.files.includes(file))
+            return;
+        this.waitingFiles.push(file);
+        options = options ?? {};
+        if (options.load === false)
+            return;
+        if (options.delay === false) {
+            this.loadFileDelay();
+            return;
+        }
+        clearTimeout(this.registerFileTimeout);
+        this.registerFileTimeout = setTimeout(() => {
+            this.loadFileDelay();
+        }, 200);
+    }
+    async loadFileDelay() {
+        await this.langMutex.run([""], async () => {
+            const lang = this.currentLocale;
+            const proms = [];
+            for (let file of this.waitingFiles) {
+                let uri = file.replace(/\$locale/g, lang).toLowerCase();
+                proms.push(Aventus.ResourceLoader.load(uri));
+            }
+            const results = await Promise.all(proms);
+            let items = this.locale;
+            for (let result of results) {
+                try {
+                    this.merge(items, JSON.parse(result));
+                }
+                catch (e) {
+                    console.error(e);
+                }
+            }
+            for (let file of this.waitingFiles) {
+                this.files.push(file);
+            }
+            this.__translations[lang] = items;
+            this.waitingFiles = [];
+        });
+    }
+    init() {
+        return this.loadFileDelay();
+    }
+    hasKey(key) {
+        return this.locale[key] !== undefined;
+    }
+    t(key, params = {}) {
+        let translation = this.locale[key];
+        if (translation === undefined) {
+            translation = key;
+        }
+        for (let key in params) {
+            let regex = new RegExp("(?<!\\\\)\\{ *" + key + " *\\}", "g");
+            translation = translation.replace(regex, params[key]);
+        }
+        return translation;
+    }
+}
+I18nClass.Namespace=`Aventus`;
+__as1(_, 'I18nClass', I18nClass);
+
+let I18n= Aventus.Instance.get(I18nClass);
+__as1(_, 'I18n', I18n);
+
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
@@ -5267,9 +8480,353 @@ var RuntimeReference;
 const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
 const moduleName = `RuntimeReference`;
 const _ = {};
-
+Aventus.Style.store("@Utility", ".utility{color:red}")
 
 let _n;
+let acceptTypes=function acceptTypes(values, value, constructorType, anyConstructor) {
+    return 'ready';
+}
+__as1(_, 'acceptTypes', acceptTypes);
+
+let RuntimeTools=class RuntimeTools {
+    static utilityAvailability() {
+        const uuidAvailable = typeof Aventus.uuidv4 === "function";
+        const sleepAvailable = typeof Aventus.sleep === "function";
+        return { uuidAvailable, sleepAvailable };
+    }
+    static async mutexOrder() {
+        const mutex = new Aventus.Mutex();
+        const order = [];
+        const tasks = [1, 2, 3].map(id => mutex.safeRunAsync(async () => {
+            order.push(`start:${id}`);
+            await Promise.resolve();
+            order.push(`end:${id}`);
+        }));
+        await Promise.all(tasks);
+        return order;
+    }
+    static inspect() {
+        const first = { name: "John", todos: ["todo1", "todo2"] };
+        const reordered = { name: "John", todos: ["todo2", "todo1"] };
+        const changed = { name: "John", todos: ["todo1", "todo3"] };
+        const profile = {};
+        Aventus.setValueToObject("user.profile.city", profile, "New York");
+        const city = Aventus.getValueFromObject("user.profile.city", profile);
+        const missing = Aventus.getValueFromObject("user.profile.country", profile);
+        const source = { name: "Ada", age: 30 };
+        const json = Aventus.Json.classToJson(source);
+        const restored = { name: "", age: 0 };
+        Aventus.Json.classFromJson(restored, json);
+        return {
+            reorderedDefault: Aventus.compareObject(first, reordered),
+            reorderedIgnoringOrder: Aventus.compareObject(first, reordered, false),
+            arrayIgnoringOrder: Aventus.compareObject(first.todos, reordered.todos, false),
+            changed: Aventus.compareObject(first, changed),
+            city,
+            missing: missing === undefined,
+            json,
+            restored,
+        };
+    }
+}
+RuntimeTools.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeTools', RuntimeTools);
+
+const RuntimeStyled = class RuntimeStyled extends Aventus.WebComponent {
+    static __style = `:host{display:block;--_runtime-styled-background: var(--runtime-styled-background, rgb(0, 0, 255))}:host .local{background-color:var(--_runtime-styled-background)}:host .theme{border-color:var(--runtime-theme-color);border-style:solid;border-width:1px}`;
+    __getStatic() {
+        return RuntimeStyled;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeStyled.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<p class="utility local">styled</p><p class="theme">themed</p>` }
+    });
+}
+    getClassName() {
+        return "RuntimeStyled";
+    }
+    styleBefore(addStyle) {
+        super.styleBefore(addStyle);
+        addStyle("@Utility");
+    }
+}
+RuntimeStyled.Namespace=`RuntimeReference`;
+RuntimeStyled.Tag=`rt-runtime-styled`;
+__as1(_, 'RuntimeStyled', RuntimeStyled);
+if(!window.customElements.get('rt-runtime-styled')){window.customElements.define('rt-runtime-styled', RuntimeStyled);Aventus.WebComponentInstance.registerDefinition(RuntimeStyled);}
+
+globalThis.__aventusRuntimeStatic = (globalThis.__aventusRuntimeStatic ?? 0) + 1;
+
+let RuntimeStateManager=class RuntimeStateManager extends Aventus.StateManager {
+    static getInstance() {
+        return Aventus.Instance.get(RuntimeStateManager);
+    }
+}
+RuntimeStateManager.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeStateManager', RuntimeStateManager);
+
+const RuntimeSingle = class RuntimeSingle extends Aventus.WebComponent {
+    static lifecycle = [];
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeSingle;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeSingle.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>`,'aside':`<slot name="aside"></slot>` }, 
+        blocks: { 'default':`<section><slot></slot><slot name="aside"></slot></section>` }
+    });
+}
+    getClassName() {
+        return "RuntimeSingle";
+    }
+    postCreation() {
+        RuntimeSingle.lifecycle.push("created");
+    }
+    postDestruction() {
+        RuntimeSingle.lifecycle.push("destroyed");
+    }
+}
+RuntimeSingle.Namespace=`RuntimeReference`;
+RuntimeSingle.Tag=`rt-runtime-single`;
+__as1(_, 'RuntimeSingle', RuntimeSingle);
+if(!window.customElements.get('rt-runtime-single')){window.customElements.define('rt-runtime-single', RuntimeSingle);Aventus.WebComponentInstance.registerDefinition(RuntimeSingle);}
+
+let RuntimeResize=class RuntimeResize {
+    static available() {
+        return typeof Aventus.ResizeObserver === "function";
+    }
+    static observe(target, callback) {
+        const observer = new Aventus.ResizeObserver(callback);
+        observer.observe(target);
+        return observer;
+    }
+}
+RuntimeResize.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeResize', RuntimeResize);
+
+const RuntimeReactivity = class RuntimeReactivity extends Aventus.WebComponent {
+    static get observedAttributes() {return ["label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+    get 'model'() {
+						return this.__watch["model"];
+					}
+					set 'model'(val) {
+						this.__watch["model"] = val;
+					}
+get 'injected'() {
+						return this.__watch["injected"];
+					}
+					set 'injected'(val) {
+						this.__watch["injected"] = val;
+					}
+    get 'signalModel'() {
+						return this.__signals["signalModel"].value;
+					}
+					set 'signalModel'(val) {
+						this.__signals["signalModel"].value = val;
+					}
+    __registerWatchesActions() {
+    this.__addWatchesActions("model");
+this.__addWatchesActions("injected");
+    super.__registerWatchesActions();
+    if(this.__watch){
+this.__watch.enableHistory();
+this.getWatchHistory = () => {
+    return this.__watch.getHistory();
+}
+this.clearWatchHistory = () => {
+    return this.__watch.clearHistory();
+}
+}
+}
+    __registerSignalsActions() { this.__signals["signalModel"] = null;
+ super.__registerSignalsActions();  }
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeReactivity;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeReactivity.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<p class="count" _id="runtimereactivity_0"></p><p class="signal" _id="runtimereactivity_1"></p><p class="label" _id="runtimereactivity_2"></p><p class="injected" _id="runtimereactivity_3"></p><ul>
+    <template _id="runtimereactivity_4"></template>
+</ul>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "content": {
+    "runtimereactivity_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__232724ef4960c16f4095f64c380b67cdmethod1())}`,
+      "once": true
+    },
+    "runtimereactivity_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__232724ef4960c16f4095f64c380b67cdmethod2())}`,
+      "once": true
+    },
+    "runtimereactivity_2°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__232724ef4960c16f4095f64c380b67cdmethod3())}`,
+      "once": true
+    },
+    "runtimereactivity_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__232724ef4960c16f4095f64c380b67cdmethod4())}`,
+      "once": true
+    }
+  }
+});
+const templ0 = new Aventus.Template(this);
+templ0.setTemplate(`
+        <li _id="runtimereactivity_5"></li>
+    `);
+templ0.setActions({
+  "content": {
+    "runtimereactivity_5°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__232724ef4960c16f4095f64c380b67cdmethod5(c.data.item))}`,
+      "once": true
+    }
+  }
+});
+this.__getStatic().__template.addLoop({
+                    anchorId: 'runtimereactivity_4',
+                    template: templ0,
+                simple:{data: `this.model.items`,item:`item`}
+});
+ }
+    getClassName() {
+        return "RuntimeReactivity";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('label')){ this['label'] = "initial"; }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["model"] = {
+        child: { count: 1 }, items: ["alpha"]
+    };
+w["injected"] = { count: 0 };
+ }
+    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["signalModel"] = { count: 1 };
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('label');
+this.__correctGetter('signalModel');
+this.__correctGetter('model');
+this.__correctGetter('injected');
+ }
+    __232724ef4960c16f4095f64c380b67cdmethod1() {
+        return this.model.child.count;
+    }
+    __232724ef4960c16f4095f64c380b67cdmethod2() {
+        return this.signalModel.count;
+    }
+    __232724ef4960c16f4095f64c380b67cdmethod3() {
+        return this.label;
+    }
+    __232724ef4960c16f4095f64c380b67cdmethod4() {
+        return this.injected.count;
+    }
+    __232724ef4960c16f4095f64c380b67cdmethod5(item) {
+        return item;
+    }
+}
+RuntimeReactivity.Namespace=`RuntimeReference`;
+RuntimeReactivity.Tag=`rt-runtime-reactivity`;
+__as1(_, 'RuntimeReactivity', RuntimeReactivity);
+if(!window.customElements.get('rt-runtime-reactivity')){window.customElements.define('rt-runtime-reactivity', RuntimeReactivity);Aventus.WebComponentInstance.registerDefinition(RuntimeReactivity);}
+
+const RuntimePress = class RuntimePress extends Aventus.WebComponent {
+    get 'count'() {
+						return this.__watch["count"];
+					}
+					set 'count'(val) {
+						this.__watch["count"] = val;
+					}
+    events = [];
+    __registerWatchesActions() {
+    this.__addWatchesActions("count");
+    super.__registerWatchesActions();
+}
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimePress;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimePress.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<button _id="runtimepress_0">Press</button><button class="double" _id="runtimepress_1">Double</button><button class="long" _id="runtimepress_2">Long</button><p _id="runtimepress_3"></p>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "content": {
+    "runtimepress_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__9419a172ec0478b3f13ec1a318e74e57method0())}`,
+      "once": true
+    }
+  },
+  "pressEvents": [
+    {
+      "id": "runtimepress_0",
+      "onPressStart": (e, pressInstance, c) => { c.comp.onStart(e, pressInstance); },
+      "onPress": (e, pressInstance, c) => { c.comp.onPress(e, pressInstance); },
+      "onPressEnd": (e, pressInstance, c) => { c.comp.onStop(e, pressInstance); },
+      "onDragStart": (e, pressInstance, c) => { c.comp.onDragStart(e, pressInstance); },
+      "onDrag": (e, pressInstance, c) => { c.comp.onDrag(e, pressInstance); },
+      "onDragEnd": (e, pressInstance, c) => { c.comp.onDragEnd(e, pressInstance); }
+    },
+    {
+      "id": "runtimepress_1",
+      "onDblPress": (e, pressInstance, c) => { c.comp.onDouble(e, pressInstance); },
+      "delayDblPress": 10
+    },
+    {
+      "id": "runtimepress_2",
+      "onLongPress": (e, pressInstance, c) => { c.comp.onLong(e, pressInstance); },
+      "delayLongPress": 10
+    }
+  ]
+});
+ }
+    getClassName() {
+        return "RuntimePress";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["count"] = 0;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('count');
+ }
+    onStart() { this.events.push("start"); }
+    onPress() { this.count++; this.events.push("press"); }
+    onStop() { this.events.push("stop"); }
+    onDragStart() { this.events.push("drag-start"); }
+    onDrag() { this.events.push("drag"); }
+    onDragEnd() { this.events.push("drag-end"); }
+    onDouble() { this.events.push("double"); }
+    onLong() { this.events.push("long"); }
+    __9419a172ec0478b3f13ec1a318e74e57method0() {
+        return this.count;
+    }
+}
+RuntimePress.Namespace=`RuntimeReference`;
+RuntimePress.Tag=`rt-runtime-press`;
+__as1(_, 'RuntimePress', RuntimePress);
+if(!window.customElements.get('rt-runtime-press')){window.customElements.define('rt-runtime-press', RuntimePress);Aventus.WebComponentInstance.registerDefinition(RuntimePress);}
+
 const RuntimeNested = class RuntimeNested extends Aventus.WebComponent {
     get 'groups'() {
 						return this.__watch["groups"];
@@ -5298,15 +8855,19 @@ const RuntimeNested = class RuntimeNested extends Aventus.WebComponent {
     __registerTemplateAction() { super.__registerTemplateAction();
 const templ0 = new Aventus.Template(this);
 templ0.setTemplate(`
-    <section class="group">
-        <h2 _id="runtimenested_1"></h2>
-        <template _id="runtimenested_2"></template>
+    <section class="group" _id="runtimenested_1">
+        <h2 _id="runtimenested_2"></h2>
+        <template _id="runtimenested_3"></template>
     </section>
 `);
 templ0.setActions({
   "content": {
-    "runtimenested_1°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__88e0be73daa36913fb1c341e6e3fabc5method3(c.data.group))}`,
+    "runtimenested_1°data-index": {
+      "fct": (c) => `${c.print(c.comp.__88e0be73daa36913fb1c341e6e3fabc5method3(c.data.i))}`,
+      "once": true
+    },
+    "runtimenested_2°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__88e0be73daa36913fb1c341e6e3fabc5method4(c.data.group))}`,
       "once": true
     }
   },
@@ -5323,20 +8884,23 @@ this.__getStatic().__template.addLoop({
 });
 const templ2 = new Aventus.Template(this);
 templ2.setTemplate(`
-            <span class="entry" _id="runtimenested_3"></span>
+            <span class="entry" _id="runtimenested_4"></span>
         `);
 templ2.setActions({
   "content": {
-    "runtimenested_3°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__88e0be73daa36913fb1c341e6e3fabc5method4(c.data.entry))}`,
+    "runtimenested_4°data-index": {
+      "fct": (c) => `${c.print(c.comp.__88e0be73daa36913fb1c341e6e3fabc5method5(c.data.j))}`,
       "once": true
+    },
+    "runtimenested_4°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__88e0be73daa36913fb1c341e6e3fabc5method6(c.data.group,c.data.j))}`
     }
   }
 });
 templ0.addLoop({
-                    anchorId: 'runtimenested_2',
+                    anchorId: 'runtimenested_3',
                     template: templ2,
-                simple:{data: `group.entries`,item:`entry`}
+                simple:{data: `group.entries`,index:`j`}
 });
  }
     getClassName() {
@@ -5349,11 +8913,17 @@ templ0.addLoop({
  }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('groups');
  }
-    __88e0be73daa36913fb1c341e6e3fabc5method3(group) {
+    __88e0be73daa36913fb1c341e6e3fabc5method3(i) {
+        return i;
+    }
+    __88e0be73daa36913fb1c341e6e3fabc5method4(group) {
         return group.name;
     }
-    __88e0be73daa36913fb1c341e6e3fabc5method4(entry) {
-        return entry;
+    __88e0be73daa36913fb1c341e6e3fabc5method5(j) {
+        return j;
+    }
+    __88e0be73daa36913fb1c341e6e3fabc5method6(group, j) {
+        return group.entries[j];
     }
     __88e0be73daa36913fb1c341e6e3fabc5method1(i) {
         return { 'group': this.groups[i] };
@@ -5363,6 +8933,213 @@ RuntimeNested.Namespace=`RuntimeReference`;
 RuntimeNested.Tag=`rt-runtime-nested`;
 __as1(_, 'RuntimeNested', RuntimeNested);
 if(!window.customElements.get('rt-runtime-nested')){window.customElements.define('rt-runtime-nested', RuntimeNested);Aventus.WebComponentInstance.registerDefinition(RuntimeNested);}
+
+let RuntimeScoped=class RuntimeScoped {
+    static name() {
+        return "scoped";
+    }
+}
+RuntimeScoped.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeScoped', RuntimeScoped);
+
+let RuntimeNamedState=class RuntimeNamedState extends Aventus.State {
+    payload = '';
+    get name() {
+        return '/person/create';
+    }
+}
+RuntimeNamedState.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeNamedState', RuntimeNamedState);
+
+let RuntimeStateCases=class RuntimeStateCases {
+    static async inspect() {
+        const manager = RuntimeStateManager.getInstance();
+        const events = [];
+        const actions = {
+            active: (state, slugs) => events.push('active:' + slugs.id),
+            inactive: (state, nextState) => events.push('inactive:' + nextState.name),
+            askChange: async (state, nextState, slugs) => {
+                events.push('ask:' + slugs.id + '>' + nextState.name);
+                return nextState.name !== '/user/3';
+            },
+        };
+        manager.subscribe('/user/{id:number}', actions);
+        const stringApplied = await manager.setState('/user/2');
+        const stringType = manager.getState()?.constructor.name;
+        const denied = await manager.setState('/user/3');
+        const afterDenied = manager.getState()?.name;
+        const named = new RuntimeNamedState();
+        named.payload = 'person';
+        const objectApplied = await manager.setState(named);
+        const sameObject = manager.getState() === named;
+        const staticApplied = await Aventus.State.activate('/user/4', manager);
+        const afterStatic = manager.getState()?.name;
+        manager.unsubscribe('/user/{id:number}', actions);
+        await manager.setState('/other');
+        return { stringApplied, stringType, denied, afterDenied, objectApplied,
+            sameObject, staticApplied, afterStatic, events };
+    }
+}
+RuntimeStateCases.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeStateCases', RuntimeStateCases);
+
+const RuntimeNamed = class RuntimeNamed extends Aventus.WebComponent {
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeNamed;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeNamed.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<p>named component</p>` }
+    });
+}
+    getClassName() {
+        return "RuntimeNamed";
+    }
+}
+RuntimeNamed.Namespace=`RuntimeReference`;
+RuntimeNamed.Tag=`rt-custom-name`;
+__as1(_, 'RuntimeNamed', RuntimeNamed);
+if(!window.customElements.get('rt-custom-name')){window.customElements.define('rt-custom-name', RuntimeNamed);Aventus.WebComponentInstance.registerDefinition(RuntimeNamed);}
+
+const RuntimeMarkup = class RuntimeMarkup extends Aventus.WebComponent {
+    static get observedAttributes() {return ["label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+    get 'person'() {
+						return this.__watch["person"];
+					}
+					set 'person'(val) {
+						this.__watch["person"] = val;
+					}
+get 'optional'() {
+						return this.__watch["optional"];
+					}
+					set 'optional'(val) {
+						this.__watch["optional"] = val;
+					}
+    __registerWatchesActions() {
+    this.__addWatchesActions("person");
+this.__addWatchesActions("optional");
+    super.__registerWatchesActions();
+}
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeMarkup;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeMarkup.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<p _id="runtimemarkup_0"></p><p _id="runtimemarkup_1">live</p><p class="optional" _id="runtimemarkup_2"></p><p class="translated" _id="runtimemarkup_3"></p><input _id="runtimemarkup_4" /><input class="injected" _id="runtimemarkup_5" /><span _id="runtimemarkup_6">one</span><span _id="runtimemarkup_7">two</span><button _id="runtimemarkup_8">Rename</button>` }
+    });
+}
+    get liveSelected () { return this.shadowRoot.querySelector('[_id="runtimemarkup_1"]'); }
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "selected",
+      "ids": [
+        "runtimemarkup_0"
+      ]
+    },
+    {
+      "name": "repeated",
+      "ids": [
+        "runtimemarkup_6",
+        "runtimemarkup_7"
+      ],
+      "isArray": true
+    }
+  ],
+  "content": {
+    "runtimemarkup_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__e13314e0988ce9a16bec780da9345dc3method0())} ${c.print(c.comp.__e13314e0988ce9a16bec780da9345dc3method1())}`,
+      "once": true
+    },
+    "runtimemarkup_2°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__e13314e0988ce9a16bec780da9345dc3method2())}`,
+      "once": true
+    },
+    "runtimemarkup_3°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__e13314e0988ce9a16bec780da9345dc3method3())}`,
+      "once": true
+    },
+    "runtimemarkup_4°value": {
+      "fct": (c) => `${c.print(c.comp.__e13314e0988ce9a16bec780da9345dc3method4())}`,
+      "once": true
+    }
+  },
+  "injection": [
+    {
+      "id": "runtimemarkup_5",
+      "injectionName": "value",
+      "inject": (c) => c.comp.__e13314e0988ce9a16bec780da9345dc3method5(),
+      "once": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "click",
+      "id": "runtimemarkup_8",
+      "fct": (e, c) => c.comp.rename(e)
+    }
+  ]
+});
+ }
+    getClassName() {
+        return "RuntimeMarkup";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('label')){ this['label'] = "Hello"; }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["person"] = { name: "Ada" };
+w["optional"] = null;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('label');
+this.__correctGetter('person');
+this.__correctGetter('optional');
+ }
+    getSelection() {
+        return { selected: this.selected.textContent ?? "", repeated: this.repeated.length };
+    }
+    getLiveSelection() {
+        return this.liveSelected.textContent ?? '';
+    }
+    rename() {
+        this.person.name = "Grace";
+    }
+    __e13314e0988ce9a16bec780da9345dc3method0() {
+        return this.label;
+    }
+    __e13314e0988ce9a16bec780da9345dc3method1() {
+        return this.person.name;
+    }
+    __e13314e0988ce9a16bec780da9345dc3method2() {
+        return this.optional;
+    }
+    __e13314e0988ce9a16bec780da9345dc3method3() {
+        return this.t('greeting');
+    }
+    __e13314e0988ce9a16bec780da9345dc3method4() {
+        return this.person.name;
+    }
+    __e13314e0988ce9a16bec780da9345dc3method5() {
+        return (this.person.name);
+    }
+}
+RuntimeMarkup.Namespace=`RuntimeReference`;
+RuntimeMarkup.Tag=`rt-runtime-markup`;
+__as1(_, 'RuntimeMarkup', RuntimeMarkup);
+if(!window.customElements.get('rt-runtime-markup')){window.customElements.define('rt-runtime-markup', RuntimeMarkup);Aventus.WebComponentInstance.registerDefinition(RuntimeMarkup);}
 
 const RuntimeList = class RuntimeList extends Aventus.WebComponent {
     get 'items'() {
@@ -5467,6 +9244,632 @@ RuntimeList.Tag=`rt-runtime-list`;
 __as1(_, 'RuntimeList', RuntimeList);
 if(!window.customElements.get('rt-runtime-list')){window.customElements.define('rt-runtime-list', RuntimeList);Aventus.WebComponentInstance.registerDefinition(RuntimeList);}
 
+let RuntimeInternalProtected=class RuntimeInternalProtected {
+    value = 3;
+    double() {
+        return this.value * 2;
+    }
+    read() {
+        return this.double();
+    }
+}
+RuntimeInternalProtected.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeInternalProtected', RuntimeInternalProtected);
+
+const RuntimeInjectable = class RuntimeInjectable extends Aventus.WebComponent {
+    message = 'initial';
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeInjectable;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeInjectable.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<p>injectable</p>` }
+    });
+}
+    getClassName() {
+        return "RuntimeInjectable";
+    }
+    readMessage() {
+        return this.message;
+    }
+}
+RuntimeInjectable.Namespace=`RuntimeReference`;
+RuntimeInjectable.Tag=`rt-runtime-injectable`;
+__as1(_, 'RuntimeInjectable', RuntimeInjectable);
+if(!window.customElements.get('rt-runtime-injectable')){window.customElements.define('rt-runtime-injectable', RuntimeInjectable);Aventus.WebComponentInstance.registerDefinition(RuntimeInjectable);}
+
+let RuntimeHttpRouter=class RuntimeHttpRouter extends Aventus.HttpRouter {
+    defineOptions(options) {
+        options.url = "https://example.test/api";
+        return options;
+    }
+}
+RuntimeHttpRouter.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeHttpRouter', RuntimeHttpRouter);
+
+let RuntimeHttpRoute=class RuntimeHttpRoute extends Aventus.HttpRoute {
+    static installHooks(events) {
+        Aventus.HttpRequest.configure({
+            beforeSend: request => {
+                events.push("before");
+                request.setHeader("X-Runtime", "hooked");
+                return new Aventus.VoidWithError();
+            },
+            responseMiddleware: response => {
+                events.push("after:" + response.success);
+                return response;
+            },
+        });
+    }
+    constructor(router) {
+        super(router ?? new RuntimeHttpRouter());
+        this.save = this.save.bind(this);
+    }
+    getPrefix() {
+        return "/people";
+    }
+    async save(name) {
+        const request = new Aventus.HttpRequest(this.getPrefix() + "/save", Aventus.HttpMethod.POST);
+        request.setBody({ name });
+        return request.queryJSON(this.router);
+    }
+    async loadText() {
+        return new Aventus.HttpRequest(this.getPrefix() + "/text", Aventus.HttpMethod.GET).queryTxt(this.router);
+    }
+    async loadBlob() {
+        return new Aventus.HttpRequest(this.getPrefix() + "/blob", Aventus.HttpMethod.GET).queryBlob(this.router);
+    }
+    async remove() {
+        return new Aventus.HttpRequest(this.getPrefix() + "/remove", Aventus.HttpMethod.DELETE).queryVoid(this.router);
+    }
+}
+RuntimeHttpRoute.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeHttpRoute', RuntimeHttpRoute);
+
+let runtimeNumber= 7;
+__as1(_, 'runtimeNumber', runtimeNumber);
+
+let RuntimePerson=class RuntimePerson extends Aventus.Data {
+    id = 0;
+    name = "";
+    active = false;
+}
+RuntimePerson.Namespace=`RuntimeReference`;
+RuntimePerson.$schema={...(Aventus.Data?.$schema ?? {}), "id":"number","name":"string","active":"boolean"};
+Aventus.Converter.register(RuntimePerson.Fullname, RuntimePerson);
+__as1(_, 'RuntimePerson', RuntimePerson);
+
+let RuntimePersonRAM=class RuntimePersonRAM extends Aventus.Ram {
+    static getInstance() {
+        return Aventus.Instance.get(RuntimePersonRAM);
+    }
+    defineIndexKey() {
+        return 'id';
+    }
+    getTypeForData(objJson) {
+        return RuntimePerson;
+    }
+    async transformCreateRequestToItem(item) {
+        const result = new Aventus.ResultWithError();
+        result.result = item;
+        return result;
+    }
+    async transformCreateRequestListToItem(items) {
+        const result = new Aventus.ResultWithError();
+        result.result = items;
+        return result;
+    }
+    async transformUpdateRequestToItem(item) {
+        return this.transformCreateRequestToItem(item);
+    }
+    async transformUpdateRequestListToItem(items) {
+        return this.transformCreateRequestListToItem(items);
+    }
+}
+RuntimePersonRAM.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimePersonRAM', RuntimePersonRAM);
+
+let RuntimeRamCallbacks=class RuntimeRamCallbacks {
+    static async inspect() {
+        const ram = RuntimePersonRAM.getInstance();
+        const initial = new RuntimePerson();
+        initial.id = 91;
+        initial.name = 'Ada';
+        initial.active = true;
+        const person = await ram.create(initial);
+        if (!person)
+            return [];
+        const events = [];
+        const onUpdate = (item) => events.push('update:' + item?.name);
+        const removedUpdate = (item) => events.push('removed-update:' + item?.name);
+        const onDelete = (item) => events.push('delete:' + item?.name);
+        const removedDelete = (item) => events.push('removed-delete:' + item?.name);
+        person.onUpdate(onUpdate);
+        person.onUpdate(removedUpdate);
+        person.offUpdate(removedUpdate);
+        person.onDelete(onDelete);
+        person.onDelete(removedDelete);
+        person.offDelete(removedDelete);
+        const changed = new RuntimePerson();
+        changed.id = 91;
+        changed.name = 'Grace';
+        changed.active = false;
+        await ram.update(changed);
+        await ram.deleteById(91);
+        return events;
+    }
+}
+RuntimeRamCallbacks.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeRamCallbacks', RuntimeRamCallbacks);
+
+const RuntimeFillable = class RuntimeFillable extends Aventus.WebComponent {
+    static get observedAttributes() {return ["label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+    get 'value'() {
+						return this.__watch["value"];
+					}
+					set 'value'(val) {
+						this.__watch["value"] = val;
+					}
+    onChange = new Aventus.Callback();
+    __registerWatchesActions() {
+    this.__addWatchesActions("value", ((target) => target.onValueChange()));
+    super.__registerWatchesActions();
+}
+    static __style = ``;
+    constructor() {
+        super();
+        if (this.constructor == RuntimeFillable) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return RuntimeFillable;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeFillable.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<label _id="runtimefillable_0"></label><slot></slot>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "content": {
+    "runtimefillable_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__9230902a310b4f68b074f8484249acfcmethod0())}`,
+      "once": true
+    }
+  }
+});
+ }
+    getClassName() {
+        return "RuntimeFillable";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('label')){ this['label'] = 'base'; }
+ }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('label');
+this.__correctGetter('value');
+ }
+    __9230902a310b4f68b074f8484249acfcmethod0() {
+        return this.label;
+    }
+}
+RuntimeFillable.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeFillable', RuntimeFillable);
+
+const RuntimeTextFillable = class RuntimeTextFillable extends RuntimeFillable {
+    static __style = ``;
+    __getStatic() {
+        return RuntimeTextFillable;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeTextFillable.__style);
+        return arrStyle;
+    }
+    getClassName() {
+        return "RuntimeTextFillable";
+    }
+    onValueChange() {
+        RuntimeTextFillable.changes.push(this.value ?? '');
+        this.onChange.trigger(this.value);
+    }
+}
+RuntimeTextFillable.Namespace=`RuntimeReference`;
+RuntimeTextFillable.Tag=`rt-runtime-text-fillable`;
+__as1(_, 'RuntimeTextFillable', RuntimeTextFillable);
+if(!window.customElements.get('rt-runtime-text-fillable')){window.customElements.define('rt-runtime-text-fillable', RuntimeTextFillable);Aventus.WebComponentInstance.registerDefinition(RuntimeTextFillable);}
+
+const RuntimeNumberFillable = class RuntimeNumberFillable extends RuntimeFillable {
+    static __style = ``;
+    __getStatic() {
+        return RuntimeNumberFillable;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeNumberFillable.__style);
+        return arrStyle;
+    }
+    getClassName() {
+        return "RuntimeNumberFillable";
+    }
+    onValueChange() {
+        RuntimeNumberFillable.changes.push(this.value ?? 0);
+        this.onChange.trigger(this.value);
+    }
+}
+RuntimeNumberFillable.Namespace=`RuntimeReference`;
+RuntimeNumberFillable.Tag=`rt-runtime-number-fillable`;
+__as1(_, 'RuntimeNumberFillable', RuntimeNumberFillable);
+if(!window.customElements.get('rt-runtime-number-fillable')){window.customElements.define('rt-runtime-number-fillable', RuntimeNumberFillable);Aventus.WebComponentInstance.registerDefinition(RuntimeNumberFillable);}
+
+var RuntimeErrorCode;
+(function (RuntimeErrorCode) {
+    RuntimeErrorCode[RuntimeErrorCode["EmptyString"] = 400] = "EmptyString";
+})(RuntimeErrorCode || (RuntimeErrorCode = {}));
+__as1(_, 'RuntimeErrorCode', RuntimeErrorCode);
+
+const RuntimeEffectPlain = class RuntimeEffectPlain extends Aventus.WebComponent {
+    __registerWatchesActions() {
+    this.__addWatchesFunctions([
+{ name: "record", autoInit: true }
+]);
+    super.__registerWatchesActions();
+}
+    static __style = ``;
+    __getStatic() {
+        return RuntimeEffectPlain;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeEffectPlain.__style);
+        return arrStyle;
+    }
+    getClassName() {
+        return "RuntimeEffectPlain";
+    }
+    record() {
+        RuntimeEffectPlain.runs++;
+        return RuntimeEffectPlain.runs;
+    }
+}
+RuntimeEffectPlain.Namespace=`RuntimeReference`;
+RuntimeEffectPlain.Tag=`rt-runtime-effect-plain`;
+__as1(_, 'RuntimeEffectPlain', RuntimeEffectPlain);
+if(!window.customElements.get('rt-runtime-effect-plain')){window.customElements.define('rt-runtime-effect-plain', RuntimeEffectPlain);Aventus.WebComponentInstance.registerDefinition(RuntimeEffectPlain);}
+
+const RuntimeEffect = class RuntimeEffect extends Aventus.WebComponent {
+    get 'count'() {
+						return this.__signals["count"].value;
+					}
+					set 'count'(val) {
+						this.__signals["count"].value = val;
+					}
+    static runs = [];
+    __registerWatchesActions() {
+    this.__addWatchesFunctions([
+{ name: "record", autoInit: true }
+]);
+    super.__registerWatchesActions();
+}
+    __registerSignalsActions() { this.__signals["count"] = null;
+ super.__registerSignalsActions();  }
+    static __style = ``;
+    __getStatic() {
+        return RuntimeEffect;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeEffect.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<p _id="runtimeeffect_0"></p>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "content": {
+    "runtimeeffect_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__3a8935fb7f779683fcaff252272e118bmethod0())}`,
+      "once": true
+    }
+  }
+});
+ }
+    getClassName() {
+        return "RuntimeEffect";
+    }
+    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["count"] = 1;
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('count');
+ }
+    record() {
+        RuntimeEffect.runs.push(this.count);
+        return this.count;
+    }
+    __3a8935fb7f779683fcaff252272e118bmethod0() {
+        return this.count;
+    }
+}
+RuntimeEffect.Namespace=`RuntimeReference`;
+RuntimeEffect.Tag=`rt-runtime-effect`;
+__as1(_, 'RuntimeEffect', RuntimeEffect);
+if(!window.customElements.get('rt-runtime-effect')){window.customElements.define('rt-runtime-effect', RuntimeEffect);Aventus.WebComponentInstance.registerDefinition(RuntimeEffect);}
+
+let RuntimeDrag=class RuntimeDrag {
+    static attach(element, target, events) {
+        return new Aventus.DragAndDrop({
+            element,
+            targets: [target],
+            offsetDrag: 5,
+            onStart: () => { events.push("start"); },
+            onMove: () => events.push("move"),
+            onDrop: (_element, targets) => events.push(`drop:${targets.length}`),
+            onStop: () => events.push("stop"),
+        });
+    }
+}
+RuntimeDrag.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeDrag', RuntimeDrag);
+
+let RuntimeInternal=class RuntimeInternal {
+    static value() { return "internal"; }
+}
+RuntimeInternal.Namespace=`RuntimeReference`;
+
+let RuntimeDecoratorConsumer=class RuntimeDecoratorConsumer {
+    static inspect() {
+        return RuntimeInternal.value();
+    }
+}
+RuntimeDecoratorConsumer.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeDecoratorConsumer', RuntimeDecoratorConsumer);
+
+let RuntimeDecoratorMetadata=class RuntimeDecoratorMetadata {
+    details = { value: 3 };
+    legacy() {
+        return 4;
+    }
+    current() {
+        return this.details.value + 1;
+    }
+}
+RuntimeDecoratorMetadata.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeDecoratorMetadata', RuntimeDecoratorMetadata);
+
+let RuntimeSingleton=class RuntimeSingleton {
+    value = 1;
+    static getInstance() {
+        return Aventus.Instance.get(RuntimeSingleton);
+    }
+}
+RuntimeSingleton.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeSingleton', RuntimeSingleton);
+
+let RuntimeCoreUtilities=class RuntimeCoreUtilities {
+    static inspectInstance() {
+        const first = RuntimeSingleton.getInstance();
+        const second = RuntimeSingleton.getInstance();
+        first.value = 7;
+        return { same: first === second, value: second.value };
+    }
+    static inspectWatcher() {
+        const events = [];
+        const object = Aventus.Watcher.get({}, (action, path, value) => {
+            events.push(Aventus.WatchAction[action] + ':' + path + ':' + value);
+        });
+        object.name = 'John';
+        object.name = 'Jane';
+        delete object.name;
+        const signal = Aventus.Watcher.signal(1);
+        const effectValues = [];
+        const effect = Aventus.Watcher.effect(() => effectValues.push(signal.value));
+        const computed = Aventus.Watcher.computed(() => signal.value * 2);
+        const initialComputed = computed.value;
+        signal.value = 2;
+        const nextComputed = computed.value;
+        effect.destroy();
+        computed.destroy();
+        signal.destroy();
+        return { events, effectValues, initialComputed, nextComputed };
+    }
+    static resourceLoaderType() {
+        return typeof Aventus.ResourceLoader;
+    }
+}
+RuntimeCoreUtilities.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeCoreUtilities', RuntimeCoreUtilities);
+
+let RuntimeConvertible=class RuntimeConvertible {
+    static get Fullname() { return "RuntimeReference.RuntimeConvertible"; }
+    get $type() { return RuntimeConvertible.Fullname; }
+    value = "";
+}
+RuntimeConvertible.Namespace=`RuntimeReference`;
+RuntimeConvertible.$schema={"$type":"string","value":"string"};
+Aventus.Converter.register(RuntimeConvertible.Fullname, RuntimeConvertible);
+__as1(_, 'RuntimeConvertible', RuntimeConvertible);
+
+let RuntimeCallbackLibrary=class RuntimeCallbackLibrary {
+    static inspect() {
+        const events = [];
+        const callback = new Aventus.Callback();
+        const first = (value) => { events.push(`first:${value}`); return 1; };
+        const second = (value) => { events.push(`second:${value}`); return 2; };
+        callback.add(first);
+        callback.add(second);
+        callback.add(first);
+        const returns = callback.trigger("a");
+        callback.remove(first);
+        callback.trigger("b");
+        callback.clear();
+        callback.trigger("c");
+        const groupAvailable = typeof Aventus.CallbackGroup === "function";
+        if (groupAvailable) {
+            const grouped = new Aventus.CallbackGroup();
+            const info = (value) => events.push(`info:${value}`);
+            const error = (value) => events.push(`error:${value}`);
+            grouped.add("info", info);
+            grouped.add("error", error);
+            grouped.trigger("error", "failed");
+            grouped.trigger("info", "ready");
+            grouped.remove("error", error);
+            grouped.trigger("error", "ignored");
+            grouped.clearAll();
+            grouped.trigger("info", "ignored");
+        }
+        return { events, returns, groupAvailable };
+    }
+}
+RuntimeCallbackLibrary.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeCallbackLibrary', RuntimeCallbackLibrary);
+
+const RuntimeCallbacks = class RuntimeCallbacks extends Aventus.WebComponent {
+    get 'model'() {
+						return this.__watch["model"];
+					}
+					set 'model'(val) {
+						this.__watch["model"] = val;
+					}
+    get 'signalModel'() {
+						return this.__signals["signalModel"].value;
+					}
+					set 'signalModel'(val) {
+						this.__signals["signalModel"].value = val;
+					}
+    static watchEvents = [];
+    static signalEvents = [];
+    __registerWatchesActions() {
+    this.__addWatchesActions("model", ((target, action, path, value) => {
+    RuntimeCallbacks.watchEvents.push({ action: Aventus.WatchAction[action], path,
+        value: typeof value === "object" ? value?.child?.count : value });
+}));
+    super.__registerWatchesActions();
+}
+    __registerSignalsActions() { this.__signals["signalModel"] = null;
+ super.__registerSignalsActions(); this.__addSignalActions("signalModel", ((target) => {
+    RuntimeCallbacks.signalEvents.push(target.signalModel.count);
+}));
+ }
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeCallbacks;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeCallbacks.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<p _id="runtimecallbacks_0"></p>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "content": {
+    "runtimecallbacks_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__f347886950aebb7cc7f8e05b3d82c8abmethod0())}`,
+      "once": true
+    }
+  }
+});
+ }
+    getClassName() {
+        return "RuntimeCallbacks";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["model"] = { child: { count: 1 } };
+ }
+    __defaultValuesSignal(s) { super.__defaultValuesSignal(s); s["signalModel"] = { count: 1 };
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('signalModel');
+this.__correctGetter('model');
+ }
+    __f347886950aebb7cc7f8e05b3d82c8abmethod0() {
+        return this.model.child.count;
+    }
+}
+RuntimeCallbacks.Namespace=`RuntimeReference`;
+RuntimeCallbacks.Tag=`rt-runtime-callbacks`;
+__as1(_, 'RuntimeCallbacks', RuntimeCallbacks);
+if(!window.customElements.get('rt-runtime-callbacks')){window.customElements.define('rt-runtime-callbacks', RuntimeCallbacks);Aventus.WebComponentInstance.registerDefinition(RuntimeCallbacks);}
+
+let RuntimeCalendarRecord=class RuntimeCalendarRecord {
+    day = null;
+    moment = null;
+    time = null;
+}
+RuntimeCalendarRecord.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeCalendarRecord', RuntimeCalendarRecord);
+
+let RuntimeCalendar=class RuntimeCalendar {
+    static boundaries() {
+        const date = Aventus.Date.parse("2024-02-29");
+        const next = Aventus.Date.parse("2024-03-02");
+        const local = Aventus.DateTime.parse("2024-02-29T12:30:00");
+        const utc = local.toUtc("Europe/Zurich");
+        const morning = Aventus.Time.parse("08:00");
+        const evening = Aventus.Time.parse("20:00");
+        return {
+            monthStart: date.startOfMonth().toString(),
+            monthEnd: date.endOfMonth().toString(),
+            weekStart: date.startOfWeek(1).toString(),
+            daysUntil: date.daysUntil(next),
+            diffDays: next.diffDays(date),
+            utc: utc.toString(),
+            utcKind: utc.kind,
+            timeBefore: morning.isBefore(evening),
+            invalidTime: Aventus.Time.tryParse("25:00") === null,
+            invalidDateTime: Aventus.DateTime.tryParse("2024-02-30T12:00") === null,
+        };
+    }
+    static convert() {
+        Aventus.Converter.register("RuntimeCalendarRecord", RuntimeCalendarRecord, {
+            day: "date", moment: "datetime", time: "time",
+        });
+        const record = Aventus.Converter.transform({
+            $type: "RuntimeCalendarRecord",
+            day: "2024-02-29", moment: "2024-02-29T12:30:00+01:00", time: "23:30:00",
+        });
+        return {
+            typed: record instanceof RuntimeCalendarRecord,
+            day: record.day instanceof Aventus.Date ? record.day.toString() : null,
+            moment: record.moment instanceof Aventus.DateTime ? record.moment.toString() : null,
+            time: record.time instanceof Aventus.Time ? record.time.toString() : null,
+        };
+    }
+    static inspect() {
+        const leap = Aventus.Date.parse("2024-02-29");
+        const next = leap.addDays(1);
+        const time = Aventus.Time.parse("23:30");
+        const instant = Aventus.DateTime.parse("2024-02-29T12:30:00+01:00");
+        return {
+            date: leap.toString(), next: next.toString(), before: leap.isBefore(next),
+            invalidDate: Aventus.Date.tryParse("2024-02-30") === null,
+            time: time.addHours(1).toString(),
+            instant: instant.toString(), kind: instant.kind,
+        };
+    }
+}
+RuntimeCalendar.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeCalendar', RuntimeCalendar);
+
 const RuntimeBranches = class RuntimeBranches extends Aventus.WebComponent {
     get 'count'() {
 						return this.__watch["count"];
@@ -5497,7 +9900,7 @@ this.__addWatchesActions("labels");
     __getHtml() {
     this.__getStatic().__template.setHTML({
         blocks: { 'default':`<button _id="runtimebranches_0">Increment</button><template _id="runtimebranches_1"></template><ul>
-    <template _id="runtimebranches_4"></template>
+    <template _id="runtimebranches_6"></template>
 </ul>` }
     });
 }
@@ -5511,46 +9914,84 @@ this.__getStatic().__template.setActions({
     }
   ]
 });
-const templ2 = new Aventus.Template(this);
-templ2.setTemplate(`
-        <li _id="runtimebranches_5"></li>
+const templ6 = new Aventus.Template(this);
+templ6.setTemplate(`
+        <li _id="runtimebranches_7"></li>
     `);
-templ2.setActions({
+templ6.setActions({
   "content": {
-    "runtimebranches_5°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod3(c.data.key))}: ${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod4(c.data.key))}`
+    "runtimebranches_7°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod5(c.data.key))}: ${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod6(c.data.key))}`
     }
   }
 });
 this.__getStatic().__template.addLoop({
-                    anchorId: 'runtimebranches_4',
-                    template: templ2,
+                    anchorId: 'runtimebranches_6',
+                    template: templ6,
                 simple:{data: `this.labels`,index:`key`}
 });
 const templ0 = new Aventus.Template(this);
 templ0.setTemplate(`
     <p class="even" _id="runtimebranches_2"></p>
+    <template _id="runtimebranches_3"></template> 
 `);
 templ0.setActions({
   "content": {
     "runtimebranches_2°@HTML": {
-      "fct": (c) => `Even ${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod2())}`,
+      "fct": (c) => `Even ${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod4())}`,
       "once": true
     }
   }
 });
+const templ2 = new Aventus.Template(this);
+templ2.setTemplate(`
+        <span class="zero">zero</span>
+    `);
+const templ3 = new Aventus.Template(this);
+templ3.setTemplate(`
+        <span class="positive-even">positive even</span>
+    `);
+templ0.addIf({
+                    anchorId: 'runtimebranches_3',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__84dee09c18be291203ed39a41f8f178amethod1(),
+                    template: templ2
+                },{once: true,
+                    condition: (c) => true,
+                    template: templ3
+                }]
+            });
 const templ1 = new Aventus.Template(this);
 templ1.setTemplate(`
-    <p class="odd" _id="runtimebranches_3"></p>
+    <p class="odd" _id="runtimebranches_4"></p>
+    <template _id="runtimebranches_5"></template> 
 `);
 templ1.setActions({
   "content": {
-    "runtimebranches_3°@HTML": {
-      "fct": (c) => `Odd ${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod2())}`,
+    "runtimebranches_4°@HTML": {
+      "fct": (c) => `Odd ${c.print(c.comp.__84dee09c18be291203ed39a41f8f178amethod4())}`,
       "once": true
     }
   }
 });
+const templ4 = new Aventus.Template(this);
+templ4.setTemplate(`
+        <span class="one">one</span>
+    `);
+const templ5 = new Aventus.Template(this);
+templ5.setTemplate(`
+        <span class="later-odd">later odd</span>
+    `);
+templ1.addIf({
+                    anchorId: 'runtimebranches_5',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__84dee09c18be291203ed39a41f8f178amethod2(),
+                    template: templ4
+                },{once: true,
+                    condition: (c) => true,
+                    template: templ5
+                }]
+            });
 this.__getStatic().__template.addIf({
                     anchorId: 'runtimebranches_1',
                     parts: [{once: true,
@@ -5574,23 +10015,566 @@ this.__correctGetter('labels');
     increment() {
         this.count++;
     }
-    __84dee09c18be291203ed39a41f8f178amethod2() {
+    __84dee09c18be291203ed39a41f8f178amethod4() {
         return this.count;
     }
-    __84dee09c18be291203ed39a41f8f178amethod3(key) {
+    __84dee09c18be291203ed39a41f8f178amethod5(key) {
         return key;
     }
-    __84dee09c18be291203ed39a41f8f178amethod4(key) {
+    __84dee09c18be291203ed39a41f8f178amethod6(key) {
         return this.labels[key];
     }
     __84dee09c18be291203ed39a41f8f178amethod0() {
         return this.count % 2 === 0;
+    }
+    __84dee09c18be291203ed39a41f8f178amethod1() {
+        return this.count === 0;
+    }
+    __84dee09c18be291203ed39a41f8f178amethod2() {
+        return this.count === 1;
     }
 }
 RuntimeBranches.Namespace=`RuntimeReference`;
 RuntimeBranches.Tag=`rt-runtime-branches`;
 __as1(_, 'RuntimeBranches', RuntimeBranches);
 if(!window.customElements.get('rt-runtime-branches')){window.customElements.define('rt-runtime-branches', RuntimeBranches);Aventus.WebComponentInstance.registerDefinition(RuntimeBranches);}
+
+const RuntimeInput = class RuntimeInput extends Aventus.WebComponent {
+    static get observedAttributes() {return ["val"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'val'() { return this.getStringProp('val') }
+    set 'val'(val) { this.setStringAttr('val', val) }
+    onNewVal = new Aventus.Callback();
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeInput;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeInput.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<input _id="runtimeinput_0" />` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "inputEl",
+      "ids": [
+        "runtimeinput_0"
+      ]
+    }
+  ],
+  "content": {
+    "runtimeinput_0°value": {
+      "fct": (c) => `${c.print(c.comp.__6b2d66cc889bc8af07fb739941f1ac90method0())}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "input",
+      "id": "runtimeinput_0",
+      "fct": (e, c) => c.comp.triggerChange(e)
+    }
+  ]
+});
+ }
+    getClassName() {
+        return "RuntimeInput";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('val')){ this['val'] = ""; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('val');
+ }
+    triggerChange() {
+        this.val = this.inputEl.value;
+        this.onNewVal.trigger();
+    }
+    __6b2d66cc889bc8af07fb739941f1ac90method0() {
+        return this.val;
+    }
+}
+RuntimeInput.Namespace=`RuntimeReference`;
+RuntimeInput.Tag=`rt-runtime-input`;
+__as1(_, 'RuntimeInput', RuntimeInput);
+if(!window.customElements.get('rt-runtime-input')){window.customElements.define('rt-runtime-input', RuntimeInput);Aventus.WebComponentInstance.registerDefinition(RuntimeInput);}
+
+const RuntimeBase = class RuntimeBase extends Aventus.WebComponent {
+    static get observedAttributes() {return ["label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+    static __style = `:host{display:block}:host .base{color:orange}`;
+    __getStatic() {
+        return RuntimeBase;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeBase.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'highlight':`<slot name="highlight"></slot>`,'keep':`<slot name="keep"></slot>` }, 
+        blocks: { 'default':`<div class="base"><p _id="runtimebase_0"></p><slot name="highlight"></slot><slot name="keep"></slot></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "content": {
+    "runtimebase_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__4b3f8d47406c0d45594b58813c621135method0())}`,
+      "once": true
+    }
+  }
+});
+ }
+    getClassName() {
+        return "RuntimeBase";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('label')){ this['label'] = "base"; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('label');
+ }
+    __4b3f8d47406c0d45594b58813c621135method0() {
+        return this.label;
+    }
+}
+RuntimeBase.Namespace=`RuntimeReference`;
+RuntimeBase.Tag=`rt-runtime-base`;
+__as1(_, 'RuntimeBase', RuntimeBase);
+if(!window.customElements.get('rt-runtime-base')){window.customElements.define('rt-runtime-base', RuntimeBase);Aventus.WebComponentInstance.registerDefinition(RuntimeBase);}
+
+const RuntimeOverride = class RuntimeOverride extends RuntimeBase {
+    static __style = ``;
+    __getStatic() {
+        return RuntimeOverride;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeOverride.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'highlight':`<slot name="highlight"></slot>` }, 
+        blocks: { 'default':`<section class="override"><span _id="runtimeoverride_0"></span><slot name="highlight"></slot></section>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "content": {
+    "runtimeoverride_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__f8aeceedaf6f7027ba976e660b1de24dmethod0())}`,
+      "once": true
+    }
+  }
+});
+ }
+    getClassName() {
+        return "RuntimeOverride";
+    }
+    __f8aeceedaf6f7027ba976e660b1de24dmethod0() {
+        return this.label;
+    }
+}
+RuntimeOverride.Namespace=`RuntimeReference`;
+RuntimeOverride.Tag=`rt-runtime-override`;
+__as1(_, 'RuntimeOverride', RuntimeOverride);
+if(!window.customElements.get('rt-runtime-override')){window.customElements.define('rt-runtime-override', RuntimeOverride);Aventus.WebComponentInstance.registerDefinition(RuntimeOverride);}
+
+const RuntimeDerived = class RuntimeDerived extends RuntimeBase {
+    static __style = `:host{display:block}:host .base{color:blue}`;
+    __getStatic() {
+        return RuntimeDerived;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeDerived.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        slots: { 'highlight':`<slot name="highlight"></slot>` }, 
+        blocks: { 'highlight':`<strong class="replacement"><slot name="highlight"></slot></strong>` }
+    });
+}
+    getClassName() {
+        return "RuntimeDerived";
+    }
+}
+RuntimeDerived.Namespace=`RuntimeReference`;
+RuntimeDerived.Tag=`rt-runtime-derived`;
+__as1(_, 'RuntimeDerived', RuntimeDerived);
+if(!window.customElements.get('rt-runtime-derived')){window.customElements.define('rt-runtime-derived', RuntimeDerived);Aventus.WebComponentInstance.registerDefinition(RuntimeDerived);}
+
+const RuntimeAttributes = class RuntimeAttributes extends Aventus.WebComponent {
+    static get observedAttributes() {return ["label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'active'() { return this.getBoolAttr('active') }
+    set 'active'(val) { this.setBoolAttr('active', val) }
+get 'count'() { return this.getNumberAttr('count') }
+    set 'count'(val) { this.setNumberAttr('count', val) }
+    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }
+    changes = 0;
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("label", ((target) => target.recordChange()));
+ }
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeAttributes;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeAttributes.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<p _id="runtimeattributes_0"></p>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "content": {
+    "runtimeattributes_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__b79975b3e273dbe845117076b07af27dmethod0())}`,
+      "once": true
+    }
+  }
+});
+ }
+    getClassName() {
+        return "RuntimeAttributes";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('active')) { this.attributeChangedCallback('active', false, false); }
+if(!this.hasAttribute('count')){ this['count'] = 2; }
+if(!this.hasAttribute('label')){ this['label'] = "start"; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('active');
+this.__upgradeProperty('count');
+this.__upgradeProperty('label');
+ }
+    __listBoolProps() { return ["active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    recordChange() {
+        this.changes++;
+    }
+    __b79975b3e273dbe845117076b07af27dmethod0() {
+        return this.label;
+    }
+}
+RuntimeAttributes.Namespace=`RuntimeReference`;
+RuntimeAttributes.Tag=`rt-runtime-attributes`;
+__as1(_, 'RuntimeAttributes', RuntimeAttributes);
+if(!window.customElements.get('rt-runtime-attributes')){window.customElements.define('rt-runtime-attributes', RuntimeAttributes);Aventus.WebComponentInstance.registerDefinition(RuntimeAttributes);}
+
+let RuntimeAnimation=class RuntimeAnimation {
+    static available() {
+        return typeof Aventus.Animation === "function";
+    }
+    static async inspect() {
+        let frames = 0;
+        let stopped = 0;
+        const animation = new Aventus.Animation({
+            fps: 60,
+            animate: () => { frames++; },
+            stopped: () => { stopped++; },
+        });
+        const initial = { fps: animation.getFPS(), started: animation.isStarted() };
+        animation.setFPS(120);
+        animation.start();
+        const started = animation.isStarted();
+        await new Promise(resolve => setTimeout(resolve, 45));
+        animation.immediateStop();
+        const afterStop = { fps: animation.getFPS(), started: animation.isStarted(), frames, stopped };
+        await new Promise(resolve => setTimeout(resolve, 45));
+        return { initial, started, afterStop, finalFrames: frames, finalStopped: stopped };
+    }
+}
+RuntimeAnimation.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeAnimation', RuntimeAnimation);
+
+var RuntimeFunctionMode;
+(function (RuntimeFunctionMode) {
+    RuntimeFunctionMode[RuntimeFunctionMode["First"] = 1] = "First";
+    RuntimeFunctionMode[RuntimeFunctionMode["Second"] = 2] = "Second";
+})(RuntimeFunctionMode || (RuntimeFunctionMode = {}));
+__as1(_, 'RuntimeFunctionMode', RuntimeFunctionMode);
+
+let runtimeUpper=function runtimeUpper(value) {
+    return value.toUpperCase();
+}
+__as1(_, 'runtimeUpper', runtimeUpper);
+
+let RuntimeAlias=class RuntimeAlias {
+    static inspect() {
+        return `${runtimeUpper("alias")}:${RuntimeFunctionMode.Second}`;
+    }
+}
+RuntimeAlias.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeAlias', RuntimeAlias);
+
+const RuntimeBinding = class RuntimeBinding extends Aventus.WebComponent {
+    get 'value'() {
+						return this.__watch["value"];
+					}
+					set 'value'(val) {
+						this.__watch["value"] = val;
+					}
+get 'nativeValue'() {
+						return this.__watch["nativeValue"];
+					}
+					set 'nativeValue'(val) {
+						this.__watch["nativeValue"] = val;
+					}
+    notifications = 0;
+    __registerWatchesActions() {
+    this.__addWatchesActions("value");
+this.__addWatchesActions("nativeValue");
+    super.__registerWatchesActions();
+}
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeBinding;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeBinding.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<rt-runtime-input _id="runtimebinding_0"></rt-runtime-input><p _id="runtimebinding_1"></p><input class="native" _id="runtimebinding_2" />` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
+  "content": {
+    "runtimebinding_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__cbb1b5ca76944f2b4b49620630734393method2())}`,
+      "once": true
+    }
+  },
+  "bindings": [
+    {
+      "id": "runtimebinding_0",
+      "injectionName": "val",
+      "eventNames": [
+        "onNewVal"
+      ],
+      "inject": (c) => c.comp.__cbb1b5ca76944f2b4b49620630734393method0(),
+      "extract": (c, v) => c.comp.__cbb1b5ca76944f2b4b49620630734393method1(v),
+      "once": true,
+      "isCallback": true
+    },
+    {
+      "id": "runtimebinding_2",
+      "injectionName": "value",
+      "eventNames": [
+        "keyup"
+      ],
+      "inject": (c) => c.comp.__cbb1b5ca76944f2b4b49620630734393method3(),
+      "extract": (c, v) => c.comp.__cbb1b5ca76944f2b4b49620630734393method4(v),
+      "once": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "onNewVal",
+      "id": "runtimebinding_0",
+      "fct": (c, ...args) => c.comp.recordNotification.apply(c.comp, ...args),
+      "isCallback": true
+    }
+  ]
+});
+ }
+    getClassName() {
+        return "RuntimeBinding";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = "binding seed";
+w["nativeValue"] = "native seed";
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('value');
+this.__correctGetter('nativeValue');
+ }
+    recordNotification() {
+        this.notifications++;
+    }
+    __cbb1b5ca76944f2b4b49620630734393method2() {
+        return this.value;
+    }
+    __cbb1b5ca76944f2b4b49620630734393method0() {
+        return (this.value);
+    }
+    __cbb1b5ca76944f2b4b49620630734393method1(v) {
+        if (this) {
+            this.value = v;
+        }
+    }
+    __cbb1b5ca76944f2b4b49620630734393method3() {
+        return (this.nativeValue);
+    }
+    __cbb1b5ca76944f2b4b49620630734393method4(v) {
+        if (this) {
+            this.nativeValue = v;
+        }
+    }
+}
+RuntimeBinding.Namespace=`RuntimeReference`;
+RuntimeBinding.Tag=`rt-runtime-binding`;
+__as1(_, 'RuntimeBinding', RuntimeBinding);
+if(!window.customElements.get('rt-runtime-binding')){window.customElements.define('rt-runtime-binding', RuntimeBinding);Aventus.WebComponentInstance.registerDefinition(RuntimeBinding);}
+
+let RuntimeStringError=class RuntimeStringError extends Aventus.GenericError {
+}
+RuntimeStringError.Namespace=`RuntimeReference`;
+RuntimeStringError.$schema={...(Aventus.GenericError?.$schema ?? {}), };
+Aventus.Converter.register(RuntimeStringError.Fullname, RuntimeStringError);
+__as1(_, 'RuntimeStringError', RuntimeStringError);
+
+let RuntimeStringResult=class RuntimeStringResult extends Aventus.ResultWithError {
+}
+RuntimeStringResult.Namespace=`RuntimeReference`;
+RuntimeStringResult.$schema={...(Aventus.ResultWithError?.$schema ?? {}), };
+Aventus.Converter.register(RuntimeStringResult.Fullname, RuntimeStringResult);
+__as1(_, 'RuntimeStringResult', RuntimeStringResult);
+
+let RuntimeErrors=class RuntimeErrors {
+    static toLower(value) {
+        const result = new RuntimeStringResult();
+        if (value.length === 0) {
+            result.errors.push(new RuntimeStringError(RuntimeErrorCode.EmptyString, "Please provide a string"));
+        }
+        else {
+            result.result = { lower: value.toLowerCase() };
+        }
+        return result;
+    }
+    static inspect() {
+        const valid = this.toLower("HELLO");
+        const invalid = this.toLower("");
+        const validation = new Aventus.VoidWithError();
+        const extracted = validation.extract(() => this.toLower("WORLD"));
+        validation.run(() => invalid);
+        let skipped = false;
+        validation.run(() => { skipped = true; return []; });
+        return {
+            valid: { success: valid.success, result: valid.result, errors: valid.errors.length },
+            invalid: {
+                success: invalid.success,
+                missingResult: invalid.result === undefined,
+                code: invalid.errors[0].code,
+                message: invalid.errors[0].message,
+                containsCode: invalid.containsCode(RuntimeErrorCode.EmptyString, RuntimeStringError),
+            },
+            validation: {
+                success: validation.success,
+                extracted,
+                skipped,
+                genericSuccess: validation.toGeneric().success,
+            },
+        };
+    }
+}
+RuntimeErrors.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimeErrors', RuntimeErrors);
+
+let RuntimeForeignKey=class RuntimeForeignKey extends Aventus.Data {
+    id = 0;
+    personId = 0;
+}
+RuntimeForeignKey.Namespace=`RuntimeReference`;
+RuntimeForeignKey.$schema={...(Aventus.Data?.$schema ?? {}), "id":"number","personId":"ref:RuntimeReference.RuntimePerson"};
+Aventus.Converter.register(RuntimeForeignKey.Fullname, RuntimeForeignKey);
+__as1(_, 'RuntimeForeignKey', RuntimeForeignKey);
+
+let RuntimePersonExtendedRAM=class RuntimePersonExtendedRAM extends Aventus.Ram {
+    static getInstance() {
+        return Aventus.Instance.get(RuntimePersonExtendedRAM);
+    }
+    defineIndexKey() {
+        return "id";
+    }
+    getTypeForData(objJson) {
+        return this.addPersonMethod(RuntimePerson);
+    }
+    addPersonMethod(Base) {
+        return class Extension extends Base {
+            helloWorld() {
+                return `Hello ${this.name}`;
+            }
+        };
+    }
+    async transformCreateRequestToItem(item) {
+        const result = new Aventus.ResultWithError();
+        result.result = item;
+        return result;
+    }
+    async transformCreateRequestListToItem(items) {
+        const result = new Aventus.ResultWithError();
+        result.result = items;
+        return result;
+    }
+    async transformUpdateRequestToItem(item) {
+        return this.transformCreateRequestToItem(item);
+    }
+    async transformUpdateRequestListToItem(items) {
+        return this.transformCreateRequestListToItem(items);
+    }
+}
+RuntimePersonExtendedRAM.Namespace=`RuntimeReference`;
+__as1(_, 'RuntimePersonExtendedRAM', RuntimePersonExtendedRAM);
+
+const RuntimeState = class RuntimeState extends Aventus.WebComponent {
+    events = [];
+    static __style = `:host{display:block}`;
+    __getStatic() {
+        return RuntimeState;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(RuntimeState.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<p>State observer</p>` }
+    });
+}
+    __createStates() { super.__createStates(); let that = this; this.__addActiveDefState(RuntimeStateManager, this.onDefaultActive);
+this.__addInactiveDefState(RuntimeStateManager, this.onDefaultInactive);
+ this.__createStatesList("/item/{id:number}", RuntimeStateManager);this.__addActiveState("/item/{id:number}", RuntimeStateManager, (state, slugs) => { that.__inactiveDefaultState(RuntimeStateManager); that.onItemActive(state, slugs);})
+this.__addAskChangeState("/item/{id:number}", RuntimeStateManager, async (state, nextState, slugs) => { if(!await that.onItemChange(state, nextState, slugs)){return false;}
+ return true;})
+this.__createStatesList("/item/{id:number}", RuntimeStateManager.getInstance());this.__addInactiveState("/item/{id:number}", RuntimeStateManager.getInstance(), (state, nextState, slugs) => { that.onItemInactive(state, nextState, slugs);that.__activeDefaultState(nextState, RuntimeStateManager.getInstance());})
+ }
+    getClassName() {
+        return "RuntimeState";
+    }
+    onItemActive(state, slugs) {
+        this.events.push("active:" + slugs.id);
+    }
+    onItemInactive(state, nextState, slugs) {
+        this.events.push("inactive:" + slugs.id);
+    }
+    async onItemChange(state, nextState, slugs) {
+        this.events.push("ask:" + slugs.id);
+        return true;
+    }
+    onDefaultActive() {
+        this.events.push("default-active");
+    }
+    onDefaultInactive() {
+        this.events.push("default-inactive");
+    }
+}
+RuntimeState.Namespace=`RuntimeReference`;
+RuntimeState.Tag=`rt-runtime-state`;
+__as1(_, 'RuntimeState', RuntimeState);
+if(!window.customElements.get('rt-runtime-state')){window.customElements.define('rt-runtime-state', RuntimeState);Aventus.WebComponentInstance.registerDefinition(RuntimeState);}
 
 
 for(let key in _) { RuntimeReference[key] = _[key] }

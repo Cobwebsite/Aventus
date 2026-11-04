@@ -1,0 +1,12 @@
+export class RuntimeEffect extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Signal()
+    public count: number = 1;
+
+    public static runs: number[] = [];
+
+    @Effect()
+    public record(): number {
+        RuntimeEffect.runs.push(this.count);
+        return this.count;
+    }
+}

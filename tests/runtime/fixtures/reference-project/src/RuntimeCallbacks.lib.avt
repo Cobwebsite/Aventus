@@ -1,0 +1,32 @@
+export class RuntimeCallbackLibrary {
+    public static inspect() {
+        const events: string[] = [];
+        const callback = new Aventus.Callback<(value: string) => number, number>();
+        const first = (value: string) => { events.push(`first:${value}`); return 1; };
+        const second = (value: string) => { events.push(`second:${value}`); return 2; };
+        callback.add(first);
+        callback.add(second);
+        callback.add(first);
+        const returns = callback.trigger("a");
+        callback.remove(first);
+        callback.trigger("b");
+        callback.clear();
+        callback.trigger("c");
+
+        const groupAvailable = typeof Aventus.CallbackGroup === "function";
+        if (groupAvailable) {
+            const grouped = new Aventus.CallbackGroup<(value: string) => void>();
+            const info = (value: string) => events.push(`info:${value}`);
+            const error = (value: string) => events.push(`error:${value}`);
+            grouped.add("info", info);
+            grouped.add("error", error);
+            grouped.trigger("error", "failed");
+            grouped.trigger("info", "ready");
+            grouped.remove("error", error);
+            grouped.trigger("error", "ignored");
+            grouped.clearAll();
+            grouped.trigger("info", "ignored");
+        }
+        return { events, returns, groupAvailable };
+    }
+}

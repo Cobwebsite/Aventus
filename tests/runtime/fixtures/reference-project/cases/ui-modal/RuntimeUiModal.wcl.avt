@@ -1,0 +1,15 @@
+import { ModalElement } from "Aventus@UI:Aventus.Modal.package.avt";
+
+export class RuntimeUiModal extends ModalElement<boolean> implements Aventus.DefaultComponent {
+    public override configure(): Aventus.Modal.ModalOptions<boolean> {
+        return { closeWithClick: false, closeWithEsc: true, rejectValue: false };
+    }
+
+    public accept(): void {
+        this.resolve(true);
+    }
+
+    public cancel(): void {
+        this.reject();
+    }
+}

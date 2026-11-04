@@ -1,0 +1,10 @@
+export class RuntimeNoCompile extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @NoCompile()
+    public omitted(): number {
+        return 99;
+    }
+
+    public visibleMethod(): number {
+        return 4;
+    }
+}

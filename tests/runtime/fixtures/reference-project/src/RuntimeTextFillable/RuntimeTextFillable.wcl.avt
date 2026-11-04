@@ -1,0 +1,10 @@
+import { RuntimeFillable } from '../RuntimeFillable/RuntimeFillable.wcl.avt';
+
+export class RuntimeTextFillable extends RuntimeFillable<string> implements Aventus.DefaultComponent {
+    public static changes: string[] = [];
+
+    protected override onValueChange(): void {
+        RuntimeTextFillable.changes.push(this.value ?? '');
+        this.onChange.trigger(this.value);
+    }
+}

@@ -1,0 +1,4 @@
+export class RuntimeInvalidView extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @ViewElement()
+    protected unusedElement!: HTMLDivElement;
+}
