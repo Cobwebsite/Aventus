@@ -1,0 +1,49 @@
+import { RuntimePerson } from "./RuntimePerson.data.avt";
+
+interface RuntimePersonActions {
+    helloWorld(): string;
+}
+
+type RuntimePersonExtended = RuntimePerson & RuntimePersonActions;
+
+export class RuntimePersonExtendedRAM extends Aventus.Ram<RuntimePerson, RuntimePersonExtended> implements Aventus.IRam {
+    public static getInstance() {
+        return Aventus.Instance.get(RuntimePersonExtendedRAM);
+    }
+
+    public override defineIndexKey(): keyof RuntimePerson {
+        return "id";
+    }
+
+    protected override getTypeForData(objJson: RuntimePerson | Aventus.KeysObject<RuntimePerson>): new () => RuntimePersonExtended {
+        return this.addPersonMethod(RuntimePerson);
+    }
+
+    private addPersonMethod<B extends new (...args: any[]) => RuntimePerson>(Base: B) {
+        return class Extension extends Base implements RuntimePersonActions {
+            public helloWorld(): string {
+                return `Hello ${this.name}`;
+            }
+        };
+    }
+
+    protected override async transformCreateRequestToItem(item: RuntimePerson): Promise<Aventus.ResultWithError<RuntimePersonExtended>> {
+        const result = new Aventus.ResultWithError<RuntimePersonExtended>();
+        result.result = item as RuntimePersonExtended;
+        return result;
+    }
+
+    protected override async transformCreateRequestListToItem(items: RuntimePerson[]): Promise<Aventus.ResultWithError<RuntimePersonExtended[]>> {
+        const result = new Aventus.ResultWithError<RuntimePersonExtended[]>();
+        result.result = items as RuntimePersonExtended[];
+        return result;
+    }
+
+    protected override async transformUpdateRequestToItem(item: RuntimePerson): Promise<Aventus.ResultWithError<RuntimePersonExtended>> {
+        return this.transformCreateRequestToItem(item);
+    }
+
+    protected override async transformUpdateRequestListToItem(items: RuntimePerson[]): Promise<Aventus.ResultWithError<RuntimePersonExtended[]>> {
+        return this.transformCreateRequestListToItem(items);
+    }
+}

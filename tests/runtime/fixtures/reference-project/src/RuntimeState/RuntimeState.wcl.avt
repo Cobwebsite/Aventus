@@ -1,0 +1,31 @@
+import { RuntimeStateManager } from "../RuntimeStateManager.state.avt";
+
+export class RuntimeState extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    public events: string[] = [];
+
+    @StateActive("/item/{id:number}", RuntimeStateManager)
+    protected onItemActive(state: Aventus.State, slugs: Aventus.StateSlug) {
+        this.events.push("active:" + slugs.id);
+    }
+
+    @StateInactive("/item/{id:number}", RuntimeStateManager.getInstance())
+    protected onItemInactive(state: Aventus.State, nextState: Aventus.State, slugs: Aventus.StateSlug) {
+        this.events.push("inactive:" + slugs.id);
+    }
+
+    @StateChange("/item/{id:number}", RuntimeStateManager)
+    protected async onItemChange(state: Aventus.State, nextState: Aventus.State, slugs: Aventus.StateSlug) {
+        this.events.push("ask:" + slugs.id);
+        return true;
+    }
+
+    @DefaultStateActive(RuntimeStateManager)
+    protected onDefaultActive() {
+        this.events.push("default-active");
+    }
+
+    @DefaultStateInactive(RuntimeStateManager)
+    protected onDefaultInactive() {
+        this.events.push("default-inactive");
+    }
+}

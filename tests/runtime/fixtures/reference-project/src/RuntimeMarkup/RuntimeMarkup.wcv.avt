@@ -1,0 +1,9 @@
+<p @element="selected">{{ this.label }} {{ this.person.name }}</p>
+<p @element="liveSelected">live</p>
+<p class="optional">{{ this.optional }}</p>
+<p class="translated">{{ this.t('greeting') }}</p>
+<input value="{{ this.person.name }}" />
+<input class="injected" :value="this.person.name" />
+<span @element="repeated">one</span>
+<span @element="repeated">two</span>
+<button @click="rename">Rename</button>

@@ -1,0 +1,3 @@
+<rt-runtime-input @bind_newVal:val="this.value" @newVal="recordNotification"></rt-runtime-input>
+<p>{{ this.value }}</p>
+<input class="native" @bind_keyup="this.nativeValue" />

@@ -1,0 +1,57 @@
+export class RuntimeCalendarRecord {
+    public day: Aventus.Date | null = null;
+    public moment: Aventus.DateTime | null = null;
+    public time: Aventus.Time | null = null;
+}
+
+export class RuntimeCalendar {
+    public static boundaries() {
+        const date = Aventus.Date.parse("2024-02-29");
+        const next = Aventus.Date.parse("2024-03-02");
+        const local = Aventus.DateTime.parse("2024-02-29T12:30:00");
+        const utc = local.toUtc("Europe/Zurich");
+        const morning = Aventus.Time.parse("08:00");
+        const evening = Aventus.Time.parse("20:00");
+        return {
+            monthStart: date.startOfMonth().toString(),
+            monthEnd: date.endOfMonth().toString(),
+            weekStart: date.startOfWeek(1).toString(),
+            daysUntil: date.daysUntil(next),
+            diffDays: next.diffDays(date),
+            utc: utc.toString(),
+            utcKind: utc.kind,
+            timeBefore: morning.isBefore(evening),
+            invalidTime: Aventus.Time.tryParse("25:00") === null,
+            invalidDateTime: Aventus.DateTime.tryParse("2024-02-30T12:00") === null,
+        };
+    }
+
+    public static convert() {
+        Aventus.Converter.register("RuntimeCalendarRecord", RuntimeCalendarRecord, {
+            day: "date", moment: "datetime", time: "time",
+        });
+        const record = Aventus.Converter.transform<RuntimeCalendarRecord>({
+            $type: "RuntimeCalendarRecord",
+            day: "2024-02-29", moment: "2024-02-29T12:30:00+01:00", time: "23:30:00",
+        });
+        return {
+            typed: record instanceof RuntimeCalendarRecord,
+            day: record.day instanceof Aventus.Date ? record.day.toString() : null,
+            moment: record.moment instanceof Aventus.DateTime ? record.moment.toString() : null,
+            time: record.time instanceof Aventus.Time ? record.time.toString() : null,
+        };
+    }
+
+    public static inspect() {
+        const leap = Aventus.Date.parse("2024-02-29");
+        const next = leap.addDays(1);
+        const time = Aventus.Time.parse("23:30");
+        const instant = Aventus.DateTime.parse("2024-02-29T12:30:00+01:00");
+        return {
+            date: leap.toString(), next: next.toString(), before: leap.isBefore(next),
+            invalidDate: Aventus.Date.tryParse("2024-02-30") === null,
+            time: time.addHours(1).toString(),
+            instant: instant.toString(), kind: instant.kind,
+        };
+    }
+}

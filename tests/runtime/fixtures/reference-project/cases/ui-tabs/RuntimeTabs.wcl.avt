@@ -1,0 +1,9 @@
+import { Tabs } from "Aventus@UI:Aventus.Layout.Tabs.package.avt";
+import { RuntimeTab } from "./RuntimeTab.wcl.avt";
+import { RuntimeTabHeader } from "./RuntimeTabHeader.wcl.avt";
+
+export class RuntimeTabs extends Tabs<RuntimeTab, RuntimeTabHeader> implements Aventus.DefaultComponent {
+    protected override defineTabHeader(): new () => RuntimeTabHeader {
+        return RuntimeTabHeader;
+    }
+}

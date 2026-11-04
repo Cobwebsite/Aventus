@@ -1,0 +1,1 @@
+<div class="base"><p>{{ this.label }}</p><slot name="highlight"></slot><slot name="keep"></slot></div>

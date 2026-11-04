@@ -1,0 +1,1 @@
+<label>{{this.label}}</label><slot></slot>

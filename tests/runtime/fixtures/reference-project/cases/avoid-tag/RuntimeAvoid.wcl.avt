@@ -1,0 +1,4 @@
+export class RuntimeAvoid extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Watch()
+    public value: string = "filled";
+}

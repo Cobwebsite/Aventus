@@ -1,0 +1,35 @@
+import { RuntimeStringPerson } from './RuntimeStringPerson.data.avt';
+
+export class RuntimeStringPersonRAM extends Aventus.GenericRam<string, RuntimeStringPerson> implements Aventus.IRam {
+    public static getInstance() {
+        return Aventus.Instance.get(RuntimeStringPersonRAM);
+    }
+
+    public override defineIndexKey(): keyof RuntimeStringPerson {
+        return 'id';
+    }
+
+    protected override getTypeForData(objJson: Aventus.KeysObject<RuntimeStringPerson> | RuntimeStringPerson): new () => RuntimeStringPerson {
+        return RuntimeStringPerson;
+    }
+
+    protected override async transformCreateRequestToItem(item: RuntimeStringPerson): Promise<Aventus.ResultWithError<RuntimeStringPerson>> {
+        const result = new Aventus.ResultWithError<RuntimeStringPerson>();
+        result.result = item;
+        return result;
+    }
+
+    protected override async transformCreateRequestListToItem(items: RuntimeStringPerson[]): Promise<Aventus.ResultWithError<RuntimeStringPerson[]>> {
+        const result = new Aventus.ResultWithError<RuntimeStringPerson[]>();
+        result.result = items;
+        return result;
+    }
+
+    protected override async transformUpdateRequestToItem(item: RuntimeStringPerson): Promise<Aventus.ResultWithError<RuntimeStringPerson>> {
+        return this.transformCreateRequestToItem(item);
+    }
+
+    protected override async transformUpdateRequestListToItem(items: RuntimeStringPerson[]): Promise<Aventus.ResultWithError<RuntimeStringPerson[]>> {
+        return this.transformCreateRequestListToItem(items);
+    }
+}

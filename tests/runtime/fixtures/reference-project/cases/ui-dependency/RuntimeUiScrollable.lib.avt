@@ -1,0 +1,11 @@
+import { Scrollable, AdvancedScrollable } from "Aventus@UI:Aventus.Layout.package.avt";
+
+export class RuntimeUiScrollable {
+    public static getTag(): string {
+        return Scrollable.Tag;
+    }
+
+    public static getAdvancedTag(): string {
+        return AdvancedScrollable.Tag;
+    }
+}

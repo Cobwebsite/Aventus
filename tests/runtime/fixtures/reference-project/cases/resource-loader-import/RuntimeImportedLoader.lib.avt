@@ -1,0 +1,15 @@
+import { ResourceLoader } from "Aventus@Main:Aventus.package.avt";
+
+export class RuntimeImportedLoader {
+    public static async inspect(): Promise<{ available: string, first: string, second: string }> {
+        const first = await ResourceLoader.load('/sample.txt');
+        const second = await ResourceLoader.load({ url: '/sample.txt' });
+        return { available: typeof Aventus.ResourceLoader, first, second };
+    }
+
+    public static async loadCss(): Promise<{ first: boolean, second: boolean }> {
+        const first = await ResourceLoader.loadInHead('/sample.css');
+        const second = await ResourceLoader.loadInHead({ type: 'css', url: '/sample.css' });
+        return { first, second };
+    }
+}

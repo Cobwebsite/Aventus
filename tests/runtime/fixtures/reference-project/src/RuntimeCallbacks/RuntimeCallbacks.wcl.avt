@@ -1,0 +1,15 @@
+export class RuntimeCallbacks extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    public static watchEvents: { action: string; path: string; value: unknown }[] = [];
+    public static signalEvents: number[] = [];
+
+    @Watch((target: RuntimeCallbacks, action: Aventus.WatchAction, path: string, value: any) => {
+        RuntimeCallbacks.watchEvents.push({ action: Aventus.WatchAction[action], path,
+            value: typeof value === "object" ? value?.child?.count : value });
+    })
+    public model: { child: { count: number; note?: string } } = { child: { count: 1 } };
+
+    @Signal((target: RuntimeCallbacks) => {
+        RuntimeCallbacks.signalEvents.push(target.signalModel.count);
+    })
+    public signalModel: { count: number } = { count: 1 };
+}

@@ -1,0 +1,8 @@
+import { RuntimePerson } from './RuntimePerson.data.avt';
+
+export class RuntimeForeignKey extends Aventus.Data implements Aventus.IData {
+    public id: number = 0;
+
+    @ForeignKey(RuntimePerson)
+    public personId: number = 0;
+}

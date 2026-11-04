@@ -1,0 +1,8 @@
+export class RuntimeI18nDecorator {
+    @I18n({ autoInit: false })
+    public label: string = 'literal';
+
+    public read(): string {
+        return this.label;
+    }
+}

@@ -1,0 +1,7 @@
+import { runtimeUpper, RuntimeFunctionMode } from "@/RuntimeFunction.lib.avt";
+
+export class RuntimeAlias {
+    public static inspect(): string {
+        return `${runtimeUpper("alias")}:${RuntimeFunctionMode.Second}`;
+    }
+}

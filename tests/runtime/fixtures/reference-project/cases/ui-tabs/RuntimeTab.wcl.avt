@@ -1,0 +1,10 @@
+import { Tab } from "Aventus@UI:Aventus.Layout.Tabs.package.avt";
+
+export class RuntimeTab extends Tab implements Aventus.DefaultComponent {
+    @Property()
+    public label: string = '';
+
+    public override identifier(): string {
+        return this.label;
+    }
+}

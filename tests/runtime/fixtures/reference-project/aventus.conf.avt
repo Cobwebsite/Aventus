@@ -1,9 +1,20 @@
 {
     "module": "RuntimeReference",
     "componentPrefix": "rt",
+    "aliases": { "@": "./src" },
     "build": [{
         "name": "Main",
         "src": ["./src/*"],
-        "compile": [{ "output": "./dist/runtime-reference.js" }]
+        "compile": [{ "output": "./dist/runtime-reference.js" }],
+        "i18n": {
+            "autoRegister": false,
+            "fallback": "en-gb",
+            "locales": ["en-gb", "fr-fr"]
+        }
+    }],
+    "static": [{
+        "name": "Theme",
+        "input": "./static/*",
+        "output": "./dist/"
     }]
 }

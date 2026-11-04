@@ -50,6 +50,10 @@ export const AventusConfigSchema: JSONSchema = {
             type: "boolean",
             description: "Hide warnings for all your builds"
         },
+        "forceDocumentation": {
+            type: "boolean",
+            description: "Force documentation for all your builds"
+        },
         "componentPrefix": {
             type: "string",
             description: "Identifier to prefix all your components (in lower case)",
@@ -122,6 +126,10 @@ export const AventusConfigSchema: JSONSchema = {
                     "hideWarnings": {
                         type: "boolean",
                         description: "Hide warnings for this build"
+                    },
+                    "forceDocumentation": {
+                        type: "boolean",
+                        description: "Force documentation for this build"
                     },
                     "componentPrefix": {
                         type: "string",

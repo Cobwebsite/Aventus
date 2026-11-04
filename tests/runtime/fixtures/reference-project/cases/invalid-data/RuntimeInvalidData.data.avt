@@ -1,0 +1,6 @@
+export class RuntimeInvalidData extends Aventus.Data {
+    public count: number;
+}
+
+export function invalidFunction(): number { return 1; }
+export const invalidVariable: number = 2;

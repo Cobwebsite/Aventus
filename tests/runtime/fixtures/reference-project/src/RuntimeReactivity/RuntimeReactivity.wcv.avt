@@ -1,0 +1,9 @@
+<p class="count">{{ this.model.child.count }}</p>
+<p class="signal">{{ this.signalModel.count }}</p>
+<p class="label">{{ this.label }}</p>
+<p class="injected">{{ this.injected.count }}</p>
+<ul>
+    for(let item of this.model.items) {
+        <li>{{ item }}</li>
+    }
+</ul>

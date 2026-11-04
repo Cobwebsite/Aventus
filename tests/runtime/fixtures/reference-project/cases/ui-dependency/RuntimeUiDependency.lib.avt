@@ -1,0 +1,7 @@
+import { ProgressCircle } from "Aventus@UI:Aventus.package.avt";
+
+export class RuntimeUiDependency {
+    public static getTag(): string {
+        return ProgressCircle.Tag;
+    }
+}

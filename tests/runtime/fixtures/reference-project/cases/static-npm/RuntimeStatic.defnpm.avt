@@ -1,0 +1,4 @@
+declare global {
+    var __aventusRuntimeStatic: number;
+    var __aventusNpmDeclarationMarker: 'npm-only';
+}

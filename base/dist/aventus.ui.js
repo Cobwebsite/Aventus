@@ -42,6 +42,7 @@ __as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 var HttpErrorCode;
 (function (HttpErrorCode) {
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
+    HttpErrorCode[HttpErrorCode["status"] = 1] = "status";
 })(HttpErrorCode || (HttpErrorCode = {}));
 __as1(_, 'HttpErrorCode', HttpErrorCode);
 
@@ -461,12 +462,16 @@ Style.Namespace=`Aventus`;
 __as1(_, 'Style', Style);
 
 let setValueToObject=function setValueToObject(path, obj, value) {
+    if (path === '') {
+        throw new TypeError('Cannot write to an empty object path');
+    }
     path = path.replace(/\[(.*?)\]/g, '.$1');
     let splitted = path.split(".");
     for (let i = 0; i < splitted.length - 1; i++) {
         let split = splitted[i];
         let value = obj instanceof Map ? obj.get(split) : obj[split];
-        if (!value) {
+        const exists = obj instanceof Map ? obj.has(split) : split in Object(obj);
+        if (!exists) {
             value = {};
             if (obj instanceof Map) {
                 obj.set(split, value);
@@ -474,6 +479,9 @@ let setValueToObject=function setValueToObject(path, obj, value) {
             else {
                 obj[split] = value;
             }
+        }
+        else if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+            throw new TypeError(`Cannot write through primitive path segment "${split}"`);
         }
         obj = value;
     }
@@ -489,7 +497,7 @@ __as1(_, 'setValueToObject', setValueToObject);
 let Mutex=class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
-     * @type {((run: boolean) => void)[]}
+     * @type {{ run: (acquired: boolean) => void; reject: (reason: Error) => void; }[]}
      */
     waitingList = [];
     /**
@@ -502,11 +510,9 @@ let Mutex=class Mutex {
     * @returns {Promise<boolean>} A Promise that resolves to true if the mutex was acquired successfully.
     */
     waitOne() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (this.isLocked) {
-                this.waitingList.push((run) => {
-                    resolve(run);
-                });
+                this.waitingList.push({ run: resolve, reject });
             }
             else {
                 this.isLocked = true;
@@ -520,7 +526,7 @@ let Mutex=class Mutex {
     release() {
         let nextFct = this.waitingList.shift();
         if (nextFct) {
-            nextFct(true);
+            nextFct.run(true);
         }
         else {
             this.isLocked = false;
@@ -533,11 +539,11 @@ let Mutex=class Mutex {
         if (this.waitingList.length > 0) {
             let lastFct = this.waitingList.pop();
             for (let fct of this.waitingList) {
-                fct(false);
+                fct.run(false);
             }
             this.waitingList = [];
             if (lastFct) {
-                lastFct(true);
+                lastFct.run(true);
             }
         }
         else {
@@ -545,11 +551,15 @@ let Mutex=class Mutex {
         }
     }
     /**
-     * Clears the mutex, removing all waiting functions and releasing the lock.
+     * Rejects pending waiters and releases the lock for new calls.
      */
     dispose() {
+        const waiting = this.waitingList;
         this.waitingList = [];
         this.isLocked = false;
+        for (const waiter of waiting) {
+            waiter.reject(new Error('Mutex disposed'));
+        }
     }
     /**
      * Executes a callback function safely within the mutex lock and releases the lock afterward.
@@ -1382,7 +1392,7 @@ let DateConverter=class DateConverter {
 DateConverter.Namespace=`Aventus`;
 __as1(_, 'DateConverter', DateConverter);
 
-let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
+let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -1393,7 +1403,7 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
         }
         if (tableOrder) {
             for (let i = 0; i < obj1.length; i++) {
-                if (!compareObject(obj1[i], obj2[i])) {
+                if (!compareObjectRecursive(obj1[i], obj2[i], true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1403,7 +1413,7 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
             for (let i = 0; i < obj1.length; i++) {
                 let foundElement = false;
                 for (let j = 0; j < obj2.length; j++) {
-                    if (compareObject(obj1[i], obj2[j])) {
+                    if (compareObjectRecursive(obj1[i], obj2[j], true, active, proxyData1, proxyData2)) {
                         obj2.splice(j, 1);
                         foundElement = true;
                         break;
@@ -1432,42 +1442,39 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
         if (obj2 instanceof Date || obj2 instanceof DateTime || obj2 instanceof Time) {
             return false;
         }
-        let oneProxy = false;
         if (Watcher.is(obj1)) {
-            oneProxy = true;
+            proxyData1 = true;
             obj1 = Watcher.extract(obj1, false);
         }
         if (Watcher.is(obj2)) {
-            oneProxy = true;
+            proxyData2 = true;
             obj2 = Watcher.extract(obj2, false);
         }
-        if (obj1 instanceof Map && obj2 instanceof Map) {
-            if (obj1.size != obj2.size) {
+        if (obj1 instanceof Map || obj2 instanceof Map) {
+            if (!(obj1 instanceof Map && obj2 instanceof Map) || obj1.size !== obj2.size) {
                 return false;
             }
-            const keys = obj1.keys();
-            for (let key in keys) {
+            for (const [key, value] of obj1) {
                 if (!obj2.has(key)) {
                     return false;
                 }
-                if (!compareObject(obj1.get(key), obj2.get(key))) {
+                if (!compareObjectRecursive(value, obj2.get(key), true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
             return true;
         }
         else {
-            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+            const keys1 = Object.keys(obj1).filter(key => !proxyData1 || !Watcher['__reservedName'][key]);
+            const keys2 = Object.keys(obj2).filter(key => !proxyData2 || !Watcher['__reservedName'][key]);
+            if (keys1.length !== keys2.length) {
                 return false;
             }
-            for (let key in obj1) {
-                if (oneProxy && Watcher['__reservedName'][key]) {
-                    continue;
-                }
-                if (!(key in obj2)) {
+            for (let key of keys1) {
+                if (!keys2.includes(key)) {
                     return false;
                 }
-                if (!compareObject(obj1[key], obj2[key])) {
+                if (!compareObjectRecursive(obj1[key], obj2[key], true, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1477,6 +1484,31 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
     else {
         return obj1 === obj2;
     }
+}
+
+let compareObjectRecursive=function compareObjectRecursive(obj1, obj2, tableOrder, active, proxyData1 = false, proxyData2 = false) {
+    if (obj1 !== null && obj2 !== null && typeof obj1 === 'object' && typeof obj2 === 'object') {
+        let matches = active.get(obj1);
+        if (matches?.has(obj2)) {
+            return true;
+        }
+        if (!matches) {
+            matches = new WeakSet();
+            active.set(obj1, matches);
+        }
+        matches.add(obj2);
+        try {
+            return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
+        }
+        finally {
+            matches.delete(obj2);
+        }
+    }
+    return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
+}
+
+let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
+    return compareObjectRecursive(obj1, obj2, tableOrder, new WeakMap());
 }
 __as1(_, 'compareObject', compareObject);
 
@@ -2782,6 +2814,14 @@ let PressManager=class PressManager {
             }
         }
     }
+    cancelAction(state) {
+        clearTimeout(this.timeoutLongPress);
+        clearTimeout(this.timeoutDblPress);
+        this.nbPress = 0;
+        if (state.oneActionTriggered == this) {
+            state.oneActionTriggered = null;
+        }
+    }
     upAction(_ev) {
         const ev = _ev;
         if (!this.unregisterEvent(ev)) {
@@ -2805,7 +2845,12 @@ let PressManager=class PressManager {
             document.removeEventListener("touchcancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
-        this.genericUpAction(this.state, e);
+        if (ev.type === 'pointercancel' || ev.type === 'touchcancel') {
+            this.cancelAction(this.state);
+        }
+        else {
+            this.genericUpAction(this.state, e);
+        }
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
             this.lastEmitEvent = e;
@@ -2878,7 +2923,12 @@ let PressManager=class PressManager {
         }
         if (this.lastEmitEvent == e.detail.realEvent)
             return;
-        this.genericUpAction(e.detail.state, e.detail.realEvent);
+        if (e.detail.realEvent.event.type === 'pointercancel' || e.detail.realEvent.event.type === 'touchcancel') {
+            this.cancelAction(e.detail.state);
+        }
+        else {
+            this.genericUpAction(e.detail.state, e.detail.realEvent);
+        }
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
@@ -3275,7 +3325,12 @@ let StateManager=class StateManager {
                 if (canChange) {
                     const oldState = this.activeState;
                     this.activeState = stateToUse;
-                    oldState.onInactivate(stateToUse);
+                    try {
+                        oldState.onInactivate(stateToUse);
+                    }
+                    catch (error) {
+                        console.error(error);
+                    }
                     for (let subscriber of activeToInactive) {
                         subscriber.isActive = false;
                         let oldSlug = Uri.getParams(subscriber, oldState.name);
@@ -3300,7 +3355,12 @@ let StateManager=class StateManager {
                             callback(stateToUse, trigger.params);
                         }
                     }
-                    stateToUse.onActivate();
+                    try {
+                        stateToUse.onActivate();
+                    }
+                    catch (error) {
+                        console.error(error);
+                    }
                 }
             }
             else {
@@ -3316,8 +3376,15 @@ let StateManager=class StateManager {
                         }
                     }
                 }
-                stateToUse.onActivate();
+                try {
+                    stateToUse.onActivate();
+                }
+                catch (error) {
+                    console.error(error);
+                }
             }
+            if (!canChange)
+                return false;
             this.afterStateChanged.trigger();
             return true;
         });
@@ -3362,6 +3429,7 @@ let TemplateContext=class TemplateContext {
     comp;
     computeds = [];
     watch;
+    proxyWatches = {};
     registry;
     isDestroyed = false;
     constructor(component, data = {}, parentContext, registry) {
@@ -3498,6 +3566,10 @@ let TemplateContext=class TemplateContext {
     }
     destructor() {
         this.isDestroyed = true;
+        for (let signal of Object.values(this.proxyWatches)) {
+            signal.destroy();
+        }
+        this.proxyWatches = {};
         for (let computed of this.computeds) {
             computed.destroy();
         }
@@ -3505,6 +3577,16 @@ let TemplateContext=class TemplateContext {
     }
     registerWatch(name, value) {
         let that = this;
+        if (Watcher.is(value)) {
+            const signal = new Signal(value);
+            this.proxyWatches[name] = signal;
+            Object.defineProperty(this.data, name, {
+                get() {
+                    return signal.value;
+                }
+            });
+            return;
+        }
         that.watch[name] = value;
         Object.defineProperty(that.data, name, {
             get() {
@@ -3513,6 +3595,10 @@ let TemplateContext=class TemplateContext {
         });
     }
     updateWatch(name, value, dones) {
+        if (this.proxyWatches[name]) {
+            this.proxyWatches[name].value = value;
+            return;
+        }
         if (Watcher.is(this.watch[name])) {
             this.watch[name].__injectedDones(dones);
         }
@@ -3566,6 +3652,7 @@ let TemplateInstance=class TemplateInstance {
     lastChild;
     computeds = [];
     renderingComputeds = [];
+    cleanups = [];
     loopRegisteries = {};
     loops = [];
     ifs = [];
@@ -3595,6 +3682,10 @@ let TemplateInstance=class TemplateInstance {
     }
     destructor() {
         this.isDestroyed = true;
+        for (const cleanup of this.cleanups) {
+            cleanup();
+        }
+        this.cleanups = [];
         for (let name in this.loopRegisteries) {
             let register = this.loopRegisteries[name];
             for (let item of register.templates) {
@@ -3716,26 +3807,31 @@ let TemplateInstance=class TemplateInstance {
                     customElements.upgrade(el);
                     cb = getValueFromObject(event.eventName, el);
                 }
-                cb?.add((...args) => {
+                const listener = (...args) => {
                     try {
                         return event.fct(this.context, args);
                     }
                     catch (e) {
                         console.error(e);
                     }
-                });
+                };
+                cb?.add(listener);
+                if (cb)
+                    this.cleanups.push(() => cb.remove(listener));
             }
         }
         else {
             for (let el of this._components[event.id]) {
-                el.addEventListener(event.eventName, (e) => {
+                const listener = (e) => {
                     try {
                         event.fct(e, this.context);
                     }
                     catch (e) {
                         console.error(e);
                     }
-                });
+                };
+                el.addEventListener(event.eventName, listener);
+                this.cleanups.push(() => el.removeEventListener(event.eventName, listener));
             }
         }
     }
@@ -3755,7 +3851,15 @@ let TemplateInstance=class TemplateInstance {
                 }
             }
             clone.element = this._components[id];
-            PressManager.create(clone);
+            const managers = PressManager.create(clone);
+            if (Array.isArray(managers)) {
+                for (const manager of managers) {
+                    this.cleanups.push(() => manager.destroy());
+                }
+            }
+            else {
+                this.cleanups.push(() => managers.destroy());
+            }
         }
     }
     transformActionsListening() {
@@ -3924,12 +4028,16 @@ let TemplateInstance=class TemplateInstance {
                             customElements.upgrade(el);
                             cb = getValueFromObject(binding.injectionName, el);
                         }
-                        cb?.add((value) => {
+                        const listener = (value) => {
                             let valueToSet = getValueFromObject(binding.injectionName, el);
                             isLocalChange = true;
                             binding.extract(this.context, valueToSet);
                             isLocalChange = false;
-                        });
+                        };
+                        if (cb) {
+                            cb.add(listener);
+                            this.cleanups.push(() => cb.remove(listener));
+                        }
                     }
                 }
             });
@@ -3939,12 +4047,14 @@ let TemplateInstance=class TemplateInstance {
                 for (var el of this._components[binding.id]) {
                     customElements.upgrade(el);
                     for (let fct of binding.eventNames) {
-                        el.addEventListener(fct, (e) => {
+                        const listener = (e) => {
                             let valueToSet = getValueFromObject(binding.injectionName, e.target);
                             isLocalChange = true;
                             binding.extract(this.context, valueToSet);
                             isLocalChange = false;
-                        });
+                        };
+                        el.addEventListener(fct, listener);
+                        this.cleanups.push(() => el.removeEventListener(fct, listener));
                     }
                 }
             });
@@ -4291,6 +4401,10 @@ let TemplateInstance=class TemplateInstance {
             currentActiveNb = newActive;
             createContext();
         };
+        this.cleanups.push(() => {
+            currentActive?.destructor();
+            currentActive = undefined;
+        });
         calculateActive();
     }
 }
@@ -4572,6 +4686,8 @@ let WebComponent=class WebComponent extends HTMLElement {
         // TODO add missing info for destructor();
         this.postDestruction();
         this.destructChildren();
+        this.__templateInstance?.destructor();
+        this.__templateInstance = undefined;
     }
     destructChildren() {
         const recu = (el) => {
@@ -5353,8 +5469,26 @@ let ConverterTransform=class ConverterTransform {
                     obj = obj.fromJSON(data);
                 }
                 else {
+                    const registeredSchema = Converter.getSchema(data.$type);
+                    const staticSchema = obj instanceof Data ? obj.constructor.$schema : undefined;
                     obj = Json.classFromJson(obj, data, {
                         transformValue: (key, value) => {
+                            const schemaType = registeredSchema?.[key] ?? staticSchema?.[key];
+                            if (schemaType === 'boolean')
+                                return !!value;
+                            if (schemaType === 'number')
+                                return isNaN(Number(value)) ? 0 : Number(value);
+                            if (schemaType === 'string')
+                                return value == null ? value : String(value);
+                            if (schemaType && ['Date', 'Aventus.Date', 'date'].includes(schemaType)) {
+                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
+                            }
+                            if (schemaType && ['DateTime', 'Aventus.DateTime', 'datetime'].includes(schemaType)) {
+                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
+                            }
+                            if (schemaType && ['Time', 'Aventus.Time', 'time'].includes(schemaType)) {
+                                return value == null ? null : value instanceof Time ? value : Time.parse(value);
+                            }
                             if (obj[key] instanceof Date) {
                                 return value == null ? null : value instanceof Date ? value : Date.parse(value);
                             }
@@ -5373,27 +5507,6 @@ let ConverterTransform=class ConverterTransform {
                                     map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
                                 }
                                 return map;
-                            }
-                            else if (obj instanceof Data) {
-                                let cst = obj.constructor;
-                                if (['Time', 'Aventus.Time', 'time'].includes(cst.$schema[key])) {
-                                    return value == null ? null : value instanceof Time ? value : Time.parse(value);
-                                }
-                                else if (cst.$schema[key] == 'boolean') {
-                                    return value ? true : false;
-                                }
-                                else if (cst.$schema[key] == 'number') {
-                                    return isNaN(Number(value)) ? 0 : Number(value);
-                                }
-                                else if (cst.$schema[key] == 'number') {
-                                    return isNaN(Number(value)) ? 0 : Number(value);
-                                }
-                                else if (cst.$schema[key] == 'Date' || cst.$schema[key] == 'Aventus.Date' || cst.$schema[key] == 'date') {
-                                    return value == null ? null : value instanceof Date ? value : Date.parse(value);
-                                }
-                                else if (cst.$schema[key] == "DateTime" || cst.$schema[key] == "Aventus.DateTime" || cst.$schema[key] == "datetime") {
-                                    return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
-                                }
                             }
                             return this.transformLoop(value);
                         }
@@ -5517,7 +5630,7 @@ let Json=class Json {
         let props = Object.getOwnPropertyNames(obj);
         for (let prop of props) {
             let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-            let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+            let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
             if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                 let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
                 if (propInfo?.writable) {
@@ -5531,7 +5644,7 @@ let Json=class Json {
             props = Object.getOwnPropertyNames(cstTemp.prototype);
             for (let prop of props) {
                 let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-                let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+                let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
                 if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                     let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
                     if (propInfo?.set) {
@@ -5557,6 +5670,9 @@ let Converter=class Converter {
     * Map storing schemas for registered types.
     */
     static schema = new Map();
+    static getSchema($type) {
+        return this.schema.get($type);
+    }
     /**
      * Internal converter instance.
      */
@@ -5698,28 +5814,26 @@ let HttpResponse=class HttpResponse {
     constructor(response) {
         this.response = response;
     }
-    bodyUsed = false;
-    bodyContent;
-    async json() {
-        if (!this.bodyUsed) {
-            this.bodyUsed = true;
-            this.bodyContent = await this.response.json();
+    bodyFormat;
+    bodyPromise;
+    async readBody(format, read) {
+        if (this.bodyFormat && this.bodyFormat !== format) {
+            throw new TypeError(`Response body already read as ${this.bodyFormat}`);
         }
-        return Converter.transform(this.bodyContent);
+        if (!this.bodyPromise) {
+            this.bodyFormat = format;
+            this.bodyPromise = read();
+        }
+        return this.bodyPromise;
     }
-    async blob() {
-        if (!this.bodyUsed) {
-            this.bodyUsed = true;
-            this.bodyContent = await this.response.blob();
-        }
-        return this.bodyContent;
+    json() {
+        return this.readBody('json', async () => Converter.transform(await this.response.json()));
     }
-    async text() {
-        if (!this.bodyUsed) {
-            this.bodyUsed = true;
-            this.bodyContent = await this.response.text();
-        }
-        return this.bodyContent;
+    blob() {
+        return this.readBody('blob', () => this.response.blob());
+    }
+    text() {
+        return this.readBody('text', () => this.response.text());
     }
 }
 HttpResponse.Namespace=`Aventus`;
@@ -5727,22 +5841,45 @@ __as1(_, 'HttpResponse', HttpResponse);
 
 let HttpCache=class HttpCache {
     static cache = new Map();
-    static async fetch(fullUrl, request) {
+    static pending = new Map();
+    static fetch(fullUrl, request) {
         const key = this.generateCacheKey(fullUrl, request);
         if (key) {
             const value = this.cache.get(key);
             if (value)
-                return value;
+                return Promise.resolve(value);
+            const pending = this.pending.get(key);
+            if (pending)
+                return pending;
         }
-        const result = await fetch(fullUrl, request);
-        const response = new HttpResponse(result);
-        if (key)
-            this.cache.set(key, response);
-        return response;
+        let transport;
+        try {
+            transport = fetch(fullUrl, request);
+        }
+        catch (error) {
+            return Promise.reject(error);
+        }
+        let pending;
+        pending = Promise.resolve(transport).then(result => {
+            const response = new HttpResponse(result);
+            if (key && this.pending.get(key) === pending) {
+                this.cache.set(key, response);
+            }
+            return response;
+        }).finally(() => {
+            if (key && this.pending.get(key) === pending) {
+                this.pending.delete(key);
+            }
+        });
+        if (key) {
+            this.pending.set(key, pending);
+        }
+        return pending;
     }
     static clear(fullUrl, request) {
         const key = this.generateCacheKey(fullUrl, request);
         if (key) {
+            this.pending.delete(key);
             if (this.cache.has(key)) {
                 this.cache.delete(key);
             }
@@ -5751,13 +5888,14 @@ let HttpCache=class HttpCache {
     static generateCacheKey(fullUrl, request) {
         const method = request.method;
         const body = request.body;
+        const accept = request.headers ? new Headers(request.headers).get('Accept') ?? '' : '';
         let bodyKey = "";
         if (typeof body == 'string') {
             bodyKey = this.hashStringToInt(body) + '';
         }
         else if (body instanceof FormData) {
         }
-        return fullUrl + "°" + method + "°" + bodyKey;
+        return fullUrl + "°" + method + "°" + bodyKey + "°" + accept;
     }
     static hashStringToInt(str) {
         let hash = 0x811c9dc5;
@@ -5882,7 +6020,7 @@ let VoidWithError=class VoidWithError {
     extract(fct) {
         if (this.success) {
             let result = fct();
-            if (result.success && result.result) {
+            if (result.success && result.result !== undefined) {
                 return result.result;
             }
             this.errors = [...this.errors, ...result.errors];
@@ -5892,7 +6030,7 @@ let VoidWithError=class VoidWithError {
     async extractAsync(fct) {
         if (this.success) {
             let result = await fct();
-            if (result.success && result.result) {
+            if (result.success && result.result !== undefined) {
                 return result.result;
             }
             this.errors = [...this.errors, ...result.errors];
@@ -5924,14 +6062,12 @@ let ResultWithError=class ResultWithError extends VoidWithError {
     }
     run(fct) {
         if (this.success) {
-            let result = fct();
-            if (!Array.isArray(result)) {
-                result = result.errors;
+            const result = fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if (errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
             }
-            if (result.length > 0) {
-                this.errors = [...this.errors, ...result];
-            }
-            if (result instanceof ResultWithError && result.success && result.result) {
+            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
                 this.result = result.result;
             }
         }
@@ -5939,14 +6075,12 @@ let ResultWithError=class ResultWithError extends VoidWithError {
     }
     async runAsync(fct) {
         if (this.success) {
-            let result = await fct();
-            if (!Array.isArray(result)) {
-                result = result.errors;
+            const result = await fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if (errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
             }
-            if (result.length > 0) {
-                this.errors = [...this.errors, ...result];
-            }
-            if (result instanceof ResultWithError && result.success && result.result) {
+            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
                 this.result = result.result;
             }
         }
@@ -5959,9 +6093,14 @@ Converter.register(ResultWithError.Fullname, ResultWithError);
 __as1(_, 'ResultWithError', ResultWithError);
 
 let HttpError=class HttpError extends GenericError {
+    status;
+    constructor(code, message, status) {
+        super(code, message);
+        this.status = status;
+    }
 }
 HttpError.Namespace=`Aventus`;
-HttpError.$schema={...(GenericError?.$schema ?? {}), };
+HttpError.$schema={...(GenericError?.$schema ?? {}), "status":"number"};
 Converter.register(HttpError.Fullname, HttpError);
 __as1(_, 'HttpError', HttpError);
 
@@ -6107,7 +6246,14 @@ let HttpRequest=class HttpRequest {
         if (!this.request.headers) {
             this.request.headers = [];
         }
-        this.request.headers.push([name, value]);
+        const headers = this.request.headers;
+        const existing = headers.findIndex(([key]) => key.toLowerCase() === name.toLowerCase());
+        if (existing >= 0) {
+            headers[existing] = [name, value];
+        }
+        else {
+            headers.push([name, value]);
+        }
     }
     setCredentials(credentials) {
         this.request.credentials = credentials;
@@ -6122,6 +6268,8 @@ let HttpRequest=class HttpRequest {
             if (HttpRequest.options?.beforeSend) {
                 const beforeSendResult = await HttpRequest.options.beforeSend(this);
                 result.errors = beforeSendResult.errors;
+                if (!result.success)
+                    return result;
             }
             const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
             if (this.useCache) {
@@ -6130,6 +6278,9 @@ let HttpRequest=class HttpRequest {
             else {
                 let response = await fetch(fullUrl, this.request);
                 result.result = new HttpResponse(response);
+            }
+            if (result.result && !result.result.ok) {
+                result.errors.push(new HttpError(HttpErrorCode.status, `${result.result.status} ${result.result.statusText}`.trim(), result.result.status));
             }
         }
         catch (e) {
@@ -6174,7 +6325,6 @@ let HttpRequest=class HttpRequest {
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
-            return result;
         }
         try {
             if (!resultTemp.result) {
@@ -6182,6 +6332,9 @@ let HttpRequest=class HttpRequest {
             }
             let tempResult = await resultTemp.result.json();
             if (tempResult instanceof VoidWithError) {
+                if (tempResult.errors.length > 0) {
+                    result.errors = result.errors.filter(error => !(error instanceof HttpError && error.code === HttpErrorCode.status && error.status === resultTemp.result?.status));
+                }
                 for (let error of tempResult.errors) {
                     result.errors.push(error);
                 }

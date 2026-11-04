@@ -1,0 +1,6 @@
+{
+    "greeting": {
+        "en-gb": "Hello component",
+        "fr-fr": "Bonjour composant"
+    }
+}

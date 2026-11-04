@@ -1,0 +1,19 @@
+<script>
+export class RuntimeSingle extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    public static lifecycle: string[] = [];
+
+    protected override postCreation(): void {
+        RuntimeSingle.lifecycle.push("created");
+    }
+
+    protected override postDestruction(): void {
+        RuntimeSingle.lifecycle.push("destroyed");
+    }
+}
+</script>
+<template>
+    <section><slot></slot><slot name="aside"></slot></section>
+</template>
+<style>
+    :host { display: block; }
+</style>

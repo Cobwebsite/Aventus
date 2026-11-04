@@ -1,0 +1,13 @@
+export class RuntimeDrag {
+    public static attach(element: HTMLElement, target: HTMLElement, events: string[]): Aventus.DragAndDrop {
+        return new Aventus.DragAndDrop({
+            element,
+            targets: [target],
+            offsetDrag: 5,
+            onStart: () => { events.push("start"); },
+            onMove: () => events.push("move"),
+            onDrop: (_element, targets) => events.push(`drop:${targets.length}`),
+            onStop: () => events.push("stop"),
+        });
+    }
+}

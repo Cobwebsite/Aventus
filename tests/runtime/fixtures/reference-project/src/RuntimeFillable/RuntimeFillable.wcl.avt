@@ -1,0 +1,11 @@
+export abstract class RuntimeFillable<T> extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Property()
+    public label: string = 'base';
+
+    @Watch((target: RuntimeFillable<T>) => target.onValueChange())
+    public value?: T;
+
+    public onChange: Aventus.Callback<(value?: T) => void> = new Aventus.Callback();
+
+    protected abstract onValueChange(): void;
+}

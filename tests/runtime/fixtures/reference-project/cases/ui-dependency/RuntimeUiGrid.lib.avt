@@ -1,0 +1,7 @@
+import { Col, Row } from "Aventus@UI:Aventus.Layout.package.avt";
+
+export class RuntimeUiGrid {
+    public static tags(): { row: string, col: string } {
+        return { row: Row.Tag, col: Col.Tag };
+    }
+}

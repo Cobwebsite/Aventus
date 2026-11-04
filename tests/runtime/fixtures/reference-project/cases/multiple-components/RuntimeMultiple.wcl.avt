@@ -1,0 +1,2 @@
+export class FirstComponent extends Aventus.WebComponent implements Aventus.DefaultComponent {}
+export class SecondComponent extends Aventus.WebComponent implements Aventus.DefaultComponent {}

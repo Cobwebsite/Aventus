@@ -1,0 +1,16 @@
+export class RuntimeAttributes extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Attribute()
+    public active: boolean = false;
+
+    @Attribute()
+    public count: number = 2;
+
+    @Property((target: RuntimeAttributes) => target.recordChange())
+    public label: string = "start";
+
+    public changes: number = 0;
+
+    public recordChange() {
+        this.changes++;
+    }
+}

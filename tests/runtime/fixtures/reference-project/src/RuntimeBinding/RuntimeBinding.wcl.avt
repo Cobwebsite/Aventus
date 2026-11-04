@@ -1,0 +1,13 @@
+export class RuntimeBinding extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Watch()
+    public value: string = "binding seed";
+
+    @Watch()
+    public nativeValue: string = "native seed";
+
+    public notifications: number = 0;
+
+    protected recordNotification() {
+        this.notifications++;
+    }
+}

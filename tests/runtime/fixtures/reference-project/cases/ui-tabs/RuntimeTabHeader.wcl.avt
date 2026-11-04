@@ -1,0 +1,8 @@
+import { TabHeader } from "Aventus@UI:Aventus.Layout.Tabs.package.avt";
+import type { RuntimeTab } from "./RuntimeTab.wcl.avt";
+
+export class RuntimeTabHeader extends TabHeader<RuntimeTab> implements Aventus.DefaultComponent {
+    public override render(): void {
+        this.textContent = this.tab.label;
+    }
+}

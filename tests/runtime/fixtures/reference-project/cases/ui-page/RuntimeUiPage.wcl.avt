@@ -1,0 +1,17 @@
+import { Page } from "Aventus@UI:Aventus.Navigation.package.avt";
+
+export class RuntimeUiPage extends Page implements Aventus.DefaultComponent {
+    public events: string[] = [];
+
+    public override configure(): Aventus.Navigation.PageConfig {
+        return { title: 'Runtime page', description: 'Compiled page', keywords: ['runtime'] };
+    }
+
+    public override onShow(): void {
+        this.events.push('show');
+    }
+
+    public override onHide(): void {
+        this.events.push('hide');
+    }
+}

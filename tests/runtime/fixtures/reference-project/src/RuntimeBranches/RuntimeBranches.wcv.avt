@@ -1,8 +1,18 @@
 <button @click="increment">Increment</button>
 if (this.count % 2 === 0) {
     <p class="even">Even {{ this.count }}</p>
+    if (this.count === 0) {
+        <span class="zero">zero</span>
+    } else {
+        <span class="positive-even">positive even</span>
+    }
 } else {
     <p class="odd">Odd {{ this.count }}</p>
+    if (this.count === 1) {
+        <span class="one">one</span>
+    } else {
+        <span class="later-odd">later odd</span>
+    }
 }
 <ul>
     for(let key in this.labels) {

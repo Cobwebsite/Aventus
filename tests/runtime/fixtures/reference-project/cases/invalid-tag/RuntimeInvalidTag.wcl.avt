@@ -1,0 +1,2 @@
+@TagName('Invalid')
+export class RuntimeInvalidTag extends Aventus.WebComponent implements Aventus.DefaultComponent {}

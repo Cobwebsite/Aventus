@@ -1,0 +1,4 @@
+import { RuntimeBase } from "../RuntimeBase/RuntimeBase.wcl.avt";
+
+export class RuntimeDerived extends RuntimeBase implements Aventus.DefaultComponent {
+}

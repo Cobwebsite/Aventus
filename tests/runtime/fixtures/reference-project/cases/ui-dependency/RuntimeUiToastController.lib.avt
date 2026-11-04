@@ -1,0 +1,12 @@
+import { ToastManager } from "Aventus@UI:Aventus.Toast.package.avt";
+import { RuntimeUiToast } from "./RuntimeUiToast/RuntimeUiToast.wcl.avt";
+
+export class RuntimeUiToastController {
+    public static configure(): void {
+        ToastManager.configure({ defaultToast: RuntimeUiToast, defaultDelay: -1 });
+    }
+
+    public static add(message: string, delay: number = -1): Promise<boolean> {
+        return ToastManager.add({ message, delay } as any);
+    }
+}

@@ -1,0 +1,9 @@
+import { ButtonElement } from "Aventus@UI:Aventus.Form.package.avt";
+
+export class RuntimeUiButton extends ButtonElement implements Aventus.DefaultComponent {
+    public loading: boolean = false;
+
+    public async submitForTest(): Promise<void> {
+        await this.triggerSubmit();
+    }
+}

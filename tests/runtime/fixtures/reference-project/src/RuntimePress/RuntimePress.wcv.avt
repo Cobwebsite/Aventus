@@ -1,0 +1,4 @@
+<button @press-start="onStart" @press="onPress" @press-stop="onStop" @drag-start="onDragStart" @drag="onDrag" @drag-end="onDragEnd">Press</button>
+<button class="double" @dblpress="onDouble" @dblpress-delay="10">Double</button>
+<button class="long" @longpress="onLong" @longpress-delay="10">Long</button>
+<p>{{ this.count }}</p>

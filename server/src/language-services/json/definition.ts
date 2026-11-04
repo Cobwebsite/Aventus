@@ -10,6 +10,7 @@ export interface AventusConfigBuild {
 	organization?: string,
 	disabled: boolean,
 	hideWarnings: boolean,
+	forceDocumentation: boolean,
 	src: string[],
 	srcPath: string[],
 	stories: AventusConfigBuildStories | undefined,
@@ -87,6 +88,7 @@ export interface AventusConfig {
 	version: string,
 	componentPrefix: string,
 	hideWarnings: boolean,
+	forceDocumentation: boolean,
 	module: string;
 	description?: string,
 	tags: string[],

@@ -1,0 +1,24 @@
+export class RuntimeAnimation {
+    public static available(): boolean {
+        return typeof Aventus.Animation === "function";
+    }
+
+    public static async inspect() {
+        let frames = 0;
+        let stopped = 0;
+        const animation = new Aventus.Animation({
+            fps: 60,
+            animate: () => { frames++; },
+            stopped: () => { stopped++; },
+        });
+        const initial = { fps: animation.getFPS(), started: animation.isStarted() };
+        animation.setFPS(120);
+        animation.start();
+        const started = animation.isStarted();
+        await new Promise(resolve => setTimeout(resolve, 45));
+        animation.immediateStop();
+        const afterStop = { fps: animation.getFPS(), started: animation.isStarted(), frames, stopped };
+        await new Promise(resolve => setTimeout(resolve, 45));
+        return { initial, started, afterStop, finalFrames: frames, finalStopped: stopped };
+    }
+}

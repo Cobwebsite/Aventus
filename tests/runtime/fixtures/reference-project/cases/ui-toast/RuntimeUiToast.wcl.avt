@@ -1,0 +1,10 @@
+import { ToastElement } from "Aventus@UI:Aventus.Toast.package.avt";
+
+export class RuntimeUiToast extends ToastElement implements Aventus.DefaultComponent {
+    @Watch()
+    public message: string = "";
+
+    public setOptions(options: { message: string, delay?: number }): void {
+        this.message = options.message;
+    }
+}

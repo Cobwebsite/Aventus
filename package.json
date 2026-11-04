@@ -271,6 +271,11 @@
 					"title": "Define if the default value of hide warnings",
 					"default": false
 				},
+				"aventus.defaultForceDocumentation": {
+					"type": "boolean",
+					"title": "Define if the default value of force documentation",
+					"default": false
+				},
 				"aventus.deeplApiKey": {
 					"type": "string",
 					"title": "Define the deepl api key to translate",

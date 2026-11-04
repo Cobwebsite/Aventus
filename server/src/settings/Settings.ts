@@ -43,6 +43,7 @@ export interface Settings {
 	statics?: string[],
 	errorByBuild?: boolean,
 	defaultHideWarnings: boolean,
+	defaultForceDocumentation: boolean,
 	deeplApiKey: string,
 	quickCreations: string[],
 	ideBuild: boolean
@@ -86,6 +87,7 @@ const defaultSettings: Settings = {
 	useCompilators: true,
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,
+	defaultForceDocumentation: false,
 	deeplApiKey: "",
 	quickCreations: [],
 	ideBuild: true

@@ -1,0 +1,42 @@
+export class RuntimeSingleton {
+    public value: number = 1;
+
+    public static getInstance(): RuntimeSingleton {
+        return Aventus.Instance.get(RuntimeSingleton);
+    }
+}
+
+export class RuntimeCoreUtilities {
+    public static inspectInstance() {
+        const first = RuntimeSingleton.getInstance();
+        const second = RuntimeSingleton.getInstance();
+        first.value = 7;
+        return { same: first === second, value: second.value };
+    }
+
+    public static inspectWatcher() {
+        const events: string[] = [];
+        const object = Aventus.Watcher.get({}, (action: Aventus.WatchAction, path: string, value: any) => {
+            events.push(Aventus.WatchAction[action] + ':' + path + ':' + value);
+        });
+        object.name = 'John';
+        object.name = 'Jane';
+        delete object.name;
+
+        const signal = Aventus.Watcher.signal(1);
+        const effectValues: number[] = [];
+        const effect = Aventus.Watcher.effect(() => effectValues.push(signal.value));
+        const computed = Aventus.Watcher.computed(() => signal.value * 2);
+        const initialComputed = computed.value;
+        signal.value = 2;
+        const nextComputed = computed.value;
+        effect.destroy();
+        computed.destroy();
+        signal.destroy();
+        return { events, effectValues, initialComputed, nextComputed };
+    }
+
+    public static resourceLoaderType(): string {
+        return typeof Aventus.ResourceLoader;
+    }
+}

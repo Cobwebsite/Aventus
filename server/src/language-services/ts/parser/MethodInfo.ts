@@ -10,6 +10,7 @@ import { BindThisDecorator } from './decorators/BindThisDecorator';
 import { DependenciesDecorator } from './decorators/DependenciesDecorator';
 import { DeprecatedDecorator } from './decorators/DeprecatedDecorator';
 import { TypeInfo } from './TypeInfo';
+import { AventusErrorCode } from '../../../definition';
 
 export class MethodInfo {
     public fullStart: number = 0;
@@ -149,7 +150,7 @@ export class MethodInfo {
             }
         }
         if (!this.documentation && !this.isOverride && !this.isPrivate) {
-            ParserTs.addWarning(this.nameStart, this.nameEnd, "You should add documentation for " + this.name);
+            ParserTs.addWarning(this.nameStart, this.nameEnd, "You should add documentation for " + this.name, AventusErrorCode.MissingDocumentation);
         }
         if (accessModDefine === false && !this._class.isInterface) {
             ParserTs.addError(this.nameStart, this.nameEnd, "A accessibility modifier (public / private / protected) is mandatory for " + this.name);

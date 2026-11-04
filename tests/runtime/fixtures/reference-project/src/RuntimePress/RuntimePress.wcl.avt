@@ -1,0 +1,15 @@
+export class RuntimePress extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Watch()
+    public count: number = 0;
+
+    public events: string[] = [];
+
+    protected onStart() { this.events.push("start"); }
+    protected onPress() { this.count++; this.events.push("press"); }
+    protected onStop() { this.events.push("stop"); }
+    protected onDragStart() { this.events.push("drag-start"); }
+    protected onDrag() { this.events.push("drag"); }
+    protected onDragEnd() { this.events.push("drag-end"); }
+    protected onDouble() { this.events.push("double"); }
+    protected onLong() { this.events.push("long"); }
+}

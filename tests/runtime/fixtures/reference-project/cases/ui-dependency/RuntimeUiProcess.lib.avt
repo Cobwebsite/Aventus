@@ -1,0 +1,15 @@
+import { Process } from "Aventus@UI:Aventus.package.avt";
+
+export class RuntimeUiProcess {
+    public static async inspect() {
+        const messages: string[] = [];
+        Process.configure({ handleErrors: (message) => { messages.push(message); } });
+        const success = new Aventus.ResultWithError<string>();
+        success.result = "done";
+        const failure = new Aventus.ResultWithError<string>();
+        failure.errors.push(new Aventus.GenericError(400, "Bad request"));
+        const value = await Process.execute(Promise.resolve(success));
+        const missing = await Process.execute(Promise.resolve(failure));
+        return { value, missing, messages };
+    }
+}

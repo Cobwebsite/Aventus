@@ -1,0 +1,15 @@
+import { RuntimePerson } from "./RuntimePerson.data.avt";
+
+export class RuntimePersonRAM extends Aventus.Ram<RuntimePerson> implements Aventus.IRam {
+    public static getInstance() {
+        return Aventus.Instance.get(RuntimePersonRAM);
+    }
+
+    public override defineIndexKey(): keyof RuntimePerson {
+        return 'id';
+    }
+
+    protected override getTypeForData(objJson: Aventus.KeysObject<RuntimePerson> | RuntimePerson): new () => RuntimePerson {
+        return RuntimePerson;
+    }
+}

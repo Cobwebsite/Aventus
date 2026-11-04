@@ -1,0 +1,41 @@
+import { ShortcutManager, SpecialTouch } from "Aventus@UI:Aventus.Lib.package.avt";
+
+export class RuntimeUiShortcut {
+    public static events: string[] = [];
+    private static original: () => void = () => { this.events.push("original"); };
+    private static temporary: () => void = () => { this.events.push("temporary"); };
+
+    public static register(): void {
+        ShortcutManager.subscribe([SpecialTouch.Control, "s"], this.original);
+    }
+
+    public static replace(): void {
+        ShortcutManager.subscribe([SpecialTouch.Control, "s"], this.temporary, { replaceTemp: true });
+    }
+
+    public static restore(): void {
+        ShortcutManager.unsubscribe([SpecialTouch.Control, "s"], this.temporary);
+    }
+
+    public static dispose(): void {
+        ShortcutManager.unsubscribe([SpecialTouch.Control, "s"], this.original);
+    }
+
+    public static conditionalEnabled: boolean = false;
+    private static conditional: () => false | void = () => {
+        this.events.push(this.conditionalEnabled ? 'accepted' : 'ignored');
+        return this.conditionalEnabled ? undefined : false;
+    };
+
+    public static registerConditional(): void {
+        ShortcutManager.subscribe(['Enter', SpecialTouch.Control], this.conditional);
+    }
+
+    public static disposeConditional(): void {
+        ShortcutManager.unsubscribe([SpecialTouch.Control, 'Enter'], this.conditional);
+    }
+
+    public static preventPrintOnly(): void {
+        ShortcutManager.setAutoPrevents([[SpecialTouch.Control, 'p']]);
+    }
+}

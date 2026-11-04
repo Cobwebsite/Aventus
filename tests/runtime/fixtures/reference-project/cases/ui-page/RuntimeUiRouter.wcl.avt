@@ -1,0 +1,28 @@
+import { Router } from "Aventus@UI:Aventus.Navigation.package.avt";
+import { RuntimeUiPage } from "./RuntimeUiPage.wcl.avt";
+
+export class RuntimeUiRouter extends Router implements Aventus.DefaultComponent {
+    public transitions: string[] = [];
+
+    protected override defineRoutes(): void {
+        this.addRoute('/home', RuntimeUiPage);
+        this.addRoute('/other', RuntimeUiPage);
+    }
+
+    protected override bindToUrl(): boolean {
+        return false;
+    }
+
+    protected override defaultUrl(): string {
+        return '/home';
+    }
+
+    protected override onNewPage(oldUrl: string, oldPage: RuntimeUiPage | undefined,
+        newUrl: string, newPage: RuntimeUiPage): void {
+        this.transitions.push(oldUrl + '>' + newUrl);
+    }
+
+    public activeForTest(): string {
+        return this.activePath;
+    }
+}

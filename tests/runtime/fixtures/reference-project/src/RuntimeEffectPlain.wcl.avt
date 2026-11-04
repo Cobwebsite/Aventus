@@ -1,0 +1,9 @@
+export class RuntimeEffectPlain extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    public static runs: number = 0;
+
+    @Effect()
+    public record(): number {
+        RuntimeEffectPlain.runs++;
+        return RuntimeEffectPlain.runs;
+    }
+}

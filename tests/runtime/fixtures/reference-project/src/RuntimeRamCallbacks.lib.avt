@@ -1,0 +1,32 @@
+import { RuntimePersonRAM } from "./RuntimePerson.ram.avt";
+import { RuntimePerson } from "./RuntimePerson.data.avt";
+
+export class RuntimeRamCallbacks {
+    public static async inspect(): Promise<string[]> {
+        const ram = RuntimePersonRAM.getInstance();
+        const initial = new RuntimePerson();
+        initial.id = 91;
+        initial.name = 'Ada';
+        initial.active = true;
+        const person = await ram.create(initial);
+        if(!person) return [];
+        const events: string[] = [];
+        const onUpdate = (item: typeof person) => events.push('update:' + item?.name);
+        const removedUpdate = (item: typeof person) => events.push('removed-update:' + item?.name);
+        const onDelete = (item: typeof person) => events.push('delete:' + item?.name);
+        const removedDelete = (item: typeof person) => events.push('removed-delete:' + item?.name);
+        person.onUpdate(onUpdate);
+        person.onUpdate(removedUpdate);
+        person.offUpdate(removedUpdate);
+        person.onDelete(onDelete);
+        person.onDelete(removedDelete);
+        person.offDelete(removedDelete);
+        const changed = new RuntimePerson();
+        changed.id = 91;
+        changed.name = 'Grace';
+        changed.active = false;
+        await ram.update(changed);
+        await ram.deleteById(91);
+        return events;
+    }
+}

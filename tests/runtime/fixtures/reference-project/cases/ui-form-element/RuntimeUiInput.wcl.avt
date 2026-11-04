@@ -1,0 +1,23 @@
+import { FormElement, FormHandler } from "Aventus@UI:Aventus.Form.package.avt";
+import { Required } from "Aventus@UI:Aventus.Form.Validators.package.avt";
+
+export class RuntimeUiInput extends FormElement<string> implements Aventus.DefaultComponent {
+    public static createHandler(): FormHandler<{ answer: string }> {
+        return new FormHandler<{ answer: string }>({ answer: [Required] }, {
+            defaultValues: { answer: 'start' },
+            onValidateFallback: () => {},
+        });
+    }
+
+    public change(value: string): void {
+        this.triggerChange(value);
+    }
+
+    public nativeValidity(): boolean {
+        return this.internals.validity.valid;
+    }
+
+    protected override async validation(): Promise<string[]> {
+        return this.value ? [] : ['required'];
+    }
+}

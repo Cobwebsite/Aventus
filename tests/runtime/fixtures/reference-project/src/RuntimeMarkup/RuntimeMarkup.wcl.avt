@@ -1,0 +1,31 @@
+export class RuntimeMarkup extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Property()
+    public label: string = "Hello";
+
+    @Watch()
+    public person: { name: string } = { name: "Ada" };
+
+    @Watch()
+    public optional: string | null = null;
+
+    @ViewElement()
+    protected selected!: HTMLParagraphElement;
+
+    @ViewElement({ useLive: true })
+    protected liveSelected!: HTMLParagraphElement;
+
+    @ViewElement()
+    protected repeated!: HTMLSpanElement[];
+
+    public getSelection(): { selected: string; repeated: number } {
+        return { selected: this.selected.textContent ?? "", repeated: this.repeated.length };
+    }
+
+    public getLiveSelection(): string {
+        return this.liveSelected.textContent ?? '';
+    }
+
+    protected rename() {
+        this.person.name = "Grace";
+    }
+}

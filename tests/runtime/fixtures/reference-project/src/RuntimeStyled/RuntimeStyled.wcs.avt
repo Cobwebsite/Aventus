@@ -1,0 +1,6 @@
+:host {
+    display: block;
+    --_runtime-styled-background: var(--runtime-styled-background, rgb(0, 0, 255));
+    .local { background-color: var(--_runtime-styled-background); }
+    .theme { border-color: var(--runtime-theme-color); border-style: solid; border-width: 1px; }
+}

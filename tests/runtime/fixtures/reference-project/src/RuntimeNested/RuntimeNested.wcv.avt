@@ -1,9 +1,9 @@
 for(let i = 0; i < this.groups.length; i++) {
     @Context('group', this.groups[i])
-    <section class="group">
+    <section class="group" data-index="{{ i }}">
         <h2>{{ group.name }}</h2>
-        for(let entry of group.entries) {
-            <span class="entry">{{ entry }}</span>
+        for(let j = 0; j < group.entries.length; j++) {
+            <span class="entry" data-index="{{ j }}">{{ group.entries[j] }}</span>
         }
     </section>
 }

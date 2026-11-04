@@ -1,0 +1,1 @@
+globalThis.__aventusRuntimeStatic = (globalThis.__aventusRuntimeStatic ?? 0) + 1;

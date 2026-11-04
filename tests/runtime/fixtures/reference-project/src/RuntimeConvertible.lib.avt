@@ -1,0 +1,6 @@
+@Convertible()
+export class RuntimeConvertible {
+    public static get Fullname(): string { return "RuntimeReference.RuntimeConvertible"; }
+    public get $type(): string { return RuntimeConvertible.Fullname; }
+    public value: string = "";
+}

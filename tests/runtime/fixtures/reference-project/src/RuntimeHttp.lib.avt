@@ -1,0 +1,49 @@
+export class RuntimeHttpRouter extends Aventus.HttpRouter {
+    protected override defineOptions(options: Aventus.HttpRouterOptions): Aventus.HttpRouterOptions {
+        options.url = "https://example.test/api";
+        return options;
+    }
+}
+
+export class RuntimeHttpRoute extends Aventus.HttpRoute {
+    public static installHooks(events: string[]): void {
+        Aventus.HttpRequest.configure({
+            beforeSend: request => {
+                events.push("before");
+                request.setHeader("X-Runtime", "hooked");
+                return new Aventus.VoidWithError();
+            },
+            responseMiddleware: response => {
+                events.push("after:" + response.success);
+                return response;
+            },
+        });
+    }
+
+    public constructor(router?: Aventus.HttpRouter) {
+        super(router ?? new RuntimeHttpRouter());
+    }
+
+    public override getPrefix(): string {
+        return "/people";
+    }
+
+    @BindThis()
+    public async save(name: string): Promise<Aventus.ResultWithError<{ accepted: string }>> {
+        const request = new Aventus.HttpRequest(this.getPrefix() + "/save", Aventus.HttpMethod.POST);
+        request.setBody({ name });
+        return request.queryJSON<{ accepted: string }>(this.router);
+    }
+
+    public async loadText(): Promise<Aventus.ResultWithError<string>> {
+        return new Aventus.HttpRequest(this.getPrefix() + "/text", Aventus.HttpMethod.GET).queryTxt(this.router);
+    }
+
+    public async loadBlob(): Promise<Aventus.ResultWithError<Blob>> {
+        return new Aventus.HttpRequest(this.getPrefix() + "/blob", Aventus.HttpMethod.GET).queryBlob(this.router);
+    }
+
+    public async remove(): Promise<Aventus.VoidWithError> {
+        return new Aventus.HttpRequest(this.getPrefix() + "/remove", Aventus.HttpMethod.DELETE).queryVoid(this.router);
+    }
+}

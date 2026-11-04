@@ -1,0 +1,7 @@
+import { runtimeUpper, RuntimeFunctionMode } from "RuntimeReference@Main:RuntimeReference.package.avt";
+
+export class RuntimeLocalPackage {
+    public static inspect(): string {
+        return runtimeUpper("local") + ":" + RuntimeFunctionMode.Second;
+    }
+}
