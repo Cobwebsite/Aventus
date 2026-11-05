@@ -12,6 +12,7 @@ export interface IAventusConfig {
     static?: IStaticConfig[];
     avoidParsingInsideTags?: string[];
     aliases?: Record<string, any>;
+    ideBuild: boolean,
 }
 
 interface IDependency {
@@ -40,6 +41,7 @@ interface IBuildConfig {
     namespaceRoot?: string;
     avoidParsingInsideTags?: string[];
     nodeModulesDir?: string | string[];
+    ideBuild: boolean,
 }
 
 interface IStoriesConfig {

@@ -79,14 +79,14 @@ let ElementExtension=class ElementExtension {
             if (check(el)) {
                 return el;
             }
+            if (el == untilNode) {
+                break;
+            }
             if (el instanceof ShadowRoot) {
                 el = el.host;
             }
             else {
                 el = el.parentNode;
-            }
-            if (el == untilNode) {
-                break;
             }
         }
         return null;
@@ -109,14 +109,14 @@ let ElementExtension=class ElementExtension {
             if (check(el)) {
                 result.push(el);
             }
+            if (el == untilNode) {
+                break;
+            }
             if (el instanceof ShadowRoot) {
                 el = el.host;
             }
             else {
                 el = el.parentNode;
-            }
-            if (el == untilNode) {
-                break;
             }
         }
         return result;
@@ -393,38 +393,29 @@ let Style=class Style {
         Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
     }
     stylesheets = new Map();
-    stylesheetsWaiting = {};
+    stylesheetsWaiting = new Map();
     async load(name, url) {
-        try {
-            const key = name + '°' + url;
-            if (this.stylesheetsWaiting.hasOwnProperty(key)) {
-                return await this.awaitFctHead(key);
-            }
-            this.stylesheetsWaiting[key] = [];
+        const key = name + '°' + url;
+        const waiting = this.stylesheetsWaiting.get(key);
+        if (waiting) {
+            return await waiting;
+        }
+        const loading = (async () => {
             let style = this.stylesheets.get(name);
             if (!style || style.cssRules.length == 0) {
                 let txt = await (await fetch(url)).text();
                 this.store(name, txt);
             }
-            this.releaseAwaitFctHead(key);
+        })();
+        this.stylesheetsWaiting.set(key, loading);
+        try {
+            await loading;
         }
-        catch (e) {
-        }
-    }
-    releaseAwaitFctHead(key) {
-        if (this.stylesheetsWaiting[key]) {
-            for (let i = 0; i < this.stylesheetsWaiting[key].length; i++) {
-                this.stylesheetsWaiting[key][i]();
+        finally {
+            if (this.stylesheetsWaiting.get(key) === loading) {
+                this.stylesheetsWaiting.delete(key);
             }
-            delete this.stylesheetsWaiting[key];
         }
-    }
-    awaitFctHead(key) {
-        return new Promise((resolve) => {
-            this.stylesheetsWaiting[key].push(() => {
-                resolve();
-            });
-        });
     }
     store(name, content) {
         let style = this.stylesheets.get(name);
@@ -6512,14 +6503,17 @@ let ResizeObserver=class ResizeObserver {
         const _target = target;
         if (!_target["sourceIndex"]) {
             _target["sourceIndex"] = Math.random().toString(36);
-            this.targets.push(_target);
-            ResizeObserver.getUniqueInstance().observe(_target);
         }
         if (!ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]]) {
             ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]] = [];
         }
-        if (ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].indexOf(this) == -1) {
-            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].push(this);
+        const subscribers = ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]];
+        if (subscribers.indexOf(this) == -1) {
+            if (subscribers.length == 0) {
+                ResizeObserver.getUniqueInstance().observe(_target);
+            }
+            subscribers.push(this);
+            this.targets.push(_target);
         }
     }
     /**
@@ -6527,17 +6521,18 @@ let ResizeObserver=class ResizeObserver {
      */
     unobserve(target) {
         const _target = target;
-        for (let i = 0; this.targets.length; i++) {
+        for (let i = 0; i < this.targets.length; i++) {
             let tempTarget = this.targets[i];
             if (tempTarget == _target) {
-                let position = ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].indexOf(this);
+                const subscribers = ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
+                let position = subscribers.indexOf(this);
                 if (position != -1) {
-                    ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].splice(position, 1);
+                    subscribers.splice(position, 1);
                 }
-                if (ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].length == 0) {
+                if (subscribers.length == 0) {
                     delete ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
+                    ResizeObserver.getUniqueInstance().unobserve(_target);
                 }
-                ResizeObserver.getUniqueInstance().unobserve(_target);
                 this.targets.splice(i, 1);
                 return;
             }
@@ -6547,8 +6542,8 @@ let ResizeObserver=class ResizeObserver {
      * Destroy the resize observer
      */
     disconnect() {
-        for (let i = 0; this.targets.length; i++) {
-            this.unobserve(this.targets[i]);
+        for (const target of [...this.targets]) {
+            this.unobserve(target);
         }
     }
     entryChanged(entry) {
@@ -6614,14 +6609,19 @@ let Animation=class Animation {
             return;
         }
         this.nextFrame = now - (elapsed % this.fpsInterval);
+        const stopping = !this.continueAnimation;
         setTimeout(() => {
-            this.options.animate();
+            try {
+                this.options.animate();
+            }
+            finally {
+                if (stopping) {
+                    this.options.stopped();
+                }
+            }
         }, 0);
-        if (this.continueAnimation) {
+        if (!stopping) {
             this.frame_id = requestAnimationFrame(() => this.animate());
-        }
-        else {
-            this.options.stopped();
         }
     }
     /**

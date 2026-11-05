@@ -28,7 +28,8 @@ export interface AventusConfigBuild {
 	rawDependencies: { [name: string]: AventusConfigBuildDependency },
 	dependencies: { [name: string]: AventusConfigBuildDependency },
 	nodeModulesDir: string,
-	i18n?: AventusConfigBuildI18n
+	i18n?: AventusConfigBuildI18n,
+	ideBuild: boolean,
 }
 export type IncludeType = 'none' | 'need' | 'full';
 
@@ -106,7 +107,8 @@ export interface AventusConfig {
 	avoidParsingInsideTags: string[],
 	aliases: {
 		[alias: string]: string
-	}
+	},
+	ideBuild: boolean,
 }
 
 export interface AventusConfigBuildI18n {

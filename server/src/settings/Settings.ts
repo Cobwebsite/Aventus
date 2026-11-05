@@ -46,7 +46,7 @@ export interface Settings {
 	defaultForceDocumentation: boolean,
 	deeplApiKey: string,
 	quickCreations: string[],
-	ideBuild: boolean
+	ideBuild: boolean,
 }
 export interface SettingsHtml {
 	customData: string[]
