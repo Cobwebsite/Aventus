@@ -4173,6 +4173,12 @@ let Watcher=class Watcher {
             }
             else {
                 rootPath = receiver.__path;
+                if (rootPath !== '') {
+                    const current = rootPath === undefined ? undefined : getValueFromObject(rootPath, proxyData.baseData);
+                    const currentTarget = Watcher.is(current) ? current.getTarget(false) : current;
+                    if (currentTarget !== target)
+                        return;
+                }
             }
             if (rootPath != "") {
                 if (Array.isArray(receiver)) {

@@ -152,7 +152,7 @@ test('Watcher notifies the whole array after reordering and extracts the final o
     assert.deepEqual(changes.filter(([, path]) => path === 'items'), [[WatchAction.UPDATED, 'items']]);
 });
 
-test('Watcher extracts a replacement child but still reports edits on the detached child', () => {
+test('Watcher does not report edits on a replaced child', () => {
     const context = loadRuntimeContext();
     const { Watcher, WatchAction } = context.Aventus;
     const paths = [];
@@ -166,11 +166,10 @@ test('Watcher extracts a replacement child but still reports edits on the detach
     assert.deepEqual(paths, [
         [WatchAction.UPDATED, 'child'],
         [WatchAction.UPDATED, 'child.count'],
-        [WatchAction.UPDATED, 'child.count'],
     ]);
 });
 
-test('Watcher reports an undefined path for edits on a child proxy after deleting its parent property', () => {
+test('Watcher does not report edits on a deleted child', () => {
     const context = loadRuntimeContext();
     const { Watcher, WatchAction } = context.Aventus;
     const paths = [];
@@ -182,7 +181,6 @@ test('Watcher reports an undefined path for edits on a child proxy after deletin
     assert.equal(Object.hasOwn(Watcher.extract(model), 'child'), false);
     assert.deepEqual(paths, [
         [WatchAction.DELETED, 'child'],
-        [WatchAction.UPDATED, 'undefined.count'],
     ]);
 });
 
