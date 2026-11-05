@@ -2048,7 +2048,7 @@ test('compiled UI Row supports programmatic creation while Col renders its size 
             rowConstructor: 'Row', rowShadow: true,
             colConstructor: 'Col', firstSize: '6', secondSize: '6',
         },
-        sizeZero: { display: 'flex', width: '16px' },
+        sizeZero: { display: 'none', width: '0px' },
         parsed: { constructor: 'Row', display: 'flex', widths: [300, 300] },
         pageErrors: [],
     });

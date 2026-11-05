@@ -1,19 +1,5 @@
 # Points à analyser pour les tests du runtime
 
-
-
-
-
-
-
-
-
-
-
-- **`Col size="0"` ne masque pas la colonne comme annoncé.** `ui/col_row.md` affirme que la taille zéro produit `display: none`. Dans le bundle compilé, `Col` reste en `display: flex` et garde 16 px de largeur calculée à cause de ses deux paddings de 8 px ; sa feuille de style définit seulement `:host([size="0"]){width:0}`. `compiled-project.test.mjs` vérifie l'attribut et le style calculé après passage de `size=6` à `size=0`. Harmoniser le style et la documentation.
-
-
-
 - **`FormHandler.validate()` perd les erreurs sans abonné `onValidation`.** `cases/ui-dependency/RuntimeUiForm.lib.avt` crée un `FormHandler` avec les validateurs `Required` et `Email`. Leurs appels directs retournent des messages pour `""` et `"wrong"`, mais `await handler.validate()` renvoie `true` dans les deux cas. Dès qu'un abonné `handler.parts.email.onValidation.add(async errors => errors)` est enregistré, la même valeur invalide donne `false`. Dans le code compilé du package UI, `_validate()` remplace `errorsForm` par les seuls retours des abonnés, même lorsque cette liste est vide. `compiled-project.test.mjs` caractérise les deux formes dans Chromium. La documentation `ui/form.md` promet une validation basée sur le schéma, y compris sans élément UI enregistré.
 - **`FormHandler.reset()` ne restaure pas les valeurs initiales après mutation profonde.** Dans le même cas, `defaultValues.email` vaut d'abord `""`, puis `handler.item.email` est modifié en `"alice@example.test"`. Après `handler.reset()`, `handler.item.email` reste `"alice@example.test"`. Le constructeur garde la même référence pour `defaultValues` et l'objet observé ; `reset()` réaffecte cette référence déjà modifiée. Le test compilé vérifie la valeur après reset. Copier l'état initial avant observation ou préciser le contrat de `defaultValues`.
 
