@@ -903,7 +903,12 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         this.diagnostics = this.compilationResult?.diagnostics || []
         // extract diagnostics
         this.transformDiagnosticForView();
-        this.HTMLFile?.validate();
+        if (this.HTMLFile?.file instanceof InternalAventusFile) {
+            await this.HTMLFile.file.validate(false);
+        }
+        else {
+            await this.HTMLFile?.validate();
+        }
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)
         }

@@ -83,7 +83,9 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
 
         const _convertSection = async (region: AventusWebComponentSingleFileRegion<AventusBaseFile>) => {
             if (region.file) {
-                let errors = await (region.file.file as InternalAventusFile).validate();
+                // Virtual regions share the parent URI. Only the parent may publish
+                // diagnostics, otherwise a later empty region clears sibling errors.
+                let errors = await (region.file.file as InternalAventusFile).validate(false);
                 let document = region.file.file.documentInternal;
                 for (let error of errors) {
                     error.source = AventusLanguageId.WebComponent;
