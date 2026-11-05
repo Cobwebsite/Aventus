@@ -1,5 +1,0 @@
-import { Router } from "Aventus@Main:Aventus.package.avt";
-
-export class RuntimeDocumentedRouter extends Router implements Aventus.DefaultComponent {
-    protected override defineRoutes(): void {}
-}
