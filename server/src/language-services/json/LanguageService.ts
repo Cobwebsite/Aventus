@@ -258,7 +258,7 @@ export class AventusJSONLanguageService {
             path: string, seen: Map<string, string>) => {
             for (const [name, dependency] of Object.entries(dependencies ?? {})) {
                 if (typeof dependency !== 'object' || !dependency?.uri) continue;
-                if (seen.has(dependency.uri)) {
+                if (seen.has(dependency.uri) && seen.get(dependency.uri) !== name) {
                     diagnostics.push({
                         range: this.getConfigPathRange(document, root, `${path}[${JSON.stringify(name)}].uri`),
                         severity: DiagnosticSeverity.Error,
