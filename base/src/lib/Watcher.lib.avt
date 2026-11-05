@@ -556,9 +556,9 @@ export class Watcher {
                                 return value === target ? receiver : value;
                             };
                         }
-                        // else if(prop == 'find') {
-                        //    // TODO
-                        // }
+                        else if(prop == 'find') {
+                            result = (...args: any[]) => element.apply(receiver, args);
+                        }
                         else {
                             result = element.bind(target);
                         }
