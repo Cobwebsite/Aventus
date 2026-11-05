@@ -587,20 +587,24 @@ namespace Layout {
                     posX = e.pageX;
                     posY = e.pageY;
                     this.no_user_select = true;
-                });
-                this.addEventListener("pointermove", (e) => {
-                    if(this.x_scroll_visible) {
-                        this.contentHidder.scrollLeft = startScrollX + (posX - e.pageX);
-                    }
-                    if(this.y_scroll_visible) {
-                        this.contentHidder.scrollTop = startScrollY + (posY - e.pageY);
-                    }
-                });
-                this.addEventListener("pointerup", (e) => {
-                    this.no_user_select = false;
-                });
-                this.addEventListener("pointercancel", (e) => {
-                    this.no_user_select = false;
+
+                    const move = (e: PointerEvent) => {
+                        if(this.x_scroll_visible) {
+                            this.contentHidder.scrollLeft = startScrollX + (posX - e.pageX);
+                        }
+                        if(this.y_scroll_visible) {
+                            this.contentHidder.scrollTop = startScrollY + (posY - e.pageY);
+                        }
+                    };
+                    const stop = (e: PointerEvent) => {
+                        this.no_user_select = false;
+                        document.removeEventListener("pointermove", move);
+                        document.removeEventListener("pointerup", stop);
+                        document.removeEventListener("pointercancel", stop);
+                    };
+                    document.addEventListener("pointermove", move);
+                    document.addEventListener("pointerup", stop);
+                    document.addEventListener("pointercancel", stop);
                 });
 
                 // new PressManager({
