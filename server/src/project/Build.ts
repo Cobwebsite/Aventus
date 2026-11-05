@@ -564,7 +564,17 @@ export class Build {
         let finalTxt = '';
 
         let splittedNames = namespace.split(".");
-        finalTxt += codeBefore.join(EOL) + EOL;
+        const outsideModule = (items: string[]) => {
+            if (items.length === 0) return '';
+            return [
+                '(() => {',
+                'const _ = globalThis;',
+                'const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; };',
+                ...items,
+                '})();',
+            ].join(EOL) + EOL;
+        };
+        finalTxt += outsideModule(codeBefore);
         if (code.length > 0) {
             let baseName = '';
 
@@ -650,7 +660,7 @@ export class Build {
             finalTxt = finalTxt.trim() + EOL;
             finalTxt += "})(" + splittedNames[0] + ");" + EOL;
         }
-        finalTxt += codeAfter.join(EOL) + EOL;
+        finalTxt += outsideModule(codeAfter);
         finalTxt = finalTxt.trim() + EOL;
 
         return finalTxt;
