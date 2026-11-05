@@ -1,2 +1,0 @@
-@Dependances([{ type: RuntimeReference.RuntimeInternal, strong: true }])
-export class RuntimeDependances { }
