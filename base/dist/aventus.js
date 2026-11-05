@@ -3919,7 +3919,9 @@ let Watcher=class Watcher {
                                 return value === target ? receiver : value;
                             };
                         }
-                        // else if(prop == 'find') {
+                        else if (prop == 'find') {
+                            result = (...args) => element.apply(receiver, args);
+                        }
                         else {
                             result = element.bind(target);
                         }

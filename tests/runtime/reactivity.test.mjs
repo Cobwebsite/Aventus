@@ -95,6 +95,19 @@ test('Watcher tracks array edits and replacement of a nested object', () => {
     ]);
 });
 
+test('Watcher.find returns a watched item whose changes notify subscribers', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ items: [{ id: 1, name: "first" }, { id: 2, name: "second" }] })', context),
+        (action, path) => changes.push([action, path]));
+    const found = model.items.find(item => item.id === 2);
+    assert.equal(Watcher.is(found), true);
+    found.name = 'updated';
+    assert.deepEqual(changes, [[WatchAction.UPDATED, 'items[1].name']]);
+    assert.equal(model.items[1].name, 'updated');
+});
+
 test('Watcher subscriptions can be removed and extraction returns current plain data', () => {
     const context = loadRuntimeContext();
     const { Watcher } = context.Aventus;
