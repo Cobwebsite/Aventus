@@ -14,6 +14,10 @@
 	justify-content: center;
 }
 
+:host([size="0"]) {
+	display: none;
+}
+
 $sizes: 300, 540, 720, 960, 1140;
 $labels: xs, sm, md, lg, xl;
 
