@@ -1352,7 +1352,7 @@ test('compiled object utilities and Json follow nested paths and conversion rule
     const actual = await page.evaluate(() => RuntimeReference.RuntimeTools.inspect());
     assert.deepEqual(actual, {
         reorderedDefault: false,
-        reorderedIgnoringOrder: false,
+        reorderedIgnoringOrder: true,
         arrayIgnoringOrder: true,
         changed: false,
         city: 'New York',
@@ -1370,12 +1370,12 @@ test('compiled Mutex serializes concurrent async work', async t => {
     assert.deepEqual(actual, ['start:1', 'end:1', 'start:2', 'end:2', 'start:3', 'end:3']);
 });
 
-test('compiled utility bundle characterizes missing uuidv4 and sleep functions', async t => {
+test('compiled utility bundle includes uuidv4 and sleep functions', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
     const page = await openCompiledPage(t, code);
     const actual = await page.evaluate(() => RuntimeReference.RuntimeTools.utilityAvailability());
-    assert.deepEqual(actual, { uuidAvailable: false, sleepAvailable: false });
+    assert.deepEqual(actual, { uuidAvailable: true, sleepAvailable: true });
 });
 
 test('compiled alias import resolves a root library function and enum', async t => {

@@ -1275,7 +1275,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
         }
         if (tableOrder) {
             for (let i = 0; i < obj1.length; i++) {
-                if (!compareObjectRecursive(obj1[i], obj2[i], true, active, proxyData1, proxyData2)) {
+                if (!compareObjectRecursive(obj1[i], obj2[i], tableOrder, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1285,7 +1285,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
             for (let i = 0; i < obj1.length; i++) {
                 let foundElement = false;
                 for (let j = 0; j < obj2.length; j++) {
-                    if (compareObjectRecursive(obj1[i], obj2[j], true, active, proxyData1, proxyData2)) {
+                    if (compareObjectRecursive(obj1[i], obj2[j], tableOrder, active, proxyData1, proxyData2)) {
                         obj2.splice(j, 1);
                         foundElement = true;
                         break;
@@ -1330,7 +1330,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
                 if (!obj2.has(key)) {
                     return false;
                 }
-                if (!compareObjectRecursive(value, obj2.get(key), true, active, proxyData1, proxyData2)) {
+                if (!compareObjectRecursive(value, obj2.get(key), tableOrder, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1346,7 +1346,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
                 if (!keys2.includes(key)) {
                     return false;
                 }
-                if (!compareObjectRecursive(obj1[key], obj2[key], true, active, proxyData1, proxyData2)) {
+                if (!compareObjectRecursive(obj1[key], obj2[key], tableOrder, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
