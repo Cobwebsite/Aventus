@@ -1496,7 +1496,7 @@ test('a static file falls back to its adjacent def declarations for npm output',
     assert.doesNotMatch(declarations, /__aventusNpmDeclarationMarker/);
 });
 
-test('build outsideModule emits exports after their registration scope has closed', async t => {
+test('build outsideModule exports declarations to the global scope', async t => {
     const root = copyProject(t);
     const configPath = join(root, 'aventus.conf.avt');
     const config = JSON.parse(readFileSync(configPath, 'utf8'));
@@ -1504,15 +1504,17 @@ test('build outsideModule emits exports after their registration scope has close
     config.build[0].outsideModule = ['./src/RuntimeFunction.lib.avt'];
     writeFileSync(configPath, JSON.stringify(config, null, 2));
     const { code } = buildProject(root);
-    assert.match(code, /\}\)\(RuntimeReference\);\s*let runtimeNumber=/);
+    assert.match(code, /\}\)\(RuntimeReference\);\s*\(\(\) => \{/);
     assert.match(code, /__as1\(_, 'runtimeNumber', runtimeNumber\)/);
     const page = await openCompiledPage(t, code);
     const actual = await page.evaluate(() => ({
         global: typeof window.runtimeUpper,
         value: window.runtimeUpper?.('outside'),
         nested: typeof RuntimeReference?.runtimeUpper,
+        number: window.runtimeNumber,
+        enumValue: window.RuntimeFunctionMode?.Second,
     }));
-    assert.deepEqual(actual, { global: 'undefined', value: undefined, nested: 'undefined' });
+    assert.deepEqual(actual, { global: 'function', value: 'OUTSIDE', nested: 'undefined', number: 7, enumValue: 2 });
 });
 
 test('disabled build does not emit its JavaScript output', t => {
