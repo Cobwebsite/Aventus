@@ -33,7 +33,7 @@ test('module and source revisions replace build choices and routing without stal
     GenericServer.instance = {
         workspaces: [pathToFileURL(root).href], logLevel: 0, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile: () => {} };
     DependencyManager.instance = { getPath: () => root };

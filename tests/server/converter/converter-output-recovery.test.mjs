@@ -82,7 +82,7 @@ test('Sharp and PHP replace a converter diagnostic with success on a later expor
             ['aventus/addDebugFile', ['csharp_errors', 'Error : invalid C# declaration']],
             ['aventus/addDebugFile', ['php_errors', 'Error : invalid PHP declaration']],
         ]);
-        assert.deepEqual(events.filter(([method]) => method === 'aventus/sharp/compiling').map(([, value]) => value), [
+        assert.deepEqual(events.filter(([method]) => (method === 'aventus/sharp/compiling' || method === 'aventus/php/compiling')).map(([, value]) => value), [
             ['Demo.csproj', 'compiling', undefined],
             ['Demo.csproj', 'error', [{ title: 'C# error', file: 'csharp_errors' }]],
             ['vendor/demo', 'compiling', undefined],

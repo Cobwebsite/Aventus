@@ -12,7 +12,7 @@ const [, { ParserTs }, { WatchDecorator }, { PropertyDecorator }, { GenericServe
 ]);
 GenericServer.instance = { logLevel: 4 };
 const uri = 'file:///D:/test/decorator-edit-round72.lib.avt';
-const build = { npmBuilder: { unregister() {} }, buildConfig: {}, hasNpmOutput: false,
+const build = { npmBuilder: { unregister() {} }, externalPackageInformation: { getByFullName: () => undefined }, buildConfig: {}, hasNpmOutput: false,
     getNamespaceForUri: () => '', getNpmReplacementName: () => '' };
 
 function parse(source, version) {

@@ -43,7 +43,7 @@ test('a queued config save uses the newest static output after an earlier export
     GenericServer.instance = {
         workspaces: [pathToFileURL(root).href], logLevel: 0, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile: () => {} };
     DependencyManager.instance = { getPath: () => root };

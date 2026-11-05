@@ -19,6 +19,7 @@ function parse(source, registerResult = []) {
     const build = {
         npmBuilder: { unregister() {}, register(from, data, range) { registrations.push({ from, ...data }); return registerResult.map(error => ({ ...error, range })); } },
         buildConfig: {},
+        externalPackageInformation: { getByFullName: () => undefined },
         hasNpmOutput: false,
         project: { resolveAlias: name => name },
         getNamespaceForUri: () => '',

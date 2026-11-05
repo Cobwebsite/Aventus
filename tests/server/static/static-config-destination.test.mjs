@@ -34,7 +34,7 @@ test('changing only a static destination leaves the earlier files but stops expo
     GenericServer.instance = {
         workspaces: [pathToFileURL(root).href], logLevel: 0, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification() {} },
+        connection: { sendNotification() {}, sendDiagnostics() {} },
     };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile() {} };
     DependencyManager.instance = { getPath: () => root };

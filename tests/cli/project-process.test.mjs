@@ -10,7 +10,11 @@ const cli = resolve('cli/out/cli.js');
 test('packaged check returns JSON for a temporary minimal project', () => {
   const directory = mkdtempSync(join(tmpdir(), 'aventus-cli-project-'));
   const config = join(directory, 'aventus.conf.avt');
-  writeFileSync(config, JSON.stringify({ module: 'Test' }));
+  mkdirSync(join(directory, 'src'));
+  writeFileSync(config, JSON.stringify({
+    module: 'Test',
+    build: [{ name: 'Main', src: ['./src/*'], compile: [{ output: './dist/Test.js' }] }],
+  }));
   let result;
   try {
     result = spawnSync(process.execPath, [cli, 'check', config, '--json'], {
@@ -33,7 +37,7 @@ test('packaged check returns JSON for the Empty template project shape', () => {
   const config = join(directory, 'aventus.conf.avt');
   mkdirSync(join(directory, 'src'));
   writeFileSync(config, JSON.stringify({
-    module: 'Demo', componentPrefix: 'd',
+    module: 'Demo', componentPrefix: 'demo',
     build: [{ name: 'Main', src: ['./src/*'], compile: [{ output: './dist/Demo.js' }] }],
   }));
   try {
@@ -57,7 +61,7 @@ test('packaged build returns JSON for a temporary project', () => {
   const config = join(directory, 'aventus.conf.avt');
   mkdirSync(join(directory, 'src'));
   writeFileSync(config, JSON.stringify({
-    module: 'Demo', componentPrefix: 'd',
+    module: 'Demo', componentPrefix: 'demo',
     build: [{ name: 'Main', src: ['./src/*'], compile: [{ output: './dist/Demo.js' }] }],
   }));
   try {

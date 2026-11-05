@@ -25,7 +25,7 @@ test('global build keeps its started projects while one configuration replaces a
     SettingsManager.instance = { settings: { defaultHideWarnings: false, watchFiles: false, useStats: false },
         settingsHtml: { customData: [] }, onSettingsChange: () => 'settings', onSettingsChangeHtml: () => 'html' };
     GenericServer.instance = { workspaces: [pathToFileURL(root).href], logLevel: 0, isIDE: false,
-        _extensionPath: join(import.meta.dirname, '..', '..'), connection: { sendNotification: () => {} } };
+        _extensionPath: join(import.meta.dirname, '..', '..'), connection: { sendDiagnostics() {},  sendNotification: () => {} } };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile: () => {} };
     DependencyManager.instance = { getPath: () => root };
     const events = [];

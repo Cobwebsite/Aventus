@@ -24,6 +24,7 @@ test('generic compilation replaces declarations after namespace, kind and export
     const build = {
         module: 'Demo', namespaces: [], isCoreBuild: false, hasNpmOutput: false,
         npmBuilder: { unregister() {} }, buildConfig: {},
+        externalPackageInformation: { getByFullName: () => undefined },
         addNamespace(namespace) { namespaces.push(namespace); },
         getNamespaceForUri: () => '', getNpmReplacementName: () => '',
     };

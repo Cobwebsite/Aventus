@@ -29,7 +29,7 @@ test('build routing decodes source URIs with spaces and follows a config source 
     SettingsManager.instance = { settings: { defaultHideWarnings: false, watchFiles: false, useStats: false },
         settingsHtml: { customData: [] }, onSettingsChange: () => 'settings', onSettingsChangeHtml: () => 'html' };
     GenericServer.instance = { workspaces: [pathToFileURL(folder).href], logLevel: 0, isIDE: false,
-        _extensionPath: join(import.meta.dirname, '..', '..'), connection: { sendNotification: () => {} } };
+        _extensionPath: join(import.meta.dirname, '..', '..'), connection: { sendDiagnostics() {},  sendNotification: () => {} } };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile: () => {} };
     DependencyManager.instance = { getPath: () => root };
     Build.prototype.init = async function () { this.initDone = true; };

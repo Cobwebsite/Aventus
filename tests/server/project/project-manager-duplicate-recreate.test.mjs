@@ -31,7 +31,7 @@ test('same-named projects remain distinct through deletion and recreation of one
     GenericServer.instance = {
         workspaces: ['file:///workspace'], logLevel: 99, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     DependencyManager.instance = { getPath: () => join(import.meta.dirname, '..', '..') };
     ProjectManager.autoLoad = false;

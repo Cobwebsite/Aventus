@@ -67,7 +67,7 @@ test('disk create and edit replace output; deletion removes the source in one re
         codeRenderInJs: [], codeNotRenderInJs: [],
     });
     build.registerFile = file => {
-        build.tsFiles[file.uri] = { file };
+        build.tsFiles[file.uri] = { file, getDiagnostics: () => [] };
         build.registerOnFileDelete(file);
         file.onSave(async () => build.build());
     };

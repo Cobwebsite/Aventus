@@ -34,7 +34,7 @@ test('a template sibling suppresses a config project until the config is redisco
     GenericServer.instance = {
         workspaces: ['file:///workspace'], logLevel: 99, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     DependencyManager.instance = { getPath: () => join(import.meta.dirname, '..', '..') };
     ProjectManager.autoLoad = false;

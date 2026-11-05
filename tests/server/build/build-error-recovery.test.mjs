@@ -78,8 +78,8 @@ test('a dependency error in the second configuration is reported and clears on r
     const { build, paths, notifications } = fixtureState;
     fixtureState.setDependencyError(true);
     await build.build();
-    assert.match(readFileSync(paths[0], 'utf8'), /Initial0/);
-    assert.match(readFileSync(paths[1], 'utf8'), /Initial1/);
+    assert.equal(existsSync(paths[0]), false);
+    assert.equal(existsSync(paths[1]), false);
     assert.deepEqual(notifications.filter(([name]) => name === 'aventus/compiled')
         .map(([, args]) => args[1]), [[{ message: 'dependency unavailable' }]]);
 

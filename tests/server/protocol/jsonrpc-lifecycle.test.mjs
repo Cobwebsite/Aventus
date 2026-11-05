@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -243,7 +243,7 @@ test('real LSP project compiles a component view and SCSS, then refreshes CSS af
                 compile: [{ output: './dist/app.js' }] }],
         }));
         writeFileSync(logicPath,
-            '@TagName("demo-card") export class Card extends Aventus.WebComponent implements Aventus.DefaultComponent { public submit() {} public cancel() {} }');
+            '@TagName("demo-card") export class Card extends Aventus.WebComponent implements Aventus.DefaultComponent { public submit(): void {} public cancel(): void {} }');
         writeFileSync(viewPath, '<button class="card" @click="submit">Hello</button>');
         writeFileSync(stylePath, '$tone: red; .card { color: $tone; }');
         const initialized = lsp.next(message => message.id === 30);
@@ -261,8 +261,9 @@ test('real LSP project compiles a component view and SCSS, then refreshes CSS af
         }] });
         const html = await lsp.next(message => message.method === 'workspace/configuration');
         lsp.send({ id: html.id, result: [{ customData: [] }] });
-        await lsp.next(message => message.method === 'aventus/compiled'
+        const initialCompilation = await lsp.next(message => message.method === 'aventus/compiled'
             && message.params?.[0]?.[0] === 'Demo@web');
+        assert.equal(existsSync(outputPath), true, JSON.stringify(initialCompilation));
         // Use the URI registered during workspace discovery for later document notifications.
         const styleUri = (await lsp.next(message => message.method === 'textDocument/publishDiagnostics'
             && decodeURIComponent(message.params.uri).toLowerCase() ===

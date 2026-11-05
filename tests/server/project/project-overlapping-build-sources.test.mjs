@@ -25,7 +25,7 @@ test('overlapping build sources retain every owner while neighboring and retired
     GenericServer.instance = {
         workspaces: ['file:///D:/round199'], logLevel: 0, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification() {} },
+        connection: { sendNotification() {}, sendDiagnostics() {} },
     };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile() {} };
     DependencyManager.instance = { getPath: () => import.meta.dirname };

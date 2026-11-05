@@ -15,6 +15,7 @@ test('package Markdown refreshes destructured function parameters across source 
     GenericServer.instance = { logLevel: 4, _extensionPath: resolve('.') };
     const uri = 'file:///project/destructured.package.avt';
     const build = {
+        externalPackageInformation: { getByFullName: () => undefined },
         npmBuilder: { unregister() {} }, buildConfig: {}, hasNpmOutput: false, namespaces: [],
         getNamespaceForUri: () => '', getNpmReplacementName: () => '',
         scssLanguageService: { getExternalDefinition: () => ({}) },

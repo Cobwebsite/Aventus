@@ -92,7 +92,7 @@ test('Sharp and PHP concurrent exports suppress duplicates independently and acc
         await commands['aventus.sharp.export'].run(uri(sharp));
         await commands['aventus.php.export'].run(uri(php));
         assert.equal(executions.length, 4);
-        assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2][1]),
+        assert.deepEqual(events.filter(e => (e[1] === 'aventus/sharp/compiling' || e[1] === 'aventus/php/compiling')).map(e => e[2][1]),
             ['compiling', 'compiling', 'success', 'success', 'compiling', 'success', 'compiling', 'success']);
     });
 });
@@ -107,7 +107,7 @@ test('converter stderr without an Error marker is reported as a warning', async 
         result(async () => ({ stdout: 'conversion complete', stderr: 'conversion warning' }));
         await commands['aventus.sharp.export'].run(uri(sharp));
         await commands['aventus.php.export'].run(uri(php));
-        assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2][1]),
+        assert.deepEqual(events.filter(e => (e[1] === 'aventus/sharp/compiling' || e[1] === 'aventus/php/compiling')).map(e => e[2][1]),
             ['compiling', 'success', 'compiling', 'success']);
         assert.deepEqual(events.filter(e => e[0] === 'error'), []);
         assert.deepEqual(events.filter(e => e[0] === 'warning').map(e => e[1]),
@@ -134,7 +134,7 @@ test('converter stderr with an Error marker produces an error state', async () =
             console.clear = previousClear;
             GenericServer.error = previousError;
         }
-        assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2][1]),
+        assert.deepEqual(events.filter(e => (e[1] === 'aventus/sharp/compiling' || e[1] === 'aventus/php/compiling')).map(e => e[2][1]),
             ['compiling', 'error', 'compiling', 'error']);
         assert.deepEqual(events.filter(e => e[1] === 'aventus/addDebugFile').map(e => e[2][1]),
             ['Error : conversion failed', 'Error : conversion failed']);
@@ -152,7 +152,7 @@ test('converter process failures publish diagnostics and end both compilations b
         result(async () => { throw new Error('converter exited 1'); });
         await commands['aventus.sharp.export'].run(uri(sharp));
         await commands['aventus.php.export'].run(uri(php));
-        assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2][1]),
+        assert.deepEqual(events.filter(e => (e[1] === 'aventus/sharp/compiling' || e[1] === 'aventus/php/compiling')).map(e => e[2][1]),
             ['compiling', 'error', 'compiling', 'error']);
         assert.deepEqual(events.filter(e => e[1] === 'aventus/addDebugFile').map(e => e[2]), [
             ['csharp_errors', 'Error: converter exited 1'],
@@ -163,7 +163,7 @@ test('converter process failures publish diagnostics and end both compilations b
         result(async () => ({ stdout: 'OK', stderr: '' }));
         await commands['aventus.sharp.export'].run(uri(sharp));
         await commands['aventus.php.export'].run(uri(php));
-        assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2][1]),
+        assert.deepEqual(events.filter(e => (e[1] === 'aventus/sharp/compiling' || e[1] === 'aventus/php/compiling')).map(e => e[2][1]),
             ['compiling', 'error', 'compiling', 'error', 'compiling', 'success', 'compiling', 'success']);
     });
 });

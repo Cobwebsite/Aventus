@@ -25,7 +25,7 @@ test('two projects sharing a source reroute independently after invalidation and
     GenericServer.instance = {
         workspaces: ['file:///D:/round145'], logLevel: 0, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile: () => {} };
     DependencyManager.instance = { getPath: () => import.meta.dirname };

@@ -29,7 +29,7 @@ test('deleting and rediscovering a config replaces the project and its build lis
         onSettingsChangeHtml: () => 'html' };
     GenericServer.instance = { workspaces: ['file:///workspace'], logLevel: 99,
         _extensionPath: join(import.meta.dirname, '..', '..'), isIDE: false,
-        connection: { sendNotification: () => {} } };
+        connection: { sendDiagnostics() {},  sendNotification: () => {} } };
     DependencyManager.instance = { getPath: () => join(import.meta.dirname, '..', '..') };
     ProjectManager.autoLoad = false;
     Build.prototype.init = async function () { this.initDone = true; };

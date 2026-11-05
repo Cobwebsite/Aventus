@@ -40,7 +40,7 @@ test('destroyed project releases config/file subscriptions, static watcher and q
     GenericServer.instance = {
         workspaces: [pathToFileURL(root).href], logLevel: 4, isIDE: false, _noBuild: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { delayBetweenBuild: () => 30, sendNotification: (...args) => notifications.push(args) },
+        connection: { sendDiagnostics() {},  delayBetweenBuild: () => 30, sendNotification: (...args) => notifications.push(args) },
     };
     let nextId = 0;
     FilesManager.instance = {

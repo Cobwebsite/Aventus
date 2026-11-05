@@ -19,7 +19,7 @@ test('parsed property and method revisions replace Custom Elements members and c
         npmBuilder: { unregister() {} }, hasNpmOutput: false, noNamespaceUri: {},
         getNamespaceForUri: () => '', getNpmReplacementName: () => '',
         tsFiles: {}, htmlFiles: {}, scssFiles: {},
-        externalPackageInformation: { getByUri: () => undefined },
+        externalPackageInformation: { getByUri: () => undefined, getByFullName: () => undefined },
     };
     const file = Object.create(AventusWebComponentLogicalFile.prototype);
     file._file = { uri };

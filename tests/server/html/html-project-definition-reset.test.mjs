@@ -31,7 +31,7 @@ test('project manager config replacement gives each build a fresh HTML definitio
     GenericServer.instance = {
         workspaces: ['file:///workspace'], logLevel: 99, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     DependencyManager.instance = { getPath: () => join(import.meta.dirname, '..', '..') };
     ProjectManager.autoLoad = false;

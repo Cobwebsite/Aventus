@@ -20,7 +20,7 @@ test('parsed component renews logic, view, style and companion declaration toget
     const build = {
         module: 'Demo', namespaces: [], isCoreBuild: false, hasNpmOutput: false, hasStories: false,
         npmBuilder: { unregister() {} }, buildConfig: { componentPrefix: 'demo' },
-        externalPackageInformation: { getNpmUri: () => null },
+        externalPackageInformation: { getNpmUri: () => null, getByFullName: () => undefined },
         getNamespaceForUri: () => '', getNpmReplacementName: () => '',
         wcFiles: {}, tsFiles: {}, scssFiles: {}, htmlFiles: {}, i18nComponentsFiles: {},
         tsLanguageService: { doValidation: () => [] }, addNamespace() {},
