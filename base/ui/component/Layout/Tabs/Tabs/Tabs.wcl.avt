@@ -165,7 +165,7 @@ namespace Layout.Tabs {
                 return false;
             }
             else if(typeof tabHeader == 'string') {
-                const header = this.tabs[tabHeader].tabHeader as TabHeader<T>;
+                const header = this.tabs[tabHeader]?.tabHeader as TabHeader<T> | undefined;
                 if(header)
                     return this.setActive(header);
                 return false;

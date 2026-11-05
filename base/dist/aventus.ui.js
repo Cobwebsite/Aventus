@@ -4624,6 +4624,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     __watchActionsCb = {};
     __watchFunctions = {};
     __watchFunctionsComputed = {};
+    __watchFunctionsDestroyed = false;
     __pressManagers = [];
     __signalActions = {};
     __signals = {};
@@ -4659,6 +4660,7 @@ let WebComponent=class WebComponent extends HTMLElement {
      * State + press
      */
     destructor() {
+        this.__watchFunctionsDestroyed = true;
         WebComponentInstance.removeInstance(this);
         this.__unsubscribeState();
         for (let press of this.__pressManagers) {
@@ -4757,7 +4759,12 @@ let WebComponent=class WebComponent extends HTMLElement {
         for (let name in this.__watchFunctions) {
             this.__watchFunctionsComputed[name] = Watcher.computed(this[name].bind(this));
             if (this.__watchFunctions[name].autoInit) {
-                this.__watchFunctionsComputed[name].value;
+                const computed = this.__watchFunctionsComputed[name];
+                queueMicrotask(() => {
+                    if (!this.__watchFunctionsDestroyed) {
+                        computed.value;
+                    }
+                });
             }
         }
     }
@@ -8858,7 +8865,7 @@ this.__getStatic().__template.setActions({
             return false;
         }
         else if (typeof tabHeader == 'string') {
-            const header = this.tabs[tabHeader].tabHeader;
+            const header = this.tabs[tabHeader]?.tabHeader;
             if (header)
                 return this.setActive(header);
             return false;

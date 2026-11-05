@@ -1,8 +1,0 @@
-import { PageForm } from "Aventus@UI:Aventus.Navigation.package.avt";
-
-export class RuntimeDocumentedPageForm extends PageForm<{ answer: string }, string>
-    implements Aventus.DefaultComponent {
-    public override configure(): Aventus.Navigation.PageConfig {
-        return { title: 'Documented form page' };
-    }
-}
