@@ -3,9 +3,7 @@
 
 
 
-- **`Tabs.setActive('missing')` lance une exception pour un identifiant inconnu.** Le cas compilé `cases/ui-tabs` charge trois onglets, sélectionne par index et par identifiant, puis appelle `setActive('missing')` : `Cannot read properties of undefined (reading 'tabHeader')`. Le même appel avec un index hors limites renvoie `false`. `compiled-project.test.mjs` vérifie les deux résultats dans Chromium. Faire renvoyer `false` pour un identifiant absent ou documenter l'exception.
 
-- **`PageForm` et `PageFormRoute` documentés sont absents du package UI.** Les cas `cases/page-form-documented` et `cases/page-form-route-documented` suivent les imports de `ui/page_form.md` et `ui/page_form_http.md` depuis `Aventus@UI:Aventus.Navigation.package.avt`. Les deux builds échouent avec un diagnostic d'export absent et ne publient aucun bundle. Une recherche dans `lib/Aventus@UI.package.avt` et `base/ui` ne trouve aucune déclaration de ces classes. `compiled-project.test.mjs` vérifie les deux diagnostics. Implémenter ces classes ou retirer et corriger les exemples documentaires.
 
 - **`ui/router.md` importe `Router` depuis le mauvais package.** Le cas `cases/router-documented-import/RuntimeDocumentedRouter.wcl.avt` reprend `import { Router } from "Aventus@Main:Aventus.package.avt"` et le CLI échoue avec un diagnostic d'export absent ; aucun bundle n'est publié. Une sous-classe importée depuis `Aventus@UI:Aventus.Navigation.package.avt` compile et active `/home`, puis `/other` dans Chromium. `compiled-project.test.mjs` vérifie les deux formes. Corriger l'import de l'exemple documentaire.
 

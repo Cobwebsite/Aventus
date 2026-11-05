@@ -2891,29 +2891,6 @@ test('the Router import shown in UI documentation fails against the Main package
     assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
 });
 
-for (const [name, caseFolder] of [
-    ['PageForm', 'page-form-documented'],
-    ['PageFormRoute', 'page-form-route-documented'],
-]) {
-    test(`the documented ${name} class is absent from the UI Navigation package`, t => {
-        const root = copyProject(t);
-        const filename = `RuntimeDocumented${name}`;
-        cpSync(join(root, 'cases', caseFolder), join(root, 'src', filename), { recursive: true });
-        const configPath = join(root, 'aventus.conf.avt');
-        const config = JSON.parse(readFileSync(configPath, 'utf8'));
-        config.build[0].dependencies = { 'Aventus@UI': {} };
-        config.build[0].compile[0].input = [`./src/${filename}/${filename}.wcl.avt`];
-        writeFileSync(configPath, JSON.stringify(config, null, 2));
-        const result = runBuild(root);
-        assert.equal(result.error, undefined, result.error?.message);
-        const report = JSON.parse(result.stdout);
-        assert.equal(report.success, false);
-        assert.match(JSON.stringify(report.builds['RuntimeReference@Main'].diagnostics),
-            new RegExp(`no exported member.*${name}|${name}.*not exported|Cannot find name.*${name}`));
-        assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
-    });
-}
-
 test('compiled UI Tabs initializes headers and switches selected panels', async t => {
     const root = copyProject(t);
     cpSync(join(root, 'cases/ui-tabs'), join(root, 'src/RuntimeTabs'), { recursive: true });
@@ -2964,12 +2941,13 @@ test('compiled UI Tabs initializes headers and switches selected panels', async 
         const dynamic = { count: container.shadowRoot.querySelectorAll(tags.header).length,
             selected: [first.selected, second.selected, third.selected], loaded: third.loaded };
         const invalidIndex = container.setActive(10);
-        let invalidName = '';
-        try { container.setActive('missing'); } catch(error) { invalidName = error.message; }
+        const invalidName = container.setActive('missing');
+        const afterInvalid = { selected: [first.selected, second.selected, third.selected],
+            headers: headers.map(header => header.active) };
         container.destructor?.();
         container.remove();
         return { tags, documentedTags, initial, byIndex, indexed, byName, named, dynamic,
-            invalidIndex, invalidName };
+            invalidIndex, invalidName, afterInvalid };
     });
     assert.deepEqual({ ...actual, pageErrors }, {
         tags: { tabs: 'rt-runtime-tabs', tab: 'rt-runtime-tab', header: 'rt-runtime-tab-header' },
@@ -2979,7 +2957,8 @@ test('compiled UI Tabs initializes headers and switches selected panels', async 
         byIndex: true, indexed: { selected: [false, true], headers: [false, true] },
         byName: true, named: { selected: [true, false], headers: [true, false] },
         dynamic: { count: 3, selected: [true, false, false], loaded: true },
-        invalidIndex: false, invalidName: "Cannot read properties of undefined (reading 'tabHeader')",
+        invalidIndex: false, invalidName: false,
+        afterInvalid: { selected: [true, false, false], headers: [true, false] },
         pageErrors: [],
     });
 });

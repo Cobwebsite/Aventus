@@ -26,7 +26,6 @@ Le cas `cases/ui-dependency/RuntimeUiGridHelper.lib.avt` importe `GridHelper` et
 Le cas `cases/ui-modal` ajoute deux sous-classes de `ModalElement` et vérifie l'affichage, les modes de fermeture, la touche Échap et les options globales.
 Les cas `cases/ui-page` et `cases/page-documented-import` comparent l'import fonctionnel de `Page` depuis le package UI à l'import documenté depuis le package Main, puis vérifient les transitions de visibilité.
 Le cas `cases/router-documented-import` vérifie de même l'import de `Router` proposé dans `ui/router.md` ; `cases/ui-page` contient aussi une sous-classe de routeur fonctionnelle.
-Les cas `cases/page-form-documented` et `cases/page-form-route-documented` vérifient que les deux classes de pages avec formulaire annoncées par la documentation ne sont pas exportées par le package UI.
 Le cas `cases/ui-tabs` fournit des sous-classes concrètes de `Tabs`, `Tab` et `TabHeader`, puis vérifie la sélection et les changements de contenu dans Chromium.
 
 Les tests de rendu exécutent le bundle compilé dans Chromium avec Playwright. Avant le premier `npm run test:runtime`, installer le navigateur avec `npm run test:runtime:install-browser`.

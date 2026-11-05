@@ -1,8 +1,0 @@
-import { PageFormRoute } from "Aventus@UI:Aventus.Navigation.package.avt";
-
-export class RuntimeDocumentedPageFormRoute extends PageFormRoute<Aventus.HttpRoute>
-    implements Aventus.DefaultComponent {
-    public override configure(): Aventus.Navigation.PageConfig {
-        return { title: 'Documented HTTP form page' };
-    }
-}
