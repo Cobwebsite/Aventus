@@ -411,7 +411,7 @@ test('compiled i18n files provide global translations and locale switching', asy
         return { loaderMissing, english, french, componentEnglish, componentFrench, locale: Aventus.I18n.getLocale() };
     }, translations);
     assert.deepEqual(actual, {
-        loaderMissing: true, english: ['Hello', '5 items'], french: ['Bonjour', '5 articles'],
+        loaderMissing: false, english: ['Hello', '5 items'], french: ['Bonjour', '5 articles'],
         componentEnglish: 'Hello component', componentFrench: 'Bonjour composant', locale: 'fr-fr',
     });
 });
@@ -1848,7 +1848,7 @@ test('compiled UI ShortcutManager normalizes key order and honors conditional fa
     });
 });
 
-test('compiled UI Img needs ResourceLoader before it can render an inline SVG', async t => {
+test('compiled UI Img includes ResourceLoader and renders an inline SVG', async t => {
     const root = copyProject(t);
     cpSync(join(root, 'cases/ui-dependency/RuntimeUiImage.lib.avt'),
         join(root, 'src/RuntimeUiImage.lib.avt'));
@@ -1870,8 +1870,6 @@ test('compiled UI Img needs ResourceLoader before it can render an inline SVG', 
         document.body.append(image);
         await new Promise(resolve => setTimeout(resolve, 0));
         const missingLoader = typeof Aventus.ResourceLoader;
-        image.src = '/logo.svg';
-        await new Promise(resolve => setTimeout(resolve, 0));
         Aventus.ResourceLoader = { load: async url => {
             calls.push(url);
             return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>';
@@ -1889,9 +1887,9 @@ test('compiled UI Img needs ResourceLoader before it can render an inline SVG', 
     });
     assert.deepEqual({ ...actual, pageErrors }, {
         tag: 'av-img', calls: ['/loaded.svg'], circle: true, mode: 'contains',
-        src: '/loaded.svg', missingLoader: 'undefined',
+        src: '/loaded.svg', missingLoader: 'function',
         fill: 'rgb(255, 0, 0)',
-        pageErrors: ["Cannot read properties of undefined (reading 'load')"],
+        pageErrors: [],
     });
 });
 
@@ -2608,13 +2606,12 @@ test('compiled UI GridHelper renders its grid and creates guides', async t => {
     assert.deepEqual({ ...actual, pageErrors }, {
         tag: 'av-grid-helper',
         initial: { registered: 'function', unit: 'px', hasShadow: true, grid: true,
-            width: 400, height: 300, columns: 0, rows: 0 },
-        beforeShortcut: true, afterShortcut: true, beforeLockPress: false, afterLockPress: false,
+            width: 400, height: 300, columns: 25, rows: 19 },
+        beforeShortcut: true, afterShortcut: false, beforeLockPress: false, afterLockPress: false,
         conversion: { inPx: 20, fromPx: 20 }, guides: 2,
         savedKeys: ['grid-helper'], savedValue: '{"x":[40],"y":[30]}',
         restoredGuides: 2,
-        pageErrors: ['Aventus.ResizeObserver is not a constructor',
-            'Aventus.ResizeObserver is not a constructor'],
+        pageErrors: [],
     });
 });
 

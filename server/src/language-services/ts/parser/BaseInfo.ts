@@ -228,10 +228,14 @@ export abstract class BaseInfo {
         else if (x.kind == SyntaxKind.PropertyAccessExpression) {
             let exp = (x as PropertyAccessExpression);
             let txt = exp.name.getText();
+            const qualifiedName = exp.getText();
             let baseInfo = ParserTs.getBaseInfo(txt, this.build);
-            if (baseInfo && exp.expression.getText() + "." + txt == baseInfo.fullName) {
+            if (baseInfo && qualifiedName == baseInfo.fullName) {
                 // when static call on external class
                 this.addDependencyName(baseInfo.fullName, isStrongDependency, exp.getStart(), exp.getEnd());
+            }
+            else if (this.build.externalPackageInformation.getByFullName(qualifiedName)) {
+                this.addDependencyName(qualifiedName, isStrongDependency, exp.getStart(), exp.getEnd());
             }
             else {
                 // when static call on local class
