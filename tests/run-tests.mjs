@@ -34,6 +34,14 @@ for (const category of selected.length ? [...new Set(selected)] : categories) {
             process.stderr.write('runtime: base bundle build failed\n');
             process.exit(1);
         }
+        const syncPackages = spawnSync(process.execPath, [resolve(root, 'cli/postBuild.mjs')], {
+            cwd: root, encoding: 'utf8',
+        });
+        if (syncPackages.error) throw syncPackages.error;
+        if (syncPackages.status !== 0) {
+            process.stderr.write(syncPackages.stderr);
+            process.exit(1);
+        }
     }
     const directory = resolve(root, 'tests', category);
     const tests = readdirSync(directory, { recursive: true, withFileTypes: true })

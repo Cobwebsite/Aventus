@@ -175,6 +175,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     private __watchActionsCb: { [key: string]: (type: WatchAction, path: string, element: any) => void; } = {};
     private __watchFunctions: { [key: string]: { autoInit: boolean; }; } = {};
     private __watchFunctionsComputed: { [name: string]: Computed<any>; } = {};
+    private __watchFunctionsDestroyed: boolean = false;
     private __pressManagers: PressManager[] = [];
     @Internal()
     public __signalActions: { [key: string]: () => void; } = {};
@@ -220,6 +221,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
      * State + press
      */
     public destructor() {
+        this.__watchFunctionsDestroyed = true;
         WebComponentInstance.removeInstance(this);
         this.__unsubscribeState();
         for(let press of this.__pressManagers) {
@@ -321,7 +323,12 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         for(let name in this.__watchFunctions) {
             this.__watchFunctionsComputed[name] = Watcher.computed((this as any)[name].bind(this));
             if(this.__watchFunctions[name].autoInit) {
-                this.__watchFunctionsComputed[name].value;
+                const computed = this.__watchFunctionsComputed[name];
+                queueMicrotask(() => {
+                    if(!this.__watchFunctionsDestroyed) {
+                        computed.value;
+                    }
+                });
             }
         }
     }

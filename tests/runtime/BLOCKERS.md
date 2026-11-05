@@ -1,7 +1,6 @@
 # Points à analyser pour les tests du runtime
 
 
-- **`@Effect` avec `@Signal` est lancé avant l'initialisation du signal.** Le composant `src/RuntimeEffect.wcl.avt` définit `@Signal() count` et `@Effect() record()` qui lit `this.count`. Le bundle compile, mais `new RuntimeEffect()` lance `Cannot read properties of undefined (reading 'value')` dans le getter de `count`, appelé par l'effet depuis le constructeur de base. L'effet ne peut donc pas observer ce signal. `compiled-project.test.mjs` vérifie le comportement dans Chromium.
 
 - **`@I18n` est reconnu par le parseur mais empêche la compilation.** Le cas `cases/i18n-decorator/RuntimeI18nDecorator.lib.avt` applique `@I18n({ autoInit: false })` à une propriété de classe. Le nom figure dans `server/src/language-services/ts/parser/DecoratorInfo.ts` parmi les décorateurs effaçables, et `I18nDecorator.ts` définit l'option `autoInit`, mais aucune utilisation de cette classe n'existe dans `server/src`. Le CLI renvoie `Cannot find name 'I18n'`, échoue et ne produit aucun bundle. `compiled-project.test.mjs` vérifie ce diagnostic. La documentation publique ne décrit pas cette annotation ; clarifier si elle doit être prise en charge ou retirée de la liste du parseur.
 
