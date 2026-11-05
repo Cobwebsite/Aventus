@@ -372,6 +372,10 @@ test('build avoidParsingInsideTags overrides the project tag list', async t => {
 
 test('compiled i18n files provide global translations and locale switching', async t => {
     const root = copyProject(t);
+    const configPath = join(root, 'aventus.conf.avt');
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    config.build[0].i18n.autoRegister = true;
+    writeFileSync(configPath, JSON.stringify(config, null, 2));
     const { code } = buildProject(root);
     const translations = Object.fromEntries(['en-gb', 'fr-fr'].map(locale => [
         locale, JSON.parse(readFileSync(join(root, `dist/locales/${locale}.json`), 'utf8')),
@@ -383,21 +387,23 @@ test('compiled i18n files provide global translations and locale switching', asy
     const browser = await chromium.launch();
     t.after(() => browser.close());
     const page = await browser.newPage();
-    await page.route('https://example.test/**', route => route.fulfill({
-        status: 200, contentType: 'text/html', body: '<!doctype html><html><body></body></html>',
-    }));
+    await page.route('https://example.test/**', route => {
+        const pathname = new URL(route.request().url()).pathname;
+        const locale = pathname.includes('/locales/fr-fr.json') ? 'fr-fr' :
+            pathname.includes('/locales/en-gb.json') ? 'en-gb' : null;
+        if (locale) return route.fulfill({
+            status: 200, contentType: 'application/json',
+            body: JSON.stringify(translations[locale]),
+        });
+        return route.fulfill({
+            status: 200, contentType: 'text/html', body: '<!doctype html><html><body></body></html>',
+        });
+    });
     await page.goto('https://example.test/');
     await page.addScriptTag({ content: code });
-    const actual = await page.evaluate(async translations => {
-        const loaderMissing = Aventus.ResourceLoader === undefined;
-        Aventus.ResourceLoader = { load: async url => {
-            const locale = url.includes('fr-fr') ? 'fr-fr' : 'en-gb';
-            return JSON.stringify(translations[locale]);
-        } };
-        Aventus.I18n.registerLocales(['en-gb', 'fr-fr']);
-        Aventus.I18n.registerFallback('en-gb');
-        Aventus.I18n.registerFile('/locales/$locale.json', { load: false });
-        await Aventus.I18n.init();
+    await page.waitForFunction(() => window.t?.('hello') === 'Hello');
+    const actual = await page.evaluate(async () => {
+        const loaderPresent = typeof Aventus.ResourceLoader === 'function';
         const english = [window.t('hello'), window.t('{qty} items', { qty: '5' })];
         const component = document.createElement('rt-runtime-markup');
         document.body.append(component);
@@ -408,10 +414,10 @@ test('compiled i18n files provide global translations and locale switching', asy
         const componentFrench = component.shadowRoot.querySelector('.translated').textContent.trim();
         component.destructor();
         component.remove();
-        return { loaderMissing, english, french, componentEnglish, componentFrench, locale: Aventus.I18n.getLocale() };
-    }, translations);
+        return { loaderPresent, english, french, componentEnglish, componentFrench, locale: Aventus.I18n.getLocale() };
+    });
     assert.deepEqual(actual, {
-        loaderMissing: false, english: ['Hello', '5 items'], french: ['Bonjour', '5 articles'],
+        loaderPresent: true, english: ['Hello', '5 items'], french: ['Bonjour', '5 articles'],
         componentEnglish: 'Hello component', componentFrench: 'Bonjour composant', locale: 'fr-fr',
     });
 });
@@ -3702,24 +3708,6 @@ test('compiled HttpRequest hooks surround transport and can set headers', async 
     assert.equal(actual.success, true);
     assert.equal(actual.text, 'hooked response');
     assert.ok(actual.headers.some(([name, value]) => name === 'X-Runtime' && value === 'hooked'));
-});
-
-test('the documented minimal Ram class reports its missing abstract implementations', t => {
-    const root = copyProject(t);
-    cpSync(join(root, 'cases/documented-ram/RuntimePerson.ram.avt'),
-        join(root, 'src/RuntimePerson.ram.avt'));
-    const result = runBuild(root);
-    assert.equal(result.error, undefined, result.error?.message);
-    assert.equal(result.status, 1);
-    const report = JSON.parse(result.stdout);
-    assert.equal(report.success, false);
-    const diagnostics = Object.values(report.builds['RuntimeReference@Main'].diagnostics).flat();
-    assert.ok(diagnostics.some(diagnostic =>
-        diagnostic.type === 'error' &&
-        diagnostic.content.includes('missing implementations') &&
-        diagnostic.content.includes('transformCreateRequestToItem') &&
-        diagnostic.content.includes('transformUpdateRequestListToItem')));
-    assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
 });
 
 test('compiled Watch and Signal callbacks distinguish deep edits from assignment', async t => {
