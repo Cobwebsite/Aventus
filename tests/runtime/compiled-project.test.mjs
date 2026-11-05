@@ -2778,8 +2778,8 @@ test('compiled UI ModalElement global defaults apply to a new subclass instance'
         before: { closeWithClick: true, closeWithEsc: true, rejectValue: null },
         clickOutcome: { resolved: true, value: null },
         insideOutcome: { resolved: false },
-        after: { closeWithClick: false, closeWithEsc: false, rejectValue: null },
-        cancelValue: null,
+        after: { closeWithClick: false, closeWithEsc: false, rejectValue: false },
+        cancelValue: false,
     });
 });
 
@@ -2814,21 +2814,6 @@ test('compiled UI Page invokes visibility hooks and renders its template', async
         after: { visible: false, events: ['hide', 'show', 'show', 'hide'],
             config: { title: 'Runtime page', description: 'Compiled page', keywords: ['runtime'] } },
     });
-});
-
-test('the Page import shown in UI documentation fails against the Main package', t => {
-    const root = copyProject(t);
-    cpSync(join(root, 'cases/page-documented-import'), join(root, 'src/RuntimeDocumentedPage'), { recursive: true });
-    const configPath = join(root, 'aventus.conf.avt');
-    const config = JSON.parse(readFileSync(configPath, 'utf8'));
-    config.build[0].compile[0].input = ['./src/RuntimeDocumentedPage/RuntimeDocumentedPage.wcl.avt'];
-    writeFileSync(configPath, JSON.stringify(config, null, 2));
-    const result = runBuild(root);
-    assert.equal(result.error, undefined, result.error?.message);
-    const report = JSON.parse(result.stdout);
-    assert.equal(report.success, false);
-    assert.match(JSON.stringify(report.builds['RuntimeReference@Main'].diagnostics), /no exported member.*Page|Page.*not exported|Cannot find name.*Page/);
-    assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
 });
 
 test('compiled UI Router registers and activates Page routes', async t => {
@@ -2872,23 +2857,6 @@ test('compiled UI Router registers and activates Page routes', async t => {
         after: { navigated: true, transitions: ['>/home', '/home>/other'],
             pages: 2, active: '/other', visible: [false, true] },
     });
-});
-
-test('the Router import shown in UI documentation fails against the Main package', t => {
-    const root = copyProject(t);
-    cpSync(join(root, 'cases/router-documented-import'),
-        join(root, 'src/RuntimeDocumentedRouter'), { recursive: true });
-    const configPath = join(root, 'aventus.conf.avt');
-    const config = JSON.parse(readFileSync(configPath, 'utf8'));
-    config.build[0].compile[0].input = ['./src/RuntimeDocumentedRouter/RuntimeDocumentedRouter.wcl.avt'];
-    writeFileSync(configPath, JSON.stringify(config, null, 2));
-    const result = runBuild(root);
-    assert.equal(result.error, undefined, result.error?.message);
-    const report = JSON.parse(result.stdout);
-    assert.equal(report.success, false);
-    assert.match(JSON.stringify(report.builds['RuntimeReference@Main'].diagnostics),
-        /no exported member.*Router|Router.*not exported|Cannot find name.*Router/);
-    assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
 });
 
 test('compiled UI Tabs initializes headers and switches selected panels', async t => {

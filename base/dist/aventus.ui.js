@@ -12173,7 +12173,7 @@ this.__getStatic().__template.setActions({
             this.defaultCloseWithClick = options.closeWithClick;
         if (options.closeWithEsc !== undefined)
             this.defaultCloseWithEsc = options.closeWithEsc;
-        if (!Object.hasOwn(options, "rejectValue")) {
+        if (Object.hasOwn(options, "rejectValue")) {
             this.defaultRejectValue = options.rejectValue;
         }
     }

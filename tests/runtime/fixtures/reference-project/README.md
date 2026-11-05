@@ -24,8 +24,8 @@ Le cas `cases/ui-button` ajoute une sous-classe de `ButtonElement` avec une vue 
 Le cas `cases/ui-form-element` ajoute une sous-classe de `FormElement` avec une validation locale et vérifie sa valeur et sa validité dans un formulaire natif, ainsi que sa synchronisation avec `FormHandler`.
 Le cas `cases/ui-dependency/RuntimeUiGridHelper.lib.avt` importe `GridHelper` et vérifie sa grille, ses conversions d'unités, ses raccourcis, le déplacement et la persistance des guides dans Chromium, avec et sans `ResizeObserver` simulé.
 Le cas `cases/ui-modal` ajoute deux sous-classes de `ModalElement` et vérifie l'affichage, les modes de fermeture, la touche Échap et les options globales.
-Les cas `cases/ui-page` et `cases/page-documented-import` comparent l'import fonctionnel de `Page` depuis le package UI à l'import documenté depuis le package Main, puis vérifient les transitions de visibilité.
-Le cas `cases/router-documented-import` vérifie de même l'import de `Router` proposé dans `ui/router.md` ; `cases/ui-page` contient aussi une sous-classe de routeur fonctionnelle.
+Le cas `cases/ui-page` vérifie l'import de `Page` depuis le package UI et ses transitions de visibilité.
+Le cas `cases/ui-page` contient une sous-classe de routeur fonctionnelle.
 Le cas `cases/ui-tabs` fournit des sous-classes concrètes de `Tabs`, `Tab` et `TabHeader`, puis vérifie la sélection et les changements de contenu dans Chromium.
 
 Les tests de rendu exécutent le bundle compilé dans Chromium avec Playwright. Avant le premier `npm run test:runtime`, installer le navigateur avec `npm run test:runtime:install-browser`.
