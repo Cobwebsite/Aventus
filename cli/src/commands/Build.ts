@@ -119,6 +119,18 @@ export class Build extends Action<BuildOptions> {
 
 		const errorsByBuild = Server.getErrors();
 		let hasGlobalFailed = false;
+		if (errorsByBuild['']) {
+			for (const uri in errorsByBuild['']) {
+				for (const diagnostic of errorsByBuild[''][uri]) {
+					if (diagnostic.severity === DiagnosticSeverity.Error) {
+						hasGlobalFailed = true;
+					}
+					if (!options.silent) {
+						console.error(`${uriToPath(uri)}:${diagnostic.range.start.line + 1} : ${diagnostic.message}`);
+					}
+				}
+			}
+		}
 
 		const filesByBuilds: { [build: string]: string[] } = {}
 		const filesByStatics: { [name: string]: string[] } = {}
@@ -254,6 +266,7 @@ export class Build extends Action<BuildOptions> {
 		const statistics = Server.getStatistics();
 		const result: {
 			success: boolean,
+			diagnostics?: { [uri: string]: { content: string, type: 'error' | 'warning' | 'info' | 'hint', start: string, end: string }[] },
 			builds: {
 				[name: string]: {
 					success: boolean,
@@ -285,6 +298,27 @@ export class Build extends Action<BuildOptions> {
 
 		const errorsByBuild = Server.getErrors();
 		let hasGlobalFailed = false;
+		if (errorsByBuild['']) {
+			for (const uri in errorsByBuild['']) {
+				const path = uriToPath(uri).replace(/\\/g, '/');
+				if (!result.diagnostics) {
+					result.diagnostics = {};
+				}
+				result.diagnostics[path] = [];
+				for (let diagnostic of errorsByBuild[''][uri]) {
+					if (diagnostic.severity === DiagnosticSeverity.Error) {
+						result.success = false;
+						hasGlobalFailed = true;
+					}
+					result.diagnostics[path].push({
+						content: diagnostic.message,
+						type: diagnostic.severity === DiagnosticSeverity.Error ? 'error' as const : diagnostic.severity === DiagnosticSeverity.Warning ? 'warning' as const : diagnostic.severity === DiagnosticSeverity.Information ? 'info' as const : 'hint' as const,
+						start: `${diagnostic.range.start.line + 1}:${diagnostic.range.start.character}`,
+						end: `${diagnostic.range.end.line + 1}:${diagnostic.range.end.character}`,
+					});
+				}
+			}
+		}
 
 		const checkBuild = (build: string) => {
 			if (result.builds[build]) return;
