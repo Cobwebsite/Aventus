@@ -1541,7 +1541,7 @@ test('build package output contains declarations and source metadata for selecte
     assert.doesNotMatch(packageText, /RuntimeList/);
 });
 
-test('a locally generated package dependency silently skips a second project build', t => {
+test('a locally generated package dependency allows a second project build', t => {
     const producer = copyProject(t);
     const producerConfigPath = join(producer, 'aventus.conf.avt');
     const producerConfig = JSON.parse(readFileSync(producerConfigPath, 'utf8'));
@@ -1569,8 +1569,9 @@ test('a locally generated package dependency silently skips a second project bui
     const result = runBuild(consumer);
     assert.equal(result.error, undefined, result.error?.message);
     const report = JSON.parse(result.stdout);
-    assert.equal(report.success, true);
-    assert.deepEqual(report.builds, {});
+    assert.equal(report.success, true, result.stdout);
+    assert.equal(report.builds['PackageConsumer@Main']?.success, true, result.stdout);
+    assert.equal(existsSync(join(consumer, 'dist/runtime-reference.js')), true);
 
     consumerConfig.build[0].compile[0].input = ['./src/RuntimeLocalPackage.lib.avt'];
     cpSync(join(consumer, 'cases/local-package/RuntimeLocalPackage.lib.avt'),
@@ -1580,7 +1581,8 @@ test('a locally generated package dependency silently skips a second project bui
     assert.equal(imported.error, undefined, imported.error?.message);
     const importedReport = JSON.parse(imported.stdout);
     assert.equal(importedReport.success, true);
-    assert.deepEqual(importedReport.builds, {});
+    assert.equal(importedReport.builds['PackageConsumer@Main']?.success, true, imported.stdout);
+    assert.equal(existsSync(join(consumer, 'dist/runtime-reference.js')), true);
 });
 
 test('a configured Aventus UI package import compiles and registers its required component', async t => {
