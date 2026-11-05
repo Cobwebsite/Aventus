@@ -3320,17 +3320,13 @@ test('compiled Internal decorator keeps a class usable inside its package but hi
     assert.deepEqual(actual, { internalExport: 'undefined', internalUsage: 'internal' });
 });
 
-test('documented Required class decorator is rejected by its declared method signature', t => {
+test('documented Required class decorator compiles and exports the class', async t => {
     const root = copyProject(t);
     cpSync(join(root, 'cases/required-class/RuntimeRequired.lib.avt'),
         join(root, 'src/RuntimeRequired.lib.avt'));
-    const result = runBuild(root);
-    assert.equal(result.error, undefined, result.error?.message);
-    const report = JSON.parse(result.stdout);
-    assert.equal(report.success, false);
-    const diagnostics = JSON.stringify(report.builds['RuntimeReference@Main'].diagnostics);
-    assert.match(diagnostics, /RuntimeRequired\.lib\.avt/);
-    assert.match(diagnostics, /Unable to resolve signature of class decorator/);
+    const { code } = buildProject(root);
+    const page = await openCompiledPage(t, code);
+    assert.equal(await page.evaluate(() => RuntimeReference.RuntimeRequired.value()), 'required');
 });
 
 test('documented Dependances spelling is rejected while the compiler declares Dependencies', t => {
