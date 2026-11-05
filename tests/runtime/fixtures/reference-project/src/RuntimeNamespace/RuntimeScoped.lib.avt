@@ -1,5 +1,0 @@
-export class RuntimeScoped {
-    public static name(): string {
-        return "scoped";
-    }
-}

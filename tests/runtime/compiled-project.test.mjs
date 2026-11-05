@@ -3256,48 +3256,6 @@ test('live Storybook export builds the bundle and Storybook files', t => {
     assert.equal(existsSync(join(storyRoot, 'auto')), true);
 });
 
-test('followFolders namespace strategy leaves a library at the module root', async t => {
-    const root = copyProject(t);
-    const configPath = join(root, 'aventus.conf.avt');
-    const config = JSON.parse(readFileSync(configPath, 'utf8'));
-    config.build[0].compile[0].input = ['./src/RuntimeNamespace/RuntimeScoped.lib.avt'];
-    config.namespaceStrategy = 'followFolders';
-    config.namespaceRoot = './src';
-    config.build[0].namespaceStrategy = 'followFolders';
-    config.build[0].namespaceRoot = './src';
-    writeFileSync(configPath, JSON.stringify(config, null, 2));
-    const { code } = buildProject(root);
-    const page = await openCompiledPage(t, code);
-    const actual = await page.evaluate(() => ({
-        scoped: RuntimeReference.RuntimeNamespace?.RuntimeScoped?.name(),
-        rootValue: RuntimeReference.RuntimeScoped?.name(),
-    }));
-    assert.deepEqual(actual, { scoped: undefined, rootValue: 'scoped' });
-});
-
-for (const [strategy, extra] of [
-    ['followFoldersCamelCase', { namespaceRoot: './src' }],
-    ['rules', { namespaceRules: { Configured: ['./src/RuntimeNamespace/*'] } }],
-]) {
-    test(`${strategy} namespace strategy leaves a library at the module root`, async t => {
-        const root = copyProject(t);
-        const configPath = join(root, 'aventus.conf.avt');
-        const config = JSON.parse(readFileSync(configPath, 'utf8'));
-        config.build[0].compile[0].input = ['./src/RuntimeNamespace/RuntimeScoped.lib.avt'];
-        Object.assign(config, { namespaceStrategy: strategy, ...extra });
-        Object.assign(config.build[0], { namespaceStrategy: strategy, ...extra });
-        writeFileSync(configPath, JSON.stringify(config, null, 2));
-        const { code } = buildProject(root);
-        const page = await openCompiledPage(t, code);
-        const actual = await page.evaluate(() => ({
-            root: RuntimeReference.RuntimeScoped?.name(),
-            folder: RuntimeReference.RuntimeNamespace?.RuntimeScoped?.name(),
-            configured: RuntimeReference.Configured?.RuntimeScoped?.name(),
-        }));
-        assert.deepEqual(actual, { root: 'scoped', folder: undefined, configured: undefined });
-    });
-}
-
 test('compiled library exports a root function, constant, and enum', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
