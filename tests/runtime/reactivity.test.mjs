@@ -111,9 +111,9 @@ test('Watcher subscriptions can be removed and extraction returns current plain 
     assert.equal(plain.value, 3);
 });
 
-test('Watcher tracks array removals and reordering and extracts the final order', () => {
+test('Watcher notifies the whole array after reordering and extracts the final order', () => {
     const context = loadRuntimeContext();
-    const { Watcher } = context.Aventus;
+    const { Watcher, WatchAction } = context.Aventus;
     const changes = [];
     const model = Watcher.get(runInNewContext('({ items: [3, 1, 2] })', context),
         (action, path) => changes.push([action, path]));
@@ -123,6 +123,7 @@ test('Watcher tracks array removals and reordering and extracts the final order'
     assert.deepEqual(Array.from(Watcher.extract(model).items), [2, 3]);
     assert.equal(changes.some(([, path]) => path === 'items[1]'), true);
     assert.equal(changes.some(([, path]) => path === 'items.length'), true);
+    assert.deepEqual(changes.filter(([, path]) => path === 'items'), [[WatchAction.UPDATED, 'items']]);
 });
 
 test('Watcher extracts a replacement child but still reports edits on the detached child', () => {

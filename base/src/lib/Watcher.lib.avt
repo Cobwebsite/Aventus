@@ -549,6 +549,13 @@ export class Watcher {
                                 };
                             }
                         }
+                        else if(['reverse', 'sort', 'shift', 'unshift', 'fill', 'copyWithin'].includes(prop)) {
+                            result = (...args: any[]) => {
+                                const value = element.apply(target, args);
+                                trigger('UPDATED', target, receiver, receiver, '');
+                                return value === target ? receiver : value;
+                            };
+                        }
                         // else if(prop == 'find') {
                         //    // TODO
                         // }
