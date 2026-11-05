@@ -43,7 +43,7 @@ test('action TS : propriétés ajoutées à une interface distante, plages et di
     service.filesLoaded = files;
     service.filesNeeded = Object.keys(files);
     service.i18nFiles = {};
-    service.build = { tsFiles: files, npmBuilder: { unregister() {} }, externalPackageInformation: { getNpmUri: () => undefined }, getNpmReplacementName: () => '', project: { resolveAlias: name => name }, buildConfig: { stories: false }, hasNpmOutput: false, namespaces: [] };
+    service.build = { tsFiles: files, npmBuilder: { unregister() {} }, externalPackageInformation: { getNpmUri: () => undefined, getByFullName: () => undefined }, getNpmReplacementName: () => '', project: { resolveAlias: name => name }, buildConfig: { stories: false }, hasNpmOutput: false, namespaces: [] };
     try {
         assert.equal(languageService.getSemanticDiagnostics(consumerUri).some(item => item.code === 2420), false);
         refresh(contractUri, 'namespace Shared { export interface Item { name: string; id: number; active: boolean; } }');

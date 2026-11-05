@@ -84,6 +84,7 @@ test('one full build combines two real component views and styles with npm outpu
         logical.fileParsed = parsed;
         logical._componentClassName = name;
         logical.htmlDiagnostics = [];
+        logical.diagnostics = [];
         Object.defineProperty(logical, 'viewMethodName', { value: '__view' });
         logical.resetViewClassInfoDep = () => {};
         build.tsFiles[logicUri] = logical;

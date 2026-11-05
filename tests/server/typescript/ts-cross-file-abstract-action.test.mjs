@@ -41,7 +41,7 @@ test('action TS : une méthode abstraite ajoutée dans un autre fichier est impl
     service.filesLoaded = files;
     service.filesNeeded = Object.keys(files);
     service.i18nFiles = {};
-    service.build = { tsFiles: files, npmBuilder: { unregister() {} }, externalPackageInformation: { getNpmUri: () => undefined }, getNpmReplacementName: () => '', project: { resolveAlias: name => name }, buildConfig: { stories: false }, hasNpmOutput: false, namespaces: [] };
+    service.build = { tsFiles: files, npmBuilder: { unregister() {} }, externalPackageInformation: { getNpmUri: () => undefined, getByFullName: () => undefined }, getNpmReplacementName: () => '', project: { resolveAlias: name => name }, buildConfig: { stories: false }, hasNpmOutput: false, namespaces: [] };
     try {
         assert.equal(languageService.getSemanticDiagnostics(childUri).some(item => item.code === 2515), false);
         refresh(baseUri, 'namespace Shared { export abstract class Base { abstract name(): string; abstract id(): number; } }');

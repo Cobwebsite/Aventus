@@ -64,7 +64,7 @@ test('configuration reload resets omitted overrides and accepts empty client res
 test('project configuration recovers after malformed JSON', async () => {
     const oldServer = GenericServer.instance;
     const oldSettings = SettingsManager.instance;
-    GenericServer.instance = { workspaces: ['file:///D:/app'], logLevel: 4 };
+    GenericServer.instance = { workspaces: ['file:///D:/app'], logLevel: 4, connection: { sendDiagnostics() {} } };
     SettingsManager.instance = { settings: { defaultHideWarnings: false } };
     const uri = 'file:///D:/app/aventus.conf.avt';
     const project = Object.create(Project.prototype);

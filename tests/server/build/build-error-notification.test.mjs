@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -66,7 +66,7 @@ test('full build publishes npm and source errors in compile order, then clears t
     assert.deepEqual(notifications.filter(([name]) => name === 'aventus/compiled'), [
         ['aventus/compiled', ['Demo@web', [npmErrors[0], sourceErrors[0], npmErrors[1], sourceErrors[1]]]],
     ]);
-    for (const path of outputs) assert.match(readFileSync(path, 'utf8'), /RevisionBroken/);
+    for (const path of outputs) assert.equal(existsSync(path), false);
 
     broken = false;
     compileIndex = 0;

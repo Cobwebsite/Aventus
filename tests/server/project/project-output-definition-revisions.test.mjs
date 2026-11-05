@@ -26,7 +26,7 @@ test('component definitions follow package output revisions and invalid config r
     GenericServer.instance = {
         workspaces: ['file:///workspace'], logLevel: 99, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile: () => {} };
     DependencyManager.instance = { getPath: () => '/workspace/dependencies' };

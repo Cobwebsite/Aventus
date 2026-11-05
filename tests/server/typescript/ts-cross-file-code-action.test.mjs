@@ -42,7 +42,7 @@ test('action TS inter-fichiers : un membre ajouté à l’interface est impléme
     service.filesLoaded = files;
     service.filesNeeded = Object.keys(files);
     service.i18nFiles = {};
-    service.build = { tsFiles: files, npmBuilder: { unregister() {} }, externalPackageInformation: { getNpmUri: () => undefined }, getNpmReplacementName: () => '', getNamespaceForUri: () => '', project: { resolveAlias: name => name }, buildConfig: { stories: false }, hasNpmOutput: false, namespaces: [] };
+    service.build = { tsFiles: files, npmBuilder: { unregister() {} }, externalPackageInformation: { getNpmUri: () => undefined, getByFullName: () => undefined }, getNpmReplacementName: () => '', getNamespaceForUri: () => '', project: { resolveAlias: name => name }, buildConfig: { stories: false }, hasNpmOutput: false, namespaces: [] };
     try {
         assert.equal(languageService.getSemanticDiagnostics(consumerUri).some(item => item.code === 2420), false);
         refresh(ownerUri, 'namespace Shared { export interface Named { name(): string; id(): number; } }');

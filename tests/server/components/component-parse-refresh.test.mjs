@@ -16,7 +16,7 @@ test('component compiler keeps a declared component through a real source revisi
     const build = {
         module: 'Demo', namespaces: [], isCoreBuild: false, hasNpmOutput: false, hasStories: false,
         npmBuilder: { unregister() {} }, buildConfig: { componentPrefix: 'demo', nodeModulesDir: 'D:/Aventus/Aventus/node_modules' },
-        externalPackageInformation: { getNpmUri: () => null },
+        externalPackageInformation: { getNpmUri: () => null, getByFullName: () => undefined },
         getNamespaceForUri: () => '', getNpmReplacementName: () => '',
         wcFiles: {}, tsFiles: {}, scssFiles: {}, htmlFiles: {}, i18nComponentsFiles: {},
         tsLanguageService: { doValidation: () => [] }, addNamespace() {},

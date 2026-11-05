@@ -74,7 +74,7 @@ test('Sharp and PHP install a missing converter after approval and export in the
     assert.deepEqual(executions.map(command => command.split(' ')[0]), [
         'dotnet', 'csharp-converter', 'composer', 'php-converter',
     ]);
-    assert.deepEqual(events.filter(([method]) => method === 'aventus/sharp/compiling').map(([, value]) => value), [
+    assert.deepEqual(events.filter(([method]) => (method === 'aventus/sharp/compiling' || method === 'aventus/php/compiling')).map(([, value]) => value), [
         ['Demo.csproj', 'compiling', undefined],
         ['Demo.csproj', 'success', undefined],
         ['vendor/demo', 'compiling', undefined],

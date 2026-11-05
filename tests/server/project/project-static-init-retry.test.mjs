@@ -40,7 +40,7 @@ test('a failed second static export clears both statics and the build before ret
     GenericServer.instance = {
         workspaces: [pathToFileURL(root).href], logLevel: 0, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile: () => {} };
     DependencyManager.instance = { getPath: () => root };

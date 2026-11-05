@@ -27,7 +27,7 @@ test('saving unchanged project configuration replaces the old build without dupl
     GenericServer.instance = {
         workspaces: ['file:///D:/project'], logLevel: 0, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile: () => {} };
     DependencyManager.instance = { getPath: () => import.meta.dirname };

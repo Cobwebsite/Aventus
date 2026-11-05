@@ -65,7 +65,7 @@ test('Sharp and PHP publish stdout diagnostic once when both process streams rep
         ['csharp_errors', 'Error : main converter failure'],
         ['php_errors', 'Error : main converter failure'],
     ]);
-    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling').map(([, value]) => value), [
+    assert.deepEqual(events.filter(([name]) => (name === 'aventus/sharp/compiling' || name === 'aventus/php/compiling')).map(([, value]) => value), [
         ['Example.csproj', 'compiling', undefined],
         ['Example.csproj', 'error', [{ title: 'C# error', file: 'csharp_errors' }]],
         ['vendor/example', 'compiling', undefined],

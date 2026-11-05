@@ -69,7 +69,7 @@ test('disk changes to one of two sources preserve the other source in build outp
         codeRenderInJs: [], codeNotRenderInJs: [],
     });
     build.registerFile = file => {
-        build.tsFiles[file.uri] = { file };
+        build.tsFiles[file.uri] = { file, getDiagnostics: () => [] };
         build.registerOnFileDelete(file);
         file.onSave(async () => build.build());
     };

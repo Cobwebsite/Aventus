@@ -25,7 +25,7 @@ test('exact-file source routing follows revisions in one project without changin
     GenericServer.instance = {
         workspaces: ['file:///D:/round169'], logLevel: 0, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile: () => {} };
     DependencyManager.instance = { getPath: () => import.meta.dirname };

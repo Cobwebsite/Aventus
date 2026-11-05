@@ -7,7 +7,7 @@ const [{ Project }, { SettingsManager }, { GenericServer }, { FilesManager }] = 
     'project/Project.ts', 'settings/Settings.ts', 'GenericServer.ts', 'files/FilesManager.ts',
 ]);
 SettingsManager.instance = { settings: { defaultHideWarnings: false } };
-GenericServer.instance = { workspaces: ['file:///D:/app'], logLevel: 4 };
+GenericServer.instance = { workspaces: ['file:///D:/app'], logLevel: 4, connection: { sendDiagnostics() {} } };
 
 function project(value) {
     const instance = Object.create(Project.prototype);

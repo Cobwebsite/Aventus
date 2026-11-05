@@ -3,11 +3,10 @@ import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from '../helpers/load-ts.mjs';
 
-const [, { ParserTs }, { I18nDecorator }, { ForeignKeyDecorator },
+const [, { ParserTs }, { ForeignKeyDecorator },
     { OverrideViewDecorator }, { StorybookDecorator }, { GenericServer }] = await loadServerModules([
     'language-services/ts/FileSelector.ts',
     'language-services/ts/parser/ParserTs.ts',
-    'language-services/ts/parser/decorators/I18nDecorator.ts',
     'language-services/ts/parser/decorators/ForeignKeyDecorator.ts',
     'language-services/ts/parser/decorators/OverrideViewDecorator.ts',
     'language-services/ts/parser/decorators/StorybookDecorator.ts',
@@ -20,7 +19,7 @@ function parse(source) {
     const uri = `file:///D:/test/decorators-deep-${++id}.lib.avt`;
     const document = TextDocument.create(uri, 'typescript', 1, source);
     const file = { uri, versionInternal: 1, documentUser: document, documentInternal: document };
-    const build = { npmBuilder: { unregister() {} }, buildConfig: {}, hasNpmOutput: false,
+    const build = { npmBuilder: { unregister() {} }, externalPackageInformation: { getByFullName: () => undefined }, buildConfig: {}, hasNpmOutput: false,
         getNamespaceForUri: () => '', getNpmReplacementName: () => '' };
     return ParserTs.parse(file, false, build).classes.Card;
 }
@@ -36,10 +35,9 @@ test('Storybook reads nested slots, export selection and presentation flags from
     assert.deepEqual(story.slots, { values: { title: 'Example' }, inject: ['slotA', 'slotB'] });
 });
 
-test('I18n and OverrideView accept their typed option values through parser decorators', () => {
-    const card = parse('@I18n({autoInit:false}) @OverrideView({removeViewVariables:[title,button]}) export class Card {}');
-    assert.equal(I18nDecorator.is(card.decorators[0]).options.autoInit, false);
-    assert.deepEqual(OverrideViewDecorator.is(card.decorators[1]).removeViewVariables, ['title', 'button']);
+test('OverrideView accepts typed option values through parser decorators', () => {
+    const card = parse('@OverrideView({removeViewVariables:[title,button]}) export class Card {}');
+    assert.deepEqual(OverrideViewDecorator.is(card.decorators[0]).removeViewVariables, ['title', 'button']);
 });
 
 test('ForeignKey accepts qualified references and does not coerce unsupported expressions', () => {

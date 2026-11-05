@@ -19,7 +19,7 @@ test('parsed mixed attributes, fields and methods refresh together across compon
         npmBuilder: { unregister() {} }, hasNpmOutput: false, noNamespaceUri: {},
         getNamespaceForUri: () => '', getNpmReplacementName: () => '',
         tsFiles: {}, htmlFiles: {}, scssFiles: {},
-        externalPackageInformation: { getByUri: () => undefined },
+        externalPackageInformation: { getByUri: () => undefined, getByFullName: () => undefined },
     };
     const file = Object.create(AventusWebComponentLogicalFile.prototype);
     file._file = { uri };

@@ -43,15 +43,16 @@ test('build destruction unsubscribes every registered file category and announce
     ]);
 });
 
-test('IDE build gate follows settings while CLI build gate follows explicit enablement', () => {
+test('IDE build gate follows build configuration while CLI build gate follows explicit enablement', () => {
     const build = Object.create(Build.prototype);
     build.buildRevision = 0;
     build._allowBuild = true;
+    build.buildConfig = { ideBuild: false };
     build.npmBuilder = { rebuildInfo() {} };
     SettingsManager.instance = { settings: { ideBuild: false } };
     GenericServer.instance = { isIDE: true };
     assert.equal(build.isBuildAllowed, false);
-    SettingsManager.instance.settings.ideBuild = true;
+    build.buildConfig.ideBuild = true;
     assert.equal(build.isBuildAllowed, true);
     build.disableBuild();
     assert.equal(build.isBuildAllowed, false);

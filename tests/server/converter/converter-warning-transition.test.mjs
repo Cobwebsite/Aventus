@@ -69,7 +69,7 @@ test('Sharp and PHP report non-error stderr as warnings and replace it with clea
         ['warning', 'Sharp warning'], ['warning', 'PHP warning'],
     ]);
     assert.deepEqual(events.filter(([name]) => name === 'error' || name === 'aventus/addDebugFile'), []);
-    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling').map(([, value]) => value), [
+    assert.deepEqual(events.filter(([name]) => (name === 'aventus/sharp/compiling' || name === 'aventus/php/compiling')).map(([, value]) => value), [
         ['Example.csproj', 'compiling', undefined], ['Example.csproj', 'success', undefined],
         ['vendor/example', 'compiling', undefined], ['vendor/example', 'success', undefined],
         ['Example.csproj', 'compiling', undefined], ['Example.csproj', 'success', undefined],

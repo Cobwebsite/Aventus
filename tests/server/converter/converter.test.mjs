@@ -95,7 +95,7 @@ test('Sharp selection among two configs uses selected project name and permits a
         await commands['aventus.sharp.export'].run();
         await commands['aventus.sharp.export'].run(uri(first));
         assert.deepEqual(events.find(e => e[0] === 'select')[1].map(e => e.label), [uri(first), uri(second)]);
-        assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2]), [
+        assert.deepEqual(events.filter(e => (e[1] === 'aventus/sharp/compiling' || e[1] === 'aventus/php/compiling')).map(e => e[2]), [
             ['Second.csproj', 'compiling', undefined], ['Second.csproj', 'success', undefined],
             ['First.csproj', 'compiling', undefined], ['First.csproj', 'success', undefined],
         ]);
@@ -130,7 +130,7 @@ test('PHP export uses composer project name and recovers after a failed conversi
         await commands['aventus.php.export'].run(uri(config));
         await commands['aventus.php.export'].run(uri(config));
         assert.equal(executions.length, 2);
-        assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2]), [
+        assert.deepEqual(events.filter(e => (e[1] === 'aventus/sharp/compiling' || e[1] === 'aventus/php/compiling')).map(e => e[2]), [
             ['vendor/demo', 'compiling', undefined],
             ['vendor/demo', 'error', [{ title: 'PHP error', file: 'php_errors' }]],
             ['vendor/demo', 'compiling', undefined],
@@ -158,9 +158,9 @@ test('PHP converter error output publishes the debug file and error state for it
             GenericServer.error = previousError;
         }
         assert.deepEqual(events.filter(e => e[0] === 'notification').map(e => [e[1], e[2]]), [
-            ['aventus/sharp/compiling', ['vendor/demo', 'compiling', undefined]],
+            ['aventus/php/compiling', ['vendor/demo', 'compiling', undefined]],
             ['aventus/addDebugFile', ['php_errors', 'Error : invalid declaration']],
-            ['aventus/sharp/compiling', ['vendor/demo', 'error', [{ title: 'PHP error', file: 'php_errors' }]]],
+            ['aventus/php/compiling', ['vendor/demo', 'error', [{ title: 'PHP error', file: 'php_errors' }]]],
         ]);
     });
 });
@@ -174,7 +174,7 @@ test('converter process failure releases the Sharp compilation guard for a later
         await commands['aventus.sharp.export'].run(uri(config));
         await commands['aventus.sharp.export'].run(uri(config));
         assert.equal(executions.length, 2);
-        assert.deepEqual(events.filter(e => e[1] === 'aventus/sharp/compiling').map(e => e[2]), [
+        assert.deepEqual(events.filter(e => (e[1] === 'aventus/sharp/compiling' || e[1] === 'aventus/php/compiling')).map(e => e[2]), [
             ['Demo.csproj', 'compiling', undefined],
             ['Demo.csproj', 'error', [{ title: 'C# error', file: 'csharp_errors' }]],
             ['Demo.csproj', 'compiling', undefined],

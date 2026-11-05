@@ -25,7 +25,7 @@ test('project routing follows source changes, invalidation and recovery across b
     GenericServer.instance = {
         workspaces: ['file:///D:/round138'], logLevel: 0, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     FilesManager.instance = { onNewFile: () => 'subscription', removeOnNewFile: () => {} };
     DependencyManager.instance = { getPath: () => import.meta.dirname };

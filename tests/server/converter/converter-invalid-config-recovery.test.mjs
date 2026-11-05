@@ -61,13 +61,13 @@ test('Sharp export stops on invalid config JSON and recovers after correction', 
     writeFileSync(path, '{"csProj":');
     await Commands.allCommandes['aventus.sharp.export'].run(uri);
     assert.equal(commandsRun.length, 0);
-    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling'), []);
+    assert.deepEqual(events.filter(([name]) => (name === 'aventus/sharp/compiling' || name === 'aventus/php/compiling')), []);
     assert.match(events.find(([name]) => name === 'error')?.[1] ?? '', /Invalid Sharp project configuration/);
 
     writeFileSync(path, '{"csProj":"Recovered.csproj"}');
     await Commands.allCommandes['aventus.sharp.export'].run(uri);
     assert.equal(commandsRun.length, 1);
-    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling').map(([, payload]) => payload), [
+    assert.deepEqual(events.filter(([name]) => (name === 'aventus/sharp/compiling' || name === 'aventus/php/compiling')).map(([, payload]) => payload), [
         ['Recovered.csproj', 'compiling', undefined], ['Recovered.csproj', 'success', undefined],
     ]);
 });
@@ -96,13 +96,13 @@ test('PHP export stops on invalid composer JSON and recovers after correction', 
     writeFileSync(composer, '{"name":');
     await Commands.allCommandes['aventus.php.export'].run(uri);
     assert.equal(commandsRun.length, 0);
-    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling'), []);
+    assert.deepEqual(events.filter(([name]) => (name === 'aventus/sharp/compiling' || name === 'aventus/php/compiling')), []);
     assert.match(events.find(([name]) => name === 'error')?.[1] ?? '', /Invalid composer\.json/);
 
     writeFileSync(composer, '{"name":"vendor/recovered"}');
     await Commands.allCommandes['aventus.php.export'].run(uri);
     assert.equal(commandsRun.length, 1);
-    assert.deepEqual(events.filter(([name]) => name === 'aventus/sharp/compiling').map(([, payload]) => payload), [
+    assert.deepEqual(events.filter(([name]) => (name === 'aventus/sharp/compiling' || name === 'aventus/php/compiling')).map(([, payload]) => payload), [
         ['vendor/recovered', 'compiling', undefined], ['vendor/recovered', 'success', undefined],
     ]);
 });

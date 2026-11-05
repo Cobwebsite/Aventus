@@ -34,7 +34,7 @@ test('config reload with changed build/static filters keeps only current static 
     GenericServer.instance = {
         workspaces: [pathToFileURL(root).href], logLevel: 0, isIDE: false,
         _extensionPath: join(import.meta.dirname, '..', '..'),
-        connection: { sendNotification: () => {} },
+        connection: { sendDiagnostics() {},  sendNotification: () => {} },
     };
     FilesManager.instance = {
         onNewFile: () => { const id = `file-${++serial}`; subscriptions.add(id); return id; },

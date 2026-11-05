@@ -3,12 +3,11 @@ import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from '../helpers/load-ts.mjs';
 
-const [, { ParserTs }, { I18nDecorator }, { ForeignKeyDecorator },
+const [, { ParserTs }, { ForeignKeyDecorator },
     { OverrideViewDecorator }, { StateActiveDecorator }, { StateInactiveDecorator },
     { StateChangeDecorator }, { DefaultStateActiveDecorator }, { DefaultStateInactiveDecorator }, { GenericServer }] = await loadServerModules([
     'language-services/ts/FileSelector.ts',
     'language-services/ts/parser/ParserTs.ts',
-    'language-services/ts/parser/decorators/I18nDecorator.ts',
     'language-services/ts/parser/decorators/ForeignKeyDecorator.ts',
     'language-services/ts/parser/decorators/OverrideViewDecorator.ts',
     'language-services/ts/parser/decorators/StateActiveDecorator.ts',
@@ -25,18 +24,16 @@ function parse(source) {
     const uri = `file:///D:/test/decorator-options-${++id}.lib.avt`;
     const document = TextDocument.create(uri, 'typescript', 1, source);
     const file = { uri, versionInternal: 1, documentUser: document, documentInternal: document };
-    const build = { npmBuilder: { unregister() {} }, buildConfig: {}, hasNpmOutput: false,
+    const build = { npmBuilder: { unregister() {} }, externalPackageInformation: { getByFullName: () => undefined }, buildConfig: {}, hasNpmOutput: false,
         getNamespaceForUri: () => '', getNpmReplacementName: () => '' };
     return ParserTs.parse(file, false, build).classes.Card;
 }
 
-test('I18n reads quoted option names and OverrideView decodes quoted string values', () => {
-    const card = parse('@I18n({"autoInit":false}) @OverrideView({"removeViewVariables":["title","button"]}) export class Card {}');
-    assert.deepEqual(I18nDecorator.is(card.decorators[0]).options, { autoInit: false });
-    assert.deepEqual(OverrideViewDecorator.is(card.decorators[1]).removeViewVariables, ['title', 'button']);
-    const defaults = parse('@I18n() @OverrideView() export class Card {}');
-    assert.deepEqual(I18nDecorator.is(defaults.decorators[0]).options, { autoInit: true });
-    assert.deepEqual(OverrideViewDecorator.is(defaults.decorators[1]).removeViewVariables, []);
+test('OverrideView decodes quoted string values', () => {
+    const card = parse('@OverrideView({"removeViewVariables":["title","button"]}) export class Card {}');
+    assert.deepEqual(OverrideViewDecorator.is(card.decorators[0]).removeViewVariables, ['title', 'button']);
+    const defaults = parse('@OverrideView() export class Card {}');
+    assert.deepEqual(OverrideViewDecorator.is(defaults.decorators[0]).removeViewVariables, []);
 });
 
 test('ForeignKey accepts an identifier reference and rejects a string argument', () => {

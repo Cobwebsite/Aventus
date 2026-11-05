@@ -16,7 +16,7 @@ function fixture(uri, source, version) {
 }
 
 function build() {
-    return { npmBuilder: { unregister() {} }, buildConfig: {}, hasNpmOutput: false,
+    return { npmBuilder: { unregister() {} }, externalPackageInformation: { getByFullName: () => undefined }, buildConfig: {}, hasNpmOutput: false,
         getNamespaceForUri: () => '', getNpmReplacementName: () => '' };
 }
 
