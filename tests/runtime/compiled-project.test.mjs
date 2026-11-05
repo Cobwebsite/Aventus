@@ -3199,7 +3199,7 @@ test('Storybook configuration without live export keeps the normal bundle build'
     assert.equal(existsSync(join(root, 'storybook')), false);
 });
 
-test('@Storybook and @StoryValue compile but live story export yields no build', async t => {
+test('@Storybook and @StoryValue compile with live story export', async t => {
     const root = copyProject(t);
     const configPath = join(root, 'aventus.conf.avt');
     const config = JSON.parse(readFileSync(configPath, 'utf8'));
@@ -3225,11 +3225,11 @@ test('@Storybook and @StoryValue compile but live story export yields no build',
     writeFileSync(configPath, JSON.stringify(config, null, 2));
     const live = runBuild(root);
     assert.equal(live.error, undefined, live.error?.message);
-    assert.deepEqual(JSON.parse(live.stdout).builds, {});
-    assert.equal(existsSync(join(root, 'storybook/generated')), false);
+    assert.equal(JSON.parse(live.stdout).builds['RuntimeReference@Main'].success, true);
+    assert.equal(existsSync(join(root, 'storybook/generated')), true);
 });
 
-test('live Storybook export silently skips the configured build', t => {
+test('live Storybook export builds the bundle and Storybook files', t => {
     const root = copyProject(t);
     const configPath = join(root, 'aventus.conf.avt');
     const config = JSON.parse(readFileSync(configPath, 'utf8'));
@@ -3240,12 +3240,12 @@ test('live Storybook export silently skips the configured build', t => {
     assert.equal(build.error, undefined, build.error?.message);
     const report = JSON.parse(build.stdout);
     assert.equal(report.success, true);
-    assert.deepEqual(report.builds, {});
-    assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
+    assert.equal(report.builds['RuntimeReference@Main'].success, true);
+    assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), true);
     const storyRoot = join(root, 'storybook');
-    assert.equal(existsSync(join(storyRoot, '.storybook')), false);
-    assert.equal(existsSync(join(storyRoot, 'generated')), false);
-    assert.equal(existsSync(join(storyRoot, 'auto')), false);
+    assert.equal(existsSync(join(storyRoot, '.storybook')), true);
+    assert.equal(existsSync(join(storyRoot, 'generated')), true);
+    assert.equal(existsSync(join(storyRoot, 'auto')), true);
 });
 
 test('followFolders namespace strategy leaves a library at the module root', async t => {
