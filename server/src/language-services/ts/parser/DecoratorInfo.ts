@@ -15,7 +15,6 @@ const eraseableDecorator = [
     "Deprecated",
     "Effect",
     "ForeignKey",
-    "I18n",
     "Injectable",
     "Internal",
     "InternalProtected",
