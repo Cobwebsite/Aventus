@@ -7899,13 +7899,8 @@ let WebComponent=class WebComponent extends HTMLElement {
             }
         }
         else {
-            if (this.hasAttribute(prop)) {
-                let value = this.getAttribute(prop);
-                delete t[prop];
-                t[prop] = value;
-            }
-            else if (Object.hasOwn(this, prop)) {
-                const value = t[prop];
+            if (Object.hasOwn(this, prop)) {
+                const value = this.hasAttribute(prop) ? this.getAttribute(prop) : t[prop];
                 delete t[prop];
                 t[prop] = value;
             }
