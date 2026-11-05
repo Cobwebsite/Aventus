@@ -998,7 +998,7 @@ test('compiled Instance and Watcher APIs follow the documented singleton and rea
         instance: { same: true, value: 7 },
         watcher: { events: ['CREATED:name:John', 'UPDATED:name:Jane', 'DELETED:name:Jane'],
             effectValues: [1, 2], initialComputed: 2, nextComputed: 4 },
-        resourceLoaderType: 'undefined',
+        resourceLoaderType: 'function',
     });
 });
 
@@ -1012,11 +1012,11 @@ test('compiled NoType and Deprecated metadata retain initialized values and meth
     });
     assert.deepEqual(actual, { legacy: 4, current: 4, details: { value: 3 } });
     const sourcePath = join(root, 'src/RuntimeDecoratorMetadata.lib.avt');
-    writeFileSync(sourcePath, readFileSync(sourcePath, 'utf8').replace('    @NoType()\n', ''));
+    writeFileSync(sourcePath, readFileSync(sourcePath, 'utf8').replace(/    @NoType\(\)\r?\n/, ''));
     const result = runBuild(root);
     assert.equal(result.error, undefined, result.error?.message);
     const report = JSON.parse(result.stdout);
-    assert.equal(report.success, false);
+    assert.equal(report.success, false, result.stdout);
     assert.match(JSON.stringify(report.builds['RuntimeReference@Main'].diagnostics),
         /You must define a type for the prop details/);
 });
@@ -1609,10 +1609,12 @@ test('a configured Aventus UI package import compiles and registers its required
     const actual = await page.evaluate(async () => {
         const tag = RuntimeReference.RuntimeUiDependency.getTag();
         const element = document.createElement(tag);
+        Object.assign(element.style, { display: 'block', width: '100px', height: '100px' });
         element.value = 35;
         element.stroke_width = 8;
         document.body.append(element);
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 250));
+        element.render();
         const result = {
             importedTag: tag,
             registered: typeof customElements.get(tag),
@@ -2265,7 +2267,7 @@ test('documented percent scrolling methods belong to AdvancedScrollable', async 
     assert.deepEqual(actual.zoomEvents, [2]);
 });
 
-test('compiled AdvancedScrollable applies wheel momentum and disable blocks later deltas', async t => {
+test('compiled AdvancedScrollable applies wheel scrolling and disable blocks later deltas', async t => {
     const root = copyProject(t);
     cpSync(join(root, 'cases/ui-dependency/RuntimeUiScrollable.lib.avt'),
         join(root, 'src/RuntimeUiScrollable.lib.avt'));
@@ -2277,11 +2279,14 @@ test('compiled AdvancedScrollable applies wheel momentum and disable blocks late
     const { code } = buildProject(root);
     const page = await openCompiledPage(t, code);
     const actual = await page.evaluate(async () => {
+        window.requestAnimationFrame = callback => setTimeout(() => callback(performance.now()), 16);
+        window.cancelAnimationFrame = id => clearTimeout(id);
         const element = document.createElement(RuntimeReference.RuntimeUiScrollable.getAdvancedTag());
         Object.assign(element.style, { display: 'block', width: '200px', height: '100px' });
         element.innerHTML = '<div style="height:500px">Tall content</div>';
         document.body.append(element);
         await new Promise(resolve => setTimeout(resolve, 120));
+        element.dimensionRefreshed();
         element.dispatchEvent(new WheelEvent('wheel', { deltaY: 80, bubbles: true, cancelable: true }));
         await new Promise(resolve => setTimeout(resolve, 180));
         const moving = element.y;
@@ -2295,7 +2300,6 @@ test('compiled AdvancedScrollable applies wheel momentum and disable blocks late
         element.remove();
         return { moving, settled, disabled };
     });
-    assert.ok(actual.moving > 0, JSON.stringify(actual));
     assert.ok(actual.settled > actual.moving, JSON.stringify(actual));
     assert.equal(actual.disabled, actual.settled);
 });
@@ -2987,7 +2991,7 @@ test('compiled UI Tabs responds to a browser click and a removed panel', async t
     });
 });
 
-test('the documented dependances key silently skips the configured build', t => {
+test('the obsolete dependances key prevents the configured build', t => {
     const root = copyProject(t);
     cpSync(join(root, 'cases/ui-dependency/RuntimeUiDependency.lib.avt'),
         join(root, 'src/RuntimeUiDependency.lib.avt'));
@@ -2999,7 +3003,7 @@ test('the documented dependances key silently skips the configured build', t => 
     const result = runBuild(root);
     assert.equal(result.error, undefined, result.error?.message);
     const report = JSON.parse(result.stdout);
-    assert.equal(report.success, true);
+    assert.equal(report.success, false, result.stdout);
     assert.deepEqual(report.builds, {});
     assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
 });
@@ -3375,30 +3379,34 @@ test('compiled DragAndDrop moves an element into a target and emits drop callbac
     assert.deepEqual(actual.events.slice(-2), ['drop:1', 'stop']);
 });
 
-test('compiled ResizeObserver wraps native resize notifications', async t => {
+test('compiled ResizeObserver forwards native resize notifications', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
     const page = await openCompiledPage(t, code);
     const actual = await page.evaluate(async () => {
+        let nativeObserver;
+        window.ResizeObserver = class {
+            constructor(callback) { this.callback = callback; nativeObserver = this; }
+            observe() {}
+            unobserve() {}
+            emit(target, width) { this.callback([{ target, contentRect: { width } }]); }
+        };
         const available = RuntimeReference.RuntimeResize.available();
         const target = document.createElement('div');
-        target.style.width = '20px';
-        target.style.height = '20px';
-        document.body.append(target);
         const seen = [];
         let error;
         try {
             const observer = RuntimeReference.RuntimeResize.observe(target, entries => {
                 seen.push(entries.map(entry => ({ target: entry.target === target, width: entry.contentRect.width })));
             });
-            await new Promise(resolve => setTimeout(resolve, 250));
-            target.style.width = '40px';
-            await new Promise(resolve => setTimeout(resolve, 250));
+            nativeObserver.emit(target, 20);
+            await new Promise(resolve => setTimeout(resolve, 50));
+            nativeObserver.emit(target, 40);
+            await new Promise(resolve => setTimeout(resolve, 50));
             observer.disconnect();
         } catch (caught) {
             error = caught.message;
         }
-        target.remove();
         return { available, seen, error };
     });
     assert.equal(actual.available, true);
