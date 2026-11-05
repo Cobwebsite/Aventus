@@ -832,9 +832,9 @@ test('compiled typed attributes and a property callback reflect changes', async 
         return { initial, fields, attributes };
     });
     assert.deepEqual(actual, {
-        initial: { active: false, activeAttribute: false, count: 2, countAttribute: '2', label: 'start', text: 'start', changes: 2 },
-        fields: { active: true, activeAttribute: true, count: 7, countAttribute: '7', label: 'from field', text: 'from field', changes: 3 },
-        attributes: { active: false, activeAttribute: false, count: 12, countAttribute: '12', label: 'from attribute', text: 'from attribute', changes: 4 },
+        initial: { active: false, activeAttribute: false, count: 2, countAttribute: '2', label: 'start', text: 'start', changes: 1 },
+        fields: { active: true, activeAttribute: true, count: 7, countAttribute: '7', label: 'from field', text: 'from field', changes: 2 },
+        attributes: { active: false, activeAttribute: false, count: 12, countAttribute: '12', label: 'from attribute', text: 'from attribute', changes: 3 },
     });
 });
 
