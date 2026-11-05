@@ -5,6 +5,7 @@ base/*.html
 example/**/compiled.js
 cli/out
 cli/lib
+cli/templates
 client/out
 server/out
 .coverage-bundle-*.cjs

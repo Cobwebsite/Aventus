@@ -24,3 +24,4 @@ const srcDir = path.resolve(__dirname, '../lib');
 const destDir = path.resolve(__dirname, './lib');
 
 await copyDir(srcDir, destDir);
+await copyDir(path.resolve(__dirname, '../templates'), path.resolve(__dirname, './templates'));
