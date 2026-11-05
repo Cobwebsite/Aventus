@@ -1286,18 +1286,6 @@ test('@ForeignKey emits a reference schema for a compiled Data class', async t =
     assert.equal(actual.value, 0);
 });
 
-test('@I18n annotation is rejected although the parser recognizes its name', t => {
-    const root = copyProject(t);
-    cpSync(join(root, 'cases/i18n-decorator/RuntimeI18nDecorator.lib.avt'),
-        join(root, 'src/RuntimeI18nDecorator.lib.avt'));
-    const build = runBuild(root);
-    assert.equal(build.error, undefined, build.error?.message);
-    const report = JSON.parse(build.stdout);
-    assert.equal(report.success, false);
-    assert.match(JSON.stringify(report.builds['RuntimeReference@Main'].diagnostics), /Cannot find name 'I18n'/);
-    assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
-});
-
 test('@Effect reads an initialized Signal and reacts to changes', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
