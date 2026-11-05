@@ -46,6 +46,11 @@ __as1(_, 'HttpMethod', HttpMethod);
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
+(() => {
+const _ = globalThis;
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; };
+ 
+})();
 
 var Aventus;
 (Aventus||(Aventus = {}));
@@ -3756,7 +3761,9 @@ let Watcher=class Watcher {
                     };
                 }
                 else if (prop == "clearHistory") {
-                    this.history = [];
+                    return () => {
+                        this.history = [];
+                    };
                 }
                 else if (prop == "enableHistory") {
                     return () => {
@@ -8723,3 +8730,8 @@ __as1(_, 'ElementExtension', ElementExtension);
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
+(() => {
+const _ = globalThis;
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; };
+ 
+})();

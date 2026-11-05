@@ -388,7 +388,9 @@ export class Watcher {
                     };
                 }
                 else if(prop == "clearHistory") {
-                    this.history = [];
+                    return () => {
+                        this.history = [];
+                    };
                 }
                 else if(prop == "enableHistory") {
                     return () => {

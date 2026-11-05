@@ -124,6 +124,19 @@ test('Watcher subscriptions can be removed and extraction returns current plain 
     assert.equal(plain.value, 3);
 });
 
+test('Watcher.clearHistory clears on invocation rather than property access', () => {
+    const context = loadRuntimeContext();
+    const { Watcher } = context.Aventus;
+    const model = Watcher.get(runInNewContext('({ value: 1 })', context));
+    model.enableHistory();
+    model.value = 2;
+    const clear = model.clearHistory;
+    assert.equal(typeof clear, 'function');
+    assert.equal(model.getHistory().length, 1);
+    clear();
+    assert.equal(model.getHistory().length, 0);
+});
+
 test('Watcher notifies the whole array after reordering and extracts the final order', () => {
     const context = loadRuntimeContext();
     const { Watcher, WatchAction } = context.Aventus;

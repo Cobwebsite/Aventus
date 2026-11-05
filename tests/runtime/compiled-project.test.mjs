@@ -3863,21 +3863,15 @@ test('compiled Debugger decorator exposes Watch history and clearing on a compon
         component.model.child.count = 8;
         const history = component.getWatchHistory?.();
         const latest = history?.at(-1);
-        let clearError;
-        try {
-            component.clearWatchHistory?.();
-        } catch (error) {
-            clearError = error.message;
-        }
+        component.clearWatchHistory?.();
         const afterClear = component.getWatchHistory?.().length;
         component.destructor();
         component.remove();
-        return { initial, length: history?.length, latest, clearError, afterClear };
+        return { initial, length: history?.length, latest, afterClear };
     });
     assert.equal(actual.initial, 1);
     assert.equal(actual.length, 2);
     assert.equal(actual.afterClear, 0);
-    assert.match(actual.clearError, /clearHistory is not a function/);
     assert.match(JSON.stringify(actual.latest), /count/);
 });
 
