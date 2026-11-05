@@ -116,8 +116,7 @@ export class Build {
     private _allowBuild: boolean = true;
     private get allowBuild(): boolean {
         if (GenericServer.isIDE) {
-            const settings = SettingsManager.getInstance().settings;
-            return this._allowBuild && settings.ideBuild;
+            return this._allowBuild && this.ideBuild;
         }
         return this._allowBuild
     }
@@ -158,6 +157,9 @@ export class Build {
     }
     public get forceDocumentation() {
         return this.buildConfig.forceDocumentation;
+    }
+    public get ideBuild() {
+        return this.buildConfig.ideBuild;
     }
     public get nodeModulesDir(): string {
         return this.buildConfig.nodeModulesDir

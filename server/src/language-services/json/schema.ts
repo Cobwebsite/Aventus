@@ -50,6 +50,10 @@ export const AventusConfigSchema: JSONSchema = {
             type: "boolean",
             description: "Hide warnings for all your builds"
         },
+        "ideBuild": {
+            type: "boolean",
+            description: "Define if the ide must build the code"
+        },
         "forceDocumentation": {
             type: "boolean",
             description: "Force documentation for all your builds"
@@ -126,6 +130,10 @@ export const AventusConfigSchema: JSONSchema = {
                     "hideWarnings": {
                         type: "boolean",
                         description: "Hide warnings for this build"
+                    },
+                    "ideBuild": {
+                        type: "boolean",
+                        description: "Define if the ide must build the code"
                     },
                     "forceDocumentation": {
                         type: "boolean",

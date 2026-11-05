@@ -219,7 +219,7 @@ test('a component with an unresolved parent reports the parent parsing failure',
 
 test('malformed project configuration silently skips all builds', t => {
     const root = copyProject(t);
-    cpSync(join(root, 'cases/invalid-config/aventus.conf.avt'), join(root, 'aventus.conf.avt'));
+    cpSync(join(root, 'cases/invalid-config/aventus.conf.txt'), join(root, 'aventus.conf.avt'));
     const build = runBuild(root);
     assert.equal(build.error, undefined, build.error?.message);
     const report = JSON.parse(build.stdout);

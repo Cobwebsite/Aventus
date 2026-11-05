@@ -834,7 +834,8 @@ export class AventusJSONLanguageService {
             namespaceRules: {},
             namespaceRulesRegex: {},
             namespaceStrategy: 'manual',
-            namespaceRoot: './'
+            namespaceRoot: './',
+            ideBuild: SettingsManager.getInstance().settings.ideBuild,
         }
     }
     private defaultConfigBuildValue(config: AventusConfig): AventusConfigBuild {
@@ -867,7 +868,8 @@ export class AventusJSONLanguageService {
             dependencies: { ...config.dependencies },
             rawDependencies: {},
             avoidParsingInsideTags: [...config.avoidParsingInsideTags],
-            nodeModulesDir: ''
+            nodeModulesDir: '',
+            ideBuild: config.ideBuild
         }
     }
 
