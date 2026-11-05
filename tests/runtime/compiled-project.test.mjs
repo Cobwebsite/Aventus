@@ -3360,7 +3360,7 @@ test('a library re-export from another file reports the LSP unsupported-export d
     assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
 });
 
-test('Dependencies decorator does not include missing CallbackGroup from the base library', async t => {
+test('Dependencies decorator includes CallbackGroup from the base library', async t => {
     const root = copyProject(t);
     cpSync(join(root, 'cases/callback-dependency/RuntimeForcedCallbackGroup.lib.avt'),
         join(root, 'src/RuntimeForcedCallbackGroup.lib.avt'));
@@ -3368,21 +3368,21 @@ test('Dependencies decorator does not include missing CallbackGroup from the bas
     const page = await openCompiledPage(t, code);
     const actual = await page.evaluate(() => RuntimeReference.RuntimeCallbackLibrary.inspect());
     assert.deepEqual(actual, {
-        events: ['first:a', 'second:a', 'second:b'],
+        events: ['first:a', 'second:a', 'second:b', 'error:failed', 'info:ready'],
         returns: [1, 2],
-        groupAvailable: false,
+        groupAvailable: true,
     });
 });
 
-test('compiled Callback dispatches listeners but CallbackGroup is missing from the bundle', async t => {
+test('compiled Callback and CallbackGroup dispatch listeners', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
     const page = await openCompiledPage(t, code);
     const actual = await page.evaluate(() => RuntimeReference.RuntimeCallbackLibrary.inspect());
     assert.deepEqual(actual, {
-        events: ['first:a', 'second:a', 'second:b'],
+        events: ['first:a', 'second:a', 'second:b', 'error:failed', 'info:ready'],
         returns: [1, 2],
-        groupAvailable: false,
+        groupAvailable: true,
     });
 });
 
@@ -3466,22 +3466,32 @@ test('compiled ResizeObserver wraps native resize notifications', async t => {
     assert.equal(actual.error, undefined);
 });
 
-test('compiled Animation reference characterizes a missing runtime constructor', async t => {
+test('compiled Animation starts, stops, and respects its frame rate', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
     const page = await openCompiledPage(t, code);
     const actual = await page.evaluate(async () => {
         const available = RuntimeReference.RuntimeAnimation.available();
-        let error;
+        const originalRequest = window.requestAnimationFrame;
+        const originalCancel = window.cancelAnimationFrame;
+        window.requestAnimationFrame = callback => setTimeout(() => callback(performance.now()), 5);
+        window.cancelAnimationFrame = id => clearTimeout(id);
         try {
-            await RuntimeReference.RuntimeAnimation.inspect();
-        } catch (caught) {
-            error = caught.message;
+            return { available, result: await RuntimeReference.RuntimeAnimation.inspect() };
+        } finally {
+            window.requestAnimationFrame = originalRequest;
+            window.cancelAnimationFrame = originalCancel;
         }
-        return { available, error };
     });
-    assert.equal(actual.available, false);
-    assert.match(actual.error, /Aventus\.Animation is not a constructor/);
+    assert.equal(actual.available, true);
+    assert.deepEqual(actual.result.initial, { fps: 60, started: false });
+    assert.equal(actual.result.started, true);
+    assert.equal(actual.result.afterStop.fps, 120);
+    assert.equal(actual.result.afterStop.started, false);
+    assert.ok(actual.result.afterStop.frames > 0);
+    assert.equal(actual.result.afterStop.stopped, 1);
+    assert.ok(actual.result.finalFrames >= actual.result.afterStop.frames);
+    assert.equal(actual.result.finalStopped, 1);
 });
 
 test('compiled Ram subclass stores, updates and removes Data instances', async t => {

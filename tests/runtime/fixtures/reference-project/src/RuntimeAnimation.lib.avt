@@ -15,7 +15,7 @@ export class RuntimeAnimation {
         animation.setFPS(120);
         animation.start();
         const started = animation.isStarted();
-        await new Promise(resolve => setTimeout(resolve, 45));
+        await new Promise(resolve => setTimeout(resolve, 120));
         animation.immediateStop();
         const afterStop = { fps: animation.getFPS(), started: animation.isStarted(), frames, stopped };
         await new Promise(resolve => setTimeout(resolve, 45));
