@@ -23,4 +23,4 @@ async function copyDir(src, dest) {
 const srcDir = path.resolve(__dirname, '../lib');
 const destDir = path.resolve(__dirname, './lib');
 
-copyDir(srcDir, destDir);
+await copyDir(srcDir, destDir);

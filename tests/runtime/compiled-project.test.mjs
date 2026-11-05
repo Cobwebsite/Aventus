@@ -1298,33 +1298,43 @@ test('@I18n annotation is rejected although the parser recognizes its name', t =
     assert.equal(existsSync(join(root, 'dist/runtime-reference.js')), false);
 });
 
-test('@Effect reading a Signal during initialization throws before the component is created', async t => {
+test('@Effect reads an initialized Signal and reacts to changes', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
     const page = await openCompiledPage(t, code);
-    const actual = await page.evaluate(() => {
+    const actual = await page.evaluate(async () => {
         RuntimeReference.RuntimeEffect.runs = [];
-        try {
-            new RuntimeReference.RuntimeEffect();
-            return { error: null, runs: RuntimeReference.RuntimeEffect.runs };
-        } catch (error) {
-            return { error: error.message, runs: RuntimeReference.RuntimeEffect.runs };
-        }
+        const element = new RuntimeReference.RuntimeEffect();
+        await Promise.resolve();
+        const initial = [...RuntimeReference.RuntimeEffect.runs];
+        element.count = 2;
+        await Promise.resolve();
+        const changed = [...RuntimeReference.RuntimeEffect.runs];
+        element.destructor();
+        return { initial, changed };
     });
-    assert.deepEqual(actual, { error: "Cannot read properties of undefined (reading 'value')", runs: [] });
+    assert.deepEqual(actual, { initial: [1], changed: [1, 2] });
 });
 
 test('@Effect without a Signal runs once when the compiled component is created', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
     const page = await openCompiledPage(t, code);
-    assert.equal(await page.evaluate(() => {
+    assert.equal(await page.evaluate(async () => {
         RuntimeReference.RuntimeEffectPlain.runs = 0;
         const element = new RuntimeReference.RuntimeEffectPlain();
+        await Promise.resolve();
         const runs = RuntimeReference.RuntimeEffectPlain.runs;
         element.destructor();
         return runs;
     }), 1);
+    assert.equal(await page.evaluate(async () => {
+        RuntimeReference.RuntimeEffectPlain.runs = 0;
+        const element = new RuntimeReference.RuntimeEffectPlain();
+        element.destructor();
+        await Promise.resolve();
+        return RuntimeReference.RuntimeEffectPlain.runs;
+    }), 0);
 });
 
 test('@InternalProtected narrows package declarations while retaining executable members', async t => {
