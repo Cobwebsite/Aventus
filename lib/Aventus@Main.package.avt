@@ -2824,7 +2824,7 @@ class ElementExtension {
     /**
      * Force to be required inside export
      */
-    function Required(): AvMethodDecorator;
+    function Required(): AvClassDecorator;
     /**
      * Add debbuger action function for your component
      */
