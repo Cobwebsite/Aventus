@@ -119,11 +119,11 @@ namespace Form {
             this._extractor = config?.extractor ?? FormHandler._globalConfig?.extractor ?? this.defaultExtractor;
             this._onSuccess = config?.onSuccess ?? FormHandler._globalConfig?.onSuccess;
             this._submitFct = config?.submit;
-            this.defaultValues = config?.defaultValues ?? {} as T;
+            this.defaultValues = structuredClone(config?.defaultValues ?? {} as T);
             this.onWatcherChanged = this.onWatcherChanged.bind(this);
             this.__watcher = Aventus.Watcher.get({
                 form: {},
-                item: this.defaultValues
+                item: structuredClone(this.defaultValues)
             }, this.onWatcherChanged);
 
             this.__watcher.form = this.transformForm(schema);
@@ -505,7 +505,7 @@ namespace Form {
          * Reset form with default values
          */
         public reset() {
-            this.item = this.defaultValues;
+            this.item = structuredClone(this.defaultValues);
         }
     }
 }

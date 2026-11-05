@@ -3,8 +3,10 @@ import { Required, Email } from "Aventus@UI:Aventus.Form.Validators.package.avt"
 
 export class RuntimeUiForm {
     public static async inspect() {
-        const handler = new FormHandler<{ email: string }>({ email: [Required, Email] }, {
-            defaultValues: { email: "" },
+        const handler = new FormHandler<{ email: string, profile: { name: string } }>({
+            email: [Required, Email], profile: () => true,
+        }, {
+            defaultValues: { email: "", profile: { name: "start" } },
             onValidateFallback: () => {},
         });
         const directRequired = new Required().validate("", "email", async () => {});
@@ -17,8 +19,14 @@ export class RuntimeUiForm {
         handler.parts.email?.onValidation.add(async () => []);
         const invalidWithEmptyListener = await handler.validate();
         handler.item.email = "alice@example.test";
+        handler.item.profile.name = "changed";
         const valid = await handler.validate();
         handler.reset();
-        return { directRequired, directEmail, empty, invalid, invalidWithListener, invalidWithEmptyListener, valid, resetEmail: handler.item.email };
+        const firstReset = { email: handler.item.email, profile: handler.item.profile.name };
+        handler.item.profile.name = "changed again";
+        handler.reset();
+        return { directRequired, directEmail, empty, invalid, invalidWithListener, invalidWithEmptyListener, valid,
+            firstReset, resetEmail: handler.item.email, resetProfile: handler.item.profile.name,
+            defaultEmail: handler.defaultValues.email, defaultProfile: handler.defaultValues.profile.name };
     }
 }

@@ -9657,11 +9657,11 @@ Form.FormHandler=class FormHandler {
         this._extractor = config?.extractor ?? Form.FormHandler._globalConfig?.extractor ?? this.defaultExtractor;
         this._onSuccess = config?.onSuccess ?? Form.FormHandler._globalConfig?.onSuccess;
         this._submitFct = config?.submit;
-        this.defaultValues = config?.defaultValues ?? {};
+        this.defaultValues = structuredClone(config?.defaultValues ?? {});
         this.onWatcherChanged = this.onWatcherChanged.bind(this);
         this.__watcher = Aventus.Watcher.get({
             form: {},
-            item: this.defaultValues
+            item: structuredClone(this.defaultValues)
         }, this.onWatcherChanged);
         this.__watcher.form = this.transformForm(schema);
     }
@@ -10012,7 +10012,7 @@ Form.FormHandler=class FormHandler {
      * Reset form with default values
      */
     reset() {
-        this.item = this.defaultValues;
+        this.item = structuredClone(this.defaultValues);
     }
 }
 Form.FormHandler.Namespace=`Aventus.Form`;

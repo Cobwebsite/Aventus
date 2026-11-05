@@ -1684,7 +1684,8 @@ test('compiled UI FormHandler validates required email values and resets the mod
     assert.deepEqual(actual, {
         directRequired: 'Le champs email est requis', directEmail: 'Please enter a valid email address',
         empty: false, invalid: false, invalidWithListener: false, invalidWithEmptyListener: false, valid: true,
-        resetEmail: 'alice@example.test',
+        firstReset: { email: '', profile: 'start' },
+        resetEmail: '', resetProfile: 'start', defaultEmail: '', defaultProfile: 'start',
     });
 });
 
