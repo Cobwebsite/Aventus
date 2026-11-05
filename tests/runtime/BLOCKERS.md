@@ -1,6 +1,5 @@
 # Points à analyser pour les tests du runtime
 
-- **`FormHandler.reset()` ne restaure pas les valeurs initiales après mutation profonde.** Dans le même cas, `defaultValues.email` vaut d'abord `""`, puis `handler.item.email` est modifié en `"alice@example.test"`. Après `handler.reset()`, `handler.item.email` reste `"alice@example.test"`. Le constructeur garde la même référence pour `defaultValues` et l'objet observé ; `reset()` réaffecte cette référence déjà modifiée. Le test compilé vérifie la valeur après reset. Copier l'état initial avant observation ou préciser le contrat de `defaultValues`.
 
 - **Un package `.package.avt` généré localement fait disparaître le build consommateur du rapport CLI.** Un premier projet compile `RuntimeFunction.lib.avt` et produit `RuntimeReference@Main.package.avt`. Un second projet compile normalement `RuntimeFunction` sous le module `PackageConsumer` sans dépendance. Dès qu'il déclare `dependencies: { "RuntimeReference@Main": { "uri": "./packages/RuntimeReference@Main.package.avt" } }`, le CLI renvoie `{ "success": true, "builds": {}, "statics": {} }`, que le consommateur importe le package ou non. Le test `compiled-project.test.mjs` reproduit les trois étapes avec une copie locale du package généré. Examiner le chargement de la dépendance et remonter un diagnostic lorsque le build n'est pas lancé.
 
