@@ -14,9 +14,11 @@ export class RuntimeUiForm {
         const invalid = await handler.validate();
         handler.parts.email?.onValidation.add(async (errors) => errors);
         const invalidWithListener = await handler.validate();
+        handler.parts.email?.onValidation.add(async () => []);
+        const invalidWithEmptyListener = await handler.validate();
         handler.item.email = "alice@example.test";
         const valid = await handler.validate();
         handler.reset();
-        return { directRequired, directEmail, empty, invalid, invalidWithListener, valid, resetEmail: handler.item.email };
+        return { directRequired, directEmail, empty, invalid, invalidWithListener, invalidWithEmptyListener, valid, resetEmail: handler.item.email };
     }
 }

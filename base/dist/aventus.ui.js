@@ -9877,7 +9877,7 @@ Form.FormHandler=class FormHandler {
                     }
                     const proms = formPart.onValidation.trigger(errorsForm);
                     const errors2d = await Promise.all(proms);
-                    const errors = [];
+                    const errors = [...new Set(errorsForm)];
                     for (let errorsTemp of errors2d) {
                         for (let errorTemp of errorsTemp) {
                             if (!errors.includes(errorTemp)) {
