@@ -565,7 +565,7 @@ test('the compiled component renders its loop and updates its binding in a DOM',
     });
 });
 
-test('compiled for-of loop characterizes stale rows after reverse and unshift', async t => {
+test('compiled for-of loop updates rows after reverse and unshift', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
     const page = await openCompiledPage(t, code);
@@ -587,7 +587,7 @@ test('compiled for-of loop characterizes stale rows after reverse and unshift', 
         return { reversed, inserted, model };
     });
     assert.deepEqual(actual, {
-        reversed: ['alpha', 'beta'], inserted: ['alpha', 'beta'],
+        reversed: ['beta', 'alpha'], inserted: ['first', 'beta', 'alpha'],
         model: ['first', 'beta', 'alpha'],
     });
 });
@@ -3859,7 +3859,7 @@ test('the compiled classic loop updates nested Context entries and removes a gro
     });
 });
 
-test('compiled classic loop characterizes stale rows after reverse and unshift', async t => {
+test('compiled classic loop updates rows after reverse and unshift', async t => {
     const root = copyProject(t);
     const { code } = buildProject(root);
     const page = await openCompiledPage(t, code);
@@ -3899,8 +3899,14 @@ test('compiled classic loop characterizes stale rows after reverse and unshift',
         { name: 'second', entries: ['z', 'c'] },
         { name: 'first', entries: ['a', 'b'] },
     ]);
-    assert.deepEqual(actual.reversed, actual.initial);
-    assert.deepEqual(actual.reordered, actual.initial);
+    assert.deepEqual(actual.reversed, [
+        { index: '0', name: 'second', entries: [{ index: '0', value: 'c' }] },
+        { index: '1', name: 'first', entries: [{ index: '0', value: 'a' }, { index: '1', value: 'b' }] },
+    ]);
+    assert.deepEqual(actual.reordered, [
+        { index: '0', name: 'second', entries: [{ index: '0', value: 'z' }, { index: '1', value: 'c' }] },
+        { index: '1', name: 'first', entries: [{ index: '0', value: 'a' }, { index: '1', value: 'b' }] },
+    ]);
     assert.deepEqual(actual.destroyed, []);
 });
 
