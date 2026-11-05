@@ -10,7 +10,6 @@
 
 
 
-- **`document.createElement('av-row')` échoue dans Chromium.** Le package UI enregistre bien `av-row`, mais sa création programmatique déclenche `Failed to execute 'createElement' on 'Document': The result must not have attributes`. Chromium renvoie un `HTMLUnknownElement` sans la vue ni le style du composant. La même ligne créée avec `innerHTML` donne un vrai `Row` en `display: flex`, et deux `Col size="6"` font chacune 300 px dans 600 px. `compiled-project.test.mjs` vérifie les deux chemins. Le constructeur `Row` modifie les attributs ou le style de l'hôte pendant la construction ; déplacer cette initialisation dans un hook de connexion compatible avec les Custom Elements.
 - **`Col size="0"` ne masque pas la colonne comme annoncé.** `ui/col_row.md` affirme que la taille zéro produit `display: none`. Dans le bundle compilé, `Col` reste en `display: flex` et garde 16 px de largeur calculée à cause de ses deux paddings de 8 px ; sa feuille de style définit seulement `:host([size="0"]){width:0}`. `compiled-project.test.mjs` vérifie l'attribut et le style calculé après passage de `size=6` à `size=0`. Harmoniser le style et la documentation.
 
 

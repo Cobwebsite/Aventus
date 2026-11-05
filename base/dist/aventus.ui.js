@@ -1503,6 +1503,48 @@ let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
 }
 __as1(_, 'compareObject', compareObject);
 
+let Computed=class Computed extends Effect {
+    _value;
+    __path = "*";
+    get value() {
+        if (!this.isInit) {
+            this.init();
+        }
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    autoInit() {
+        return false;
+    }
+    constructor(fct) {
+        super(fct);
+    }
+    init() {
+        this.isInit = true;
+        this.computedValue();
+    }
+    computedValue() {
+        this._value = this.run();
+    }
+    onChange(action, changePath, value, dones) {
+        if (!this.checkCanChange(action, changePath, value, dones)) {
+            return;
+        }
+        let oldValue = this._value;
+        this.computedValue();
+        if (oldValue === this._value) {
+            return;
+        }
+        for (let fct of [...this.__subscribes]) {
+            Watcher.isolate(() => {
+                fct(action, changePath, value, dones);
+            });
+        }
+    }
+}
+Computed.Namespace=`Aventus`;
+__as1(_, 'Computed', Computed);
+
 let Watcher=class Watcher {
     static isNative(obj) {
         if (obj instanceof Blob ||
@@ -2402,48 +2444,6 @@ let Watcher=class Watcher {
 }
 Watcher.Namespace=`Aventus`;
 __as1(_, 'Watcher', Watcher);
-
-let Computed=class Computed extends Effect {
-    _value;
-    __path = "*";
-    get value() {
-        if (!this.isInit) {
-            this.init();
-        }
-        Watcher._register?.register(this, "*", Watcher._register.version, "*");
-        return this._value;
-    }
-    autoInit() {
-        return false;
-    }
-    constructor(fct) {
-        super(fct);
-    }
-    init() {
-        this.isInit = true;
-        this.computedValue();
-    }
-    computedValue() {
-        this._value = this.run();
-    }
-    onChange(action, changePath, value, dones) {
-        if (!this.checkCanChange(action, changePath, value, dones)) {
-            return;
-        }
-        let oldValue = this._value;
-        this.computedValue();
-        if (oldValue === this._value) {
-            return;
-        }
-        for (let fct of [...this.__subscribes]) {
-            Watcher.isolate(() => {
-                fct(action, changePath, value, dones);
-            });
-        }
-    }
-}
-Computed.Namespace=`Aventus`;
-__as1(_, 'Computed', Computed);
 
 let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
@@ -4624,6 +4624,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     __watchActionsCb = {};
     __watchFunctions = {};
     __watchFunctionsComputed = {};
+    __watchFunctionsDestroyed = false;
     __pressManagers = [];
     __signalActions = {};
     __signals = {};
@@ -4659,6 +4660,7 @@ let WebComponent=class WebComponent extends HTMLElement {
      * State + press
      */
     destructor() {
+        this.__watchFunctionsDestroyed = true;
         WebComponentInstance.removeInstance(this);
         this.__unsubscribeState();
         for (let press of this.__pressManagers) {
@@ -4757,7 +4759,12 @@ let WebComponent=class WebComponent extends HTMLElement {
         for (let name in this.__watchFunctions) {
             this.__watchFunctionsComputed[name] = Watcher.computed(this[name].bind(this));
             if (this.__watchFunctions[name].autoInit) {
-                this.__watchFunctionsComputed[name].value;
+                const computed = this.__watchFunctionsComputed[name];
+                queueMicrotask(() => {
+                    if (!this.__watchFunctionsDestroyed) {
+                        computed.value;
+                    }
+                });
             }
         }
     }
@@ -6578,6 +6585,194 @@ let ResizeObserver=class ResizeObserver {
 ResizeObserver.Namespace=`Aventus`;
 __as1(_, 'ResizeObserver', ResizeObserver);
 
+let ResourceLoader=class ResourceLoader {
+    static headerLoaded = {};
+    static headerWaiting = {};
+    /**
+     * Load the resource inside the head tag
+     */
+    static async loadInHead(options) {
+        const _options = this.prepareOptions(options);
+        if (this.headerLoaded[_options.url]) {
+            return true;
+        }
+        else if (this.headerWaiting.hasOwnProperty(_options.url)) {
+            return await this.awaitFctHead(_options.url);
+        }
+        else {
+            let tagEl;
+            if (_options.type == "js") {
+                tagEl = document.createElement("SCRIPT");
+                const el = document.querySelector(`script[src="${_options.url}"]`);
+                if (el) {
+                    this.headerLoaded[_options.url] = true;
+                    return true;
+                }
+            }
+            else if (_options.type == "css") {
+                tagEl = document.createElement("LINK");
+                tagEl.setAttribute("rel", "stylesheet");
+                const el = document.querySelector(`link[rel="stylesheet"][href="${_options.url}"]`);
+                if (el) {
+                    this.headerLoaded[_options.url] = true;
+                    return true;
+                }
+            }
+            else {
+                throw "unknow type " + _options.type + " to append into head";
+            }
+            this.headerWaiting[_options.url] = [];
+            if (_options.nonce) {
+                tagEl.setAttribute("nonce", _options.nonce);
+            }
+            document.head.appendChild(tagEl);
+            let result = await this.loadTag(tagEl, _options.url);
+            if (result) {
+                this.headerLoaded[_options.url] = true;
+            }
+            else {
+                tagEl.remove();
+            }
+            this.releaseAwaitFctHead(_options.url, result);
+            return result;
+        }
+    }
+    static loadTag(tagEl, url) {
+        return new Promise((resolve, reject) => {
+            tagEl.addEventListener("load", (e) => {
+                resolve(true);
+            });
+            tagEl.addEventListener("error", (e) => {
+                resolve(false);
+            });
+            if (tagEl instanceof HTMLLinkElement) {
+                tagEl.setAttribute("href", url);
+            }
+            else {
+                tagEl.setAttribute('src', url);
+            }
+        });
+    }
+    static releaseAwaitFctHead(url, result) {
+        if (this.headerWaiting[url]) {
+            for (let i = 0; i < this.headerWaiting[url].length; i++) {
+                this.headerWaiting[url][i](result);
+            }
+            delete this.headerWaiting[url];
+        }
+    }
+    static awaitFctHead(url) {
+        return new Promise((resolve) => {
+            this.headerWaiting[url].push((result) => {
+                resolve(result);
+            });
+        });
+    }
+    static requestLoaded = {};
+    static requestWaiting = {};
+    /**
+     *
+    */
+    static async load(options) {
+        options = this.prepareOptions(options);
+        if (this.requestLoaded[options.url]) {
+            return this.requestLoaded[options.url];
+        }
+        else if (this.requestWaiting.hasOwnProperty(options.url)) {
+            await this.awaitFct(options.url);
+            return this.requestLoaded[options.url];
+        }
+        else {
+            this.requestWaiting[options.url] = [];
+            let blob = false;
+            if (options.type == "img") {
+                blob = true;
+            }
+            let content = await this.fetching(options.url, blob);
+            if (options.type == "img" && content.startsWith("data:text/html;")) {
+                console.error("Can't load img " + options.url);
+                content = "";
+            }
+            this.requestLoaded[options.url] = content;
+            this.releaseAwaitFct(options.url);
+            return content;
+        }
+    }
+    static releaseAwaitFct(url) {
+        if (this.requestWaiting[url]) {
+            for (let i = 0; i < this.requestWaiting[url].length; i++) {
+                this.requestWaiting[url][i]();
+            }
+            delete this.requestWaiting[url];
+        }
+    }
+    static awaitFct(url) {
+        return new Promise((resolve) => {
+            this.requestWaiting[url].push(() => {
+                resolve('');
+            });
+        });
+    }
+    static async fetching(url, useBlob = false) {
+        if (useBlob) {
+            let result = await fetch(url, {
+                headers: {
+                    responseType: 'blob'
+                }
+            });
+            let blob = await result.blob();
+            return await this.readFile(blob);
+        }
+        else {
+            let result = await fetch(url);
+            return await result.text();
+        }
+    }
+    static readFile(blob) {
+        return new Promise((resolve) => {
+            var reader = new FileReader();
+            reader.onloadend = function () {
+                resolve(reader.result);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+    static imgExtensions = ["png", "jpg", "jpeg", "gif"];
+    static prepareOptions(options) {
+        let result;
+        if (typeof options === 'string' || options instanceof String) {
+            result = {
+                url: options,
+                type: 'js'
+            };
+            let splittedURI = result.url.split('.');
+            let extension = splittedURI[splittedURI.length - 1];
+            extension = extension.split("?")[0];
+            if (extension == "svg") {
+                result.type = 'svg';
+            }
+            else if (extension == "js") {
+                result.type = 'js';
+            }
+            else if (extension == "css") {
+                result.type = 'css';
+            }
+            else if (this.imgExtensions.indexOf(extension) != -1) {
+                result.type = 'img';
+            }
+            else {
+                delete result.type;
+            }
+        }
+        else {
+            result = options;
+        }
+        return result;
+    }
+}
+ResourceLoader.Namespace=`Aventus`;
+__as1(_, 'ResourceLoader', ResourceLoader);
+
 let Animation=class Animation {
     /**
      * Default FPS for all Animation if not set inside options
@@ -8202,11 +8397,6 @@ if(!window.customElements.get('av-scrollable')){window.customElements.define('av
 
 Layout.Row = class Row extends Aventus.WebComponent {
     static __style = `:host{--_col-gap: var(--col-gap, 0px);--_col-gap-y: var(--col-gap-y, var(--_col-gap));--_col-gap-x: var(--col-gap-x, var(--_col-gap))}:host{container-name:row;container-type:inline-size;display:flex;flex-direction:row;flex-wrap:wrap;gap:var(--_col-gap-y) var(--_col-gap-x);width:100%}`;
-    constructor() {
-        super();
-        this.style.containerName = "row";
-        this.style.containerType = "inline-size";
-    }
     __getStatic() {
         return Row;
     }
@@ -8223,6 +8413,11 @@ Layout.Row = class Row extends Aventus.WebComponent {
 }
     getClassName() {
         return "Row";
+    }
+    postCreation() {
+        super.postCreation();
+        this.style.containerName = "row";
+        this.style.containerType = "inline-size";
     }
 }
 Layout.Row.Namespace=`Aventus.Layout`;

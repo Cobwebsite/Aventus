@@ -1981,7 +1981,7 @@ test('compiled UI Img calculates distinct raster dimensions for each mode', asyn
     });
 });
 
-test('compiled UI Row construction fails while Col renders its size styles', async t => {
+test('compiled UI Row supports programmatic creation while Col renders its size styles', async t => {
     const root = copyProject(t);
     cpSync(join(root, 'cases/ui-dependency/RuntimeUiGrid.lib.avt'),
         join(root, 'src/RuntimeUiGrid.lib.avt'));
@@ -2006,13 +2006,15 @@ test('compiled UI Row construction fails while Col renders its size styles', asy
         second.textContent = 'B';
         row.append(first, second);
         document.body.append(row);
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 120));
         const initial = {
             rowRegistered: typeof customElements.get(tags.row),
             colRegistered: typeof customElements.get(tags.col),
             rowDisplay: getComputedStyle(row).display,
+            containerName: row.style.containerName,
+            containerType: row.style.containerType,
             rowConstructor: row.constructor.name,
-            rowShadow: row.shadowRoot?.innerHTML.slice(0, 100),
+            rowShadow: !!row.shadowRoot?.querySelector('slot'),
             colConstructor: first.constructor.name,
             firstSize: first.getAttribute('size'),
             secondSize: second.getAttribute('size'),
@@ -2041,13 +2043,14 @@ test('compiled UI Row construction fails while Col renders its size styles', asy
     assert.deepEqual({ ...actual, pageErrors }, {
         tags: { row: 'av-row', col: 'av-col' },
         initial: {
-            rowRegistered: 'function', colRegistered: 'function', rowDisplay: 'inline',
-            rowConstructor: 'HTMLUnknownElement', rowShadow: undefined,
+            rowRegistered: 'function', colRegistered: 'function', rowDisplay: 'flex',
+            containerName: 'row', containerType: 'inline-size',
+            rowConstructor: 'Row', rowShadow: true,
             colConstructor: 'Col', firstSize: '6', secondSize: '6',
         },
         sizeZero: { display: 'flex', width: '16px' },
         parsed: { constructor: 'Row', display: 'flex', widths: [300, 300] },
-        pageErrors: ["Failed to execute 'createElement' on 'Document': The result must not have attributes"],
+        pageErrors: [],
     });
 });
 

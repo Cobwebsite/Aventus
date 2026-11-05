@@ -19,19 +19,15 @@ namespace Layout {
         //#endregion
 
 
-        //#region constructor
+        //#region methods
         /**
-         * Initializes a new instance of the Row component. Sets CSS containerName to "row" and containerType to "inline-size" to enable CSS Container Queries for responsive child styling.
+         * Sets up the CSS container after the custom element has been constructed.
          */
-        public constructor() {
-            super();
+        protected override postCreation(): void {
+            super.postCreation();
             this.style.containerName = "row";
             this.style.containerType = "inline-size";
         }
-        //#endregion
-
-
-        //#region methods
 
 		//#endregion
 
