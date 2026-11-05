@@ -1683,7 +1683,7 @@ test('compiled UI FormHandler validates required email values and resets the mod
     const actual = await page.evaluate(() => RuntimeReference.RuntimeUiForm.inspect());
     assert.deepEqual(actual, {
         directRequired: 'Le champs email est requis', directEmail: 'Please enter a valid email address',
-        empty: true, invalid: true, invalidWithListener: false, valid: true,
+        empty: false, invalid: false, invalidWithListener: false, invalidWithEmptyListener: false, valid: true,
         resetEmail: 'alice@example.test',
     });
 });

@@ -56,6 +56,7 @@ namespace Form {
         validateOnChange?: boolean,
 
         onValueChange: Aventus.Callback<() => void>,
+        /** Receives schema errors and may add validation errors; returning an empty list does not clear schema errors. */
         onValidation: Aventus.Callback<(errors: string[]) => Promise<string[]>, Promise<string[]>>,
         register: (element: IFormElement) => void;
         unregister: (element: IFormElement) => void;
