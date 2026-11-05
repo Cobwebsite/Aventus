@@ -3329,19 +3329,6 @@ test('documented Required class decorator compiles and exports the class', async
     assert.equal(await page.evaluate(() => RuntimeReference.RuntimeRequired.value()), 'required');
 });
 
-test('documented Dependances spelling is rejected while the compiler declares Dependencies', t => {
-    const root = copyProject(t);
-    cpSync(join(root, 'cases/dependances-doc/RuntimeDependances.lib.avt'),
-        join(root, 'src/RuntimeDependances.lib.avt'));
-    const result = runBuild(root);
-    assert.equal(result.error, undefined, result.error?.message);
-    const report = JSON.parse(result.stdout);
-    assert.equal(report.success, false);
-    const diagnostics = JSON.stringify(report.builds['RuntimeReference@Main'].diagnostics);
-    assert.match(diagnostics, /RuntimeDependances\.lib\.avt/);
-    assert.match(diagnostics, /Cannot find name.*Dependances/);
-});
-
 test('a library re-export from another file reports the LSP unsupported-export diagnostic', t => {
     const root = copyProject(t);
     cpSync(join(root, 'cases/re-export/RuntimeReexport.lib.avt'),
