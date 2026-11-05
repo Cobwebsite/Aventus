@@ -159,8 +159,10 @@ export class Project {
     //#region config
 
     public async loadConfig() {
-        let newConfig = await AventusJSONLanguageService.getInstance().getConfig(this.configFile);
+        const diagnostics: Diagnostic[] = [];
+        let newConfig = await AventusJSONLanguageService.getInstance().getConfig(this.configFile, diagnostics);
         if (this.destroyed) return;
+        GenericServer.sendDiagnostics({ uri: this.configFile.uri, diagnostics });
         if (this.config) {
             let oldConfigTxt = JSON.stringify(this.config);
             let newConfigTxt = "";
