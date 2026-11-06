@@ -3952,7 +3952,8 @@ let Watcher=class Watcher {
                         }
                         else if ([
                             'find', 'findLast', 'findIndex', 'findLastIndex', 'some', 'every',
-                            'filter', 'map', 'flatMap', 'forEach', 'reduce', 'reduceRight', 'at'
+                            'filter', 'map', 'flatMap', 'forEach', 'reduce', 'reduceRight',
+                            'at', 'values', 'entries'
                         ].includes(prop)) {
                             result = (...args) => element.apply(receiver, args);
                         }
