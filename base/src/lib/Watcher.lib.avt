@@ -618,6 +618,9 @@ export class Watcher {
                                     let dones2: any[] = [];
                                     key = Watcher.extract(key);
                                     const hadKey = target.has(key);
+                                    if(!hadKey && key !== null && typeof key === 'object' && key.toString() === '[object Object]') {
+                                        console.warn('Watcher Map: toString() must return a unique value for each object key; [object Object] is ambiguous.');
+                                    }
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
                                     if(out.otherRoot) {
                                         dones.push(out.otherRoot);
