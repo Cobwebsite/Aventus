@@ -3855,6 +3855,9 @@ let Watcher=class Watcher {
             },
             get(target, prop, receiver) {
                 if (typeof prop == 'symbol') {
+                    if (prop == Symbol.iterator && target instanceof Map) {
+                        return () => receiver.entries();
+                    }
                     return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
                 }
                 if (reservedName[prop]) {
@@ -3972,7 +3975,30 @@ let Watcher=class Watcher {
                     }
                     else if (target instanceof Map) {
                         let result;
-                        if (prop == "set") {
+                        if (prop == "entries" || prop == "values") {
+                            result = function* () {
+                                for (const [key] of target.entries()) {
+                                    const value = receiver.get(key);
+                                    yield prop == "entries" ? [key, value] : value;
+                                }
+                            };
+                        }
+                        else if (prop == "forEach") {
+                            result = (callback, thisArg) => {
+                                if (typeof callback != 'function')
+                                    throw new TypeError('Map.forEach callback must be a function');
+                                target.forEach((_value, key) => callback.call(thisArg, receiver.get(key), key, receiver));
+                            };
+                        }
+                        else if (prop == "get") {
+                            result = (key) => {
+                                key = Watcher.extract(key);
+                                const path = key + '';
+                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path);
+                                return this.getProxyObject(target, target.get(key), path);
+                            };
+                        }
+                        else if (prop == "set") {
                             if (target.__isProxy) {
                                 result = (key, value) => {
                                     return target.set(key, value);
@@ -3984,15 +4010,17 @@ let Watcher=class Watcher {
                                     let dones = [];
                                     let dones2 = [];
                                     key = Watcher.extract(key);
+                                    const hadKey = target.has(key);
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
                                     if (out.otherRoot) {
                                         dones.push(out.otherRoot);
                                         dones2.push(out.otherRoot);
                                     }
-                                    let result = target.set(key, value);
-                                    trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
-                                    trigger('UPDATED', target, receiver, target.size, "size", dones2);
-                                    return result;
+                                    target.set(key, value);
+                                    trigger(hadKey ? 'UPDATED' : 'CREATED', target, receiver, receiver.get(key), key + '', dones);
+                                    if (!hadKey)
+                                        trigger('UPDATED', target, receiver, target.size, "size", dones2);
+                                    return receiver;
                                 };
                             }
                         }
@@ -4023,6 +4051,8 @@ let Watcher=class Watcher {
                             else {
                                 result = (key) => {
                                     key = Watcher.extract(key);
+                                    if (!target.has(key))
+                                        return false;
                                     let oldValue = receiver.get(key);
                                     let res = target.delete(key);
                                     trigger('DELETED', target, receiver, oldValue, key + '');
