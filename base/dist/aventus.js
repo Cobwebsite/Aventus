@@ -3335,16 +3335,43 @@ let Effect=class Effect {
         } while (pendingNotification && !this.isDestroy);
         return result;
     }
-    register(receiver, path, version, fullPath, presenceOnly = false) {
+    register(receiver, path, version, fullPath, presenceOnly = false, collectionSizeOnly = false, mapSizeKeyValue = false) {
         for (let info of this.callbacks) {
-            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath && info.presenceOnly == presenceOnly) {
+            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath &&
+                info.presenceOnly == presenceOnly && info.collectionSizeOnly == collectionSizeOnly &&
+                info.mapSizeKeyValue == mapSizeKeyValue) {
                 info.version = version;
                 info.fullPath = fullPath;
                 return;
             }
         }
         let cb;
-        if (path == "*") {
+        if (collectionSizeOnly) {
+            let observedSize = Watcher.untrack(() => receiver.size);
+            cb = (action, changePath, value, dones) => {
+                const currentSize = Watcher.untrack(() => receiver.size);
+                if (currentSize != observedSize) {
+                    observedSize = currentSize;
+                    this.onChange(action, changePath, value, dones);
+                }
+            };
+        }
+        else if (mapSizeKeyValue) {
+            let observedValue = Watcher.untrack(() => Watcher.extract(receiver.get('size')));
+            cb = (action, changePath, value, dones) => {
+                if (changePath == path) {
+                    const currentValue = Watcher.untrack(() => Watcher.extract(receiver.get('size')));
+                    if (!Object.is(currentValue, observedValue)) {
+                        observedValue = currentValue;
+                        this.onChange(action, changePath, value, dones);
+                    }
+                }
+                else if (changePath.startsWith(path + '.') || changePath.startsWith(path + '[')) {
+                    this.onChange(action, changePath, value, dones);
+                }
+            };
+        }
+        else if (path == "*") {
             cb = (action, changePath, value, dones) => { this.onChange(action, changePath, value, dones); };
         }
         else {
@@ -3366,7 +3393,9 @@ let Effect=class Effect {
             cb,
             version,
             fullPath,
-            presenceOnly
+            presenceOnly,
+            collectionSizeOnly,
+            mapSizeKeyValue
         });
         receiver.subscribe(cb);
     }
@@ -4002,7 +4031,7 @@ let Watcher=class Watcher {
                     else if (target instanceof Map) {
                         let result;
                         const registerIteration = () => {
-                            return Watcher._register?.register(receiver, 'size', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size');
+                            return Watcher._register?.register(receiver, '*', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size', false, true);
                         };
                         if (prop == "entries" || prop == "values") {
                             result = function* () {
@@ -4025,7 +4054,7 @@ let Watcher=class Watcher {
                             result = (key) => {
                                 key = Watcher.extract(key);
                                 const path = key + '';
-                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path);
+                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path, false, false, key === 'size');
                                 return this.getProxyObject(target, target.get(key), path);
                             };
                         }
@@ -4125,7 +4154,7 @@ let Watcher=class Watcher {
                     else if (target instanceof Set) {
                         let result;
                         const registerIteration = () => {
-                            return Watcher._register?.register(receiver, 'size', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size');
+                            return Watcher._register?.register(receiver, '*', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size', false, true);
                         };
                         const watchValue = (value) => this.getProxyObject(target, value, String(value));
                         if (prop == 'values' || prop == 'keys') {
@@ -4224,18 +4253,23 @@ let Watcher=class Watcher {
                     return element.value;
                 }
                 if (Watcher._registering.length > 0) {
-                    let currentPath;
-                    let fullPath;
-                    let isArray = Array.isArray(receiver);
-                    if (isArray && /^[0-9]*$/g.exec(prop)) {
-                        fullPath = receiver.__path + "[" + prop + "]";
-                        currentPath = "[" + prop + "]";
+                    if (prop == 'size' && (target instanceof Map || target instanceof Set)) {
+                        Watcher._register?.register(receiver, '*', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size', false, true);
                     }
                     else {
-                        fullPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                        currentPath = prop;
+                        let currentPath;
+                        let fullPath;
+                        let isArray = Array.isArray(receiver);
+                        if (isArray && /^[0-9]*$/g.exec(prop)) {
+                            fullPath = receiver.__path + "[" + prop + "]";
+                            currentPath = "[" + prop + "]";
+                        }
+                        else {
+                            fullPath = receiver.__path ? receiver.__path + '.' + prop : prop;
+                            currentPath = prop;
+                        }
+                        Watcher._register?.register(receiver, currentPath, Watcher._register.version, fullPath);
                     }
-                    Watcher._register?.register(receiver, currentPath, Watcher._register.version, fullPath);
                 }
                 if (typeof (element) == 'object') {
                     return this.getProxyObject(target, element, prop);

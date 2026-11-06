@@ -321,6 +321,59 @@ test('Watcher Map.keys effect follows key changes across a replacement', () => {
     effect.destroy();
 });
 
+test('Watcher Map.keys effect ignores value changes for a key named size', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const records = Watcher.get(runInNewContext('new Map([["size", 1]])', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push([...records.keys()].join(',')));
+    records.set('size', 2);
+    assert.deepEqual(seen, ['size']);
+    records.delete('size');
+    assert.deepEqual(seen, ['size', '']);
+    effect.destroy();
+});
+
+test('Watcher Map.size effect ignores value changes for a key named size', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const records = Watcher.get(runInNewContext('new Map([["size", 1]])', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push(records.size));
+    records.set('size', 2);
+    assert.deepEqual(seen, [1]);
+    records.set('other', 3);
+    records.delete('size');
+    assert.deepEqual(seen, [1, 2, 1]);
+    effect.destroy();
+});
+
+test('Watcher Map.get for a key named size ignores unrelated size changes', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const records = Watcher.get(runInNewContext('new Map([["size", 10]])', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push(records.get('size')));
+    records.set('other', 20);
+    assert.deepEqual(seen, [10]);
+    records.set('size', 11);
+    records.delete('size');
+    assert.deepEqual(seen, [10, 11, undefined]);
+    effect.destroy();
+});
+
+test('Watcher Map.get for a key named size tracks nested value changes', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const records = Watcher.get(runInNewContext('new Map([["size", { count: 1 }]])', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push(records.get('size').count));
+    records.set('other', 2);
+    records.get('size').count = 3;
+    assert.deepEqual(seen, [1, 3]);
+    effect.destroy();
+});
+
 test('Watcher Map mutations report the actual action and size changes', () => {
     const context = loadRuntimeContext();
     const { Watcher, WatchAction } = context.Aventus;
@@ -870,4 +923,17 @@ test('Effect can run again after its callback throws on a signal change', () => 
     effect.destroy();
 });
 
-test('Computed retains its prev
+test('Computed retains its previous value when recomputation throws and recovers later', () => {
+    const { Signal, Computed } = loadRuntime();
+    const source = new Signal(0);
+    const computed = new Computed(() => {
+        if(source.value === 1) throw new Error('computed failed');
+        return source.value * 2;
+    });
+    assert.equal(computed.value, 0);
+    assert.throws(() => { source.value = 1; }, /computed failed/);
+    assert.equal(computed.value, 0);
+    source.value = 2;
+    assert.equal(computed.value, 4);
+    computed.destroy();
+});
