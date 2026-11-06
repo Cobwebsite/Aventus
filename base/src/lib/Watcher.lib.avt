@@ -561,6 +561,14 @@ export class Watcher {
                         else if(prop == 'find') {
                             result = (...args: any[]) => element.apply(receiver, args);
                         }
+                        else if(prop == 'indexOf') {
+                            result = (searchElement: any, fromIndex?: number) => {
+                                if(searchElement && Watcher.is(searchElement)) {
+                                    searchElement = Watcher.extract(searchElement);
+                                }
+                                target.indexOf(searchElement, fromIndex);
+                            };
+                        }
                         else {
                             result = element.bind(target);
                         }

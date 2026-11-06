@@ -108,6 +108,18 @@ test('Watcher.find returns a watched item whose changes notify subscribers', () 
     assert.equal(model.items[1].name, 'updated');
 });
 
+test('Watcher array indexOf accepts a plain value and a watched item', () => {
+    const context = loadRuntimeContext();
+    const { Watcher } = context.Aventus;
+    const plain = runInNewContext('({ id: 1 })', context);
+    const model = Watcher.get(runInNewContext('({ items: [] })', context));
+    model.items.push(plain);
+
+    assert.equal(model.items.indexOf(plain), 0);
+    assert.equal(model.items.indexOf(model.items[0]), 0);
+    assert.equal(model.items.indexOf(runInNewContext('({ id: 1 })', context)), -1);
+});
+
 test('Watcher subscriptions can be removed and extraction returns current plain data', () => {
     const context = loadRuntimeContext();
     const { Watcher } = context.Aventus;
