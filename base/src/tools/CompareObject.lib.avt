@@ -171,6 +171,12 @@ export function getValueFromObject(path: string, obj: any) {
             }
             return undefined;
         }
+        if(obj instanceof Set) {
+            for(const value of obj) {
+                if(String(value) === key) return value;
+            }
+            return undefined;
+        }
         return obj[key];
     };
 

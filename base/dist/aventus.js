@@ -477,6 +477,13 @@ let getValueFromObject=function getValueFromObject(path, obj) {
             }
             return undefined;
         }
+        if (obj instanceof Set) {
+            for (const value of obj) {
+                if (String(value) === key)
+                    return value;
+            }
+            return undefined;
+        }
         return obj[key];
     };
     let splitted = path.split(".");
@@ -3865,6 +3872,9 @@ let Watcher=class Watcher {
                     if (prop == Symbol.iterator && target instanceof Map) {
                         return () => receiver.entries();
                     }
+                    if (prop == Symbol.iterator && target instanceof Set) {
+                        return () => receiver.values();
+                    }
                     return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
                 }
                 if (reservedName[prop]) {
@@ -4076,6 +4086,87 @@ let Watcher=class Watcher {
                         }
                         return result;
                     }
+                    else if (target instanceof Set) {
+                        let result;
+                        const watchValue = (value) => this.getProxyObject(target, value, String(value));
+                        if (prop == 'values' || prop == 'keys') {
+                            result = function* () {
+                                for (const value of target)
+                                    yield watchValue(value);
+                            };
+                        }
+                        else if (prop == 'entries') {
+                            result = function* () {
+                                for (const value of target) {
+                                    const watched = watchValue(value);
+                                    yield [watched, watched];
+                                }
+                            };
+                        }
+                        else if (prop == 'forEach') {
+                            result = (callback, thisArg) => {
+                                if (typeof callback != 'function')
+                                    throw new TypeError('Set.forEach callback must be a function');
+                                target.forEach(value => {
+                                    const watched = watchValue(value);
+                                    callback.call(thisArg, watched, watched, receiver);
+                                });
+                            };
+                        }
+                        else if (prop == 'has') {
+                            result = (value) => {
+                                if (value && Watcher.is(value)) {
+                                    value = Watcher.extract(value);
+                                }
+                                return target.has(value);
+                            };
+                        }
+                        else if (prop == 'add') {
+                            result = (value) => {
+                                if (value && Watcher.is(value)) {
+                                    value = Watcher.extract(value);
+                                }
+                                if (target.has(value))
+                                    return receiver;
+                                if (value !== null && typeof value === 'object' && value.toString() === '[object Object]') {
+                                    console.warn('Watcher Set: toString() must return a unique value for each object; [object Object] is ambiguous.');
+                                }
+                                target.add(value);
+                                trigger('CREATED', target, receiver, value, String(value));
+                                trigger('UPDATED', target, receiver, target.size, 'size');
+                                return receiver;
+                            };
+                        }
+                        else if (prop == 'delete') {
+                            result = (value) => {
+                                if (value && Watcher.is(value)) {
+                                    value = Watcher.extract(value);
+                                }
+                                if (!target.has(value))
+                                    return false;
+                                const deleted = target.delete(value);
+                                trigger('DELETED', target, receiver, value, String(value));
+                                trigger('UPDATED', target, receiver, target.size, 'size');
+                                return deleted;
+                            };
+                        }
+                        else if (prop == 'clear') {
+                            result = () => {
+                                if (target.size === 0)
+                                    return;
+                                const values = [...target];
+                                target.clear();
+                                for (const value of values) {
+                                    trigger('DELETED', target, receiver, value, String(value));
+                                }
+                                trigger('UPDATED', target, receiver, target.size, 'size');
+                            };
+                        }
+                        else {
+                            result = element.bind(target);
+                        }
+                        return result;
+                    }
                     return element.bind(target);
                 }
                 if (element instanceof Computed) {
@@ -4098,7 +4189,8 @@ let Watcher=class Watcher {
                 if (typeof (element) == 'object') {
                     return this.getProxyObject(target, element, prop);
                 }
-                return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
+                return Watcher.isNative(target) || target instanceof Map || target instanceof Set
+                    ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
                 if (typeof prop == 'symbol') {

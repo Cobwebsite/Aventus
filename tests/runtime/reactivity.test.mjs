@@ -178,6 +178,7 @@ test('Watcher Map.set keeps chained calls watched', () => {
     records.set('second', 2).set('third', 3);
 
     assert.equal(records.get('third'), 3);
+    assert.equal(records.size, 3);
     assert.deepEqual(changes, [
         [WatchAction.CREATED, 'records.first'],
         [WatchAction.UPDATED, 'records.size'],
@@ -271,6 +272,115 @@ test('Watcher Map warns when an inserted object key has the default toString', (
     model.records.set(key, 2);
     assert.equal(warnings.length, 1);
     assert.match(warnings[0], /toString.*unique/);
+});
+
+test('Watcher Set mutations notify only real changes and keep chaining watched', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ items: new Set() })', context),
+        (action, path) => changes.push([action, path]));
+    const items = model.items;
+
+    assert.equal(items.add('first'), items);
+    items.add('first');
+    items.add('second');
+    items.add('third');
+    assert.equal(items.delete('missing'), false);
+    assert.equal(items.delete('first'), true);
+    items.clear();
+    items.clear();
+
+    assert.equal(items.size, 0);
+    assert.deepEqual(changes, [
+        [WatchAction.CREATED, 'items.first'],
+        [WatchAction.UPDATED, 'items.size'],
+        [WatchAction.CREATED, 'items.second'],
+        [WatchAction.UPDATED, 'items.size'],
+        [WatchAction.CREATED, 'items.third'],
+        [WatchAction.UPDATED, 'items.size'],
+        [WatchAction.DELETED, 'items.first'],
+        [WatchAction.UPDATED, 'items.size'],
+        [WatchAction.DELETED, 'items.second'],
+        [WatchAction.DELETED, 'items.third'],
+        [WatchAction.UPDATED, 'items.size'],
+    ]);
+});
+
+test('Watcher Set warns once when an added object has the default toString', () => {
+    const warnings = [];
+    const logger = Object.create(console);
+    logger.warn = message => warnings.push(message);
+    const context = loadRuntimeContext({ console: logger });
+    const { Watcher } = context.Aventus;
+    const item = runInNewContext('({})', context);
+    const model = Watcher.get(runInNewContext('({ items: new Set() })', context));
+
+    model.items.add(item);
+    model.items.add(item);
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /toString.*unique/);
+});
+
+test('Watcher Set.has accepts a watched value', () => {
+    const context = loadRuntimeContext();
+    const { Watcher } = context.Aventus;
+    const item = runInNewContext('({ toString() { return "item-one"; } })', context);
+    const model = Watcher.get(runInNewContext('({ items: new Set() })', context));
+    const watchedItem = Watcher.get(item);
+
+    model.items.add(item);
+    assert.equal(model.items.has(item), true);
+    assert.equal(model.items.has(watchedItem), true);
+    assert.equal(model.items.has(runInNewContext('({ toString() { return "item-one"; } })', context)), false);
+});
+
+test('Watcher Set iteration exposes watched values', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const data = runInNewContext('({ items: new Set([{ count: 1, toString() { return "first"; } }, { count: 2, toString() { return "second"; } }]) })', context);
+    const model = Watcher.get(data, (action, path) => changes.push([action, path]));
+    const items = model.items;
+
+    const [firstFromIterator] = items;
+    assert.equal(Watcher.is(firstFromIterator), true);
+    firstFromIterator.count = 3;
+
+    const [firstFromValues] = items.values();
+    assert.equal(Watcher.is(firstFromValues), true);
+    firstFromValues.count = 4;
+
+    const [, secondFromKeys] = items.keys();
+    assert.equal(Watcher.is(secondFromKeys), true);
+    secondFromKeys.count = 5;
+
+    const [[firstEntryValue, firstEntryKey]] = items.entries();
+    assert.equal(firstEntryValue, firstEntryKey);
+    assert.equal(Watcher.is(firstEntryValue), true);
+    firstEntryValue.count = 6;
+
+    const contextObject = {};
+    items.forEach(function(value, key, set) {
+        assert.equal(this, contextObject);
+        assert.equal(value, key);
+        assert.equal(set, items);
+        assert.equal(Watcher.is(value), true);
+        if(value.count === 5) value.count = 7;
+    }, contextObject);
+
+    assert.deepEqual(changes, [
+        [WatchAction.UPDATED, 'items.first.count'],
+        [WatchAction.UPDATED, 'items.first.count'],
+        [WatchAction.UPDATED, 'items.second.count'],
+        [WatchAction.UPDATED, 'items.first.count'],
+        [WatchAction.UPDATED, 'items.second.count'],
+    ]);
+
+    assert.equal(items.delete(firstFromIterator), true);
+    const beforeDetachedChange = changes.length;
+    firstFromIterator.count = 8;
+    assert.equal(changes.length, beforeDetachedChange);
 });
 
 test('Watcher array callbacks receive watched items', () => {
