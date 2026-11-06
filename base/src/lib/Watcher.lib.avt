@@ -1130,7 +1130,7 @@ export class Watcher {
     }
 
     public static is(obj: any): boolean {
-        return typeof obj == 'object' && obj.__isProxy;
+        return obj !== null && typeof obj == 'object' && obj.__isProxy;
     }
 
     private static clearReservedNames(data: any) {
