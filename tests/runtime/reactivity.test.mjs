@@ -151,6 +151,98 @@ test('Watcher values and entries iterate watched items', () => {
     ]);
 });
 
+test('Watcher Map.get returns a watched value', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ records: new Map([["first", { count: 1 }]]) })', context),
+        (action, path) => changes.push([action, path]));
+
+    const record = model.records.get('first');
+    assert.equal(Watcher.is(record), true);
+    record.count = 2;
+
+    assert.equal(model.records.get('first').count, 2);
+    assert.deepEqual(changes, [[WatchAction.UPDATED, 'records.first.count']]);
+});
+
+test('Watcher Map.set keeps chained calls watched', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ records: new Map() })', context),
+        (action, path) => changes.push([action, path]));
+    const records = model.records;
+
+    assert.equal(records.set('first', 1), records);
+    records.set('second', 2).set('third', 3);
+
+    assert.equal(records.get('third'), 3);
+    assert.deepEqual(changes, [
+        [WatchAction.CREATED, 'records.first'],
+        [WatchAction.UPDATED, 'records.size'],
+        [WatchAction.CREATED, 'records.second'],
+        [WatchAction.UPDATED, 'records.size'],
+        [WatchAction.CREATED, 'records.third'],
+        [WatchAction.UPDATED, 'records.size'],
+    ]);
+});
+
+test('Watcher Map iteration exposes watched values', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ records: new Map([["first", { count: 1 }], ["second", { count: 2 }]]) })', context),
+        (action, path) => changes.push([action, path]));
+    const records = model.records;
+
+    const [[firstKey, firstFromIterator]] = [...records];
+    assert.equal(firstKey, 'first');
+    assert.equal(Watcher.is(firstFromIterator), true);
+    firstFromIterator.count = 3;
+
+    const [[, secondFromEntries]] = Array.from(records.entries()).slice(1);
+    assert.equal(Watcher.is(secondFromEntries), true);
+    secondFromEntries.count = 4;
+
+    const [firstFromValues] = records.values();
+    assert.equal(Watcher.is(firstFromValues), true);
+    firstFromValues.count = 5;
+
+    const contextObject = {};
+    records.forEach(function(value, key, map) {
+        assert.equal(this, contextObject);
+        assert.equal(map, records);
+        assert.equal(Watcher.is(value), true);
+        if(key === 'second') value.count = 6;
+    }, contextObject);
+
+    assert.deepEqual(changes, [
+        [WatchAction.UPDATED, 'records.first.count'],
+        [WatchAction.UPDATED, 'records.second.count'],
+        [WatchAction.UPDATED, 'records.first.count'],
+        [WatchAction.UPDATED, 'records.second.count'],
+    ]);
+});
+
+test('Watcher Map mutations report the actual action and size changes', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ records: new Map([["first", 1]]) })', context),
+        (action, path) => changes.push([action, path]));
+
+    model.records.set('first', 2);
+    assert.equal(model.records.delete('missing'), false);
+    assert.equal(model.records.delete('first'), true);
+
+    assert.deepEqual(changes, [
+        [WatchAction.UPDATED, 'records.first'],
+        [WatchAction.DELETED, 'records.first'],
+        [WatchAction.UPDATED, 'records.size'],
+    ]);
+});
+
 test('Watcher array callbacks receive watched items', () => {
     const context = loadRuntimeContext();
     const { Watcher, Effect, WatchAction } = context.Aventus;
