@@ -129,6 +129,28 @@ test('Watcher.at and findLast return watched items', () => {
     ]);
 });
 
+test('Watcher values and entries iterate watched items', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ items: [{ count: 1 }, { count: 2 }] })', context),
+        (action, path) => changes.push([action, path]));
+
+    const values = Array.from(model.items.values());
+    assert.equal(Watcher.is(values[0]), true);
+    values[0].count = 3;
+
+    const entries = Array.from(model.items.entries());
+    assert.deepEqual(entries.map(([index]) => index), [0, 1]);
+    assert.equal(Watcher.is(entries[1][1]), true);
+    entries[1][1].count = 4;
+
+    assert.deepEqual(changes, [
+        [WatchAction.UPDATED, 'items[0].count'],
+        [WatchAction.UPDATED, 'items[1].count'],
+    ]);
+});
+
 test('Watcher array callbacks receive watched items', () => {
     const context = loadRuntimeContext();
     const { Watcher, Effect, WatchAction } = context.Aventus;
