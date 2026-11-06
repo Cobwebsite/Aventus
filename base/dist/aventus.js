@@ -46,11 +46,6 @@ __as1(_, 'HttpMethod', HttpMethod);
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
-(() => {
-const _ = globalThis;
-const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; };
- 
-})();
 
 var Aventus;
 (Aventus||(Aventus = {}));
@@ -376,23 +371,6 @@ let Mutex=class Mutex {
 Mutex.Namespace=`Aventus`;
 __as1(_, 'Mutex', Mutex);
 
-var HttpMethod;
-(function (HttpMethod) {
-    HttpMethod["GET"] = "GET";
-    HttpMethod["POST"] = "POST";
-    HttpMethod["DELETE"] = "DELETE";
-    HttpMethod["PUT"] = "PUT";
-    HttpMethod["OPTION"] = "OPTION";
-})(HttpMethod || (HttpMethod = {}));
-__as1(_, 'HttpMethod', HttpMethod);
-
-var HttpErrorCode;
-(function (HttpErrorCode) {
-    HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
-    HttpErrorCode[HttpErrorCode["status"] = 1] = "status";
-})(HttpErrorCode || (HttpErrorCode = {}));
-__as1(_, 'HttpErrorCode', HttpErrorCode);
-
 let ActionGuard=class ActionGuard {
     /**
      * Map to store actions that are currently running.
@@ -439,16 +417,6 @@ let ActionGuard=class ActionGuard {
 ActionGuard.Namespace=`Aventus`;
 __as1(_, 'ActionGuard', ActionGuard);
 
-let Resource=class Resource {
-}
-Resource.Namespace=`Aventus`;
-__as1(_, 'Resource', Resource);
-
-let Request=class Request {
-}
-Request.Namespace=`Aventus`;
-__as1(_, 'Request', Request);
-
 var RamErrorCode;
 (function (RamErrorCode) {
     RamErrorCode[RamErrorCode["unknow"] = 0] = "unknow";
@@ -457,44 +425,6 @@ var RamErrorCode;
     RamErrorCode[RamErrorCode["alreadyExists"] = 3] = "alreadyExists";
 })(RamErrorCode || (RamErrorCode = {}));
 __as1(_, 'RamErrorCode', RamErrorCode);
-
-let getValueFromObject=function getValueFromObject(path, obj) {
-    if (path === undefined) {
-        path = '';
-    }
-    path = path.replace(/\[(.*?)\]/g, '.$1');
-    if (path == "") {
-        return obj;
-    }
-    const val = (key) => {
-        if (obj instanceof Map) {
-            return obj.get(key);
-        }
-        return obj[key];
-    };
-    let splitted = path.split(".");
-    for (let i = 0; i < splitted.length - 1; i++) {
-        let split = splitted[i];
-        let value = val(split);
-        if (!value || typeof value !== 'object') {
-            return undefined;
-        }
-        obj = value;
-    }
-    if (!obj || typeof obj !== 'object') {
-        return undefined;
-    }
-    return val(splitted[splitted.length - 1]);
-}
-__as1(_, 'getValueFromObject', getValueFromObject);
-
-var WatchAction;
-(function (WatchAction) {
-    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
-    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
-    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
-})(WatchAction || (WatchAction = {}));
-__as1(_, 'WatchAction', WatchAction);
 
 let ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
@@ -684,18 +614,6 @@ let ResourceLoader=class ResourceLoader {
 ResourceLoader.Namespace=`Aventus`;
 __as1(_, 'ResourceLoader', ResourceLoader);
 
-let Async=function Async(el) {
-    return new Promise((resolve) => {
-        if (el instanceof Promise) {
-            el.then(resolve);
-        }
-        else {
-            resolve(el);
-        }
-    });
-}
-__as1(_, 'Async', Async);
-
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
 __as1(_, 'DragElementXYType', DragElementXYType);
 
@@ -865,6 +783,83 @@ let CallbackGroup=class CallbackGroup {
 }
 CallbackGroup.Namespace=`Aventus`;
 __as1(_, 'CallbackGroup', CallbackGroup);
+
+let Resource=class Resource {
+}
+Resource.Namespace=`Aventus`;
+__as1(_, 'Resource', Resource);
+
+let Request=class Request {
+}
+Request.Namespace=`Aventus`;
+__as1(_, 'Request', Request);
+
+let getValueFromObject=function getValueFromObject(path, obj) {
+    if (path === undefined) {
+        path = '';
+    }
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+    if (path == "") {
+        return obj;
+    }
+    const val = (key) => {
+        if (obj instanceof Map) {
+            return obj.get(key);
+        }
+        return obj[key];
+    };
+    let splitted = path.split(".");
+    for (let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        let value = val(split);
+        if (!value || typeof value !== 'object') {
+            return undefined;
+        }
+        obj = value;
+    }
+    if (!obj || typeof obj !== 'object') {
+        return undefined;
+    }
+    return val(splitted[splitted.length - 1]);
+}
+__as1(_, 'getValueFromObject', getValueFromObject);
+
+var WatchAction;
+(function (WatchAction) {
+    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
+    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
+    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
+})(WatchAction || (WatchAction = {}));
+__as1(_, 'WatchAction', WatchAction);
+
+let Async=function Async(el) {
+    return new Promise((resolve) => {
+        if (el instanceof Promise) {
+            el.then(resolve);
+        }
+        else {
+            resolve(el);
+        }
+    });
+}
+__as1(_, 'Async', Async);
+
+var HttpMethod;
+(function (HttpMethod) {
+    HttpMethod["GET"] = "GET";
+    HttpMethod["POST"] = "POST";
+    HttpMethod["DELETE"] = "DELETE";
+    HttpMethod["PUT"] = "PUT";
+    HttpMethod["OPTION"] = "OPTION";
+})(HttpMethod || (HttpMethod = {}));
+__as1(_, 'HttpMethod', HttpMethod);
+
+var HttpErrorCode;
+(function (HttpErrorCode) {
+    HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
+    HttpErrorCode[HttpErrorCode["status"] = 1] = "status";
+})(HttpErrorCode || (HttpErrorCode = {}));
+__as1(_, 'HttpErrorCode', HttpErrorCode);
 
 let DateSettings=class DateSettings {
     static options = {
@@ -1806,6 +1801,1923 @@ Data.Namespace=`Aventus`;
 Data.$schema={"namespace":"string","$type":"string","className":"string"};
 Converter.register(Data.Fullname, Data);
 __as1(_, 'Data', Data);
+
+let HttpCache=class HttpCache {
+    static cache = new Map();
+    static pending = new Map();
+    static fetch(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            const value = this.cache.get(key);
+            if (value)
+                return Promise.resolve(value);
+            const pending = this.pending.get(key);
+            if (pending)
+                return pending;
+        }
+        let transport;
+        try {
+            transport = fetch(fullUrl, request);
+        }
+        catch (error) {
+            return Promise.reject(error);
+        }
+        let pending;
+        pending = Promise.resolve(transport).then(result => {
+            const response = new HttpResponse(result);
+            if (key && this.pending.get(key) === pending) {
+                this.cache.set(key, response);
+            }
+            return response;
+        }).finally(() => {
+            if (key && this.pending.get(key) === pending) {
+                this.pending.delete(key);
+            }
+        });
+        if (key) {
+            this.pending.set(key, pending);
+        }
+        return pending;
+    }
+    static clear(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            this.pending.delete(key);
+            if (this.cache.has(key)) {
+                this.cache.delete(key);
+            }
+        }
+    }
+    static generateCacheKey(fullUrl, request) {
+        const method = request.method;
+        const body = request.body;
+        const accept = request.headers ? new Headers(request.headers).get('Accept') ?? '' : '';
+        let bodyKey = "";
+        if (typeof body == 'string') {
+            bodyKey = this.hashStringToInt(body) + '';
+        }
+        else if (body instanceof FormData) {
+        }
+        return fullUrl + "°" + method + "°" + bodyKey + "°" + accept;
+    }
+    static hashStringToInt(str) {
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < str.length; i++) {
+            hash ^= str.charCodeAt(i);
+            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+        }
+        return hash >>> 0;
+    }
+}
+HttpCache.Namespace=`Aventus`;
+__as1(_, 'HttpCache', HttpCache);
+
+let GenericError=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+class GenericError {
+    static converter = new Converter();
+    static get Fullname() { return "Aventus.GenericError"; }
+    /**
+     * Code for the error
+     */
+    code;
+    /**
+     * Description of the error
+     */
+    message;
+    /**
+     * Additional details related to the error.
+     */
+    details = [];
+    /**
+     * Creates a new instance of GenericError.
+     * @param {EnumValue<T>} code - The error code.
+     * @param {string | Error | unknown} message - The error message.
+     */
+    constructor(code, message) {
+        this.code = code;
+        if (message instanceof Error) {
+            this.message = message.message;
+        }
+        else {
+            this.message = message + '';
+        }
+    }
+}
+GenericError.Namespace=`Aventus`;
+GenericError.$schema={"code":"Aventus.EnumValue","message":"string"};
+Converter.register(GenericError.Fullname, GenericError);
+__as1(_, 'GenericError', GenericError);
+
+let VoidWithError=class VoidWithError {
+    static get Fullname() { return "Aventus.VoidWithError"; }
+    /**
+     * Determine if the action is a success
+     */
+    get success() {
+        return this.errors.length == 0;
+    }
+    /**
+     * List of errors
+     */
+    errors = [];
+    /**
+     * Converts the current instance to a VoidWithError object.
+     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
+     */
+    toGeneric() {
+        const result = new VoidWithError();
+        result.errors = this.errors;
+        return result;
+    }
+    /**
+    * Checks if the error list contains a specific error code.
+    * @template U - The type of error, extending GenericError.
+    * @template T - The type of the error code, which extends either number or Enum.
+    * @param {EnumValue<T>} code - The error code to check for.
+    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
+    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
+    */
+    containsCode(code, type) {
+        if (type) {
+            for (let error of this.errors) {
+                if (error instanceof type) {
+                    if (error.code == code) {
+                        return true;
+                    }
+                }
+            }
+        }
+        else {
+            for (let error of this.errors) {
+                if (error.code == code) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    run(fct) {
+        if (this.success) {
+            let result = fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+    async runAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+    extract(fct) {
+        if (this.success) {
+            let result = fct();
+            if (result.success && result.result !== undefined) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
+    async extractAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (result.success && result.result !== undefined) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
+}
+VoidWithError.Namespace=`Aventus`;
+VoidWithError.$schema={"success":"boolean","errors":"T[]"};
+Converter.register(VoidWithError.Fullname, VoidWithError);
+__as1(_, 'VoidWithError', VoidWithError);
+
+let ResultWithError=class ResultWithError extends VoidWithError {
+    static get Fullname() { return "Aventus.ResultWithError"; }
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
+    run(fct) {
+        if (this.success) {
+            const result = fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if (errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
+            }
+            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
+    async runAsync(fct) {
+        if (this.success) {
+            const result = await fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if (errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
+            }
+            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
+}
+ResultWithError.Namespace=`Aventus`;
+ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
+Converter.register(ResultWithError.Fullname, ResultWithError);
+__as1(_, 'ResultWithError', ResultWithError);
+
+let HttpError=class HttpError extends GenericError {
+    status;
+    constructor(code, message, status) {
+        super(code, message);
+        this.status = status;
+    }
+}
+HttpError.Namespace=`Aventus`;
+HttpError.$schema={...(GenericError?.$schema ?? {}), "status":"number"};
+Converter.register(HttpError.Fullname, HttpError);
+__as1(_, 'HttpError', HttpError);
+
+let Signal=class Signal {
+    __subscribes = [];
+    _value;
+    _onChange;
+    get value() {
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    set value(item) {
+        const oldValue = this._value;
+        this._value = item;
+        if (oldValue != item) {
+            const subscribes = [...this.__subscribes];
+            if (this._onChange) {
+                Watcher.isolate(() => {
+                    this._onChange?.();
+                });
+            }
+            for (let fct of subscribes) {
+                Watcher.isolate(() => {
+                    fct(WatchAction.UPDATED, "*", item, []);
+                });
+            }
+        }
+    }
+    constructor(item, onChange) {
+        this._value = item;
+        this._onChange = onChange;
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+    destroy() {
+        this.__subscribes = [];
+    }
+}
+Signal.Namespace=`Aventus`;
+__as1(_, 'Signal', Signal);
+
+let Effect=class Effect {
+    callbacks = [];
+    isInit = false;
+    isDestroy = false;
+    __subscribes = [];
+    __allowChanged = [];
+    version = 0;
+    isRunning = false;
+    pendingChange;
+    fct;
+    constructor(fct) {
+        this.fct = fct;
+        if (this.autoInit()) {
+            this.init();
+        }
+    }
+    autoInit() {
+        return true;
+    }
+    init() {
+        this.isInit = true;
+        this.run();
+    }
+    run() {
+        if (this.isRunning)
+            return;
+        let result;
+        let pendingNotification;
+        do {
+            this.pendingChange = undefined;
+            this.isRunning = true;
+            this.version++;
+            Watcher._registering.push(this);
+            try {
+                result = this.fct();
+            }
+            finally {
+                Watcher._registering.splice(Watcher._registering.length - 1, 1);
+                this.isRunning = false;
+            }
+            for (let i = 0; i < this.callbacks.length; i++) {
+                if (this.callbacks[i].version != this.version) {
+                    this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
+                    this.callbacks.splice(i, 1);
+                    i--;
+                }
+            }
+            if (pendingNotification) {
+                const notification = pendingNotification;
+                for (let fct of [...this.__subscribes]) {
+                    Watcher.isolate(() => {
+                        fct(notification.action, notification.changePath, notification.value, notification.dones);
+                    });
+                }
+            }
+            pendingNotification = this.pendingChange;
+        } while (pendingNotification && !this.isDestroy);
+        return result;
+    }
+    register(receiver, path, version, fullPath) {
+        for (let info of this.callbacks) {
+            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath) {
+                info.version = version;
+                info.fullPath = fullPath;
+                return;
+            }
+        }
+        let cb;
+        if (path == "*") {
+            cb = (action, changePath, value, dones) => { this.onChange(action, changePath, value, dones); };
+        }
+        else {
+            cb = (action, changePath, value, dones) => {
+                if (changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
+                    // if(changePath == path) {
+                    this.onChange(action, changePath, value, dones);
+                }
+            };
+        }
+        this.callbacks.push({
+            receiver,
+            path,
+            registerPath: receiver.__path,
+            cb,
+            version,
+            fullPath
+        });
+        receiver.subscribe(cb);
+    }
+    canChange(fct) {
+        this.__allowChanged.push(fct);
+    }
+    checkCanChange(action, changePath, value, dones) {
+        if (this.isDestroy || this.isRunning) {
+            return false;
+        }
+        for (let fct of this.__allowChanged) {
+            if (!fct(action, changePath, value, dones)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    onChange(action, changePath, value, dones) {
+        if (this.isRunning) {
+            if (!this.isDestroy && this.__allowChanged.every(fct => fct(action, changePath, value, dones))) {
+                this.pendingChange = { action, changePath, value, dones };
+            }
+            return;
+        }
+        if (!this.checkCanChange(action, changePath, value, dones)) {
+            return;
+        }
+        this.run();
+        for (let fct of [...this.__subscribes]) {
+            Watcher.isolate(() => {
+                fct(action, changePath, value, dones);
+            });
+        }
+    }
+    destroy() {
+        this.isDestroy = true;
+        this.clearCallbacks();
+        this.isInit = false;
+    }
+    clearCallbacks() {
+        for (let pair of this.callbacks) {
+            pair.receiver.unsubscribe(pair.cb);
+        }
+        this.callbacks = [];
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+}
+Effect.Namespace=`Aventus`;
+__as1(_, 'Effect', Effect);
+
+let Computed=class Computed extends Effect {
+    _value;
+    __path = "*";
+    get value() {
+        if (!this.isInit) {
+            this.init();
+        }
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    autoInit() {
+        return false;
+    }
+    constructor(fct) {
+        super(fct);
+    }
+    init() {
+        this.isInit = true;
+        this.computedValue();
+    }
+    computedValue() {
+        this._value = this.run();
+    }
+    onChange(action, changePath, value, dones) {
+        if (!this.checkCanChange(action, changePath, value, dones)) {
+            return;
+        }
+        let oldValue = this._value;
+        this.computedValue();
+        if (oldValue === this._value) {
+            return;
+        }
+        for (let fct of [...this.__subscribes]) {
+            Watcher.isolate(() => {
+                fct(action, changePath, value, dones);
+            });
+        }
+    }
+}
+Computed.Namespace=`Aventus`;
+__as1(_, 'Computed', Computed);
+
+let compareObjectRecursive=function compareObjectRecursive(obj1, obj2, tableOrder, active, proxyData1 = false, proxyData2 = false) {
+    if (obj1 !== null && obj2 !== null && typeof obj1 === 'object' && typeof obj2 === 'object') {
+        let matches = active.get(obj1);
+        if (matches?.has(obj2)) {
+            return true;
+        }
+        if (!matches) {
+            matches = new WeakSet();
+            active.set(obj1, matches);
+        }
+        matches.add(obj2);
+        try {
+            return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
+        }
+        finally {
+            matches.delete(obj2);
+        }
+    }
+    return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
+}
+
+let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
+    return compareObjectRecursive(obj1, obj2, tableOrder, new WeakMap());
+}
+__as1(_, 'compareObject', compareObject);
+
+let Watcher=class Watcher {
+    static isNative(obj) {
+        if (obj instanceof Blob ||
+            obj instanceof Element ||
+            obj instanceof Window)
+            return true;
+        return false;
+    }
+    constructor() { }
+    ;
+    static __reservedName = {
+        __path: '__path',
+    };
+    static __triggerForced = false;
+    static _registering = [];
+    static __untrackDepth = 0;
+    static get _register() {
+        if (this.__untrackDepth > 0)
+            return undefined;
+        return this._registering[this._registering.length - 1];
+    }
+    /**
+     * Read reactive values without registering them on the current effect.
+     */
+    static untrack(fct) {
+        this.__untrackDepth++;
+        try {
+            return fct();
+        }
+        finally {
+            this.__untrackDepth--;
+        }
+    }
+    /**
+     * Run a callback outside the current reactive context while allowing effects
+     * created by that callback to register their own dependencies.
+     */
+    static isolate(fct) {
+        const registering = this._registering;
+        this._registering = [];
+        try {
+            return fct();
+        }
+        finally {
+            this._registering = registering;
+        }
+    }
+    /**
+     * Transform object into a watcher
+     */
+    static get(obj, onDataChanged) {
+        if (obj == undefined) {
+            console.error("You must define an objet / array for your proxy");
+            return;
+        }
+        if (obj.__isProxy) {
+            if (onDataChanged)
+                obj.subscribe(onDataChanged);
+            return obj;
+        }
+        const reservedName = this.__reservedName;
+        const setProxyPath = (newProxy, newPath) => {
+            if (newProxy instanceof Object && newProxy.__isProxy) {
+                newProxy.__path = newPath;
+            }
+        };
+        const jsonReplacer = (key, value) => {
+            if (reservedName[key])
+                return undefined;
+            return value;
+        };
+        const addAlias = (otherBaseData, name, cb) => {
+            let cbs = aliases.get(otherBaseData);
+            if (!cbs) {
+                cbs = [];
+                aliases.set(otherBaseData, cbs);
+            }
+            cbs.push({
+                name: name,
+                fct: cb
+            });
+        };
+        const deleteAlias = (otherBaseData, name) => {
+            let cbs = aliases.get(otherBaseData);
+            if (!cbs)
+                return;
+            for (let i = 0; i < cbs.length; i++) {
+                if (cbs[i].name == name) {
+                    cbs.splice(i, 1);
+                    if (cbs.length == 0) {
+                        aliases.delete(otherBaseData);
+                    }
+                    return;
+                }
+            }
+        };
+        const replaceByAlias = (target, element, prop, receiver, apply, out = {}) => {
+            let fullInternalPath = "";
+            if (Array.isArray(receiver)) {
+                if (prop != "length") {
+                    if (target.__path) {
+                        fullInternalPath = target.__path;
+                    }
+                    fullInternalPath += "[" + prop + "]";
+                }
+            }
+            else {
+                if (target.__path) {
+                    fullInternalPath = target.__path + '.';
+                }
+                fullInternalPath += prop;
+            }
+            if (receiver && internalAliases[fullInternalPath]) {
+                internalAliases[fullInternalPath].unbind();
+            }
+            if (element instanceof Object && element.__isProxy) {
+                let root = element.__root;
+                if (root != proxyData.baseData) {
+                    element.__validatePath();
+                    let oldPath = element.__path ?? '';
+                    let unbindElement = Watcher.extract(getValueFromObject(oldPath, root));
+                    if (unbindElement === undefined) {
+                        return element;
+                    }
+                    if (receiver == null) {
+                        receiver = getValueFromObject(target.__path, realProxy);
+                        if (internalAliases[fullInternalPath]) {
+                            internalAliases[fullInternalPath].unbind();
+                        }
+                    }
+                    if (apply) {
+                        let result = this.isNative(target) ? Reflect.set(target, prop, unbindElement) : Reflect.set(target, prop, unbindElement, receiver);
+                    }
+                    element.__addAlias(proxyData.baseData, oldPath, (type, target, receiver2, value, prop2, dones) => {
+                        let triggerPath;
+                        if (prop2.startsWith("[") || fullInternalPath == "" || prop2 == "") {
+                            triggerPath = fullInternalPath + prop2;
+                        }
+                        else {
+                            triggerPath = fullInternalPath + "." + prop2;
+                        }
+                        if (type == 'DELETED' && internalAliases[triggerPath]) {
+                            internalAliases[triggerPath].unbind();
+                        }
+                        triggerPath = triggerPath.replace(/\[(.*?)\]/g, '.$1');
+                        let splitted = triggerPath.split(".");
+                        let newProp = splitted.pop();
+                        let newReceiver = getValueFromObject(splitted.join("."), realProxy);
+                        if (newReceiver.getTarget(false) == target)
+                            trigger(type, target, newReceiver, value, newProp ?? '', dones);
+                    });
+                    internalAliases[fullInternalPath] = {
+                        unbind: () => {
+                            delete internalAliases[fullInternalPath];
+                            element.__deleteAlias(proxyData.baseData, oldPath);
+                            deleteAlias(root, fullInternalPath);
+                        }
+                    };
+                    addAlias(root, fullInternalPath, (type, target, receiver2, value, prop2, dones) => {
+                        const pathSave = element.__path;
+                        let proxy = element.__getProxy;
+                        let triggerPath;
+                        if (prop2.startsWith("[") || oldPath == "" || prop2 == "") {
+                            triggerPath = oldPath + prop2;
+                        }
+                        else {
+                            triggerPath = oldPath + "." + prop2;
+                        }
+                        triggerPath = triggerPath.replace(/\[(.*?)\]/g, '.$1');
+                        let splitted = triggerPath.split(".");
+                        let newProp = splitted.pop();
+                        let newReceiver = getValueFromObject(splitted.join("."), proxy);
+                        if (newReceiver.getTarget(false) == target)
+                            element.__trigger(type, target, newReceiver, value, newProp, dones);
+                        element.__path = pathSave;
+                    });
+                    out.otherRoot = root;
+                    return unbindElement;
+                }
+            }
+            return element;
+        };
+        let currentTrace = new Error().stack?.split("\n") ?? [];
+        currentTrace.shift();
+        currentTrace.shift();
+        const aliases = new Map();
+        const internalAliases = {};
+        let proxyData = {
+            baseData: {},
+            callbacks: {},
+            callbacksReverse: new Map(),
+            avoidUpdate: [],
+            pathToRemove: [],
+            injectedDones: null,
+            history: [{
+                    object: JSON.parse(JSON.stringify(obj, jsonReplacer)),
+                    trace: currentTrace,
+                    action: 'init',
+                    path: ''
+                }],
+            useHistory: false,
+            getProxyObject(target, element, prop) {
+                let newProxy;
+                element = replaceByAlias(target, element, prop, null, true);
+                if (element instanceof Date || element instanceof DateTime || element instanceof Time)
+                    return element;
+                if (element instanceof Object && element.__isProxy) {
+                    newProxy = element;
+                }
+                else {
+                    try {
+                        if (element instanceof Computed) {
+                            return element;
+                        }
+                        if (element instanceof HTMLElement) {
+                            return element;
+                        }
+                        if (element instanceof Object) {
+                            newProxy = new Proxy(element, this);
+                        }
+                        else {
+                            return element;
+                        }
+                    }
+                    catch {
+                        return element;
+                    }
+                }
+                let newPath = '';
+                if (Array.isArray(target)) {
+                    if (/^[0-9]*$/g.exec(prop)) {
+                        if (target.__path) {
+                            newPath = target.__path;
+                        }
+                        newPath += "[" + prop + "]";
+                        setProxyPath(newProxy, newPath);
+                    }
+                    else {
+                        newPath += "." + prop;
+                        setProxyPath(newProxy, newPath);
+                    }
+                }
+                else if (element instanceof Date || element instanceof DateTime || element instanceof Time) {
+                    return element;
+                }
+                else {
+                    if (target.__path) {
+                        newPath = target.__path + '.';
+                    }
+                    newPath += prop;
+                    setProxyPath(newProxy, newPath);
+                }
+                return newProxy;
+            },
+            tryCustomFunction(target, prop, receiver) {
+                if (prop == "__isProxy") {
+                    return true;
+                }
+                else if (prop == "__getProxy") {
+                    return realProxy;
+                }
+                else if (prop == "__root") {
+                    return this.baseData;
+                }
+                else if (prop == "__validatePath") {
+                    return () => {
+                        if (this.baseData == target) {
+                            target.__path = "";
+                        }
+                    };
+                }
+                else if (prop == "__callbacks") {
+                    return this.callbacks;
+                }
+                else if (prop == "subscribe") {
+                    let path = receiver.__path;
+                    return (cb) => {
+                        if (!this.callbacks[path]) {
+                            this.callbacks[path] = [];
+                        }
+                        this.callbacks[path].push(cb);
+                        this.callbacksReverse.set(cb, path);
+                    };
+                }
+                else if (prop == "unsubscribe") {
+                    return (cb) => {
+                        let oldPath = this.callbacksReverse.get(cb);
+                        if (oldPath === undefined)
+                            return;
+                        if (!this.callbacks[oldPath]) {
+                            return;
+                        }
+                        let index = this.callbacks[oldPath].indexOf(cb);
+                        if (index > -1) {
+                            this.callbacks[oldPath].splice(index, 1);
+                        }
+                        this.callbacksReverse.delete(cb);
+                    };
+                }
+                else if (prop == "getHistory") {
+                    return () => {
+                        return this.history;
+                    };
+                }
+                else if (prop == "clearHistory") {
+                    return () => {
+                        this.history = [];
+                    };
+                }
+                else if (prop == "enableHistory") {
+                    return () => {
+                        this.useHistory = true;
+                    };
+                }
+                else if (prop == "disableHistory") {
+                    return () => {
+                        this.useHistory = false;
+                    };
+                }
+                else if (prop == "getTarget") {
+                    return (clear = true) => {
+                        if (clear)
+                            Watcher.clearReservedNames(target);
+                        return target;
+                    };
+                }
+                else if (prop == "toJSON") {
+                    if (target.toJSON) {
+                        return target.toJSON;
+                    }
+                    if (Array.isArray(receiver)) {
+                        return () => {
+                            let result = [];
+                            for (let element of target) {
+                                result.push(element);
+                            }
+                            return result;
+                        };
+                    }
+                    return () => {
+                        let result = {};
+                        for (let key of Object.keys(target)) {
+                            if (reservedName[key]) {
+                                continue;
+                            }
+                            result[key] = target[key];
+                        }
+                        return result;
+                    };
+                }
+                else if (prop == "__addAlias") {
+                    return addAlias;
+                }
+                else if (prop == "__deleteAlias") {
+                    return deleteAlias;
+                }
+                else if (prop == "__injectedDones") {
+                    return (dones) => {
+                        this.injectedDones = dones;
+                    };
+                }
+                else if (prop == "__trigger") {
+                    return trigger;
+                }
+                else if (prop == "__static_trigger") {
+                    return (type) => {
+                        Watcher.__triggerForced = true;
+                        trigger(type, target, receiver, target, '');
+                        Watcher.__triggerForced = false;
+                    };
+                }
+                return undefined;
+            },
+            get(target, prop, receiver) {
+                if (typeof prop == 'symbol') {
+                    return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
+                }
+                if (reservedName[prop]) {
+                    return target[prop];
+                }
+                let customResult = this.tryCustomFunction(target, prop, receiver);
+                if (customResult !== undefined) {
+                    return customResult;
+                }
+                let element = target[prop];
+                if (typeof (element) == 'function') {
+                    if (Array.isArray(receiver)) {
+                        let result;
+                        if (prop == 'push') {
+                            if (target.__isProxy) {
+                                result = (el) => {
+                                    let index = target.push(el);
+                                    return index;
+                                };
+                            }
+                            else {
+                                result = (el) => {
+                                    let index = target.length;
+                                    let out = {};
+                                    el = replaceByAlias(target, el, target.length + '', receiver, false, out);
+                                    target.push(el);
+                                    const dones = [];
+                                    const dones2 = [];
+                                    if (out.otherRoot) {
+                                        dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
+                                    }
+                                    trigger('CREATED', target, receiver, receiver[index], "[" + (index) + "]", dones);
+                                    trigger('UPDATED', target, receiver, target.length, "length", dones2);
+                                    return index;
+                                };
+                            }
+                        }
+                        else if (prop == 'splice') {
+                            if (target.__isProxy) {
+                                result = (index, nbRemove, ...insert) => {
+                                    let res = target.splice(index, nbRemove, ...insert);
+                                    return res;
+                                };
+                            }
+                            else {
+                                result = (index, nbRemove, ...insert) => {
+                                    let oldValues = [];
+                                    const extReceiver = Watcher.extract(receiver);
+                                    for (let i = index; i < index + nbRemove; i++) {
+                                        oldValues.push(extReceiver[i]);
+                                    }
+                                    let updateLength = nbRemove != insert.length;
+                                    for (let i = 0; i < oldValues.length; i++) {
+                                        target.splice((index + i), 1);
+                                        trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
+                                    }
+                                    for (let i = 0; i < insert.length; i++) {
+                                        const out = {};
+                                        let value = replaceByAlias(target, insert[i], (index + i) + '', receiver, false, out);
+                                        const dones = out.otherRoot ? [out.otherRoot] : [];
+                                        target.splice((index + i), 0, value);
+                                        trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]", dones);
+                                    }
+                                    if (updateLength)
+                                        trigger('UPDATED', target, receiver, target.length, "length");
+                                    return target;
+                                };
+                            }
+                        }
+                        else if (prop == 'pop') {
+                            if (target.__isProxy) {
+                                result = () => {
+                                    let res = target.pop();
+                                    return res;
+                                };
+                            }
+                            else {
+                                result = () => {
+                                    let index = target.length - 1;
+                                    let oldValue = receiver.length ? receiver[receiver.length] : undefined;
+                                    let res = target.pop();
+                                    trigger('DELETED', target, receiver, oldValue, "[" + index + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
+                                    return res;
+                                };
+                            }
+                        }
+                        else if (['reverse', 'sort', 'shift', 'unshift', 'fill', 'copyWithin'].includes(prop)) {
+                            result = (...args) => {
+                                const value = element.apply(target, args);
+                                trigger('UPDATED', target, receiver, receiver, '');
+                                return value === target ? receiver : value;
+                            };
+                        }
+                        else if (prop == 'find') {
+                            result = (...args) => element.apply(receiver, args);
+                        }
+                        else if (prop == 'indexOf') {
+                            result = (searchElement, fromIndex) => {
+                                if (searchElement && Watcher.is(searchElement)) {
+                                    searchElement = Watcher.extract(searchElement);
+                                }
+                                target.indexOf(searchElement, fromIndex);
+                            };
+                        }
+                        else {
+                            result = element.bind(target);
+                        }
+                        return result;
+                    }
+                    else if (target instanceof Map) {
+                        let result;
+                        if (prop == "set") {
+                            if (target.__isProxy) {
+                                result = (key, value) => {
+                                    return target.set(key, value);
+                                };
+                            }
+                            else {
+                                result = (key, value) => {
+                                    const out = {};
+                                    let dones = [];
+                                    let dones2 = [];
+                                    key = Watcher.extract(key);
+                                    value = replaceByAlias(target, value, key + '', receiver, false, out);
+                                    if (out.otherRoot) {
+                                        dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
+                                    }
+                                    let result = target.set(key, value);
+                                    trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones2);
+                                    return result;
+                                };
+                            }
+                        }
+                        else if (prop == "clear") {
+                            if (target.__isProxy) {
+                                result = () => {
+                                    return target.clear();
+                                };
+                            }
+                            else {
+                                result = () => {
+                                    let keys = target.keys();
+                                    for (let key of keys) {
+                                        let oldValue = receiver.get(key);
+                                        target.delete(key);
+                                        trigger('DELETED', target, receiver, oldValue, key);
+                                        trigger('UPDATED', target, receiver, target.size, "size");
+                                    }
+                                };
+                            }
+                        }
+                        else if (prop == "delete") {
+                            if (target.__isProxy) {
+                                result = (key) => {
+                                    return target.delete(key);
+                                };
+                            }
+                            else {
+                                result = (key) => {
+                                    key = Watcher.extract(key);
+                                    let oldValue = receiver.get(key);
+                                    let res = target.delete(key);
+                                    trigger('DELETED', target, receiver, oldValue, key + '');
+                                    trigger('UPDATED', target, receiver, target.size, "size");
+                                    return res;
+                                };
+                            }
+                        }
+                        else {
+                            result = element.bind(target);
+                        }
+                        return result;
+                    }
+                    return element.bind(target);
+                }
+                if (element instanceof Computed) {
+                    return element.value;
+                }
+                if (Watcher._registering.length > 0) {
+                    let currentPath;
+                    let fullPath;
+                    let isArray = Array.isArray(receiver);
+                    if (isArray && /^[0-9]*$/g.exec(prop)) {
+                        fullPath = receiver.__path + "[" + prop + "]";
+                        currentPath = "[" + prop + "]";
+                    }
+                    else {
+                        fullPath = receiver.__path ? receiver.__path + '.' + prop : prop;
+                        currentPath = prop;
+                    }
+                    Watcher._register?.register(receiver, currentPath, Watcher._register.version, fullPath);
+                }
+                if (typeof (element) == 'object') {
+                    return this.getProxyObject(target, element, prop);
+                }
+                return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
+            },
+            set(target, prop, value, receiver) {
+                if (typeof prop == 'symbol') {
+                    if (Watcher.isNative(target))
+                        return Reflect.set(target, prop, value);
+                    return Reflect.set(target, prop, value, receiver);
+                }
+                let oldValue = Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
+                value = replaceByAlias(target, value, prop, receiver, true);
+                if (value instanceof Signal) {
+                    value = value.value;
+                }
+                let triggerChange = false;
+                if (!reservedName[prop]) {
+                    if (Array.isArray(receiver)) {
+                        if (prop != "length") {
+                            triggerChange = true;
+                        }
+                    }
+                    else {
+                        if (!compareObject(value, oldValue)) {
+                            triggerChange = true;
+                        }
+                    }
+                    if (Watcher.__triggerForced) {
+                        triggerChange = true;
+                    }
+                }
+                let result = Watcher.isNative(target) ? Reflect.set(target, prop, value) : Reflect.set(target, prop, value, receiver);
+                if (triggerChange) {
+                    let index = this.avoidUpdate.indexOf(prop);
+                    if (index == -1) {
+                        let dones = this.injectedDones ?? [];
+                        this.injectedDones = null;
+                        trigger('UPDATED', target, receiver, value, prop, dones);
+                    }
+                    else {
+                        this.avoidUpdate.splice(index, 1);
+                    }
+                }
+                return result;
+            },
+            deleteProperty(target, prop) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.deleteProperty(target, prop);
+                }
+                let triggerChange = false;
+                let pathToDelete = '';
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            if (target.__path) {
+                                pathToDelete = target.__path;
+                            }
+                            pathToDelete += "[" + prop + "]";
+                            triggerChange = true;
+                        }
+                    }
+                    else {
+                        if (target.__path) {
+                            pathToDelete = target.__path + '.';
+                        }
+                        pathToDelete += prop;
+                        triggerChange = true;
+                    }
+                }
+                if (internalAliases[pathToDelete]) {
+                    internalAliases[pathToDelete].unbind();
+                }
+                if (target.hasOwnProperty(prop)) {
+                    let oldValue = target[prop];
+                    if (oldValue instanceof Effect || oldValue instanceof Signal) {
+                        oldValue.destroy();
+                    }
+                    delete target[prop];
+                    if (triggerChange) {
+                        Watcher.clearReservedNames(oldValue);
+                        trigger('DELETED', target, null, oldValue, prop);
+                    }
+                    return true;
+                }
+                return false;
+            },
+            defineProperty(target, prop, descriptor) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.defineProperty(target, prop, descriptor);
+                }
+                let triggerChange = false;
+                let newPath = '';
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            if (target.__path) {
+                                newPath = target.__path;
+                            }
+                            newPath += "[" + prop + "]";
+                            if (!target.hasOwnProperty(prop)) {
+                                triggerChange = true;
+                            }
+                        }
+                    }
+                    else {
+                        if (target.__path) {
+                            newPath = target.__path + '.';
+                        }
+                        newPath += prop;
+                        if (!target.hasOwnProperty(prop)) {
+                            triggerChange = true;
+                        }
+                    }
+                }
+                let result = Reflect.defineProperty(target, prop, descriptor);
+                if (triggerChange) {
+                    this.avoidUpdate.push(prop);
+                    let proxyEl = this.getProxyObject(target, descriptor.value, prop);
+                    target[prop] = proxyEl;
+                    trigger('CREATED', target, null, proxyEl, prop);
+                }
+                return result;
+            },
+            ownKeys(target) {
+                let result = Reflect.ownKeys(target);
+                for (let i = 0; i < result.length; i++) {
+                    let key = result[i];
+                    if (typeof key == 'string') {
+                        if (reservedName[key]) {
+                            result.splice(i, 1);
+                            i--;
+                        }
+                    }
+                }
+                return result;
+            },
+        };
+        if (onDataChanged) {
+            proxyData.callbacks[''] = [onDataChanged];
+        }
+        const trigger = (type, target, receiver, value, prop, dones = [], pathOverride) => {
+            if (dones.includes(proxyData.baseData)) {
+                return;
+            }
+            if (target.__isProxy) {
+                return;
+            }
+            let rootPath;
+            if (pathOverride !== undefined) {
+                rootPath = pathOverride;
+            }
+            else if (receiver == null) {
+                rootPath = target.__path;
+            }
+            else {
+                rootPath = receiver.__path;
+                if (rootPath !== '') {
+                    const current = rootPath === undefined ? undefined : getValueFromObject(rootPath, proxyData.baseData);
+                    const currentTarget = Watcher.is(current) ? current.getTarget(false) : current;
+                    if (currentTarget !== target)
+                        return;
+                }
+            }
+            if (rootPath != "") {
+                if (Array.isArray(receiver)) {
+                    if (prop && !prop.startsWith("[")) {
+                        if (/^[0-9]*$/g.exec(prop)) {
+                            rootPath += "[" + prop + "]";
+                        }
+                        else {
+                            rootPath += "." + prop;
+                        }
+                    }
+                    else {
+                        rootPath += prop;
+                    }
+                }
+                else {
+                    if (prop && !prop.startsWith("[")) {
+                        rootPath += ".";
+                    }
+                    rootPath += prop;
+                }
+            }
+            else {
+                rootPath = prop;
+            }
+            let stacks = [];
+            if (proxyData.useHistory) {
+                let allStacks = new Error().stack?.split("\n") ?? [];
+                for (let i = allStacks.length - 1; i >= 0; i--) {
+                    let current = allStacks[i].trim().replace("at ", "");
+                    if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
+                        break;
+                    }
+                    stacks.push(current);
+                }
+            }
+            const initialDones = [...dones];
+            dones.push(proxyData.baseData);
+            let aliasesDone = [];
+            const callbacks = { ...proxyData.callbacks };
+            for (let name in callbacks) {
+                callbacks[name] = [...callbacks[name]];
+            }
+            for (let name in callbacks) {
+                // for(let name in proxyData.callbacks) {
+                let pathToSend = rootPath;
+                if (name !== "") {
+                    let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
+                    if (!regex.test(rootPath)) {
+                        let regex2 = new RegExp("^" + rootPath.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
+                        if (!regex2.test(name)) {
+                            continue;
+                        }
+                        else {
+                            pathToSend = "";
+                        }
+                    }
+                    else {
+                        pathToSend = rootPath.replace(regex, "$2");
+                    }
+                }
+                if (name === "" && proxyData.useHistory) {
+                    proxyData.history.push({
+                        object: JSON.parse(JSON.stringify(proxyData.baseData, jsonReplacer)),
+                        trace: stacks.reverse(),
+                        action: WatchAction[type],
+                        path: pathToSend
+                    });
+                }
+                let cbs = callbacks[name];
+                for (let cb of cbs) {
+                    try {
+                        Watcher.isolate(() => {
+                            cb(WatchAction[type], pathToSend, value, dones);
+                        });
+                    }
+                    catch (e) {
+                        if (e != 'impossible')
+                            console.error(e);
+                    }
+                }
+                for (let [key, infos] of aliases) {
+                    if (!dones.includes(key)) {
+                        for (let info of infos) {
+                            if (info.name == name) {
+                                aliasesDone.push(key);
+                                if (target.__path) {
+                                    let oldPath = target.__path;
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                    target.__path = oldPath;
+                                }
+                                else {
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            for (let [key, infos] of aliases) {
+                if (!dones.includes(key) && !aliasesDone.includes(key)) {
+                    for (let info of infos) {
+                        let regex = new RegExp("^" + info.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
+                        if (!regex.test(rootPath)) {
+                            continue;
+                        }
+                        let newProp = rootPath.replace(info.name, "");
+                        if (newProp.startsWith(".")) {
+                            newProp = newProp.slice(1);
+                        }
+                        if (target.__path) {
+                            let oldPath = target.__path;
+                            info.fct(type, target, receiver, value, newProp, dones);
+                            target.__path = oldPath;
+                        }
+                        else {
+                            info.fct(type, target, receiver, value, newProp, dones);
+                        }
+                    }
+                }
+            }
+            if (pathOverride === undefined && receiver != null && target !== proxyData.baseData) {
+                const visited = new Set();
+                const notifyShared = (data, path) => {
+                    if (data === null || typeof data !== 'object')
+                        return;
+                    if (Watcher.is(data)) {
+                        data = data.getTarget(false);
+                    }
+                    if (data === target) {
+                        if (path !== receiver.__path) {
+                            trigger(type, target, receiver, value, prop, [...initialDones], path);
+                        }
+                        return;
+                    }
+                    if (data === null ||
+                        typeof data !== 'object' ||
+                        visited.has(data) ||
+                        data instanceof Map ||
+                        data instanceof Set ||
+                        Watcher.isNative(data)) {
+                        return;
+                    }
+                    visited.add(data);
+                    for (const key of Object.keys(data)) {
+                        if (reservedName[key])
+                            continue;
+                        let childPath;
+                        if (Array.isArray(data) && /^[0-9]+$/.test(key)) {
+                            childPath = path + '[' + key + ']';
+                        }
+                        else if (path) {
+                            childPath = path + '.' + key;
+                        }
+                        else {
+                            childPath = key;
+                        }
+                        notifyShared(data[key], childPath);
+                    }
+                    visited.delete(data);
+                };
+                notifyShared(proxyData.baseData, '');
+            }
+        };
+        var realProxy = new Proxy(obj, proxyData);
+        proxyData.baseData = obj;
+        setProxyPath(realProxy, '');
+        return realProxy;
+    }
+    static is(obj) {
+        return typeof obj == 'object' && obj.__isProxy;
+    }
+    static clearReservedNames(data) {
+        if (data instanceof Object && !data.__isProxy) {
+            for (let key in this.__reservedName) {
+                delete data[key];
+            }
+            for (let key in data) {
+                this.clearReservedNames(data[key]);
+            }
+        }
+        else if (Array.isArray(data)) {
+            for (let item of data) {
+                this.clearReservedNames(item);
+            }
+        }
+    }
+    static extract(obj, clearPath = false) {
+        if (this.is(obj)) {
+            return obj.getTarget(clearPath);
+        }
+        else {
+            if (obj instanceof Object) {
+                for (let key in this.__reservedName) {
+                    delete obj[key];
+                }
+            }
+        }
+        return obj;
+    }
+    static trigger(type, target) {
+        if (this.is(target)) {
+            target.__static_trigger(type);
+        }
+    }
+    /**
+     * Create a computed variable that will watch any changes
+     */
+    static computed(fct) {
+        const comp = new Computed(fct);
+        return comp;
+    }
+    /**
+     * Create an effect variable that will watch any changes
+     */
+    static effect(fct) {
+        const comp = new Effect(fct);
+        return comp;
+    }
+    /**
+     * Create an effect variable that will watch any changes inside the fct and trigger the cb on change
+     */
+    static watch(fct, cb) {
+        const comp = new Effect(fct);
+        comp.subscribe(cb);
+        return comp;
+    }
+    /**
+     * Create a signal variable
+     */
+    static signal(item, onChange) {
+        return new Signal(item, onChange);
+    }
+}
+Watcher.Namespace=`Aventus`;
+__as1(_, 'Watcher', Watcher);
+
+let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+    init() {
+        this.isInit = true;
+        Watcher._registering.push(this);
+        try {
+            this._value = this.fct();
+        }
+        finally {
+            Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        }
+    }
+    computedValue() {
+        if (this.isInit) {
+            Watcher.untrack(() => {
+                this._value = this.fct();
+            });
+        }
+        else {
+            this.init();
+        }
+    }
+    run() { }
+}
+ComputedNoRecomputed.Namespace=`Aventus`;
+__as1(_, 'ComputedNoRecomputed', ComputedNoRecomputed);
+
+let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
+    init() {
+        this.isInit = true;
+        Watcher._registering.push(this);
+        try {
+            this.fct();
+        }
+        finally {
+            Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        }
+    }
+    run() {
+        if (!this.isInit) {
+            this.init();
+        }
+    }
+}
+EffectNoRecomputed.Namespace=`Aventus`;
+__as1(_, 'EffectNoRecomputed', EffectNoRecomputed);
+
+let HttpRouter=class HttpRouter {
+    static options;
+    static configure(options) {
+        HttpRouter.options = options;
+    }
+    options;
+    constructor() {
+        this.options = this.defineOptions(this.defaultOptionsValue());
+    }
+    defaultOptionsValue() {
+        return HttpRouter.options ?? {
+            url: location.protocol + "//" + location.host
+        };
+    }
+    defineOptions(options) {
+        return options;
+    }
+    async get(url) {
+        return await new HttpRequest(url).queryJSON(this);
+    }
+    async post(url, data) {
+        return await new HttpRequest(url, HttpMethod.POST, data).queryJSON(this);
+    }
+    async put(url, data) {
+        return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON(this);
+    }
+    async delete(url, data) {
+        return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON(this);
+    }
+    async option(url, data) {
+        return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON(this);
+    }
+}
+HttpRouter.Namespace=`Aventus`;
+__as1(_, 'HttpRouter', HttpRouter);
+
+let HttpRoute=class HttpRoute {
+    router;
+    constructor(router) {
+        this.router = router ?? new HttpRouter();
+    }
+    getPrefix() {
+        return "";
+    }
+}
+HttpRoute.Namespace=`Aventus`;
+__as1(_, 'HttpRoute', HttpRoute);
+
+let HttpRequest=class HttpRequest {
+    static options;
+    static configure(options) {
+        HttpRequest.options = options;
+    }
+    request;
+    url;
+    methodSpoofing = false;
+    useCache = false;
+    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false, useCache = false) {
+        this.url = url;
+        this.request = {};
+        this.methodSpoofing = methodSpoofing;
+        this.useCache = useCache;
+        this.setMethod(method);
+        this.prepareBody(body);
+    }
+    setUrl(url) {
+        this.url = url;
+    }
+    toString() {
+        return this.url + " : " + JSON.stringify(this.request);
+    }
+    setBody(body) {
+        this.prepareBody(body);
+    }
+    setMethod(method) {
+        this.request.method = method;
+    }
+    /**
+     * Replace method Put/Delete by _method:"put" inside a form
+     */
+    enableMethodSpoofing() {
+        this.methodSpoofing = true;
+    }
+    enableCache() {
+        this.useCache = true;
+    }
+    disableCache() {
+        this.useCache = false;
+    }
+    objectToFormData(obj, formData, parentKey) {
+        formData = formData || new FormData();
+        let byPass = obj;
+        if (byPass.__isProxy) {
+            obj = byPass.getTarget();
+        }
+        const keys = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            let value = obj[key];
+            const newKey = parentKey ? `${parentKey}[${key}]` : key;
+            if (value instanceof Date || value instanceof DateTime || value instanceof Time) {
+                formData.append(newKey, DateConverter.converter.toString(value));
+            }
+            else if (typeof value === 'object' &&
+                value !== null &&
+                !(value instanceof File)) {
+                if (Array.isArray(value)) {
+                    for (let j = 0; j < value.length; j++) {
+                        const arrayKey = `${newKey}[${j}]`;
+                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
+                    }
+                }
+                else {
+                    this.objectToFormData(value, formData, newKey);
+                }
+            }
+            else {
+                if (value === undefined || value === null) {
+                    value = "";
+                }
+                else if (Watcher.is(value)) {
+                    value = Watcher.extract(value);
+                }
+                formData.append(newKey, value);
+            }
+        }
+        return formData;
+    }
+    jsonReplacer(key, value) {
+        const t = this;
+        if (t[key] instanceof Date || t[key] instanceof DateTime || t[key] instanceof Time) {
+            return DateConverter.converter.toString(t[key]);
+        }
+        return value;
+    }
+    prepareBody(data) {
+        if (!data) {
+            return;
+        }
+        else if (data instanceof FormData) {
+            this.request.body = data;
+        }
+        else {
+            let useFormData = false;
+            const analyseFormData = (obj) => {
+                for (let key in obj) {
+                    if (obj[key] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date) && !(obj[key] instanceof DateTime) && !(obj[key] instanceof Time)) {
+                        analyseFormData(obj[key]);
+                        if (useFormData) {
+                            break;
+                        }
+                    }
+                }
+            };
+            analyseFormData(data);
+            if (useFormData) {
+                this.request.body = this.objectToFormData(data);
+            }
+            else {
+                this.request.body = JSON.stringify(data, this.jsonReplacer);
+                this.setHeader("Content-Type", "Application/json");
+            }
+        }
+        if (this.methodSpoofing) {
+            if (this.request.method?.toUpperCase() == Aventus.HttpMethod.PUT) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.PUT);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+            else if (this.request.method?.toUpperCase() == Aventus.HttpMethod.DELETE) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.DELETE);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+        }
+    }
+    setHeader(name, value) {
+        if (!this.request.headers) {
+            this.request.headers = [];
+        }
+        const headers = this.request.headers;
+        const existing = headers.findIndex(([key]) => key.toLowerCase() === name.toLowerCase());
+        if (existing >= 0) {
+            headers[existing] = [name, value];
+        }
+        else {
+            headers.push([name, value]);
+        }
+    }
+    setCredentials(credentials) {
+        this.request.credentials = credentials;
+    }
+    async _query(router) {
+        let result = new ResultWithError();
+        try {
+            const isFull = this.url.match("https?://");
+            if (!this.url.startsWith("/") && !isFull) {
+                this.url = "/" + this.url;
+            }
+            if (HttpRequest.options?.beforeSend) {
+                const beforeSendResult = await HttpRequest.options.beforeSend(this);
+                result.errors = beforeSendResult.errors;
+                if (!result.success)
+                    return result;
+            }
+            const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
+            if (this.useCache) {
+                result.result = await HttpCache.fetch(fullUrl, this.request);
+            }
+            else {
+                let response = await fetch(fullUrl, this.request);
+                result.result = new HttpResponse(response);
+            }
+            if (result.result && !result.result.ok) {
+                result.errors.push(new HttpError(HttpErrorCode.status, `${result.result.status} ${result.result.statusText}`.trim(), result.result.status));
+            }
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async query(router) {
+        let result = await this._query(router);
+        if (HttpRequest.options?.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
+        return result;
+    }
+    async queryVoid(router) {
+        let resultTemp = await this.query(router);
+        let result = new VoidWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            if (resultTemp.result.status != 204) {
+                let tempResult = await resultTemp.result.json();
+                if (tempResult instanceof VoidWithError) {
+                    for (let error of tempResult.errors) {
+                        result.errors.push(error);
+                    }
+                }
+            }
+        }
+        catch (e) {
+        }
+        return result;
+    }
+    async queryJSON(router) {
+        this.setHeader("Accept", "application/json");
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            let tempResult = await resultTemp.result.json();
+            if (tempResult instanceof VoidWithError) {
+                if (tempResult.errors.length > 0) {
+                    result.errors = result.errors.filter(error => !(error instanceof HttpError && error.code === HttpErrorCode.status && error.status === resultTemp.result?.status));
+                }
+                for (let error of tempResult.errors) {
+                    result.errors.push(error);
+                }
+                if (tempResult instanceof ResultWithError) {
+                    result.result = tempResult.result;
+                }
+            }
+            else {
+                result.result = tempResult;
+            }
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async queryTxt(router) {
+        this.setHeader("Accept", "text/plain");
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.text();
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async queryBlob(router) {
+        this.setHeader("Accept", "application/octet-stream");
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.blob();
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    clearCache(router) {
+        const isFull = this.url.match("https?://");
+        if (!this.url.startsWith("/") && !isFull) {
+            this.url = "/" + this.url;
+        }
+        const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
+        HttpCache.clear(fullUrl, this.request);
+    }
+}
+HttpRequest.Namespace=`Aventus`;
+__as1(_, 'HttpRequest', HttpRequest);
+
+let StorableRoute=class StorableRoute extends HttpRoute {
+    async GetAll() {
+        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
+        return await request.queryJSON(this.router);
+    }
+    async Create(body) {
+        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.POST);
+        request.setBody(body);
+        return await request.queryJSON(this.router);
+    }
+    async GetById(id) {
+        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.GET);
+        return await request.queryJSON(this.router);
+    }
+    async Update(id, body) {
+        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.PUT);
+        request.setBody(body);
+        return await request.queryJSON(this.router);
+    }
+    async Delete(id) {
+        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.DELETE);
+        return await request.queryVoid(this.router);
+    }
+}
+StorableRoute.Namespace=`Aventus`;
+__as1(_, 'StorableRoute', StorableRoute);
 
 let Animation=class Animation {
     /**
@@ -3213,1461 +5125,6 @@ let Uri=class Uri {
 Uri.Namespace=`Aventus`;
 __as1(_, 'Uri', Uri);
 
-let Signal=class Signal {
-    __subscribes = [];
-    _value;
-    _onChange;
-    get value() {
-        Watcher._register?.register(this, "*", Watcher._register.version, "*");
-        return this._value;
-    }
-    set value(item) {
-        const oldValue = this._value;
-        this._value = item;
-        if (oldValue != item) {
-            const subscribes = [...this.__subscribes];
-            if (this._onChange) {
-                Watcher.isolate(() => {
-                    this._onChange?.();
-                });
-            }
-            for (let fct of subscribes) {
-                Watcher.isolate(() => {
-                    fct(WatchAction.UPDATED, "*", item, []);
-                });
-            }
-        }
-    }
-    constructor(item, onChange) {
-        this._value = item;
-        this._onChange = onChange;
-    }
-    subscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index == -1) {
-            this.__subscribes.push(fct);
-        }
-    }
-    unsubscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index > -1) {
-            this.__subscribes.splice(index, 1);
-        }
-    }
-    destroy() {
-        this.__subscribes = [];
-    }
-}
-Signal.Namespace=`Aventus`;
-__as1(_, 'Signal', Signal);
-
-let Effect=class Effect {
-    callbacks = [];
-    isInit = false;
-    isDestroy = false;
-    __subscribes = [];
-    __allowChanged = [];
-    version = 0;
-    isRunning = false;
-    pendingChange;
-    fct;
-    constructor(fct) {
-        this.fct = fct;
-        if (this.autoInit()) {
-            this.init();
-        }
-    }
-    autoInit() {
-        return true;
-    }
-    init() {
-        this.isInit = true;
-        this.run();
-    }
-    run() {
-        if (this.isRunning)
-            return;
-        let result;
-        let pendingNotification;
-        do {
-            this.pendingChange = undefined;
-            this.isRunning = true;
-            this.version++;
-            Watcher._registering.push(this);
-            try {
-                result = this.fct();
-            }
-            finally {
-                Watcher._registering.splice(Watcher._registering.length - 1, 1);
-                this.isRunning = false;
-            }
-            for (let i = 0; i < this.callbacks.length; i++) {
-                if (this.callbacks[i].version != this.version) {
-                    this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
-                    this.callbacks.splice(i, 1);
-                    i--;
-                }
-            }
-            if (pendingNotification) {
-                const notification = pendingNotification;
-                for (let fct of [...this.__subscribes]) {
-                    Watcher.isolate(() => {
-                        fct(notification.action, notification.changePath, notification.value, notification.dones);
-                    });
-                }
-            }
-            pendingNotification = this.pendingChange;
-        } while (pendingNotification && !this.isDestroy);
-        return result;
-    }
-    register(receiver, path, version, fullPath) {
-        for (let info of this.callbacks) {
-            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath) {
-                info.version = version;
-                info.fullPath = fullPath;
-                return;
-            }
-        }
-        let cb;
-        if (path == "*") {
-            cb = (action, changePath, value, dones) => { this.onChange(action, changePath, value, dones); };
-        }
-        else {
-            cb = (action, changePath, value, dones) => {
-                if (changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
-                    // if(changePath == path) {
-                    this.onChange(action, changePath, value, dones);
-                }
-            };
-        }
-        this.callbacks.push({
-            receiver,
-            path,
-            registerPath: receiver.__path,
-            cb,
-            version,
-            fullPath
-        });
-        receiver.subscribe(cb);
-    }
-    canChange(fct) {
-        this.__allowChanged.push(fct);
-    }
-    checkCanChange(action, changePath, value, dones) {
-        if (this.isDestroy || this.isRunning) {
-            return false;
-        }
-        for (let fct of this.__allowChanged) {
-            if (!fct(action, changePath, value, dones)) {
-                return false;
-            }
-        }
-        return true;
-    }
-    onChange(action, changePath, value, dones) {
-        if (this.isRunning) {
-            if (!this.isDestroy && this.__allowChanged.every(fct => fct(action, changePath, value, dones))) {
-                this.pendingChange = { action, changePath, value, dones };
-            }
-            return;
-        }
-        if (!this.checkCanChange(action, changePath, value, dones)) {
-            return;
-        }
-        this.run();
-        for (let fct of [...this.__subscribes]) {
-            Watcher.isolate(() => {
-                fct(action, changePath, value, dones);
-            });
-        }
-    }
-    destroy() {
-        this.isDestroy = true;
-        this.clearCallbacks();
-        this.isInit = false;
-    }
-    clearCallbacks() {
-        for (let pair of this.callbacks) {
-            pair.receiver.unsubscribe(pair.cb);
-        }
-        this.callbacks = [];
-    }
-    subscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index == -1) {
-            this.__subscribes.push(fct);
-        }
-    }
-    unsubscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index > -1) {
-            this.__subscribes.splice(index, 1);
-        }
-    }
-}
-Effect.Namespace=`Aventus`;
-__as1(_, 'Effect', Effect);
-
-let Computed=class Computed extends Effect {
-    _value;
-    __path = "*";
-    get value() {
-        if (!this.isInit) {
-            this.init();
-        }
-        Watcher._register?.register(this, "*", Watcher._register.version, "*");
-        return this._value;
-    }
-    autoInit() {
-        return false;
-    }
-    constructor(fct) {
-        super(fct);
-    }
-    init() {
-        this.isInit = true;
-        this.computedValue();
-    }
-    computedValue() {
-        this._value = this.run();
-    }
-    onChange(action, changePath, value, dones) {
-        if (!this.checkCanChange(action, changePath, value, dones)) {
-            return;
-        }
-        let oldValue = this._value;
-        this.computedValue();
-        if (oldValue === this._value) {
-            return;
-        }
-        for (let fct of [...this.__subscribes]) {
-            Watcher.isolate(() => {
-                fct(action, changePath, value, dones);
-            });
-        }
-    }
-}
-Computed.Namespace=`Aventus`;
-__as1(_, 'Computed', Computed);
-
-let compareObjectRecursive=function compareObjectRecursive(obj1, obj2, tableOrder, active, proxyData1 = false, proxyData2 = false) {
-    if (obj1 !== null && obj2 !== null && typeof obj1 === 'object' && typeof obj2 === 'object') {
-        let matches = active.get(obj1);
-        if (matches?.has(obj2)) {
-            return true;
-        }
-        if (!matches) {
-            matches = new WeakSet();
-            active.set(obj1, matches);
-        }
-        matches.add(obj2);
-        try {
-            return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
-        }
-        finally {
-            matches.delete(obj2);
-        }
-    }
-    return compareObjectValue(obj1, obj2, tableOrder, active, proxyData1, proxyData2);
-}
-
-let compareObject=function compareObject(obj1, obj2, tableOrder = true) {
-    return compareObjectRecursive(obj1, obj2, tableOrder, new WeakMap());
-}
-__as1(_, 'compareObject', compareObject);
-
-let Watcher=class Watcher {
-    static isNative(obj) {
-        if (obj instanceof Blob ||
-            obj instanceof Element ||
-            obj instanceof Window)
-            return true;
-        return false;
-    }
-    constructor() { }
-    ;
-    static __reservedName = {
-        __path: '__path',
-    };
-    static __triggerForced = false;
-    static _registering = [];
-    static __untrackDepth = 0;
-    static get _register() {
-        if (this.__untrackDepth > 0)
-            return undefined;
-        return this._registering[this._registering.length - 1];
-    }
-    /**
-     * Read reactive values without registering them on the current effect.
-     */
-    static untrack(fct) {
-        this.__untrackDepth++;
-        try {
-            return fct();
-        }
-        finally {
-            this.__untrackDepth--;
-        }
-    }
-    /**
-     * Run a callback outside the current reactive context while allowing effects
-     * created by that callback to register their own dependencies.
-     */
-    static isolate(fct) {
-        const registering = this._registering;
-        this._registering = [];
-        try {
-            return fct();
-        }
-        finally {
-            this._registering = registering;
-        }
-    }
-    /**
-     * Transform object into a watcher
-     */
-    static get(obj, onDataChanged) {
-        if (obj == undefined) {
-            console.error("You must define an objet / array for your proxy");
-            return;
-        }
-        if (obj.__isProxy) {
-            if (onDataChanged)
-                obj.subscribe(onDataChanged);
-            return obj;
-        }
-        const reservedName = this.__reservedName;
-        const setProxyPath = (newProxy, newPath) => {
-            if (newProxy instanceof Object && newProxy.__isProxy) {
-                newProxy.__path = newPath;
-            }
-        };
-        const jsonReplacer = (key, value) => {
-            if (reservedName[key])
-                return undefined;
-            return value;
-        };
-        const addAlias = (otherBaseData, name, cb) => {
-            let cbs = aliases.get(otherBaseData);
-            if (!cbs) {
-                cbs = [];
-                aliases.set(otherBaseData, cbs);
-            }
-            cbs.push({
-                name: name,
-                fct: cb
-            });
-        };
-        const deleteAlias = (otherBaseData, name) => {
-            let cbs = aliases.get(otherBaseData);
-            if (!cbs)
-                return;
-            for (let i = 0; i < cbs.length; i++) {
-                if (cbs[i].name == name) {
-                    cbs.splice(i, 1);
-                    if (cbs.length == 0) {
-                        aliases.delete(otherBaseData);
-                    }
-                    return;
-                }
-            }
-        };
-        const replaceByAlias = (target, element, prop, receiver, apply, out = {}) => {
-            let fullInternalPath = "";
-            if (Array.isArray(receiver)) {
-                if (prop != "length") {
-                    if (target.__path) {
-                        fullInternalPath = target.__path;
-                    }
-                    fullInternalPath += "[" + prop + "]";
-                }
-            }
-            else {
-                if (target.__path) {
-                    fullInternalPath = target.__path + '.';
-                }
-                fullInternalPath += prop;
-            }
-            if (receiver && internalAliases[fullInternalPath]) {
-                internalAliases[fullInternalPath].unbind();
-            }
-            if (element instanceof Object && element.__isProxy) {
-                let root = element.__root;
-                if (root != proxyData.baseData) {
-                    element.__validatePath();
-                    let oldPath = element.__path ?? '';
-                    let unbindElement = Watcher.extract(getValueFromObject(oldPath, root));
-                    if (unbindElement === undefined) {
-                        return element;
-                    }
-                    if (receiver == null) {
-                        receiver = getValueFromObject(target.__path, realProxy);
-                        if (internalAliases[fullInternalPath]) {
-                            internalAliases[fullInternalPath].unbind();
-                        }
-                    }
-                    if (apply) {
-                        let result = this.isNative(target) ? Reflect.set(target, prop, unbindElement) : Reflect.set(target, prop, unbindElement, receiver);
-                    }
-                    element.__addAlias(proxyData.baseData, oldPath, (type, target, receiver2, value, prop2, dones) => {
-                        let triggerPath;
-                        if (prop2.startsWith("[") || fullInternalPath == "" || prop2 == "") {
-                            triggerPath = fullInternalPath + prop2;
-                        }
-                        else {
-                            triggerPath = fullInternalPath + "." + prop2;
-                        }
-                        if (type == 'DELETED' && internalAliases[triggerPath]) {
-                            internalAliases[triggerPath].unbind();
-                        }
-                        triggerPath = triggerPath.replace(/\[(.*?)\]/g, '.$1');
-                        let splitted = triggerPath.split(".");
-                        let newProp = splitted.pop();
-                        let newReceiver = getValueFromObject(splitted.join("."), realProxy);
-                        if (newReceiver.getTarget(false) == target)
-                            trigger(type, target, newReceiver, value, newProp ?? '', dones);
-                    });
-                    internalAliases[fullInternalPath] = {
-                        unbind: () => {
-                            delete internalAliases[fullInternalPath];
-                            element.__deleteAlias(proxyData.baseData, oldPath);
-                            deleteAlias(root, fullInternalPath);
-                        }
-                    };
-                    addAlias(root, fullInternalPath, (type, target, receiver2, value, prop2, dones) => {
-                        const pathSave = element.__path;
-                        let proxy = element.__getProxy;
-                        let triggerPath;
-                        if (prop2.startsWith("[") || oldPath == "" || prop2 == "") {
-                            triggerPath = oldPath + prop2;
-                        }
-                        else {
-                            triggerPath = oldPath + "." + prop2;
-                        }
-                        triggerPath = triggerPath.replace(/\[(.*?)\]/g, '.$1');
-                        let splitted = triggerPath.split(".");
-                        let newProp = splitted.pop();
-                        let newReceiver = getValueFromObject(splitted.join("."), proxy);
-                        if (newReceiver.getTarget(false) == target)
-                            element.__trigger(type, target, newReceiver, value, newProp, dones);
-                        element.__path = pathSave;
-                    });
-                    out.otherRoot = root;
-                    return unbindElement;
-                }
-            }
-            return element;
-        };
-        let currentTrace = new Error().stack?.split("\n") ?? [];
-        currentTrace.shift();
-        currentTrace.shift();
-        const aliases = new Map();
-        const internalAliases = {};
-        let proxyData = {
-            baseData: {},
-            callbacks: {},
-            callbacksReverse: new Map(),
-            avoidUpdate: [],
-            pathToRemove: [],
-            injectedDones: null,
-            history: [{
-                    object: JSON.parse(JSON.stringify(obj, jsonReplacer)),
-                    trace: currentTrace,
-                    action: 'init',
-                    path: ''
-                }],
-            useHistory: false,
-            getProxyObject(target, element, prop) {
-                let newProxy;
-                element = replaceByAlias(target, element, prop, null, true);
-                if (element instanceof Date || element instanceof DateTime || element instanceof Time)
-                    return element;
-                if (element instanceof Object && element.__isProxy) {
-                    newProxy = element;
-                }
-                else {
-                    try {
-                        if (element instanceof Computed) {
-                            return element;
-                        }
-                        if (element instanceof HTMLElement) {
-                            return element;
-                        }
-                        if (element instanceof Object) {
-                            newProxy = new Proxy(element, this);
-                        }
-                        else {
-                            return element;
-                        }
-                    }
-                    catch {
-                        return element;
-                    }
-                }
-                let newPath = '';
-                if (Array.isArray(target)) {
-                    if (/^[0-9]*$/g.exec(prop)) {
-                        if (target.__path) {
-                            newPath = target.__path;
-                        }
-                        newPath += "[" + prop + "]";
-                        setProxyPath(newProxy, newPath);
-                    }
-                    else {
-                        newPath += "." + prop;
-                        setProxyPath(newProxy, newPath);
-                    }
-                }
-                else if (element instanceof Date || element instanceof DateTime || element instanceof Time) {
-                    return element;
-                }
-                else {
-                    if (target.__path) {
-                        newPath = target.__path + '.';
-                    }
-                    newPath += prop;
-                    setProxyPath(newProxy, newPath);
-                }
-                return newProxy;
-            },
-            tryCustomFunction(target, prop, receiver) {
-                if (prop == "__isProxy") {
-                    return true;
-                }
-                else if (prop == "__getProxy") {
-                    return realProxy;
-                }
-                else if (prop == "__root") {
-                    return this.baseData;
-                }
-                else if (prop == "__validatePath") {
-                    return () => {
-                        if (this.baseData == target) {
-                            target.__path = "";
-                        }
-                    };
-                }
-                else if (prop == "__callbacks") {
-                    return this.callbacks;
-                }
-                else if (prop == "subscribe") {
-                    let path = receiver.__path;
-                    return (cb) => {
-                        if (!this.callbacks[path]) {
-                            this.callbacks[path] = [];
-                        }
-                        this.callbacks[path].push(cb);
-                        this.callbacksReverse.set(cb, path);
-                    };
-                }
-                else if (prop == "unsubscribe") {
-                    return (cb) => {
-                        let oldPath = this.callbacksReverse.get(cb);
-                        if (oldPath === undefined)
-                            return;
-                        if (!this.callbacks[oldPath]) {
-                            return;
-                        }
-                        let index = this.callbacks[oldPath].indexOf(cb);
-                        if (index > -1) {
-                            this.callbacks[oldPath].splice(index, 1);
-                        }
-                        this.callbacksReverse.delete(cb);
-                    };
-                }
-                else if (prop == "getHistory") {
-                    return () => {
-                        return this.history;
-                    };
-                }
-                else if (prop == "clearHistory") {
-                    return () => {
-                        this.history = [];
-                    };
-                }
-                else if (prop == "enableHistory") {
-                    return () => {
-                        this.useHistory = true;
-                    };
-                }
-                else if (prop == "disableHistory") {
-                    return () => {
-                        this.useHistory = false;
-                    };
-                }
-                else if (prop == "getTarget") {
-                    return (clear = true) => {
-                        if (clear)
-                            Watcher.clearReservedNames(target);
-                        return target;
-                    };
-                }
-                else if (prop == "toJSON") {
-                    if (target.toJSON) {
-                        return target.toJSON;
-                    }
-                    if (Array.isArray(receiver)) {
-                        return () => {
-                            let result = [];
-                            for (let element of target) {
-                                result.push(element);
-                            }
-                            return result;
-                        };
-                    }
-                    return () => {
-                        let result = {};
-                        for (let key of Object.keys(target)) {
-                            if (reservedName[key]) {
-                                continue;
-                            }
-                            result[key] = target[key];
-                        }
-                        return result;
-                    };
-                }
-                else if (prop == "__addAlias") {
-                    return addAlias;
-                }
-                else if (prop == "__deleteAlias") {
-                    return deleteAlias;
-                }
-                else if (prop == "__injectedDones") {
-                    return (dones) => {
-                        this.injectedDones = dones;
-                    };
-                }
-                else if (prop == "__trigger") {
-                    return trigger;
-                }
-                else if (prop == "__static_trigger") {
-                    return (type) => {
-                        Watcher.__triggerForced = true;
-                        trigger(type, target, receiver, target, '');
-                        Watcher.__triggerForced = false;
-                    };
-                }
-                return undefined;
-            },
-            get(target, prop, receiver) {
-                if (typeof prop == 'symbol') {
-                    return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
-                }
-                if (reservedName[prop]) {
-                    return target[prop];
-                }
-                let customResult = this.tryCustomFunction(target, prop, receiver);
-                if (customResult !== undefined) {
-                    return customResult;
-                }
-                let element = target[prop];
-                if (typeof (element) == 'function') {
-                    if (Array.isArray(receiver)) {
-                        let result;
-                        if (prop == 'push') {
-                            if (target.__isProxy) {
-                                result = (el) => {
-                                    let index = target.push(el);
-                                    return index;
-                                };
-                            }
-                            else {
-                                result = (el) => {
-                                    let index = target.length;
-                                    let out = {};
-                                    el = replaceByAlias(target, el, target.length + '', receiver, false, out);
-                                    target.push(el);
-                                    const dones = [];
-                                    const dones2 = [];
-                                    if (out.otherRoot) {
-                                        dones.push(out.otherRoot);
-                                        dones2.push(out.otherRoot);
-                                    }
-                                    trigger('CREATED', target, receiver, receiver[index], "[" + (index) + "]", dones);
-                                    trigger('UPDATED', target, receiver, target.length, "length", dones2);
-                                    return index;
-                                };
-                            }
-                        }
-                        else if (prop == 'splice') {
-                            if (target.__isProxy) {
-                                result = (index, nbRemove, ...insert) => {
-                                    let res = target.splice(index, nbRemove, ...insert);
-                                    return res;
-                                };
-                            }
-                            else {
-                                result = (index, nbRemove, ...insert) => {
-                                    let oldValues = [];
-                                    const extReceiver = Watcher.extract(receiver);
-                                    for (let i = index; i < index + nbRemove; i++) {
-                                        oldValues.push(extReceiver[i]);
-                                    }
-                                    let updateLength = nbRemove != insert.length;
-                                    for (let i = 0; i < oldValues.length; i++) {
-                                        target.splice((index + i), 1);
-                                        trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
-                                    }
-                                    for (let i = 0; i < insert.length; i++) {
-                                        const out = {};
-                                        let value = replaceByAlias(target, insert[i], (index + i) + '', receiver, false, out);
-                                        const dones = out.otherRoot ? [out.otherRoot] : [];
-                                        target.splice((index + i), 0, value);
-                                        trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]", dones);
-                                    }
-                                    if (updateLength)
-                                        trigger('UPDATED', target, receiver, target.length, "length");
-                                    return target;
-                                };
-                            }
-                        }
-                        else if (prop == 'pop') {
-                            if (target.__isProxy) {
-                                result = () => {
-                                    let res = target.pop();
-                                    return res;
-                                };
-                            }
-                            else {
-                                result = () => {
-                                    let index = target.length - 1;
-                                    let oldValue = receiver.length ? receiver[receiver.length] : undefined;
-                                    let res = target.pop();
-                                    trigger('DELETED', target, receiver, oldValue, "[" + index + "]");
-                                    trigger('UPDATED', target, receiver, target.length, "length");
-                                    return res;
-                                };
-                            }
-                        }
-                        else if (['reverse', 'sort', 'shift', 'unshift', 'fill', 'copyWithin'].includes(prop)) {
-                            result = (...args) => {
-                                const value = element.apply(target, args);
-                                trigger('UPDATED', target, receiver, receiver, '');
-                                return value === target ? receiver : value;
-                            };
-                        }
-                        else if (prop == 'find') {
-                            result = (...args) => element.apply(receiver, args);
-                        }
-                        else {
-                            result = element.bind(target);
-                        }
-                        return result;
-                    }
-                    else if (target instanceof Map) {
-                        let result;
-                        if (prop == "set") {
-                            if (target.__isProxy) {
-                                result = (key, value) => {
-                                    return target.set(key, value);
-                                };
-                            }
-                            else {
-                                result = (key, value) => {
-                                    const out = {};
-                                    let dones = [];
-                                    let dones2 = [];
-                                    key = Watcher.extract(key);
-                                    value = replaceByAlias(target, value, key + '', receiver, false, out);
-                                    if (out.otherRoot) {
-                                        dones.push(out.otherRoot);
-                                        dones2.push(out.otherRoot);
-                                    }
-                                    let result = target.set(key, value);
-                                    trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
-                                    trigger('UPDATED', target, receiver, target.size, "size", dones2);
-                                    return result;
-                                };
-                            }
-                        }
-                        else if (prop == "clear") {
-                            if (target.__isProxy) {
-                                result = () => {
-                                    return target.clear();
-                                };
-                            }
-                            else {
-                                result = () => {
-                                    let keys = target.keys();
-                                    for (let key of keys) {
-                                        let oldValue = receiver.get(key);
-                                        target.delete(key);
-                                        trigger('DELETED', target, receiver, oldValue, key);
-                                        trigger('UPDATED', target, receiver, target.size, "size");
-                                    }
-                                };
-                            }
-                        }
-                        else if (prop == "delete") {
-                            if (target.__isProxy) {
-                                result = (key) => {
-                                    return target.delete(key);
-                                };
-                            }
-                            else {
-                                result = (key) => {
-                                    key = Watcher.extract(key);
-                                    let oldValue = receiver.get(key);
-                                    let res = target.delete(key);
-                                    trigger('DELETED', target, receiver, oldValue, key + '');
-                                    trigger('UPDATED', target, receiver, target.size, "size");
-                                    return res;
-                                };
-                            }
-                        }
-                        else {
-                            result = element.bind(target);
-                        }
-                        return result;
-                    }
-                    return element.bind(target);
-                }
-                if (element instanceof Computed) {
-                    return element.value;
-                }
-                if (Watcher._registering.length > 0) {
-                    let currentPath;
-                    let fullPath;
-                    let isArray = Array.isArray(receiver);
-                    if (isArray && /^[0-9]*$/g.exec(prop)) {
-                        fullPath = receiver.__path + "[" + prop + "]";
-                        currentPath = "[" + prop + "]";
-                    }
-                    else {
-                        fullPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                        currentPath = prop;
-                    }
-                    Watcher._register?.register(receiver, currentPath, Watcher._register.version, fullPath);
-                }
-                if (typeof (element) == 'object') {
-                    return this.getProxyObject(target, element, prop);
-                }
-                return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
-            },
-            set(target, prop, value, receiver) {
-                if (typeof prop == 'symbol') {
-                    if (Watcher.isNative(target))
-                        return Reflect.set(target, prop, value);
-                    return Reflect.set(target, prop, value, receiver);
-                }
-                let oldValue = Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
-                value = replaceByAlias(target, value, prop, receiver, true);
-                if (value instanceof Signal) {
-                    value = value.value;
-                }
-                let triggerChange = false;
-                if (!reservedName[prop]) {
-                    if (Array.isArray(receiver)) {
-                        if (prop != "length") {
-                            triggerChange = true;
-                        }
-                    }
-                    else {
-                        if (!compareObject(value, oldValue)) {
-                            triggerChange = true;
-                        }
-                    }
-                    if (Watcher.__triggerForced) {
-                        triggerChange = true;
-                    }
-                }
-                let result = Watcher.isNative(target) ? Reflect.set(target, prop, value) : Reflect.set(target, prop, value, receiver);
-                if (triggerChange) {
-                    let index = this.avoidUpdate.indexOf(prop);
-                    if (index == -1) {
-                        let dones = this.injectedDones ?? [];
-                        this.injectedDones = null;
-                        trigger('UPDATED', target, receiver, value, prop, dones);
-                    }
-                    else {
-                        this.avoidUpdate.splice(index, 1);
-                    }
-                }
-                return result;
-            },
-            deleteProperty(target, prop) {
-                if (typeof prop == 'symbol') {
-                    return Reflect.deleteProperty(target, prop);
-                }
-                let triggerChange = false;
-                let pathToDelete = '';
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            if (target.__path) {
-                                pathToDelete = target.__path;
-                            }
-                            pathToDelete += "[" + prop + "]";
-                            triggerChange = true;
-                        }
-                    }
-                    else {
-                        if (target.__path) {
-                            pathToDelete = target.__path + '.';
-                        }
-                        pathToDelete += prop;
-                        triggerChange = true;
-                    }
-                }
-                if (internalAliases[pathToDelete]) {
-                    internalAliases[pathToDelete].unbind();
-                }
-                if (target.hasOwnProperty(prop)) {
-                    let oldValue = target[prop];
-                    if (oldValue instanceof Effect || oldValue instanceof Signal) {
-                        oldValue.destroy();
-                    }
-                    delete target[prop];
-                    if (triggerChange) {
-                        Watcher.clearReservedNames(oldValue);
-                        trigger('DELETED', target, null, oldValue, prop);
-                    }
-                    return true;
-                }
-                return false;
-            },
-            defineProperty(target, prop, descriptor) {
-                if (typeof prop == 'symbol') {
-                    return Reflect.defineProperty(target, prop, descriptor);
-                }
-                let triggerChange = false;
-                let newPath = '';
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            if (target.__path) {
-                                newPath = target.__path;
-                            }
-                            newPath += "[" + prop + "]";
-                            if (!target.hasOwnProperty(prop)) {
-                                triggerChange = true;
-                            }
-                        }
-                    }
-                    else {
-                        if (target.__path) {
-                            newPath = target.__path + '.';
-                        }
-                        newPath += prop;
-                        if (!target.hasOwnProperty(prop)) {
-                            triggerChange = true;
-                        }
-                    }
-                }
-                let result = Reflect.defineProperty(target, prop, descriptor);
-                if (triggerChange) {
-                    this.avoidUpdate.push(prop);
-                    let proxyEl = this.getProxyObject(target, descriptor.value, prop);
-                    target[prop] = proxyEl;
-                    trigger('CREATED', target, null, proxyEl, prop);
-                }
-                return result;
-            },
-            ownKeys(target) {
-                let result = Reflect.ownKeys(target);
-                for (let i = 0; i < result.length; i++) {
-                    let key = result[i];
-                    if (typeof key == 'string') {
-                        if (reservedName[key]) {
-                            result.splice(i, 1);
-                            i--;
-                        }
-                    }
-                }
-                return result;
-            },
-        };
-        if (onDataChanged) {
-            proxyData.callbacks[''] = [onDataChanged];
-        }
-        const trigger = (type, target, receiver, value, prop, dones = [], pathOverride) => {
-            if (dones.includes(proxyData.baseData)) {
-                return;
-            }
-            if (target.__isProxy) {
-                return;
-            }
-            let rootPath;
-            if (pathOverride !== undefined) {
-                rootPath = pathOverride;
-            }
-            else if (receiver == null) {
-                rootPath = target.__path;
-            }
-            else {
-                rootPath = receiver.__path;
-                if (rootPath !== '') {
-                    const current = rootPath === undefined ? undefined : getValueFromObject(rootPath, proxyData.baseData);
-                    const currentTarget = Watcher.is(current) ? current.getTarget(false) : current;
-                    if (currentTarget !== target)
-                        return;
-                }
-            }
-            if (rootPath != "") {
-                if (Array.isArray(receiver)) {
-                    if (prop && !prop.startsWith("[")) {
-                        if (/^[0-9]*$/g.exec(prop)) {
-                            rootPath += "[" + prop + "]";
-                        }
-                        else {
-                            rootPath += "." + prop;
-                        }
-                    }
-                    else {
-                        rootPath += prop;
-                    }
-                }
-                else {
-                    if (prop && !prop.startsWith("[")) {
-                        rootPath += ".";
-                    }
-                    rootPath += prop;
-                }
-            }
-            else {
-                rootPath = prop;
-            }
-            let stacks = [];
-            if (proxyData.useHistory) {
-                let allStacks = new Error().stack?.split("\n") ?? [];
-                for (let i = allStacks.length - 1; i >= 0; i--) {
-                    let current = allStacks[i].trim().replace("at ", "");
-                    if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
-                        break;
-                    }
-                    stacks.push(current);
-                }
-            }
-            const initialDones = [...dones];
-            dones.push(proxyData.baseData);
-            let aliasesDone = [];
-            const callbacks = { ...proxyData.callbacks };
-            for (let name in callbacks) {
-                callbacks[name] = [...callbacks[name]];
-            }
-            for (let name in callbacks) {
-                // for(let name in proxyData.callbacks) {
-                let pathToSend = rootPath;
-                if (name !== "") {
-                    let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
-                    if (!regex.test(rootPath)) {
-                        let regex2 = new RegExp("^" + rootPath.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
-                        if (!regex2.test(name)) {
-                            continue;
-                        }
-                        else {
-                            pathToSend = "";
-                        }
-                    }
-                    else {
-                        pathToSend = rootPath.replace(regex, "$2");
-                    }
-                }
-                if (name === "" && proxyData.useHistory) {
-                    proxyData.history.push({
-                        object: JSON.parse(JSON.stringify(proxyData.baseData, jsonReplacer)),
-                        trace: stacks.reverse(),
-                        action: WatchAction[type],
-                        path: pathToSend
-                    });
-                }
-                let cbs = callbacks[name];
-                for (let cb of cbs) {
-                    try {
-                        Watcher.isolate(() => {
-                            cb(WatchAction[type], pathToSend, value, dones);
-                        });
-                    }
-                    catch (e) {
-                        if (e != 'impossible')
-                            console.error(e);
-                    }
-                }
-                for (let [key, infos] of aliases) {
-                    if (!dones.includes(key)) {
-                        for (let info of infos) {
-                            if (info.name == name) {
-                                aliasesDone.push(key);
-                                if (target.__path) {
-                                    let oldPath = target.__path;
-                                    info.fct(type, target, receiver, value, prop, dones);
-                                    target.__path = oldPath;
-                                }
-                                else {
-                                    info.fct(type, target, receiver, value, prop, dones);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            for (let [key, infos] of aliases) {
-                if (!dones.includes(key) && !aliasesDone.includes(key)) {
-                    for (let info of infos) {
-                        let regex = new RegExp("^" + info.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
-                        if (!regex.test(rootPath)) {
-                            continue;
-                        }
-                        let newProp = rootPath.replace(info.name, "");
-                        if (newProp.startsWith(".")) {
-                            newProp = newProp.slice(1);
-                        }
-                        if (target.__path) {
-                            let oldPath = target.__path;
-                            info.fct(type, target, receiver, value, newProp, dones);
-                            target.__path = oldPath;
-                        }
-                        else {
-                            info.fct(type, target, receiver, value, newProp, dones);
-                        }
-                    }
-                }
-            }
-            if (pathOverride === undefined && receiver != null && target !== proxyData.baseData) {
-                const visited = new Set();
-                const notifyShared = (data, path) => {
-                    if (data === null || typeof data !== 'object')
-                        return;
-                    if (Watcher.is(data)) {
-                        data = data.getTarget(false);
-                    }
-                    if (data === target) {
-                        if (path !== receiver.__path) {
-                            trigger(type, target, receiver, value, prop, [...initialDones], path);
-                        }
-                        return;
-                    }
-                    if (data === null ||
-                        typeof data !== 'object' ||
-                        visited.has(data) ||
-                        data instanceof Map ||
-                        data instanceof Set ||
-                        Watcher.isNative(data)) {
-                        return;
-                    }
-                    visited.add(data);
-                    for (const key of Object.keys(data)) {
-                        if (reservedName[key])
-                            continue;
-                        let childPath;
-                        if (Array.isArray(data) && /^[0-9]+$/.test(key)) {
-                            childPath = path + '[' + key + ']';
-                        }
-                        else if (path) {
-                            childPath = path + '.' + key;
-                        }
-                        else {
-                            childPath = key;
-                        }
-                        notifyShared(data[key], childPath);
-                    }
-                    visited.delete(data);
-                };
-                notifyShared(proxyData.baseData, '');
-            }
-        };
-        var realProxy = new Proxy(obj, proxyData);
-        proxyData.baseData = obj;
-        setProxyPath(realProxy, '');
-        return realProxy;
-    }
-    static is(obj) {
-        return typeof obj == 'object' && obj.__isProxy;
-    }
-    static clearReservedNames(data) {
-        if (data instanceof Object && !data.__isProxy) {
-            for (let key in this.__reservedName) {
-                delete data[key];
-            }
-            for (let key in data) {
-                this.clearReservedNames(data[key]);
-            }
-        }
-        else if (Array.isArray(data)) {
-            for (let item of data) {
-                this.clearReservedNames(item);
-            }
-        }
-    }
-    static extract(obj, clearPath = false) {
-        if (this.is(obj)) {
-            return obj.getTarget(clearPath);
-        }
-        else {
-            if (obj instanceof Object) {
-                for (let key in this.__reservedName) {
-                    delete obj[key];
-                }
-            }
-        }
-        return obj;
-    }
-    static trigger(type, target) {
-        if (this.is(target)) {
-            target.__static_trigger(type);
-        }
-    }
-    /**
-     * Create a computed variable that will watch any changes
-     */
-    static computed(fct) {
-        const comp = new Computed(fct);
-        return comp;
-    }
-    /**
-     * Create an effect variable that will watch any changes
-     */
-    static effect(fct) {
-        const comp = new Effect(fct);
-        return comp;
-    }
-    /**
-     * Create an effect variable that will watch any changes inside the fct and trigger the cb on change
-     */
-    static watch(fct, cb) {
-        const comp = new Effect(fct);
-        comp.subscribe(cb);
-        return comp;
-    }
-    /**
-     * Create a signal variable
-     */
-    static signal(item, onChange) {
-        return new Signal(item, onChange);
-    }
-}
-Watcher.Namespace=`Aventus`;
-__as1(_, 'Watcher', Watcher);
-
-let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
-    init() {
-        this.isInit = true;
-        Watcher._registering.push(this);
-        try {
-            this._value = this.fct();
-        }
-        finally {
-            Watcher._registering.splice(Watcher._registering.length - 1, 1);
-        }
-    }
-    computedValue() {
-        if (this.isInit) {
-            Watcher.untrack(() => {
-                this._value = this.fct();
-            });
-        }
-        else {
-            this.init();
-        }
-    }
-    run() { }
-}
-ComputedNoRecomputed.Namespace=`Aventus`;
-__as1(_, 'ComputedNoRecomputed', ComputedNoRecomputed);
-
-let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
-    init() {
-        this.isInit = true;
-        Watcher._registering.push(this);
-        try {
-            this.fct();
-        }
-        finally {
-            Watcher._registering.splice(Watcher._registering.length - 1, 1);
-        }
-    }
-    run() {
-        if (!this.isInit) {
-            this.init();
-        }
-    }
-}
-EffectNoRecomputed.Namespace=`Aventus`;
-__as1(_, 'EffectNoRecomputed', EffectNoRecomputed);
-
-let GenericError=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
-class GenericError {
-    static converter = new Converter();
-    static get Fullname() { return "Aventus.GenericError"; }
-    /**
-     * Code for the error
-     */
-    code;
-    /**
-     * Description of the error
-     */
-    message;
-    /**
-     * Additional details related to the error.
-     */
-    details = [];
-    /**
-     * Creates a new instance of GenericError.
-     * @param {EnumValue<T>} code - The error code.
-     * @param {string | Error | unknown} message - The error message.
-     */
-    constructor(code, message) {
-        this.code = code;
-        if (message instanceof Error) {
-            this.message = message.message;
-        }
-        else {
-            this.message = message + '';
-        }
-    }
-}
-GenericError.Namespace=`Aventus`;
-GenericError.$schema={"code":"Aventus.EnumValue","message":"string"};
-Converter.register(GenericError.Fullname, GenericError);
-__as1(_, 'GenericError', GenericError);
-
-let VoidWithError=class VoidWithError {
-    static get Fullname() { return "Aventus.VoidWithError"; }
-    /**
-     * Determine if the action is a success
-     */
-    get success() {
-        return this.errors.length == 0;
-    }
-    /**
-     * List of errors
-     */
-    errors = [];
-    /**
-     * Converts the current instance to a VoidWithError object.
-     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
-     */
-    toGeneric() {
-        const result = new VoidWithError();
-        result.errors = this.errors;
-        return result;
-    }
-    /**
-    * Checks if the error list contains a specific error code.
-    * @template U - The type of error, extending GenericError.
-    * @template T - The type of the error code, which extends either number or Enum.
-    * @param {EnumValue<T>} code - The error code to check for.
-    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
-    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
-    */
-    containsCode(code, type) {
-        if (type) {
-            for (let error of this.errors) {
-                if (error instanceof type) {
-                    if (error.code == code) {
-                        return true;
-                    }
-                }
-            }
-        }
-        else {
-            for (let error of this.errors) {
-                if (error.code == code) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    run(fct) {
-        if (this.success) {
-            let result = fct();
-            if (!Array.isArray(result)) {
-                result = result.errors;
-            }
-            if (result.length > 0) {
-                this.errors = [...this.errors, ...result];
-            }
-        }
-        return this;
-    }
-    async runAsync(fct) {
-        if (this.success) {
-            let result = await fct();
-            if (!Array.isArray(result)) {
-                result = result.errors;
-            }
-            if (result.length > 0) {
-                this.errors = [...this.errors, ...result];
-            }
-        }
-        return this;
-    }
-    extract(fct) {
-        if (this.success) {
-            let result = fct();
-            if (result.success && result.result !== undefined) {
-                return result.result;
-            }
-            this.errors = [...this.errors, ...result.errors];
-        }
-        return undefined;
-    }
-    async extractAsync(fct) {
-        if (this.success) {
-            let result = await fct();
-            if (result.success && result.result !== undefined) {
-                return result.result;
-            }
-            this.errors = [...this.errors, ...result.errors];
-        }
-        return undefined;
-    }
-}
-VoidWithError.Namespace=`Aventus`;
-VoidWithError.$schema={"success":"boolean","errors":"T[]"};
-Converter.register(VoidWithError.Fullname, VoidWithError);
-__as1(_, 'VoidWithError', VoidWithError);
-
-let ResultWithError=class ResultWithError extends VoidWithError {
-    static get Fullname() { return "Aventus.ResultWithError"; }
-    /**
-      * The result value of the action.
-      * @type {U | undefined}
-      */
-    result;
-    /**
-     * Converts the current instance to a ResultWithError object.
-     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
-     */
-    toGeneric() {
-        const result = new ResultWithError();
-        result.errors = this.errors;
-        result.result = this.result;
-        return result;
-    }
-    run(fct) {
-        if (this.success) {
-            const result = fct();
-            const errors = Array.isArray(result) ? result : result.errors;
-            if (errors.length > 0) {
-                this.errors = [...this.errors, ...errors];
-            }
-            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
-                this.result = result.result;
-            }
-        }
-        return this;
-    }
-    async runAsync(fct) {
-        if (this.success) {
-            const result = await fct();
-            const errors = Array.isArray(result) ? result : result.errors;
-            if (errors.length > 0) {
-                this.errors = [...this.errors, ...errors];
-            }
-            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
-                this.result = result.result;
-            }
-        }
-        return this;
-    }
-}
-ResultWithError.Namespace=`Aventus`;
-ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
-Converter.register(ResultWithError.Fullname, ResultWithError);
-__as1(_, 'ResultWithError', ResultWithError);
-
 let RamError=class RamError extends GenericError {
 }
 RamError.Namespace=`Aventus`;
@@ -5721,460 +6178,6 @@ let Ram=class Ram extends GenericRam {
 }
 Ram.Namespace=`Aventus`;
 __as1(_, 'Ram', Ram);
-
-let HttpCache=class HttpCache {
-    static cache = new Map();
-    static pending = new Map();
-    static fetch(fullUrl, request) {
-        const key = this.generateCacheKey(fullUrl, request);
-        if (key) {
-            const value = this.cache.get(key);
-            if (value)
-                return Promise.resolve(value);
-            const pending = this.pending.get(key);
-            if (pending)
-                return pending;
-        }
-        let transport;
-        try {
-            transport = fetch(fullUrl, request);
-        }
-        catch (error) {
-            return Promise.reject(error);
-        }
-        let pending;
-        pending = Promise.resolve(transport).then(result => {
-            const response = new HttpResponse(result);
-            if (key && this.pending.get(key) === pending) {
-                this.cache.set(key, response);
-            }
-            return response;
-        }).finally(() => {
-            if (key && this.pending.get(key) === pending) {
-                this.pending.delete(key);
-            }
-        });
-        if (key) {
-            this.pending.set(key, pending);
-        }
-        return pending;
-    }
-    static clear(fullUrl, request) {
-        const key = this.generateCacheKey(fullUrl, request);
-        if (key) {
-            this.pending.delete(key);
-            if (this.cache.has(key)) {
-                this.cache.delete(key);
-            }
-        }
-    }
-    static generateCacheKey(fullUrl, request) {
-        const method = request.method;
-        const body = request.body;
-        const accept = request.headers ? new Headers(request.headers).get('Accept') ?? '' : '';
-        let bodyKey = "";
-        if (typeof body == 'string') {
-            bodyKey = this.hashStringToInt(body) + '';
-        }
-        else if (body instanceof FormData) {
-        }
-        return fullUrl + "°" + method + "°" + bodyKey + "°" + accept;
-    }
-    static hashStringToInt(str) {
-        let hash = 0x811c9dc5;
-        for (let i = 0; i < str.length; i++) {
-            hash ^= str.charCodeAt(i);
-            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
-        }
-        return hash >>> 0;
-    }
-}
-HttpCache.Namespace=`Aventus`;
-__as1(_, 'HttpCache', HttpCache);
-
-let HttpError=class HttpError extends GenericError {
-    status;
-    constructor(code, message, status) {
-        super(code, message);
-        this.status = status;
-    }
-}
-HttpError.Namespace=`Aventus`;
-HttpError.$schema={...(GenericError?.$schema ?? {}), "status":"number"};
-Converter.register(HttpError.Fullname, HttpError);
-__as1(_, 'HttpError', HttpError);
-
-let HttpRouter=class HttpRouter {
-    static options;
-    static configure(options) {
-        HttpRouter.options = options;
-    }
-    options;
-    constructor() {
-        this.options = this.defineOptions(this.defaultOptionsValue());
-    }
-    defaultOptionsValue() {
-        return HttpRouter.options ?? {
-            url: location.protocol + "//" + location.host
-        };
-    }
-    defineOptions(options) {
-        return options;
-    }
-    async get(url) {
-        return await new HttpRequest(url).queryJSON(this);
-    }
-    async post(url, data) {
-        return await new HttpRequest(url, HttpMethod.POST, data).queryJSON(this);
-    }
-    async put(url, data) {
-        return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON(this);
-    }
-    async delete(url, data) {
-        return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON(this);
-    }
-    async option(url, data) {
-        return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON(this);
-    }
-}
-HttpRouter.Namespace=`Aventus`;
-__as1(_, 'HttpRouter', HttpRouter);
-
-let HttpRoute=class HttpRoute {
-    router;
-    constructor(router) {
-        this.router = router ?? new HttpRouter();
-    }
-    getPrefix() {
-        return "";
-    }
-}
-HttpRoute.Namespace=`Aventus`;
-__as1(_, 'HttpRoute', HttpRoute);
-
-let HttpRequest=class HttpRequest {
-    static options;
-    static configure(options) {
-        HttpRequest.options = options;
-    }
-    request;
-    url;
-    methodSpoofing = false;
-    useCache = false;
-    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false, useCache = false) {
-        this.url = url;
-        this.request = {};
-        this.methodSpoofing = methodSpoofing;
-        this.useCache = useCache;
-        this.setMethod(method);
-        this.prepareBody(body);
-    }
-    setUrl(url) {
-        this.url = url;
-    }
-    toString() {
-        return this.url + " : " + JSON.stringify(this.request);
-    }
-    setBody(body) {
-        this.prepareBody(body);
-    }
-    setMethod(method) {
-        this.request.method = method;
-    }
-    /**
-     * Replace method Put/Delete by _method:"put" inside a form
-     */
-    enableMethodSpoofing() {
-        this.methodSpoofing = true;
-    }
-    enableCache() {
-        this.useCache = true;
-    }
-    disableCache() {
-        this.useCache = false;
-    }
-    objectToFormData(obj, formData, parentKey) {
-        formData = formData || new FormData();
-        let byPass = obj;
-        if (byPass.__isProxy) {
-            obj = byPass.getTarget();
-        }
-        const keys = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            let value = obj[key];
-            const newKey = parentKey ? `${parentKey}[${key}]` : key;
-            if (value instanceof Date || value instanceof DateTime || value instanceof Time) {
-                formData.append(newKey, DateConverter.converter.toString(value));
-            }
-            else if (typeof value === 'object' &&
-                value !== null &&
-                !(value instanceof File)) {
-                if (Array.isArray(value)) {
-                    for (let j = 0; j < value.length; j++) {
-                        const arrayKey = `${newKey}[${j}]`;
-                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
-                    }
-                }
-                else {
-                    this.objectToFormData(value, formData, newKey);
-                }
-            }
-            else {
-                if (value === undefined || value === null) {
-                    value = "";
-                }
-                else if (Watcher.is(value)) {
-                    value = Watcher.extract(value);
-                }
-                formData.append(newKey, value);
-            }
-        }
-        return formData;
-    }
-    jsonReplacer(key, value) {
-        const t = this;
-        if (t[key] instanceof Date || t[key] instanceof DateTime || t[key] instanceof Time) {
-            return DateConverter.converter.toString(t[key]);
-        }
-        return value;
-    }
-    prepareBody(data) {
-        if (!data) {
-            return;
-        }
-        else if (data instanceof FormData) {
-            this.request.body = data;
-        }
-        else {
-            let useFormData = false;
-            const analyseFormData = (obj) => {
-                for (let key in obj) {
-                    if (obj[key] instanceof File) {
-                        useFormData = true;
-                        break;
-                    }
-                    else if (Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
-                        useFormData = true;
-                        break;
-                    }
-                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date) && !(obj[key] instanceof DateTime) && !(obj[key] instanceof Time)) {
-                        analyseFormData(obj[key]);
-                        if (useFormData) {
-                            break;
-                        }
-                    }
-                }
-            };
-            analyseFormData(data);
-            if (useFormData) {
-                this.request.body = this.objectToFormData(data);
-            }
-            else {
-                this.request.body = JSON.stringify(data, this.jsonReplacer);
-                this.setHeader("Content-Type", "Application/json");
-            }
-        }
-        if (this.methodSpoofing) {
-            if (this.request.method?.toUpperCase() == Aventus.HttpMethod.PUT) {
-                if (this.request.body instanceof FormData) {
-                    this.request.body.append("_method", Aventus.HttpMethod.PUT);
-                    this.request.method = Aventus.HttpMethod.POST;
-                }
-            }
-            else if (this.request.method?.toUpperCase() == Aventus.HttpMethod.DELETE) {
-                if (this.request.body instanceof FormData) {
-                    this.request.body.append("_method", Aventus.HttpMethod.DELETE);
-                    this.request.method = Aventus.HttpMethod.POST;
-                }
-            }
-        }
-    }
-    setHeader(name, value) {
-        if (!this.request.headers) {
-            this.request.headers = [];
-        }
-        const headers = this.request.headers;
-        const existing = headers.findIndex(([key]) => key.toLowerCase() === name.toLowerCase());
-        if (existing >= 0) {
-            headers[existing] = [name, value];
-        }
-        else {
-            headers.push([name, value]);
-        }
-    }
-    setCredentials(credentials) {
-        this.request.credentials = credentials;
-    }
-    async _query(router) {
-        let result = new ResultWithError();
-        try {
-            const isFull = this.url.match("https?://");
-            if (!this.url.startsWith("/") && !isFull) {
-                this.url = "/" + this.url;
-            }
-            if (HttpRequest.options?.beforeSend) {
-                const beforeSendResult = await HttpRequest.options.beforeSend(this);
-                result.errors = beforeSendResult.errors;
-                if (!result.success)
-                    return result;
-            }
-            const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
-            if (this.useCache) {
-                result.result = await HttpCache.fetch(fullUrl, this.request);
-            }
-            else {
-                let response = await fetch(fullUrl, this.request);
-                result.result = new HttpResponse(response);
-            }
-            if (result.result && !result.result.ok) {
-                result.errors.push(new HttpError(HttpErrorCode.status, `${result.result.status} ${result.result.statusText}`.trim(), result.result.status));
-            }
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    async query(router) {
-        let result = await this._query(router);
-        if (HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
-        return result;
-    }
-    async queryVoid(router) {
-        let resultTemp = await this.query(router);
-        let result = new VoidWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            if (resultTemp.result.status != 204) {
-                let tempResult = await resultTemp.result.json();
-                if (tempResult instanceof VoidWithError) {
-                    for (let error of tempResult.errors) {
-                        result.errors.push(error);
-                    }
-                }
-            }
-        }
-        catch (e) {
-        }
-        return result;
-    }
-    async queryJSON(router) {
-        this.setHeader("Accept", "application/json");
-        let resultTemp = await this.query(router);
-        let result = new ResultWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            let tempResult = await resultTemp.result.json();
-            if (tempResult instanceof VoidWithError) {
-                if (tempResult.errors.length > 0) {
-                    result.errors = result.errors.filter(error => !(error instanceof HttpError && error.code === HttpErrorCode.status && error.status === resultTemp.result?.status));
-                }
-                for (let error of tempResult.errors) {
-                    result.errors.push(error);
-                }
-                if (tempResult instanceof ResultWithError) {
-                    result.result = tempResult.result;
-                }
-            }
-            else {
-                result.result = tempResult;
-            }
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    async queryTxt(router) {
-        this.setHeader("Accept", "text/plain");
-        let resultTemp = await this.query(router);
-        let result = new ResultWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            result.result = await resultTemp.result.text();
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    async queryBlob(router) {
-        this.setHeader("Accept", "application/octet-stream");
-        let resultTemp = await this.query(router);
-        let result = new ResultWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            result.result = await resultTemp.result.blob();
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    clearCache(router) {
-        const isFull = this.url.match("https?://");
-        if (!this.url.startsWith("/") && !isFull) {
-            this.url = "/" + this.url;
-        }
-        const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
-        HttpCache.clear(fullUrl, this.request);
-    }
-}
-HttpRequest.Namespace=`Aventus`;
-__as1(_, 'HttpRequest', HttpRequest);
-
-let StorableRoute=class StorableRoute extends HttpRoute {
-    async GetAll() {
-        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
-        return await request.queryJSON(this.router);
-    }
-    async Create(body) {
-        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.POST);
-        request.setBody(body);
-        return await request.queryJSON(this.router);
-    }
-    async GetById(id) {
-        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.GET);
-        return await request.queryJSON(this.router);
-    }
-    async Update(id, body) {
-        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.PUT);
-        request.setBody(body);
-        return await request.queryJSON(this.router);
-    }
-    async Delete(id) {
-        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.DELETE);
-        return await request.queryVoid(this.router);
-    }
-}
-StorableRoute.Namespace=`Aventus`;
-__as1(_, 'StorableRoute', StorableRoute);
 
 let StateManager=class StateManager {
     subscribers = {};
@@ -8802,8 +8805,3 @@ __as1(_, 'ElementExtension', ElementExtension);
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
-(() => {
-const _ = globalThis;
-const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; };
- 
-})();
