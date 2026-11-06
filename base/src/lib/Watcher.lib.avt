@@ -558,7 +558,10 @@ export class Watcher {
                                 return value === target ? receiver : value;
                             };
                         }
-                        else if(['find', 'findLast', 'at'].includes(prop)) {
+                        else if([
+                            'find', 'findLast', 'findIndex', 'findLastIndex', 'some', 'every',
+                            'filter', 'map', 'flatMap', 'forEach', 'reduce', 'reduceRight', 'at'
+                        ].includes(prop)) {
                             result = (...args: any[]) => element.apply(receiver, args);
                         }
                         else if(['indexOf', 'lastIndexOf', 'includes'].includes(prop)) {
@@ -1129,6 +1132,7 @@ export class Effect {
     @InternalProtected()
     public isRunning: boolean = false;
     private pendingChange?: { action: WatchAction; changePath: string; value: any; dones: any[]; };
+    private seenNotifications: WeakSet<object> = new WeakSet<object>();
 
     protected fct: () => void;
 
@@ -1224,7 +1228,7 @@ export class Effect {
     }
 
     protected checkCanChange(action: WatchAction, changePath: string, value: any, dones: any[]): boolean {
-        if(this.isDestroy || this.isRunning) {
+        if(this.isDestroy || this.isRunning || this.seenNotifications.has(dones)) {
             return false;
         }
         for(let fct of this.__allowChanged) {
@@ -1232,12 +1236,15 @@ export class Effect {
                 return false;
             }
         }
+        this.seenNotifications.add(dones);
         return true;
     }
 
     protected onChange(action: WatchAction, changePath: string, value: any, dones: any[]) {
         if(this.isRunning) {
-            if(!this.isDestroy && this.__allowChanged.every(fct => fct(action, changePath, value, dones))) {
+            if(!this.isDestroy && !this.seenNotifications.has(dones) &&
+                this.__allowChanged.every(fct => fct(action, changePath, value, dones))) {
+                this.seenNotifications.add(dones);
                 this.pendingChange = { action, changePath, value, dones };
             }
             return;

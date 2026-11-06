@@ -129,6 +129,45 @@ test('Watcher.at and findLast return watched items', () => {
     ]);
 });
 
+test('Watcher array callbacks receive watched items', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ items: [{ count: 1 }, { count: 2 }] })', context),
+        (action, path) => changes.push([action, path]));
+    const methods = ['findIndex', 'findLastIndex', 'some', 'every', 'filter', 'map', 'flatMap', 'forEach'];
+
+    for(const method of methods) {
+        const received = [];
+        model.items[method](item => {
+            received.push(Watcher.is(item) === true);
+            return method === 'every' ? true : false;
+        });
+        assert.equal(received.every(Boolean), true, method);
+    }
+
+    for(const method of ['reduce', 'reduceRight']) {
+        const received = [];
+        model.items[method]((total, item) => {
+            received.push(Watcher.is(item) === true);
+            return total + item.count;
+        }, 0);
+        assert.deepEqual(received, [true, true], method);
+    }
+
+    const seen = [];
+    const effect = new Effect(() => seen.push(model.items.some(item => item.count > 2)));
+    model.items.forEach(item => { if(item.count === 2) item.count = 3; });
+    assert.deepEqual(seen, [false, true]);
+    model.items[1].count = 2;
+    assert.deepEqual(seen, [false, true, false]);
+    assert.deepEqual(changes, [
+        [WatchAction.UPDATED, 'items[1].count'],
+        [WatchAction.UPDATED, 'items[1].count'],
+    ]);
+    effect.destroy();
+});
+
 test('Watcher array indexOf accepts a plain value and a watched item', () => {
     const context = loadRuntimeContext();
     const { Watcher } = context.Aventus;

@@ -3270,6 +3270,7 @@ let Effect=class Effect {
     version = 0;
     isRunning = false;
     pendingChange;
+    seenNotifications = new WeakSet();
     fct;
     constructor(fct) {
         this.fct = fct;
@@ -3354,7 +3355,7 @@ let Effect=class Effect {
         this.__allowChanged.push(fct);
     }
     checkCanChange(action, changePath, value, dones) {
-        if (this.isDestroy || this.isRunning) {
+        if (this.isDestroy || this.isRunning || this.seenNotifications.has(dones)) {
             return false;
         }
         for (let fct of this.__allowChanged) {
@@ -3362,11 +3363,14 @@ let Effect=class Effect {
                 return false;
             }
         }
+        this.seenNotifications.add(dones);
         return true;
     }
     onChange(action, changePath, value, dones) {
         if (this.isRunning) {
-            if (!this.isDestroy && this.__allowChanged.every(fct => fct(action, changePath, value, dones))) {
+            if (!this.isDestroy && !this.seenNotifications.has(dones) &&
+                this.__allowChanged.every(fct => fct(action, changePath, value, dones))) {
+                this.seenNotifications.add(dones);
                 this.pendingChange = { action, changePath, value, dones };
             }
             return;
@@ -3946,7 +3950,10 @@ let Watcher=class Watcher {
                                 return value === target ? receiver : value;
                             };
                         }
-                        else if (['find', 'findLast', 'at'].includes(prop)) {
+                        else if ([
+                            'find', 'findLast', 'findIndex', 'findLastIndex', 'some', 'every',
+                            'filter', 'map', 'flatMap', 'forEach', 'reduce', 'reduceRight', 'at'
+                        ].includes(prop)) {
                             result = (...args) => element.apply(receiver, args);
                         }
                         else if (['indexOf', 'lastIndexOf', 'includes'].includes(prop)) {
