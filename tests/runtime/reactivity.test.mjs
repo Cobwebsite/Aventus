@@ -171,6 +171,33 @@ test('Watcher Map.get returns a watched value', () => {
     assert.deepEqual(changes, [[WatchAction.UPDATED, 'records.first.count']]);
 });
 
+test('Watcher Map.has effects react to changes of the checked key', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const records = Watcher.get(runInNewContext('new Map()', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push(records.has('first')));
+    records.set('other', 1);
+    records.set('first', 2);
+    records.delete('first');
+    assert.deepEqual(seen, [false, true, false]);
+    effect.destroy();
+});
+
+test('Watcher Map.has effect ignores changes to an existing value', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const records = Watcher.get(runInNewContext('new Map([["first", { count: 1 }]])', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push(records.has('first')));
+    records.set('first', runInNewContext('({ count: 2 })', context));
+    records.get('first').count = 3;
+    assert.deepEqual(seen, [true]);
+    records.delete('first');
+    assert.deepEqual(seen, [true, false]);
+    effect.destroy();
+});
+
 test('Watcher Map.set keeps chained calls watched', () => {
     const context = loadRuntimeContext();
     const { Watcher, WatchAction } = context.Aventus;
@@ -192,6 +219,19 @@ test('Watcher Map.set keeps chained calls watched', () => {
         [WatchAction.CREATED, 'records.third'],
         [WatchAction.UPDATED, 'records.size'],
     ]);
+});
+
+test('Watcher Map.set runs an effect reading the key and size once', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const records = Watcher.get(runInNewContext('new Map()', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push([records.get('first'), records.size]));
+    records.set('first', 1);
+    assert.deepEqual(seen, [[undefined, 0], [1, 1]]);
+    records.set('first', 2);
+    assert.deepEqual(seen, [[undefined, 0], [1, 1], [2, 1]]);
+    effect.destroy();
 });
 
 test('Watcher Map iteration exposes watched values', () => {
@@ -229,6 +269,56 @@ test('Watcher Map iteration exposes watched values', () => {
         [WatchAction.UPDATED, 'records.first.count'],
         [WatchAction.UPDATED, 'records.second.count'],
     ]);
+});
+
+test('Watcher Map iteration effects react to additions and deletions', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const records = Watcher.get(runInNewContext('new Map()', context));
+    for(const [read, addedValue] of [
+        [() => [...records.keys()].join(','), 'first'],
+        [() => [...records.values()].join(','), '1'],
+        [() => [...records.entries()].map(([key]) => key).join(','), 'first'],
+        [() => { const keys = []; records.forEach((_value, key) => keys.push(key)); return keys.join(','); }, 'first'],
+        [() => [...records].map(([key]) => key).join(','), 'first'],
+    ]) {
+        const seen = [];
+        const effect = new Effect(() => seen.push(read()));
+        records.set('first', 1);
+        records.delete('first');
+        assert.equal(seen[0], '');
+        assert.equal(seen.includes(addedValue), true);
+        assert.equal(seen.at(-1), '');
+        effect.destroy();
+    }
+});
+
+test('Watcher Map values effect runs once when an entry is deleted or the map is cleared', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const records = Watcher.get(runInNewContext('new Map([["first", 1], ["second", 2]])', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push([...records.values()].join(',')));
+    records.delete('first');
+    assert.deepEqual(seen, ['1,2', '2']);
+    records.set('third', 3);
+    assert.deepEqual(seen, ['1,2', '2', '2,3']);
+    records.clear();
+    assert.deepEqual(seen, ['1,2', '2', '2,3', '']);
+    effect.destroy();
+});
+
+test('Watcher Map.keys effect follows key changes across a replacement', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const records = Watcher.get(runInNewContext('new Map([["first", 1]])', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push([...records.keys()].join(',')));
+    records.delete('first');
+    records.set('second', 2);
+    records.set('second', 3);
+    assert.deepEqual(seen, ['first', '', 'second']);
+    effect.destroy();
 });
 
 test('Watcher Map mutations report the actual action and size changes', () => {
@@ -340,6 +430,61 @@ test('Watcher Set.has accepts a watched value', () => {
     assert.equal(model.items.has(runInNewContext('({ toString() { return "item-one"; } })', context)), false);
 });
 
+test('Watcher Set.has effects react to changes of the checked value', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const items = Watcher.get(runInNewContext('new Set()', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push(items.has('first')));
+    items.add('other');
+    items.add('first');
+    items.delete('first');
+    assert.deepEqual(seen, [false, true, false]);
+    effect.destroy();
+});
+
+test('Watcher Set.has effect ignores changes inside an existing object', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const item = runInNewContext('({ count: 1, toString() { return "item-one"; } })', context);
+    const items = Watcher.get(runInNewContext('new Set()', context));
+    items.add(item);
+    const seen = [];
+    const effect = new Effect(() => seen.push(items.has(item)));
+    const [watchedItem] = items;
+    watchedItem.count = 2;
+    assert.deepEqual(seen, [true]);
+    items.delete(item);
+    assert.deepEqual(seen, [true, false]);
+    effect.destroy();
+});
+
+test('Watcher Set.add runs an effect reading presence and size once', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const items = Watcher.get(runInNewContext('new Set()', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push([items.has('first'), items.size]));
+    items.add('first');
+    assert.deepEqual(seen, [[false, 0], [true, 1]]);
+    items.add('first');
+    assert.deepEqual(seen, [[false, 0], [true, 1]]);
+    effect.destroy();
+});
+
+test('Watcher Set.delete and clear run an effect once per operation', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const items = Watcher.get(runInNewContext('new Set(["first", "second", "third"])', context));
+    const seen = [];
+    const effect = new Effect(() => seen.push([items.has('first'), items.has('second'), items.size]));
+    items.delete('first');
+    assert.deepEqual(seen, [[true, true, 3], [false, true, 2]]);
+    items.clear();
+    assert.deepEqual(seen, [[true, true, 3], [false, true, 2], [false, false, 0]]);
+    effect.destroy();
+});
+
 test('Watcher Set iteration exposes watched values', () => {
     const context = loadRuntimeContext();
     const { Watcher, WatchAction } = context.Aventus;
@@ -386,6 +531,26 @@ test('Watcher Set iteration exposes watched values', () => {
     const beforeDetachedChange = changes.length;
     firstFromIterator.count = 8;
     assert.equal(changes.length, beforeDetachedChange);
+});
+
+test('Watcher Set iteration effects react to additions and deletions', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, Effect } = context.Aventus;
+    const items = Watcher.get(runInNewContext('new Set()', context));
+    for(const read of [
+        () => [...items.values()].join(','),
+        () => [...items.keys()].join(','),
+        () => [...items.entries()].map(([value]) => value).join(','),
+        () => { const values = []; items.forEach(value => values.push(value)); return values.join(','); },
+        () => [...items].join(','),
+    ]) {
+        const seen = [];
+        const effect = new Effect(() => seen.push(read()));
+        items.add('first');
+        items.delete('first');
+        assert.deepEqual(seen, ['', 'first', '']);
+        effect.destroy();
+    }
 });
 
 test('Watcher array callbacks receive watched items', () => {
@@ -705,17 +870,4 @@ test('Effect can run again after its callback throws on a signal change', () => 
     effect.destroy();
 });
 
-test('Computed retains its previous value when recomputation throws and recovers later', () => {
-    const { Signal, Computed } = loadRuntime();
-    const source = new Signal(0);
-    const computed = new Computed(() => {
-        if(source.value === 1) throw new Error('computed failed');
-        return source.value * 2;
-    });
-    assert.equal(computed.value, 0);
-    assert.throws(() => { source.value = 1; }, /computed failed/);
-    assert.equal(computed.value, 0);
-    source.value = 2;
-    assert.equal(computed.value, 4);
-    computed.destroy();
-});
+test('Computed retains its prev

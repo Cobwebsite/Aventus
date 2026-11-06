@@ -3335,9 +3335,9 @@ let Effect=class Effect {
         } while (pendingNotification && !this.isDestroy);
         return result;
     }
-    register(receiver, path, version, fullPath) {
+    register(receiver, path, version, fullPath, presenceOnly = false) {
         for (let info of this.callbacks) {
-            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath) {
+            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath && info.presenceOnly == presenceOnly) {
                 info.version = version;
                 info.fullPath = fullPath;
                 return;
@@ -3349,8 +3349,12 @@ let Effect=class Effect {
         }
         else {
             cb = (action, changePath, value, dones) => {
-                if (changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
-                    // if(changePath == path) {
+                if (presenceOnly) {
+                    if (changePath == path && (action == WatchAction.CREATED || action == WatchAction.DELETED)) {
+                        this.onChange(action, changePath, value, dones);
+                    }
+                }
+                else if (changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
                     this.onChange(action, changePath, value, dones);
                 }
             };
@@ -3361,7 +3365,8 @@ let Effect=class Effect {
             registerPath: receiver.__path,
             cb,
             version,
-            fullPath
+            fullPath,
+            presenceOnly
         });
         receiver.subscribe(cb);
     }
@@ -3996,8 +4001,12 @@ let Watcher=class Watcher {
                     }
                     else if (target instanceof Map) {
                         let result;
+                        const registerIteration = () => {
+                            return Watcher._register?.register(receiver, 'size', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size');
+                        };
                         if (prop == "entries" || prop == "values") {
                             result = function* () {
+                                registerIteration();
                                 for (const [key] of target.entries()) {
                                     const value = receiver.get(key);
                                     yield prop == "entries" ? [key, value] : value;
@@ -4008,6 +4017,7 @@ let Watcher=class Watcher {
                             result = (callback, thisArg) => {
                                 if (typeof callback != 'function')
                                     throw new TypeError('Map.forEach callback must be a function');
+                                registerIteration();
                                 target.forEach((_value, key) => callback.call(thisArg, receiver.get(key), key, receiver));
                             };
                         }
@@ -4017,6 +4027,14 @@ let Watcher=class Watcher {
                                 const path = key + '';
                                 Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path);
                                 return this.getProxyObject(target, target.get(key), path);
+                            };
+                        }
+                        else if (prop == "has") {
+                            result = (key) => {
+                                key = Watcher.extract(key);
+                                const path = String(key);
+                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path, true);
+                                return target.has(key);
                             };
                         }
                         else if (prop == "set") {
@@ -4029,7 +4047,6 @@ let Watcher=class Watcher {
                                 result = (key, value) => {
                                     const out = {};
                                     let dones = [];
-                                    let dones2 = [];
                                     key = Watcher.extract(key);
                                     const hadKey = target.has(key);
                                     if (!hadKey && key !== null && typeof key === 'object' && key.toString() === '[object Object]') {
@@ -4038,12 +4055,15 @@ let Watcher=class Watcher {
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
                                     if (out.otherRoot) {
                                         dones.push(out.otherRoot);
-                                        dones2.push(out.otherRoot);
                                     }
                                     target.set(key, value);
                                     trigger(hadKey ? 'UPDATED' : 'CREATED', target, receiver, receiver.get(key), key + '', dones);
-                                    if (!hadKey)
-                                        trigger('UPDATED', target, receiver, target.size, "size", dones2);
+                                    if (!hadKey) {
+                                        dones.length = 0;
+                                        if (out.otherRoot)
+                                            dones.push(out.otherRoot);
+                                        trigger('UPDATED', target, receiver, target.size, "size", dones);
+                                    }
                                     return receiver;
                                 };
                             }
@@ -4056,13 +4076,17 @@ let Watcher=class Watcher {
                             }
                             else {
                                 result = () => {
-                                    let keys = target.keys();
-                                    for (let key of keys) {
-                                        let oldValue = receiver.get(key);
-                                        target.delete(key);
-                                        trigger('DELETED', target, receiver, oldValue, key);
-                                        trigger('UPDATED', target, receiver, target.size, "size");
+                                    if (target.size === 0)
+                                        return;
+                                    const entries = [...target.entries()];
+                                    const dones = [];
+                                    target.clear();
+                                    for (const [key, oldValue] of entries) {
+                                        dones.length = 0;
+                                        trigger('DELETED', target, receiver, oldValue, key + '', dones);
                                     }
+                                    dones.length = 0;
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
                                 };
                             }
                         }
@@ -4079,11 +4103,19 @@ let Watcher=class Watcher {
                                         return false;
                                     let oldValue = receiver.get(key);
                                     let res = target.delete(key);
-                                    trigger('DELETED', target, receiver, oldValue, key + '');
-                                    trigger('UPDATED', target, receiver, target.size, "size");
+                                    const dones = [];
+                                    trigger('DELETED', target, receiver, oldValue, key + '', dones);
+                                    dones.length = 0;
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
                                     return res;
                                 };
                             }
+                        }
+                        else if (prop == 'keys') {
+                            result = () => {
+                                registerIteration();
+                                return target.keys();
+                            };
                         }
                         else {
                             result = element.bind(target);
@@ -4092,15 +4124,20 @@ let Watcher=class Watcher {
                     }
                     else if (target instanceof Set) {
                         let result;
+                        const registerIteration = () => {
+                            return Watcher._register?.register(receiver, 'size', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size');
+                        };
                         const watchValue = (value) => this.getProxyObject(target, value, String(value));
                         if (prop == 'values' || prop == 'keys') {
                             result = function* () {
+                                registerIteration();
                                 for (const value of target)
                                     yield watchValue(value);
                             };
                         }
                         else if (prop == 'entries') {
                             result = function* () {
+                                registerIteration();
                                 for (const value of target) {
                                     const watched = watchValue(value);
                                     yield [watched, watched];
@@ -4111,6 +4148,7 @@ let Watcher=class Watcher {
                             result = (callback, thisArg) => {
                                 if (typeof callback != 'function')
                                     throw new TypeError('Set.forEach callback must be a function');
+                                registerIteration();
                                 target.forEach(value => {
                                     const watched = watchValue(value);
                                     callback.call(thisArg, watched, watched, receiver);
@@ -4122,6 +4160,8 @@ let Watcher=class Watcher {
                                 if (value && Watcher.is(value)) {
                                     value = Watcher.extract(value);
                                 }
+                                const path = String(value);
+                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path, true);
                                 return target.has(value);
                             };
                         }
@@ -4136,8 +4176,10 @@ let Watcher=class Watcher {
                                     console.warn('Watcher Set: toString() must return a unique value for each object; [object Object] is ambiguous.');
                                 }
                                 target.add(value);
-                                trigger('CREATED', target, receiver, value, String(value));
-                                trigger('UPDATED', target, receiver, target.size, 'size');
+                                const dones = [];
+                                trigger('CREATED', target, receiver, value, String(value), dones);
+                                dones.length = 0;
+                                trigger('UPDATED', target, receiver, target.size, 'size', dones);
                                 return receiver;
                             };
                         }
@@ -4149,8 +4191,10 @@ let Watcher=class Watcher {
                                 if (!target.has(value))
                                     return false;
                                 const deleted = target.delete(value);
-                                trigger('DELETED', target, receiver, value, String(value));
-                                trigger('UPDATED', target, receiver, target.size, 'size');
+                                const dones = [];
+                                trigger('DELETED', target, receiver, value, String(value), dones);
+                                dones.length = 0;
+                                trigger('UPDATED', target, receiver, target.size, 'size', dones);
                                 return deleted;
                             };
                         }
@@ -4159,11 +4203,14 @@ let Watcher=class Watcher {
                                 if (target.size === 0)
                                     return;
                                 const values = [...target];
+                                const dones = [];
                                 target.clear();
                                 for (const value of values) {
-                                    trigger('DELETED', target, receiver, value, String(value));
+                                    dones.length = 0;
+                                    trigger('DELETED', target, receiver, value, String(value), dones);
                                 }
-                                trigger('UPDATED', target, receiver, target.size, 'size');
+                                dones.length = 0;
+                                trigger('UPDATED', target, receiver, target.size, 'size', dones);
                             };
                         }
                         else {
