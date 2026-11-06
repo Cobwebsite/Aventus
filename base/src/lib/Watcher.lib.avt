@@ -558,15 +558,15 @@ export class Watcher {
                                 return value === target ? receiver : value;
                             };
                         }
-                        else if(prop == 'find') {
+                        else if(['find', 'findLast', 'at'].includes(prop)) {
                             result = (...args: any[]) => element.apply(receiver, args);
                         }
-                        else if(prop == 'indexOf') {
-                            result = (searchElement: any, fromIndex?: number) => {
-                                if(searchElement && Watcher.is(searchElement)) {
-                                    searchElement = Watcher.extract(searchElement);
+                        else if(['indexOf', 'lastIndexOf', 'includes'].includes(prop)) {
+                            result = (...args: any[]) => {
+                                if(args[0] && Watcher.is(args[0])) {
+                                    args[0] = Watcher.extract(args[0]);
                                 }
-                                target.indexOf(searchElement, fromIndex);
+                                return element.apply(target, args);
                             };
                         }
                         else {

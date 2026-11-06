@@ -108,6 +108,27 @@ test('Watcher.find returns a watched item whose changes notify subscribers', () 
     assert.equal(model.items[1].name, 'updated');
 });
 
+test('Watcher.at and findLast return watched items', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ items: [{ id: 1, name: "first" }, { id: 2, name: "second" }] })', context),
+        (action, path) => changes.push([action, path]));
+
+    const last = model.items.at(-1);
+    assert.equal(Watcher.is(last), true);
+    last.name = 'from at';
+
+    const found = model.items.findLast(item => item.id === 1);
+    assert.equal(Watcher.is(found), true);
+    found.name = 'from findLast';
+
+    assert.deepEqual(changes, [
+        [WatchAction.UPDATED, 'items[1].name'],
+        [WatchAction.UPDATED, 'items[0].name'],
+    ]);
+});
+
 test('Watcher array indexOf accepts a plain value and a watched item', () => {
     const context = loadRuntimeContext();
     const { Watcher } = context.Aventus;
@@ -118,6 +139,20 @@ test('Watcher array indexOf accepts a plain value and a watched item', () => {
     assert.equal(model.items.indexOf(plain), 0);
     assert.equal(model.items.indexOf(model.items[0]), 0);
     assert.equal(model.items.indexOf(runInNewContext('({ id: 1 })', context)), -1);
+});
+
+test('Watcher array includes and lastIndexOf accept a watched item', () => {
+    const context = loadRuntimeContext();
+    const { Watcher } = context.Aventus;
+    const plain = runInNewContext('({ id: 1 })', context);
+    const model = Watcher.get(runInNewContext('({ items: [] })', context));
+    model.items.push(plain);
+    model.items.push(plain);
+
+    assert.equal(model.items.includes(plain), true);
+    assert.equal(model.items.includes(model.items[0]), true);
+    assert.equal(model.items.lastIndexOf(plain), 1);
+    assert.equal(model.items.lastIndexOf(model.items[0]), 1);
 });
 
 test('Watcher subscriptions can be removed and extraction returns current plain data', () => {
