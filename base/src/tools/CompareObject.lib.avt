@@ -163,7 +163,13 @@ export function getValueFromObject(path: string, obj: any) {
 
     const val = (key: string) => {
         if(obj instanceof Map) {
-            return obj.get(key);
+            if(obj.has(key)) return obj.get(key);
+            for(const [mapKey, value] of obj) {
+                if(mapKey !== null && typeof mapKey === 'object' && mapKey.toString() === key) {
+                    return value;
+                }
+            }
+            return undefined;
         }
         return obj[key];
     };

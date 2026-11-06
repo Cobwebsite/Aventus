@@ -243,6 +243,36 @@ test('Watcher Map mutations report the actual action and size changes', () => {
     ]);
 });
 
+test('Watcher Map uses an object key toString in watched paths', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const key = runInNewContext('({ toString() { return "record-one"; } })', context);
+    const value = runInNewContext('({ count: 1 })', context);
+    const model = Watcher.get(runInNewContext('({ records: new Map() })', context),
+        (action, path) => changes.push([action, path]));
+
+    model.records.set(key, value);
+    changes.length = 0;
+    model.records.get(key).count = 2;
+    assert.deepEqual(changes, [[WatchAction.UPDATED, 'records.record-one.count']]);
+});
+
+test('Watcher Map warns when an inserted object key has the default toString', () => {
+    const warnings = [];
+    const logger = Object.create(console);
+    logger.warn = message => warnings.push(message);
+    const context = loadRuntimeContext({ console: logger });
+    const { Watcher } = context.Aventus;
+    const key = runInNewContext('({})', context);
+    const model = Watcher.get(runInNewContext('({ records: new Map() })', context));
+
+    model.records.set(key, 1);
+    model.records.set(key, 2);
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /toString.*unique/);
+});
+
 test('Watcher array callbacks receive watched items', () => {
     const context = loadRuntimeContext();
     const { Watcher, Effect, WatchAction } = context.Aventus;

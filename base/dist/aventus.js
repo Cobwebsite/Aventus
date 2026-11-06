@@ -468,7 +468,14 @@ let getValueFromObject=function getValueFromObject(path, obj) {
     }
     const val = (key) => {
         if (obj instanceof Map) {
-            return obj.get(key);
+            if (obj.has(key))
+                return obj.get(key);
+            for (const [mapKey, value] of obj) {
+                if (mapKey !== null && typeof mapKey === 'object' && mapKey.toString() === key) {
+                    return value;
+                }
+            }
+            return undefined;
         }
         return obj[key];
     };
@@ -4011,6 +4018,9 @@ let Watcher=class Watcher {
                                     let dones2 = [];
                                     key = Watcher.extract(key);
                                     const hadKey = target.has(key);
+                                    if (!hadKey && key !== null && typeof key === 'object' && key.toString() === '[object Object]') {
+                                        console.warn('Watcher Map: toString() must return a unique value for each object key; [object Object] is ambiguous.');
+                                    }
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
                                     if (out.otherRoot) {
                                         dones.push(out.otherRoot);
