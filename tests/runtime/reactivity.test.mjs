@@ -448,6 +448,38 @@ test('Watcher array includes and lastIndexOf accept a watched item', () => {
     assert.equal(model.items.lastIndexOf(model.items[0]), 1);
 });
 
+test('Watcher splice returns exactly the removed items and removes consecutive entries', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ items: [1, 2, 3, 4] })', context),
+        (action, path, value) => changes.push([action, path, value]));
+    const removed = model.items.splice(1, 2, 9);
+    assert.deepEqual(Array.from(removed), [2, 3]);
+    assert.deepEqual(Array.from(model.items), [1, 9, 4]);
+    assert.deepEqual(changes.filter(([action]) => action === WatchAction.DELETED).map(([, path, value]) => [path, value]),
+        [['items[1]', 2], ['items[1]', 3]]);
+    model.items.pop();
+    assert.deepEqual(Array.from(removed), [2, 3]);
+    assert.deepEqual(Array.from(model.items.splice()), []);
+    assert.deepEqual(Array.from(model.items.splice(-1)), [9]);
+    assert.deepEqual(Array.from(model.items), [1]);
+});
+
+test('Watcher pop reports its removed value and does nothing on an empty array', () => {
+    const context = loadRuntimeContext();
+    const { Watcher, WatchAction } = context.Aventus;
+    const changes = [];
+    const model = Watcher.get(runInNewContext('({ items: [7] })', context),
+        (action, path, value) => changes.push([action, path, value]));
+    assert.equal(model.items.pop(), 7);
+    assert.equal(model.items.pop(), undefined);
+    assert.deepEqual(changes, [
+        [WatchAction.DELETED, 'items[0]', 7],
+        [WatchAction.UPDATED, 'items.length', 0],
+    ]);
+});
+
 test('Watcher subscriptions can be removed and extraction returns current plain data', () => {
     const context = loadRuntimeContext();
     const { Watcher } = context.Aventus;

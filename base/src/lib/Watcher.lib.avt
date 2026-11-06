@@ -512,16 +512,17 @@ export class Watcher {
                                 };
                             }
                             else {
-                                result = (index: number, nbRemove: number, ...insert: any[]) => {
-
-                                    let oldValues: any[] = [];
-                                    const extReceiver = Watcher.extract(receiver);
-                                    for(let i = index; i < index + nbRemove; i++) {
-                                        oldValues.push(extReceiver[i]);
-                                    }
-                                    let updateLength = nbRemove != insert.length;
+                                result = (...args: any[]) => {
+                                    const length = target.length;
+                                    const start = Number(args[0]);
+                                    const index = Number.isNaN(start) ? 0 : start < 0
+                                        ? Math.max(length + Math.trunc(start), 0)
+                                        : Math.min(Math.trunc(start), length);
+                                    const insert = args.slice(2);
+                                    const nbRemove = args.length === 0 ? 0 : args.length < 2 ? length - index
+                                        : Math.min(Math.max(Math.trunc(Number(args[1])) || 0, 0), length - index);
+                                    const oldValues = target.splice(index, nbRemove);
                                     for(let i = 0; i < oldValues.length; i++) {
-                                        target.splice((index + i), 1);
                                         trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
                                     }
                                     for(let i = 0; i < insert.length; i++) {
@@ -532,9 +533,9 @@ export class Watcher {
                                         target.splice((index + i), 0, value);
                                         trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]", dones);
                                     }
-                                    if(updateLength)
+                                    if(oldValues.length != insert.length)
                                         trigger('UPDATED', target, receiver, target.length, "length");
-                                    return target;
+                                    return oldValues;
                                 };
                             }
 
@@ -548,8 +549,9 @@ export class Watcher {
                             }
                             else {
                                 result = () => {
+                                    if(target.length === 0) return undefined;
                                     let index = target.length - 1;
-                                    let oldValue = receiver.length ? receiver[receiver.length] : undefined;
+                                    let oldValue = target[index];
                                     let res = target.pop();
                                     trigger('DELETED', target, receiver, oldValue, "[" + index + "]");
                                     trigger('UPDATED', target, receiver, target.length, "length");
