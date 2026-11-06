@@ -297,7 +297,7 @@ test('nested Computed and Effect propagate signal changes through both levels', 
     assert.deepEqual(seen, [5, 7]);
 });
 
-test('Effect ignores a signal change made during its own callback execution', () => {
+test('Effect reruns after a signal changes during its callback', () => {
     const { Signal, Effect } = loadRuntime();
     const source = new Signal(0);
     const seen = [];
@@ -306,10 +306,10 @@ test('Effect ignores a signal change made during its own callback execution', ()
         seen.push(value);
         if(value === 0) source.value = 1;
     });
-    assert.deepEqual(seen, [0]);
+    assert.deepEqual(seen, [0, 1]);
     assert.equal(source.value, 1);
     source.value = 2;
-    assert.deepEqual(seen, [0, 2]);
+    assert.deepEqual(seen, [0, 1, 2]);
     effect.destroy();
 });
 

@@ -1120,6 +1120,7 @@ export class Effect {
     public version: number = 0;
     @InternalProtected()
     public isRunning: boolean = false;
+    private pendingChange?: { action: WatchAction; changePath: string; value: any; dones: any[]; };
 
     protected fct: () => void;
 
@@ -1141,24 +1142,37 @@ export class Effect {
 
     protected run() {
         if(this.isRunning) return;
-        this.isRunning = true;
-        this.version++;
-        Watcher._registering.push(this);
         let result: void;
-        try {
-            result = this.fct();
-        }
-        finally {
-            Watcher._registering.splice(Watcher._registering.length - 1, 1);
-            this.isRunning = false;
-        }
-        for(let i = 0; i < this.callbacks.length; i++) {
-            if(this.callbacks[i].version != this.version) {
-                this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
-                this.callbacks.splice(i, 1);
-                i--;
+        let pendingNotification: typeof this.pendingChange;
+        do {
+            this.pendingChange = undefined;
+            this.isRunning = true;
+            this.version++;
+            Watcher._registering.push(this);
+            try {
+                result = this.fct();
             }
-        }
+            finally {
+                Watcher._registering.splice(Watcher._registering.length - 1, 1);
+                this.isRunning = false;
+            }
+            for(let i = 0; i < this.callbacks.length; i++) {
+                if(this.callbacks[i].version != this.version) {
+                    this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
+                    this.callbacks.splice(i, 1);
+                    i--;
+                }
+            }
+            if(pendingNotification) {
+                const notification = pendingNotification;
+                for(let fct of [...this.__subscribes]) {
+                    Watcher.isolate(() => {
+                        fct(notification.action, notification.changePath, notification.value, notification.dones);
+                    });
+                }
+            }
+            pendingNotification = this.pendingChange;
+        } while(pendingNotification && !this.isDestroy);
         return result;
     }
 
@@ -1214,6 +1228,12 @@ export class Effect {
     }
 
     protected onChange(action: WatchAction, changePath: string, value: any, dones: any[]) {
+        if(this.isRunning) {
+            if(!this.isDestroy && this.__allowChanged.every(fct => fct(action, changePath, value, dones))) {
+                this.pendingChange = { action, changePath, value, dones };
+            }
+            return;
+        }
         if(!this.checkCanChange(action, changePath, value, dones)) {
             return;
         }
