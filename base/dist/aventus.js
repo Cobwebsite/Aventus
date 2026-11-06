@@ -4524,7 +4524,7 @@ let Watcher=class Watcher {
         return realProxy;
     }
     static is(obj) {
-        return typeof obj == 'object' && obj.__isProxy;
+        return obj !== null && typeof obj == 'object' && obj.__isProxy;
     }
     static clearReservedNames(data) {
         if (data instanceof Object && !data.__isProxy) {

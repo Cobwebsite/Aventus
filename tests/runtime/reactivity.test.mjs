@@ -76,6 +76,11 @@ test('Watcher reports creation, updates and deletion for objects from its own re
     assert.equal(Watcher.extract(model).child.count, 2);
 });
 
+test('Watcher.is returns false for null', () => {
+    const { Watcher } = loadRuntime();
+    assert.equal(Watcher.is(null), false);
+});
+
 test('Watcher tracks array edits and replacement of a nested object', () => {
     const context = loadRuntimeContext();
     const { Watcher, WatchAction } = context.Aventus;
