@@ -802,7 +802,7 @@ export class Watcher {
         if(onDataChanged) {
             proxyData.callbacks[''] = [onDataChanged];
         }
-        const trigger = (type: 'CREATED' | 'UPDATED' | 'DELETED', target: any, receiver: any, value: any, prop: string, dones: any[] = []) => {
+        const trigger = (type: 'CREATED' | 'UPDATED' | 'DELETED', target: any, receiver: any, value: any, prop: string, dones: any[] = [], pathOverride?: string) => {
             if(dones.includes(proxyData.baseData)) {
                 return;
             }
@@ -810,7 +810,10 @@ export class Watcher {
                 return;
             }
             let rootPath: string;
-            if(receiver == null) {
+            if(pathOverride !== undefined) {
+                rootPath = pathOverride;
+            }
+            else if(receiver == null) {
                 rootPath = target.__path;
             }
             else {
@@ -858,6 +861,7 @@ export class Watcher {
                 }
             }
 
+            const initialDones = [...dones];
             dones.push(proxyData.baseData);
             let aliasesDone: any[] = [];
             const callbacks = { ...proxyData.callbacks };
@@ -948,6 +952,50 @@ export class Watcher {
                         }
                     }
                 }
+            }
+            if(pathOverride === undefined && receiver != null && target !== proxyData.baseData) {
+                const visited = new Set<any>();
+                const notifyShared = (data: any, path: string) => {
+                    if(data === null || typeof data !== 'object') return;
+                    if(Watcher.is(data)) {
+                        data = data.getTarget(false);
+                    }
+                    if(data === target) {
+                        if(path !== receiver.__path) {
+                            trigger(type, target, receiver, value, prop, [...initialDones], path);
+                        }
+                        return;
+                    }
+                    if(
+                        data === null ||
+                        typeof data !== 'object' ||
+                        visited.has(data) ||
+                        data instanceof Map ||
+                        data instanceof Set ||
+                        Watcher.isNative(data)
+                    ) {
+                        return;
+                    }
+
+                    visited.add(data);
+                    for(const key of Object.keys(data)) {
+                        if(reservedName[key]) continue;
+
+                        let childPath: string;
+                        if(Array.isArray(data) && /^[0-9]+$/.test(key)) {
+                            childPath = path + '[' + key + ']';
+                        }
+                        else if(path) {
+                            childPath = path + '.' + key;
+                        }
+                        else {
+                            childPath = key;
+                        }
+                        notifyShared(data[key], childPath);
+                    }
+                    visited.delete(data);
+                };
+                notifyShared(proxyData.baseData, '');
             }
         };
 

@@ -242,7 +242,7 @@ test('Watcher stops forwarding alias changes after the target removes the alias'
     assert.equal(paths.length, before);
 });
 
-test('Watcher shares values but reports only the accessed path for a shared child', () => {
+test('Watcher reports every live path to a shared child', () => {
     const context = loadRuntimeContext();
     const { Watcher } = context.Aventus;
     const paths = [];
@@ -253,10 +253,10 @@ test('Watcher shares values but reports only the accessed path for a shared chil
     const extracted = Watcher.extract(model);
     assert.equal(extracted.left.count, 2);
     assert.equal(extracted.right.count, 2);
-    assert.deepEqual(paths, ['left.count']);
+    assert.deepEqual(paths, ['left.count', 'right.count']);
     model.right.count = 3;
     assert.equal(model.left.count, 3);
-    assert.deepEqual(paths, ['left.count', 'right.count']);
+    assert.deepEqual(paths, ['left.count', 'right.count', 'right.count', 'left.count']);
     delete model.left;
     model.right.count = 4;
     assert.equal(Watcher.extract(model).right.count, 4);
