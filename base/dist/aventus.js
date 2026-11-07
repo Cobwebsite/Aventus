@@ -376,23 +376,6 @@ let Mutex=class Mutex {
 Mutex.Namespace=`Aventus`;
 __as1(_, 'Mutex', Mutex);
 
-var HttpMethod;
-(function (HttpMethod) {
-    HttpMethod["GET"] = "GET";
-    HttpMethod["POST"] = "POST";
-    HttpMethod["DELETE"] = "DELETE";
-    HttpMethod["PUT"] = "PUT";
-    HttpMethod["OPTION"] = "OPTION";
-})(HttpMethod || (HttpMethod = {}));
-__as1(_, 'HttpMethod', HttpMethod);
-
-var HttpErrorCode;
-(function (HttpErrorCode) {
-    HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
-    HttpErrorCode[HttpErrorCode["status"] = 1] = "status";
-})(HttpErrorCode || (HttpErrorCode = {}));
-__as1(_, 'HttpErrorCode', HttpErrorCode);
-
 let ActionGuard=class ActionGuard {
     /**
      * Map to store actions that are currently running.
@@ -439,16 +422,6 @@ let ActionGuard=class ActionGuard {
 ActionGuard.Namespace=`Aventus`;
 __as1(_, 'ActionGuard', ActionGuard);
 
-let Resource=class Resource {
-}
-Resource.Namespace=`Aventus`;
-__as1(_, 'Resource', Resource);
-
-let Request=class Request {
-}
-Request.Namespace=`Aventus`;
-__as1(_, 'Request', Request);
-
 var RamErrorCode;
 (function (RamErrorCode) {
     RamErrorCode[RamErrorCode["unknow"] = 0] = "unknow";
@@ -457,58 +430,6 @@ var RamErrorCode;
     RamErrorCode[RamErrorCode["alreadyExists"] = 3] = "alreadyExists";
 })(RamErrorCode || (RamErrorCode = {}));
 __as1(_, 'RamErrorCode', RamErrorCode);
-
-let getValueFromObject=function getValueFromObject(path, obj) {
-    if (path === undefined) {
-        path = '';
-    }
-    path = path.replace(/\[(.*?)\]/g, '.$1');
-    if (path == "") {
-        return obj;
-    }
-    const val = (key) => {
-        if (obj instanceof Map) {
-            if (obj.has(key))
-                return obj.get(key);
-            for (const [mapKey, value] of obj) {
-                if (mapKey !== null && typeof mapKey === 'object' && mapKey.toString() === key) {
-                    return value;
-                }
-            }
-            return undefined;
-        }
-        if (obj instanceof Set) {
-            for (const value of obj) {
-                if (String(value) === key)
-                    return value;
-            }
-            return undefined;
-        }
-        return obj[key];
-    };
-    let splitted = path.split(".");
-    for (let i = 0; i < splitted.length - 1; i++) {
-        let split = splitted[i];
-        let value = val(split);
-        if (!value || typeof value !== 'object') {
-            return undefined;
-        }
-        obj = value;
-    }
-    if (!obj || typeof obj !== 'object') {
-        return undefined;
-    }
-    return val(splitted[splitted.length - 1]);
-}
-__as1(_, 'getValueFromObject', getValueFromObject);
-
-var WatchAction;
-(function (WatchAction) {
-    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
-    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
-    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
-})(WatchAction || (WatchAction = {}));
-__as1(_, 'WatchAction', WatchAction);
 
 let ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
@@ -698,18 +619,6 @@ let ResourceLoader=class ResourceLoader {
 ResourceLoader.Namespace=`Aventus`;
 __as1(_, 'ResourceLoader', ResourceLoader);
 
-let Async=function Async(el) {
-    return new Promise((resolve) => {
-        if (el instanceof Promise) {
-            el.then(resolve);
-        }
-        else {
-            resolve(el);
-        }
-    });
-}
-__as1(_, 'Async', Async);
-
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
 __as1(_, 'DragElementXYType', DragElementXYType);
 
@@ -879,6 +788,97 @@ let CallbackGroup=class CallbackGroup {
 }
 CallbackGroup.Namespace=`Aventus`;
 __as1(_, 'CallbackGroup', CallbackGroup);
+
+let Resource=class Resource {
+}
+Resource.Namespace=`Aventus`;
+__as1(_, 'Resource', Resource);
+
+let Request=class Request {
+}
+Request.Namespace=`Aventus`;
+__as1(_, 'Request', Request);
+
+let getValueFromObject=function getValueFromObject(path, obj) {
+    if (path === undefined) {
+        path = '';
+    }
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+    if (path == "") {
+        return obj;
+    }
+    const val = (key) => {
+        if (obj instanceof Map) {
+            if (obj.has(key))
+                return obj.get(key);
+            for (const [mapKey, value] of obj) {
+                if (mapKey !== null && typeof mapKey === 'object' && mapKey.toString() === key) {
+                    return value;
+                }
+            }
+            return undefined;
+        }
+        if (obj instanceof Set) {
+            for (const value of obj) {
+                if (String(value) === key)
+                    return value;
+            }
+            return undefined;
+        }
+        return obj[key];
+    };
+    let splitted = path.split(".");
+    for (let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        let value = val(split);
+        if (!value || typeof value !== 'object') {
+            return undefined;
+        }
+        obj = value;
+    }
+    if (!obj || typeof obj !== 'object') {
+        return undefined;
+    }
+    return val(splitted[splitted.length - 1]);
+}
+__as1(_, 'getValueFromObject', getValueFromObject);
+
+var WatchAction;
+(function (WatchAction) {
+    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
+    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
+    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
+})(WatchAction || (WatchAction = {}));
+__as1(_, 'WatchAction', WatchAction);
+
+let Async=function Async(el) {
+    return new Promise((resolve) => {
+        if (el instanceof Promise) {
+            el.then(resolve);
+        }
+        else {
+            resolve(el);
+        }
+    });
+}
+__as1(_, 'Async', Async);
+
+var HttpMethod;
+(function (HttpMethod) {
+    HttpMethod["GET"] = "GET";
+    HttpMethod["POST"] = "POST";
+    HttpMethod["DELETE"] = "DELETE";
+    HttpMethod["PUT"] = "PUT";
+    HttpMethod["OPTION"] = "OPTION";
+})(HttpMethod || (HttpMethod = {}));
+__as1(_, 'HttpMethod', HttpMethod);
+
+var HttpErrorCode;
+(function (HttpErrorCode) {
+    HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
+    HttpErrorCode[HttpErrorCode["status"] = 1] = "status";
+})(HttpErrorCode || (HttpErrorCode = {}));
+__as1(_, 'HttpErrorCode', HttpErrorCode);
 
 let DateSettings=class DateSettings {
     static options = {
@@ -1821,1411 +1821,270 @@ Data.$schema={"namespace":"string","$type":"string","className":"string"};
 Converter.register(Data.Fullname, Data);
 __as1(_, 'Data', Data);
 
-let Animation=class Animation {
-    /**
-     * Default FPS for all Animation if not set inside options
-     */
-    static FPS_DEFAULT = 60;
-    options;
-    nextFrame = 0;
-    fpsInterval;
-    continueAnimation = false;
-    frame_id = 0;
-    constructor(options) {
-        if (!options.animate) {
-            options.animate = () => { };
+let HttpCache=class HttpCache {
+    static cache = new Map();
+    static pending = new Map();
+    static fetch(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            const value = this.cache.get(key);
+            if (value)
+                return Promise.resolve(value);
+            const pending = this.pending.get(key);
+            if (pending)
+                return pending;
         }
-        if (!options.stopped) {
-            options.stopped = () => { };
+        let transport;
+        try {
+            transport = fetch(fullUrl, request);
         }
-        if (!options.fps) {
-            options.fps = Animation.FPS_DEFAULT;
+        catch (error) {
+            return Promise.reject(error);
         }
-        this.options = options;
-        this.fpsInterval = 1000 / options.fps;
-    }
-    animate() {
-        let now = window.performance.now();
-        let elapsed = now - this.nextFrame;
-        if (elapsed <= this.fpsInterval) {
-            this.frame_id = requestAnimationFrame(() => this.animate());
-            return;
-        }
-        this.nextFrame = now - (elapsed % this.fpsInterval);
-        const stopping = !this.continueAnimation;
-        setTimeout(() => {
-            try {
-                this.options.animate();
+        let pending;
+        pending = Promise.resolve(transport).then(result => {
+            const response = new HttpResponse(result);
+            if (key && this.pending.get(key) === pending) {
+                this.cache.set(key, response);
             }
-            finally {
-                if (stopping) {
-                    this.options.stopped();
-                }
-            }
-        }, 0);
-        if (!stopping) {
-            this.frame_id = requestAnimationFrame(() => this.animate());
-        }
-    }
-    /**
-     * Start the of animation
-     */
-    start() {
-        if (this.continueAnimation == false) {
-            this.continueAnimation = true;
-            this.nextFrame = window.performance.now();
-            this.animate();
-        }
-    }
-    /**
-     * Stop the animation
-     */
-    stop() {
-        this.continueAnimation = false;
-    }
-    /**
-     * Stop the animation
-     */
-    immediateStop() {
-        cancelAnimationFrame(this.frame_id);
-        this.continueAnimation = false;
-        this.options.stopped();
-    }
-    /**
-     * Get the FPS
-     */
-    getFPS() {
-        return this.options.fps;
-    }
-    /**
-     * Set the FPS
-     */
-    setFPS(fps) {
-        this.options.fps = fps;
-        this.fpsInterval = 1000 / this.options.fps;
-    }
-    /**
-     * Get the animation status (true if animation is running)
-     */
-    isStarted() {
-        return this.continueAnimation;
-    }
-}
-Animation.Namespace=`Aventus`;
-__as1(_, 'Animation', Animation);
-
-let PressManager=class PressManager {
-    static globalConfig = {
-        delayDblPress: 250,
-        delayLongPress: 700,
-        offsetDrag: 20
-    };
-    static configure(options) {
-        PressManager.globalConfig = options;
-    }
-    static create(options) {
-        if (Array.isArray(options.element)) {
-            let result = [];
-            for (let el of options.element) {
-                let cloneOpt = { ...options };
-                cloneOpt.element = el;
-                result.push(new PressManager(cloneOpt));
-            }
-            return result;
-        }
-        else {
-            return new PressManager(options);
-        }
-    }
-    static onEvent = new Callback();
-    options;
-    element;
-    delayDblPress;
-    delayLongPress;
-    nbPress = 0;
-    offsetDrag;
-    dragDirection;
-    state = {
-        oneActionTriggered: null,
-    };
-    startPosition = { x: 0, y: 0 };
-    customFcts = {};
-    timeoutDblPress = 0;
-    timeoutLongPress = 0;
-    downEventSaved;
-    useDblPress = false;
-    stopPropagation = () => true;
-    pointersRecord = {};
-    functionsBinded = {
-        downAction: (e) => { },
-        downActionDelay: (e) => { },
-        upAction: (e) => { },
-        moveAction: (e) => { },
-        childPressStart: (e) => { },
-        childPressEnd: (e) => { },
-        childPressMove: (e) => { }
-    };
-    /**
-     * @param {*} options - The options
-     * @param {HTMLElement | HTMLElement[]} options.element - The element to manage
-     */
-    constructor(options) {
-        if (options.element === void 0) {
-            throw 'You must provide an element';
-        }
-        this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
-        this.dragDirection = 'XY';
-        this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
-        this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
-        this.element = options.element;
-        this.checkDragConstraint(options);
-        this.assignValueOption(options);
-        this.options = options;
-        this.init();
-    }
-    /**
-     * Get the current element focused by the PressManager
-     */
-    getElement() {
-        return this.element;
-    }
-    checkDragConstraint(options) {
-        if (options.onDrag !== void 0) {
-            if (options.onDragStart === void 0) {
-                options.onDragStart = (e) => { };
-            }
-            if (options.onDragEnd === void 0) {
-                options.onDragEnd = (e) => { };
-            }
-        }
-        if (options.onDragStart !== void 0) {
-            if (options.onDrag === void 0) {
-                options.onDrag = (e) => { };
-            }
-            if (options.onDragEnd === void 0) {
-                options.onDragEnd = (e) => { };
-            }
-        }
-        if (options.onDragEnd !== void 0) {
-            if (options.onDragStart === void 0) {
-                options.onDragStart = (e) => { };
-            }
-            if (options.onDrag === void 0) {
-                options.onDrag = (e) => { };
-            }
-        }
-    }
-    assignValueOption(options) {
-        if (PressManager.globalConfig.delayDblPress !== undefined) {
-            this.delayDblPress = PressManager.globalConfig.delayDblPress;
-        }
-        if (options.delayDblPress !== undefined) {
-            this.delayDblPress = options.delayDblPress;
-        }
-        if (PressManager.globalConfig.delayLongPress !== undefined) {
-            this.delayLongPress = PressManager.globalConfig.delayLongPress;
-        }
-        if (options.delayLongPress !== undefined) {
-            this.delayLongPress = options.delayLongPress;
-        }
-        if (PressManager.globalConfig.offsetDrag !== undefined) {
-            this.offsetDrag = PressManager.globalConfig.offsetDrag;
-        }
-        if (options.offsetDrag !== undefined) {
-            this.offsetDrag = options.offsetDrag;
-        }
-        if (options.dragDirection !== undefined) {
-            this.dragDirection = options.dragDirection;
-        }
-        if (options.onDblPress !== undefined) {
-            this.useDblPress = true;
-        }
-        if (PressManager.globalConfig.forceDblPress !== undefined) {
-            this.useDblPress = PressManager.globalConfig.forceDblPress;
-        }
-        if (options.forceDblPress !== undefined) {
-            this.useDblPress = options.forceDblPress;
-        }
-        if (typeof PressManager.globalConfig.stopPropagation == 'function') {
-            this.stopPropagation = PressManager.globalConfig.stopPropagation;
-        }
-        else if (options.stopPropagation === false) {
-            this.stopPropagation = () => false;
-        }
-        if (typeof options.stopPropagation == 'function') {
-            this.stopPropagation = options.stopPropagation;
-        }
-        else if (options.stopPropagation === false) {
-            this.stopPropagation = () => false;
-        }
-        if (!options.buttonAllowed)
-            options.buttonAllowed = PressManager.globalConfig.buttonAllowed;
-        if (!options.buttonAllowed)
-            options.buttonAllowed = [0];
-        if (!options.onEvent)
-            options.onEvent = PressManager.globalConfig.onEvent;
-    }
-    bindAllFunction() {
-        this.functionsBinded.downAction = this.downAction.bind(this);
-        this.functionsBinded.downActionDelay = this.downActionDelay.bind(this);
-        this.functionsBinded.moveAction = this.moveAction.bind(this);
-        this.functionsBinded.upAction = this.upAction.bind(this);
-        this.functionsBinded.childPressStart = this.childPressStart.bind(this);
-        this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
-        this.functionsBinded.childPressMove = this.childPressMove.bind(this);
-    }
-    init() {
-        this.bindAllFunction();
-        this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
-        this.element.addEventListener("touchstart", this.functionsBinded.downActionDelay);
-        this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
-        this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-        this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
-    }
-    identifyEvent(touch) {
-        if ('Touch' in window && touch instanceof Touch)
-            return touch.identifier;
-        return touch.pointerId;
-    }
-    registerEvent(ev) {
-        if ('TouchEvent' in window && ev instanceof TouchEvent) {
-            for (let touch of ev.targetTouches) {
-                const id = this.identifyEvent(touch);
-                if (this.pointersRecord[id]) {
-                    return false;
-                }
-                this.pointersRecord[id] = ev;
-            }
-            return true;
-        }
-        else {
-            const id = this.identifyEvent(ev);
-            if (this.pointersRecord[id]) {
-                return false;
-            }
-            this.pointersRecord[id] = ev;
-            return true;
-        }
-    }
-    unregisterEvent(ev) {
-        let result = true;
-        if ('TouchEvent' in window && ev instanceof TouchEvent) {
-            for (let touch of ev.changedTouches) {
-                const id = this.identifyEvent(touch);
-                if (!this.pointersRecord[id]) {
-                    result = false;
-                }
-                else {
-                    delete this.pointersRecord[id];
-                }
-            }
-        }
-        else {
-            const id = this.identifyEvent(ev);
-            if (!this.pointersRecord[id]) {
-                result = false;
-            }
-            else {
-                delete this.pointersRecord[id];
-            }
-        }
-        return result;
-    }
-    genericDownAction(state, e) {
-        this.downEventSaved = e;
-        this.startPosition = { x: e.pageX, y: e.pageY };
-        if (this.options.onLongPress) {
-            this.timeoutLongPress = setTimeout(() => {
-                if (!state.oneActionTriggered) {
-                    if (this.options.onLongPress) {
-                        if (this.options.onLongPress(e, this) !== false) {
-                            state.oneActionTriggered = this;
-                        }
-                    }
-                }
-            }, this.delayLongPress);
-        }
-    }
-    pointerEventTriggered = false;
-    downActionDelay(_ev) {
-        const ev = _ev;
-        if (!this.pointerEventTriggered) {
-            this.downAction(ev);
-        }
-        else {
-            ev.stopImmediatePropagation();
-        }
-        setTimeout(() => {
-            this.pointerEventTriggered = false;
-        }, 0);
-    }
-    downAction(_ev) {
-        const ev = _ev;
-        this.pointerEventTriggered = true;
-        const isFirst = Object.values(this.pointersRecord).length == 0;
-        if (!this.registerEvent(ev)) {
-            if (this.stopPropagation()) {
-                ev.stopImmediatePropagation();
-            }
-            return;
-        }
-        const e = new NormalizedEvent(ev);
-        if (this.options.onEvent) {
-            this.options.onEvent(e);
-        }
-        PressManager.onEvent.trigger(e, this);
-        if (e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
-            this.unregisterEvent(ev);
-            return;
-        }
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        this.customFcts = {};
-        if (this.nbPress == 0 && isFirst) {
-            this.state.oneActionTriggered = null;
-            clearTimeout(this.timeoutDblPress);
-        }
-        if (isFirst) {
-            document.addEventListener("pointerup", this.functionsBinded.upAction);
-            document.addEventListener("pointercancel", this.functionsBinded.upAction);
-            document.addEventListener("touchend", this.functionsBinded.upAction);
-            document.addEventListener("touchcancel", this.functionsBinded.upAction);
-            document.addEventListener("pointermove", this.functionsBinded.moveAction);
-        }
-        this.genericDownAction(this.state, e);
-        if (this.options.onPressStart) {
-            this.options.onPressStart(e, this);
-            this.lastEmitEvent = e;
-            // this.emitTriggerFunctionParent("pressstart", e);
-        }
-        this.emitTriggerFunction("pressstart", e);
-    }
-    genericUpAction(state, e) {
-        clearTimeout(this.timeoutLongPress);
-        if (state.oneActionTriggered == this) {
-            if (this.options.onDragEnd) {
-                this.options.onDragEnd(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDragEnd) {
-                this.customFcts.onDragEnd(e, this.customFcts.src);
-            }
-        }
-        else {
-            if (this.useDblPress) {
-                this.nbPress++;
-                if (this.nbPress == 2) {
-                    if (!state.oneActionTriggered) {
-                        this.nbPress = 0;
-                        if (this.options.onDblPress) {
-                            if (this.options.onDblPress(e, this) !== false) {
-                                state.oneActionTriggered = this;
-                            }
-                        }
-                    }
-                }
-                else if (this.nbPress == 1) {
-                    this.timeoutDblPress = setTimeout(() => {
-                        this.nbPress = 0;
-                        if (!state.oneActionTriggered) {
-                            if (this.options.onPress) {
-                                if (this.options.onPress(e, this) !== false) {
-                                    state.oneActionTriggered = this;
-                                }
-                            }
-                        }
-                    }, this.delayDblPress);
-                }
-            }
-            else {
-                if (!state.oneActionTriggered) {
-                    if (this.options.onPress) {
-                        if (this.options.onPress(e, this) !== false) {
-                            state.oneActionTriggered = this;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    cancelAction(state) {
-        clearTimeout(this.timeoutLongPress);
-        clearTimeout(this.timeoutDblPress);
-        this.nbPress = 0;
-        if (state.oneActionTriggered == this) {
-            state.oneActionTriggered = null;
-        }
-    }
-    upAction(_ev) {
-        const ev = _ev;
-        if (!this.unregisterEvent(ev)) {
-            if (this.stopPropagation()) {
-                ev.stopImmediatePropagation();
-            }
-            return;
-        }
-        const e = new NormalizedEvent(ev);
-        if (this.options.onEvent) {
-            this.options.onEvent(e);
-        }
-        PressManager.onEvent.trigger(e, this);
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        if (Object.values(this.pointersRecord).length == 0) {
-            document.removeEventListener("pointerup", this.functionsBinded.upAction);
-            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
-            document.removeEventListener("touchend", this.functionsBinded.upAction);
-            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
-            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
-        }
-        if (ev.type === 'pointercancel' || ev.type === 'touchcancel') {
-            this.cancelAction(this.state);
-        }
-        else {
-            this.genericUpAction(this.state, e);
-        }
-        if (this.options.onPressEnd) {
-            this.options.onPressEnd(e, this);
-            this.lastEmitEvent = e;
-            // this.emitTriggerFunctionParent("pressend", e);
-        }
-        this.emitTriggerFunction("pressend", e);
-    }
-    genericMoveAction(state, e) {
-        if (!state.oneActionTriggered) {
-            let xDist = e.pageX - this.startPosition.x;
-            let yDist = e.pageY - this.startPosition.y;
-            let distance = 0;
-            if (this.dragDirection == 'XY')
-                distance = Math.sqrt(xDist * xDist + yDist * yDist);
-            else if (this.dragDirection == 'X')
-                distance = Math.abs(xDist);
-            else
-                distance = Math.abs(yDist);
-            if (distance > this.offsetDrag && this.downEventSaved) {
-                if (this.options.onDragStart) {
-                    if (this.options.onDragStart(this.downEventSaved, this) !== false) {
-                        state.oneActionTriggered = this;
-                    }
-                }
-            }
-        }
-        else if (state.oneActionTriggered == this) {
-            if (this.options.onDrag) {
-                this.options.onDrag(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDrag) {
-                this.customFcts.onDrag(e, this.customFcts.src);
-            }
-        }
-    }
-    moveAction(_ev) {
-        const ev = _ev;
-        const e = new NormalizedEvent(ev);
-        if (this.options.onEvent) {
-            this.options.onEvent(e);
-        }
-        PressManager.onEvent.trigger(e, this);
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        this.genericMoveAction(this.state, e);
-        this.lastEmitEvent = e;
-        // if(this.options.onDrag) {
-        //     this.emitTriggerFunctionParent("pressmove", e);
-        this.emitTriggerFunction("pressmove", e);
-    }
-    childPressStart(_e) {
-        const e = _e;
-        if (this.lastEmitEvent == e.detail.realEvent)
-            return;
-        this.genericDownAction(e.detail.state, e.detail.realEvent);
-        if (this.options.onPressStart) {
-            this.options.onPressStart(e.detail.realEvent, this);
-        }
-    }
-    childPressEnd(_e) {
-        const e = _e;
-        this.unregisterEvent(e.detail.realEvent.event);
-        if (Object.values(this.pointersRecord).length == 0) {
-            document.removeEventListener("pointerup", this.functionsBinded.upAction);
-            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
-            document.removeEventListener("touchend", this.functionsBinded.upAction);
-            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
-            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
-        }
-        if (this.lastEmitEvent == e.detail.realEvent)
-            return;
-        if (e.detail.realEvent.event.type === 'pointercancel' || e.detail.realEvent.event.type === 'touchcancel') {
-            this.cancelAction(e.detail.state);
-        }
-        else {
-            this.genericUpAction(e.detail.state, e.detail.realEvent);
-        }
-        if (this.options.onPressEnd) {
-            this.options.onPressEnd(e.detail.realEvent, this);
-        }
-    }
-    childPressMove(_e) {
-        const e = _e;
-        if (this.lastEmitEvent == e.detail.realEvent)
-            return;
-        this.genericMoveAction(e.detail.state, e.detail.realEvent);
-    }
-    lastEmitEvent;
-    emitTriggerFunction(action, e, el) {
-        let ev = new CustomEvent("trigger_pointer_" + action, {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-            detail: {
-                state: this.state,
-                customFcts: this.customFcts,
-                realEvent: e
+            return response;
+        }).finally(() => {
+            if (key && this.pending.get(key) === pending) {
+                this.pending.delete(key);
             }
         });
-        this.lastEmitEvent = e;
-        if (!el) {
-            el = this.element;
+        if (key) {
+            this.pending.set(key, pending);
         }
-        el.dispatchEvent(ev);
+        return pending;
     }
+    static clear(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            this.pending.delete(key);
+            if (this.cache.has(key)) {
+                this.cache.delete(key);
+            }
+        }
+    }
+    static generateCacheKey(fullUrl, request) {
+        const method = request.method;
+        const body = request.body;
+        const accept = request.headers ? new Headers(request.headers).get('Accept') ?? '' : '';
+        let bodyKey = "";
+        if (typeof body == 'string') {
+            bodyKey = this.hashStringToInt(body) + '';
+        }
+        else if (body instanceof FormData) {
+        }
+        return fullUrl + "°" + method + "°" + bodyKey + "°" + accept;
+    }
+    static hashStringToInt(str) {
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < str.length; i++) {
+            hash ^= str.charCodeAt(i);
+            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+        }
+        return hash >>> 0;
+    }
+}
+HttpCache.Namespace=`Aventus`;
+__as1(_, 'HttpCache', HttpCache);
+
+let GenericError=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+class GenericError {
+    static converter = new Converter();
+    static get Fullname() { return "Aventus.GenericError"; }
     /**
-     * Destroy the Press instance byremoving all events
+     * Code for the error
      */
-    destroy() {
-        if (this.element) {
-            this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
-            this.element.removeEventListener("touchstart", this.functionsBinded.downActionDelay);
-            this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
-            this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-            this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
-            document.removeEventListener("pointerup", this.functionsBinded.upAction);
-            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
-            document.removeEventListener("touchend", this.functionsBinded.upAction);
-            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
-            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+    code;
+    /**
+     * Description of the error
+     */
+    message;
+    /**
+     * Additional details related to the error.
+     */
+    details = [];
+    /**
+     * Creates a new instance of GenericError.
+     * @param {EnumValue<T>} code - The error code.
+     * @param {string | Error | unknown} message - The error message.
+     */
+    constructor(code, message) {
+        this.code = code;
+        if (message instanceof Error) {
+            this.message = message.message;
+        }
+        else {
+            this.message = message + '';
         }
     }
 }
-PressManager.Namespace=`Aventus`;
-__as1(_, 'PressManager', PressManager);
+GenericError.Namespace=`Aventus`;
+GenericError.$schema={"code":"Aventus.EnumValue","message":"string"};
+Converter.register(GenericError.Fullname, GenericError);
+__as1(_, 'GenericError', GenericError);
 
-let DragAndDrop=class DragAndDrop {
+let VoidWithError=class VoidWithError {
+    static get Fullname() { return "Aventus.VoidWithError"; }
     /**
-     * Default offset before drag element
+     * Determine if the action is a success
      */
-    static defaultOffsetDrag = 20;
-    pressManager;
-    options;
-    startCursorPosition = { x: 0, y: 0 };
-    startElementPosition = { x: 0, y: 0 };
-    isEnable = true;
-    draggableElement;
-    constructor(options) {
-        this.options = this.getDefaultOptions(options.element);
-        this.mergeProperties(options);
-        this.mergeFunctions(options);
-        this.options.elementTrigger.style.touchAction = 'none';
-        this.pressManager = new PressManager({
-            element: this.options.elementTrigger,
-            onPressStart: this.onPressStart.bind(this),
-            onPressEnd: this.onPressEnd.bind(this),
-            onDragStart: this.onDragStart.bind(this),
-            onDrag: this.onDrag.bind(this),
-            onDragEnd: this.onDragEnd.bind(this),
-            offsetDrag: this.options.offsetDrag,
-            dragDirection: this.options.dragDirection,
-            stopPropagation: this.options.stopPropagation
-        });
+    get success() {
+        return this.errors.length == 0;
     }
-    getDefaultOptions(element) {
-        return {
-            applyDrag: true,
-            element: element,
-            elementTrigger: element,
-            offsetDrag: DragAndDrop.defaultOffsetDrag,
-            dragDirection: 'XY',
-            shadow: {
-                enable: false,
-                container: document.body,
-                removeOnStop: true,
-                transform: () => { },
-                delete: (el) => {
-                    el.remove();
-                }
-            },
-            strict: false,
-            targets: [],
-            usePercent: false,
-            stopPropagation: true,
-            useMouseFinalPosition: false,
-            useTransform: false,
-            isDragEnable: () => true,
-            getZoom: () => 1,
-            getOffsetX: () => 0,
-            getOffsetY: () => 0,
-            onPointerDown: (e) => { },
-            onPointerUp: (e) => { },
-            onStart: (e) => { },
-            onMove: (e) => { },
-            onStop: (e) => { },
-            onDrop: (element, targets) => { },
-            correctPosition: (position) => position
-        };
-    }
-    mergeProperties(options) {
-        if (options.element === void 0) {
-            throw "You must define the element for the drag&drop";
-        }
-        this.options.element = options.element;
-        if (options.elementTrigger === void 0) {
-            this.options.elementTrigger = this.options.element;
-        }
-        else {
-            this.options.elementTrigger = options.elementTrigger;
-        }
-        this.defaultMerge(options, "applyDrag");
-        this.defaultMerge(options, "offsetDrag");
-        this.defaultMerge(options, "dragDirection");
-        this.defaultMerge(options, "strict");
-        this.defaultMerge(options, "targets");
-        this.defaultMerge(options, "usePercent");
-        this.defaultMerge(options, "stopPropagation");
-        this.defaultMerge(options, "useMouseFinalPosition");
-        this.defaultMerge(options, "useTransform");
-        if (options.shadow !== void 0) {
-            this.options.shadow.enable = options.shadow.enable;
-            if (options.shadow.container !== void 0) {
-                this.options.shadow.container = options.shadow.container;
-            }
-            else {
-                this.options.shadow.container = document.body;
-            }
-            if (options.shadow.removeOnStop !== void 0) {
-                this.options.shadow.removeOnStop = options.shadow.removeOnStop;
-            }
-            if (options.shadow.transform !== void 0) {
-                this.options.shadow.transform = options.shadow.transform;
-            }
-            if (options.shadow.delete !== void 0) {
-                this.options.shadow.delete = options.shadow.delete;
-            }
-        }
-    }
-    mergeFunctions(options) {
-        this.defaultMerge(options, "isDragEnable");
-        this.defaultMerge(options, "getZoom");
-        this.defaultMerge(options, "getOffsetX");
-        this.defaultMerge(options, "getOffsetY");
-        this.defaultMerge(options, "onPointerDown");
-        this.defaultMerge(options, "onPointerUp");
-        this.defaultMerge(options, "onStart");
-        this.defaultMerge(options, "onMove");
-        this.defaultMerge(options, "onStop");
-        this.defaultMerge(options, "onDrop");
-        this.defaultMerge(options, "correctPosition");
-    }
-    defaultMerge(options, name) {
-        if (options[name] !== void 0) {
-            const opts = this.options;
-            opts[name] = options[name];
-        }
-    }
-    positionShadowRelativeToElement = { x: 0, y: 0 };
-    onPressStart(e) {
-        this.options.onPointerDown(e);
-    }
-    onPressEnd(e) {
-        this.options.onPointerUp(e);
-    }
-    onDragStart(e) {
-        this.isEnable = this.options.isDragEnable();
-        if (!this.isEnable) {
-            return false;
-        }
-        let draggableElement = this.options.element;
-        this.startCursorPosition = {
-            x: e.pageX,
-            y: e.pageY
-        };
-        this.startElementPosition = this.getBoundingBoxRelative(draggableElement);
-        if (this.options.shadow.enable) {
-            draggableElement = this.options.element.cloneNode(true);
-            let elBox = this.options.element.getBoundingClientRect();
-            let containerBox = this.options.shadow.container.getBoundingClientRect();
-            this.positionShadowRelativeToElement = {
-                x: elBox.x - containerBox.x,
-                y: elBox.y - containerBox.y
-            };
-            if (this.options.applyDrag) {
-                draggableElement.style.position = "absolute";
-                draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
-                draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
-                this.options.shadow.transform(draggableElement);
-                this.options.shadow.container.appendChild(draggableElement);
-            }
-        }
-        this.draggableElement = draggableElement;
-        const result = this.options.onStart(e);
-        if (result !== false) {
-            document.body.style.userSelect = 'none';
-            if (window.getSelection) {
-                window.getSelection()?.removeAllRanges();
-            }
-        }
+    /**
+     * List of errors
+     */
+    errors = [];
+    /**
+     * Converts the current instance to a VoidWithError object.
+     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
+     */
+    toGeneric() {
+        const result = new VoidWithError();
+        result.errors = this.errors;
         return result;
     }
-    onDrag(e) {
-        if (!this.isEnable) {
-            return;
-        }
-        let zoom = this.options.getZoom();
-        let diff = {
-            x: 0,
-            y: 0
-        };
-        if (this.options.shadow.enable) {
-            diff = {
-                x: (e.pageX - this.startCursorPosition.x) + this.positionShadowRelativeToElement.x + this.options.getOffsetX(),
-                y: (e.pageY - this.startCursorPosition.y) + this.positionShadowRelativeToElement.y + this.options.getOffsetY(),
-            };
-        }
-        else {
-            diff = {
-                x: (e.pageX - this.startCursorPosition.x) / zoom + this.startElementPosition.x + this.options.getOffsetX(),
-                y: (e.pageY - this.startCursorPosition.y) / zoom + this.startElementPosition.y + this.options.getOffsetY()
-            };
-        }
-        let newPos = this.setPosition(diff);
-        this.options.onMove(e, newPos);
-    }
-    onDragEnd(e) {
-        if (!this.isEnable) {
-            return;
-        }
-        document.body.style.userSelect = '';
-        let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
-            x: e.clientX,
-            y: e.clientY
-        }) : this.getMatchingTargets();
-        let draggableElement = this.draggableElement;
-        if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
-            this.options.shadow.delete(draggableElement);
-        }
-        if (targets.length > 0) {
-            this.options.onDrop(this.options.element, targets);
-        }
-        this.options.onStop(e);
-    }
-    setPosition(position) {
-        let draggableElement = this.draggableElement;
-        if (this.options.usePercent) {
-            let elementParent = this.getOffsetParent(draggableElement);
-            if (elementParent instanceof HTMLElement) {
-                let percentPosition = {
-                    x: (position.x / elementParent.offsetWidth) * 100,
-                    y: (position.y / elementParent.offsetHeight) * 100
-                };
-                percentPosition = this.options.correctPosition(percentPosition);
-                if (this.options.applyDrag) {
-                    draggableElement.style.left = percentPosition.x + '%';
-                    draggableElement.style.top = percentPosition.y + '%';
-                }
-                return percentPosition;
-            }
-            else {
-                console.error("Can't find parent. Contact an admin", draggableElement);
-            }
-        }
-        else {
-            position = this.options.correctPosition(position);
-            if (this.options.applyDrag) {
-                if (this.isLeftTopElement(draggableElement)) {
-                    draggableElement.style.left = position.x + 'px';
-                    draggableElement.style.top = position.y + 'px';
-                }
-                else {
-                    if (this.options.useTransform) {
-                        draggableElement.setAttribute("transform", `translate(${position.x},${position.y})`);
-                    }
-                    else {
-                        draggableElement.style.left = position.x + 'px';
-                        draggableElement.style.top = position.y + 'px';
+    /**
+    * Checks if the error list contains a specific error code.
+    * @template U - The type of error, extending GenericError.
+    * @template T - The type of the error code, which extends either number or Enum.
+    * @param {EnumValue<T>} code - The error code to check for.
+    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
+    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
+    */
+    containsCode(code, type) {
+        if (type) {
+            for (let error of this.errors) {
+                if (error instanceof type) {
+                    if (error.code == code) {
+                        return true;
                     }
                 }
             }
         }
-        return position;
-    }
-    getTargets() {
-        if (typeof this.options.targets == "function") {
-            return this.options.targets();
-        }
         else {
-            return this.options.targets;
-        }
-    }
-    /**
-     * Get targets within the current element position is matching
-     */
-    getMatchingTargets() {
-        let draggableElement = this.draggableElement;
-        let matchingTargets = [];
-        let srcTargets = this.getTargets();
-        for (let target of srcTargets) {
-            let elementCoordinates = this.getBoundingBoxAbsolute(draggableElement);
-            let targetCoordinates = this.getBoundingBoxAbsolute(target);
-            let offsetX = this.options.getOffsetX();
-            let offsetY = this.options.getOffsetY();
-            let zoom = this.options.getZoom();
-            targetCoordinates.x += offsetX;
-            targetCoordinates.y += offsetY;
-            targetCoordinates.width *= zoom;
-            targetCoordinates.height *= zoom;
-            if (this.options.strict) {
-                if ((elementCoordinates.x >= targetCoordinates.x && elementCoordinates.x + elementCoordinates.width <= targetCoordinates.x + targetCoordinates.width) &&
-                    (elementCoordinates.y >= targetCoordinates.y && elementCoordinates.y + elementCoordinates.height <= targetCoordinates.y + targetCoordinates.height)) {
-                    matchingTargets.push(target);
+            for (let error of this.errors) {
+                if (error.code == code) {
+                    return true;
                 }
-            }
-            else {
-                let elementLeft = elementCoordinates.x;
-                let elementRight = elementCoordinates.x + elementCoordinates.width;
-                let elementTop = elementCoordinates.y;
-                let elementBottom = elementCoordinates.y + elementCoordinates.height;
-                let targetLeft = targetCoordinates.x;
-                let targetRight = targetCoordinates.x + targetCoordinates.width;
-                let targetTop = targetCoordinates.y;
-                let targetBottom = targetCoordinates.y + targetCoordinates.height;
-                if (!(elementRight < targetLeft ||
-                    elementLeft > targetRight ||
-                    elementBottom < targetTop ||
-                    elementTop > targetBottom)) {
-                    matchingTargets.push(target);
-                }
-            }
-        }
-        return matchingTargets;
-    }
-    /**
-     * This function will return the targets that are matching with the mouse position
-     * @param mouse The mouse position
-     */
-    getMatchingTargetsWithMousePosition(mouse) {
-        let matchingTargets = [];
-        if (this.options.shadow.enable == false || this.options.shadow.container == null) {
-            console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
-            return matchingTargets;
-        }
-        const container = this.options.shadow.container;
-        let xCorrected = mouse.x - container.getBoundingClientRect().left;
-        let yCorrected = mouse.y - container.getBoundingClientRect().top;
-        for (let target of this.getTargets()) {
-            if (this.isLeftTopElement(target)) {
-                if (this.matchPosition(target, { x: mouse.x, y: mouse.y })) {
-                    matchingTargets.push(target);
-                }
-            }
-            else {
-                if (this.matchPosition(target, { x: xCorrected, y: yCorrected })) {
-                    matchingTargets.push(target);
-                }
-            }
-        }
-        return matchingTargets;
-    }
-    matchPosition(element, point) {
-        let elementCoordinates = this.getBoundingBoxAbsolute(element);
-        if (point.x >= elementCoordinates.x &&
-            point.x <= elementCoordinates.x + elementCoordinates.width &&
-            point.y >= elementCoordinates.y &&
-            point.y <= elementCoordinates.y + elementCoordinates.height) {
-            return true;
-        }
-        return false;
-    }
-    /**
-     * Get element currently dragging
-     */
-    getElementDrag() {
-        return this.options.element;
-    }
-    /**
-     * Set targets where to drop
-     */
-    setTargets(targets) {
-        this.options.targets = targets;
-    }
-    /**
-     * Set targets where to drop
-     */
-    setTargetsFct(targets) {
-        this.options.targets = targets;
-    }
-    /**
-     * Destroy the current drag&drop instance
-     */
-    destroy() {
-        this.pressManager.destroy();
-    }
-    isLeftTopElement(element) {
-        for (let Type of DragElementLeftTopType) {
-            if (element instanceof Type) {
-                return true;
             }
         }
         return false;
     }
-    isXYElement(element) {
-        for (let Type of DragElementXYType) {
-            if (element instanceof Type) {
-                return true;
+    run(fct) {
+        if (this.success) {
+            let result = fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
             }
         }
-        return false;
+        return this;
     }
-    getCoordinateFromAttribute(element) {
-        if (this.options.useTransform) {
-            const transform = element.getAttribute("transform");
-            const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
-            const x = tvalue ? parseFloat(tvalue[1]) : 0;
-            const y = tvalue ? parseFloat(tvalue[2]) : 0;
-            return {
-                x: x,
-                y: y
-            };
+    async runAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
         }
-        return {
-            x: parseFloat(element.getAttribute("x")),
-            y: parseFloat(element.getAttribute("y"))
-        };
+        return this;
     }
-    XYElementToRelativeBox(element) {
-        let coordinates = this.getCoordinateFromAttribute(element);
-        const width = parseFloat(element.getAttribute("width"));
-        const height = parseFloat(element.getAttribute("height"));
-        return {
-            x: coordinates.x,
-            y: coordinates.y,
-            width: width,
-            height: height,
-            bottom: coordinates.y + height,
-            right: coordinates.x + width,
-            top: coordinates.y,
-            left: coordinates.x,
-            toJSON() {
-                return JSON.stringify(this);
+    extract(fct) {
+        if (this.success) {
+            let result = fct();
+            if (result.success && result.result !== undefined) {
+                return result.result;
             }
-        };
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
     }
-    XYElementToAbsoluteBox(element) {
-        let coordinates = this.getCoordinateFromAttribute(element);
-        const parent = this.getOffsetParent(element);
-        if (parent) {
-            const box = parent.getBoundingClientRect();
-            coordinates = {
-                x: coordinates.x + box.x,
-                y: coordinates.y + box.y
-            };
-        }
-        const width = parseFloat(element.getAttribute("width"));
-        const height = parseFloat(element.getAttribute("height"));
-        return {
-            x: coordinates.x,
-            y: coordinates.y,
-            width: width,
-            height: height,
-            bottom: coordinates.y + height,
-            right: coordinates.x + width,
-            top: coordinates.y,
-            left: coordinates.x,
-            toJSON() {
-                return JSON.stringify(this);
+    async extractAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (result.success && result.result !== undefined) {
+                return result.result;
             }
-        };
-    }
-    getBoundingBoxAbsolute(element) {
-        if (this.isLeftTopElement(element)) {
-            if (element instanceof HTMLElement) {
-                const bounds = element.getBoundingClientRect();
-                return {
-                    x: bounds.x,
-                    y: bounds.y,
-                    width: bounds.width,
-                    height: bounds.height,
-                    bottom: bounds.bottom,
-                    right: bounds.right,
-                    top: bounds.top,
-                    left: bounds.left,
-                    toJSON() {
-                        return JSON.stringify(this);
-                    }
-                };
-            }
+            this.errors = [...this.errors, ...result.errors];
         }
-        else if (this.isXYElement(element)) {
-            return this.XYElementToAbsoluteBox(element);
-        }
-        const parent = this.getOffsetParent(element);
-        if (parent instanceof HTMLElement) {
-            const rect = element.getBoundingClientRect();
-            const rectParent = parent.getBoundingClientRect();
-            const x = rect.left - rectParent.left;
-            const y = rect.top - rectParent.top;
-            return {
-                x: x,
-                y: y,
-                width: rect.width,
-                height: rect.height,
-                bottom: y + rect.height,
-                right: x + rect.width,
-                left: rect.left - rectParent.left,
-                top: rect.top - rectParent.top,
-                toJSON() {
-                    return JSON.stringify(this);
-                }
-            };
-        }
-        console.error("Element type not supported");
-        return {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0,
-            bottom: 0,
-            right: 0,
-            top: 0,
-            left: 0,
-            toJSON() {
-                return JSON.stringify(this);
-            }
-        };
-    }
-    getBoundingBoxRelative(element) {
-        if (this.isLeftTopElement(element)) {
-            if (element instanceof HTMLElement) {
-                return {
-                    x: element.offsetLeft,
-                    y: element.offsetTop,
-                    width: element.offsetWidth,
-                    height: element.offsetHeight,
-                    bottom: element.offsetTop + element.offsetHeight,
-                    right: element.offsetLeft + element.offsetWidth,
-                    top: element.offsetTop,
-                    left: element.offsetLeft,
-                    toJSON() {
-                        return JSON.stringify(this);
-                    }
-                };
-            }
-        }
-        else if (this.isXYElement(element)) {
-            return this.XYElementToRelativeBox(element);
-        }
-        const parent = this.getOffsetParent(element);
-        if (parent instanceof HTMLElement) {
-            const rect = element.getBoundingClientRect();
-            const rectParent = parent.getBoundingClientRect();
-            const x = rect.left - rectParent.left;
-            const y = rect.top - rectParent.top;
-            return {
-                x: x,
-                y: y,
-                width: rect.width,
-                height: rect.height,
-                bottom: y + rect.height,
-                right: x + rect.width,
-                left: rect.left - rectParent.left,
-                top: rect.top - rectParent.top,
-                toJSON() {
-                    return JSON.stringify(this);
-                }
-            };
-        }
-        console.error("Element type not supported");
-        return {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0,
-            bottom: 0,
-            right: 0,
-            top: 0,
-            left: 0,
-            toJSON() {
-                return JSON.stringify(this);
-            }
-        };
-    }
-    getOffsetParent(element) {
-        if (element instanceof HTMLElement) {
-            return element.offsetParent;
-        }
-        let current = element.parentNode;
-        while (current) {
-            if (current instanceof Element) {
-                const style = getComputedStyle(current);
-                if (style.position !== 'static') {
-                    return current;
-                }
-            }
-            if (current instanceof ShadowRoot) {
-                current = current.host;
-            }
-            else {
-                current = current.parentNode;
-            }
-        }
-        return null;
+        return undefined;
     }
 }
-DragAndDrop.Namespace=`Aventus`;
-__as1(_, 'DragAndDrop', DragAndDrop);
+VoidWithError.Namespace=`Aventus`;
+VoidWithError.$schema={"success":"boolean","errors":"T[]"};
+Converter.register(VoidWithError.Fullname, VoidWithError);
+__as1(_, 'VoidWithError', VoidWithError);
 
-let Instance=class Instance {
-    static elements = new Map();
-    static get(type) {
-        let result = this.elements.get(type);
-        if (!result) {
-            let cst = type.prototype['constructor'];
-            result = new cst();
-            this.elements.set(type, result);
-        }
+let ResultWithError=class ResultWithError extends VoidWithError {
+    static get Fullname() { return "Aventus.ResultWithError"; }
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
         return result;
     }
-    static set(el) {
-        let cst = el.constructor;
-        if (this.elements.get(cst)) {
-            return false;
+    run(fct) {
+        if (this.success) {
+            const result = fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if (errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
+            }
+            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
+                this.result = result.result;
+            }
         }
-        this.elements.set(cst, el);
-        return true;
+        return this;
     }
-    static destroy(el) {
-        let cst = el.constructor;
-        return this.elements.delete(cst);
+    async runAsync(fct) {
+        if (this.success) {
+            const result = await fct();
+            const errors = Array.isArray(result) ? result : result.errors;
+            if (errors.length > 0) {
+                this.errors = [...this.errors, ...errors];
+            }
+            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
+                this.result = result.result;
+            }
+        }
+        return this;
     }
 }
-Instance.Namespace=`Aventus`;
-__as1(_, 'Instance', Instance);
+ResultWithError.Namespace=`Aventus`;
+ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
+Converter.register(ResultWithError.Fullname, ResultWithError);
+__as1(_, 'ResultWithError', ResultWithError);
 
-let ResizeObserver=class ResizeObserver {
-    callback;
-    targets;
-    fpsInterval = -1;
-    nextFrame;
-    entriesChangedEvent;
-    willTrigger;
-    static resizeObserverClassByObject = {};
-    static uniqueInstance;
-    static getUniqueInstance() {
-        if (!ResizeObserver.uniqueInstance) {
-            ResizeObserver.uniqueInstance = new window.ResizeObserver(entries => {
-                let allClasses = [];
-                for (let j = 0; j < entries.length; j++) {
-                    let entry = entries[j];
-                    const target = entry.target;
-                    let index = target['sourceIndex'];
-                    if (ResizeObserver.resizeObserverClassByObject[index]) {
-                        for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
-                            let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
-                            classTemp.entryChanged(entry);
-                            if (allClasses.indexOf(classTemp) == -1) {
-                                allClasses.push(classTemp);
-                            }
-                        }
-                    }
-                }
-                for (let i = 0; i < allClasses.length; i++) {
-                    allClasses[i].triggerCb();
-                }
-            });
-        }
-        return ResizeObserver.uniqueInstance;
-    }
-    constructor(options) {
-        let realOption;
-        if (options instanceof Function) {
-            realOption = {
-                callback: options,
-            };
-        }
-        else {
-            realOption = options;
-        }
-        this.callback = realOption.callback;
-        this.targets = [];
-        if (!realOption.fps) {
-            realOption.fps = 60;
-        }
-        if (realOption.fps != -1) {
-            this.fpsInterval = 1000 / realOption.fps;
-        }
-        this.nextFrame = 0;
-        this.entriesChangedEvent = {};
-        this.willTrigger = false;
-    }
-    /**
-     * Observe size changing for the element
-     */
-    observe(target) {
-        const _target = target;
-        if (!_target["sourceIndex"]) {
-            _target["sourceIndex"] = Math.random().toString(36);
-        }
-        if (!ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]]) {
-            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]] = [];
-        }
-        const subscribers = ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]];
-        if (subscribers.indexOf(this) == -1) {
-            if (subscribers.length == 0) {
-                ResizeObserver.getUniqueInstance().observe(_target);
-            }
-            subscribers.push(this);
-            this.targets.push(_target);
-        }
-    }
-    /**
-     * Stop observing size changing for the element
-     */
-    unobserve(target) {
-        const _target = target;
-        for (let i = 0; i < this.targets.length; i++) {
-            let tempTarget = this.targets[i];
-            if (tempTarget == _target) {
-                const subscribers = ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
-                let position = subscribers.indexOf(this);
-                if (position != -1) {
-                    subscribers.splice(position, 1);
-                }
-                if (subscribers.length == 0) {
-                    delete ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
-                    ResizeObserver.getUniqueInstance().unobserve(_target);
-                }
-                this.targets.splice(i, 1);
-                return;
-            }
-        }
-    }
-    /**
-     * Destroy the resize observer
-     */
-    disconnect() {
-        for (const target of [...this.targets]) {
-            this.unobserve(target);
-        }
-    }
-    entryChanged(entry) {
-        const _target = entry.target;
-        let index = _target.sourceIndex;
-        this.entriesChangedEvent[index] = entry;
-    }
-    triggerCb() {
-        if (!this.willTrigger) {
-            this.willTrigger = true;
-            this._triggerCb();
-        }
-    }
-    _triggerCb() {
-        let now = window.performance.now();
-        let elapsed = now - this.nextFrame;
-        if (this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
-            requestAnimationFrame(() => {
-                this._triggerCb();
-            });
-            return;
-        }
-        this.nextFrame = now - (elapsed % this.fpsInterval);
-        let changed = Object.values(this.entriesChangedEvent);
-        this.entriesChangedEvent = {};
-        this.willTrigger = false;
-        setTimeout(() => {
-            this.callback(changed, ResizeObserver.uniqueInstance);
-        }, 0);
+let HttpError=class HttpError extends GenericError {
+    status;
+    constructor(code, message, status) {
+        super(code, message);
+        this.status = status;
     }
 }
-ResizeObserver.Namespace=`Aventus`;
-__as1(_, 'ResizeObserver', ResizeObserver);
-
-let Uri=class Uri {
-    static prepare(uri) {
-        let params = [];
-        let i = 0;
-        let regexState = uri.replace(/{.*?}/g, (group, position) => {
-            group = group.slice(1, -1);
-            let splitted = group.split(":");
-            let name = splitted[0].trim();
-            let type = "string";
-            let result = "([^\\/]+)";
-            i++;
-            if (splitted.length > 1) {
-                if (splitted[1].trim() == "number") {
-                    result = "([0-9]+)";
-                    type = "number";
-                }
-            }
-            params.push({
-                name,
-                type,
-                position: i
-            });
-            return result;
-        });
-        regexState = regexState.replace(/\*/g, ".*?").toLowerCase();
-        regexState = "^" + regexState + '$';
-        return {
-            regex: new RegExp(regexState),
-            params
-        };
-    }
-    static getParams(from, current) {
-        if (typeof from == "string") {
-            from = this.prepare(from);
-        }
-        let matches = from.regex.exec(current.toLowerCase());
-        if (matches) {
-            let slugs = {};
-            for (let param of from.params) {
-                if (param.type == "number") {
-                    slugs[param.name] = Number(matches[param.position]);
-                }
-                else {
-                    slugs[param.name] = matches[param.position];
-                }
-            }
-            return slugs;
-        }
-        return null;
-    }
-    static isActive(from, current) {
-        if (typeof from == "string") {
-            from = this.prepare(from);
-        }
-        return from.regex.test(current);
-    }
-    static normalize(path) {
-        const isAbsolute = path.startsWith('/');
-        const parts = path.split('/');
-        const normalizedParts = [];
-        for (let i = 0; i < parts.length; i++) {
-            if (parts[i] === '..') {
-                normalizedParts.pop();
-            }
-            else if (parts[i] !== '.' && parts[i] !== '') {
-                normalizedParts.push(parts[i]);
-            }
-        }
-        let normalizedPath = normalizedParts.join('/');
-        if (isAbsolute) {
-            normalizedPath = '/' + normalizedPath;
-        }
-        return normalizedPath;
-    }
-}
-Uri.Namespace=`Aventus`;
-__as1(_, 'Uri', Uri);
+HttpError.Namespace=`Aventus`;
+HttpError.$schema={...(GenericError?.$schema ?? {}), "status":"number"};
+Converter.register(HttpError.Fullname, HttpError);
+__as1(_, 'HttpError', HttpError);
 
 let Signal=class Signal {
     __subscribes = [];
@@ -4718,188 +3577,1783 @@ let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
 EffectNoRecomputed.Namespace=`Aventus`;
 __as1(_, 'EffectNoRecomputed', EffectNoRecomputed);
 
-let GenericError=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
-class GenericError {
-    static converter = new Converter();
-    static get Fullname() { return "Aventus.GenericError"; }
-    /**
-     * Code for the error
-     */
-    code;
-    /**
-     * Description of the error
-     */
-    message;
-    /**
-     * Additional details related to the error.
-     */
-    details = [];
-    /**
-     * Creates a new instance of GenericError.
-     * @param {EnumValue<T>} code - The error code.
-     * @param {string | Error | unknown} message - The error message.
-     */
-    constructor(code, message) {
-        this.code = code;
-        if (message instanceof Error) {
-            this.message = message.message;
-        }
-        else {
-            this.message = message + '';
-        }
+let HttpRouter=class HttpRouter {
+    static options;
+    static configure(options) {
+        HttpRouter.options = options;
+    }
+    options;
+    constructor() {
+        this.options = this.defineOptions(this.defaultOptionsValue());
+    }
+    defaultOptionsValue() {
+        return HttpRouter.options ?? {
+            url: location.protocol + "//" + location.host
+        };
+    }
+    defineOptions(options) {
+        return options;
+    }
+    async get(url) {
+        return await new HttpRequest(url).queryJSON(this);
+    }
+    async post(url, data) {
+        return await new HttpRequest(url, HttpMethod.POST, data).queryJSON(this);
+    }
+    async put(url, data) {
+        return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON(this);
+    }
+    async delete(url, data) {
+        return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON(this);
+    }
+    async option(url, data) {
+        return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON(this);
     }
 }
-GenericError.Namespace=`Aventus`;
-GenericError.$schema={"code":"Aventus.EnumValue","message":"string"};
-Converter.register(GenericError.Fullname, GenericError);
-__as1(_, 'GenericError', GenericError);
+HttpRouter.Namespace=`Aventus`;
+__as1(_, 'HttpRouter', HttpRouter);
 
-let VoidWithError=class VoidWithError {
-    static get Fullname() { return "Aventus.VoidWithError"; }
-    /**
-     * Determine if the action is a success
-     */
-    get success() {
-        return this.errors.length == 0;
+let HttpRoute=class HttpRoute {
+    router;
+    constructor(router) {
+        this.router = router ?? new HttpRouter();
+    }
+    getPrefix() {
+        return "";
+    }
+}
+HttpRoute.Namespace=`Aventus`;
+__as1(_, 'HttpRoute', HttpRoute);
+
+let HttpRequest=class HttpRequest {
+    static options;
+    static configure(options) {
+        HttpRequest.options = options;
+    }
+    request;
+    url;
+    methodSpoofing = false;
+    useCache = false;
+    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false, useCache = false) {
+        this.url = url;
+        this.request = {};
+        this.methodSpoofing = methodSpoofing;
+        this.useCache = useCache;
+        this.setMethod(method);
+        this.prepareBody(body);
+    }
+    setUrl(url) {
+        this.url = url;
+    }
+    toString() {
+        return this.url + " : " + JSON.stringify(this.request);
+    }
+    setBody(body) {
+        this.prepareBody(body);
+    }
+    setMethod(method) {
+        this.request.method = method;
     }
     /**
-     * List of errors
+     * Replace method Put/Delete by _method:"put" inside a form
      */
-    errors = [];
-    /**
-     * Converts the current instance to a VoidWithError object.
-     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
-     */
-    toGeneric() {
-        const result = new VoidWithError();
-        result.errors = this.errors;
+    enableMethodSpoofing() {
+        this.methodSpoofing = true;
+    }
+    enableCache() {
+        this.useCache = true;
+    }
+    disableCache() {
+        this.useCache = false;
+    }
+    objectToFormData(obj, formData, parentKey) {
+        formData = formData || new FormData();
+        let byPass = obj;
+        if (byPass.__isProxy) {
+            obj = byPass.getTarget();
+        }
+        const keys = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            let value = obj[key];
+            const newKey = parentKey ? `${parentKey}[${key}]` : key;
+            if (value instanceof Date || value instanceof DateTime || value instanceof Time) {
+                formData.append(newKey, DateConverter.converter.toString(value));
+            }
+            else if (typeof value === 'object' &&
+                value !== null &&
+                !(value instanceof File)) {
+                if (Array.isArray(value)) {
+                    for (let j = 0; j < value.length; j++) {
+                        const arrayKey = `${newKey}[${j}]`;
+                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
+                    }
+                }
+                else {
+                    this.objectToFormData(value, formData, newKey);
+                }
+            }
+            else {
+                if (value === undefined || value === null) {
+                    value = "";
+                }
+                else if (Watcher.is(value)) {
+                    value = Watcher.extract(value);
+                }
+                formData.append(newKey, value);
+            }
+        }
+        return formData;
+    }
+    jsonReplacer(key, value) {
+        const t = this;
+        if (t[key] instanceof Date || t[key] instanceof DateTime || t[key] instanceof Time) {
+            return DateConverter.converter.toString(t[key]);
+        }
+        return value;
+    }
+    prepareBody(data) {
+        if (!data) {
+            return;
+        }
+        else if (data instanceof FormData) {
+            this.request.body = data;
+        }
+        else {
+            let useFormData = false;
+            const analyseFormData = (obj) => {
+                for (let key in obj) {
+                    if (obj[key] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date) && !(obj[key] instanceof DateTime) && !(obj[key] instanceof Time)) {
+                        analyseFormData(obj[key]);
+                        if (useFormData) {
+                            break;
+                        }
+                    }
+                }
+            };
+            analyseFormData(data);
+            if (useFormData) {
+                this.request.body = this.objectToFormData(data);
+            }
+            else {
+                this.request.body = JSON.stringify(data, this.jsonReplacer);
+                this.setHeader("Content-Type", "Application/json");
+            }
+        }
+        if (this.methodSpoofing) {
+            if (this.request.method?.toUpperCase() == Aventus.HttpMethod.PUT) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.PUT);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+            else if (this.request.method?.toUpperCase() == Aventus.HttpMethod.DELETE) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.DELETE);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+        }
+    }
+    setHeader(name, value) {
+        if (!this.request.headers) {
+            this.request.headers = [];
+        }
+        const headers = this.request.headers;
+        const existing = headers.findIndex(([key]) => key.toLowerCase() === name.toLowerCase());
+        if (existing >= 0) {
+            headers[existing] = [name, value];
+        }
+        else {
+            headers.push([name, value]);
+        }
+    }
+    setCredentials(credentials) {
+        this.request.credentials = credentials;
+    }
+    async _query(router) {
+        let result = new ResultWithError();
+        try {
+            const isFull = this.url.match("https?://");
+            if (!this.url.startsWith("/") && !isFull) {
+                this.url = "/" + this.url;
+            }
+            if (HttpRequest.options?.beforeSend) {
+                const beforeSendResult = await HttpRequest.options.beforeSend(this);
+                result.errors = beforeSendResult.errors;
+                if (!result.success)
+                    return result;
+            }
+            const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
+            if (this.useCache) {
+                result.result = await HttpCache.fetch(fullUrl, this.request);
+            }
+            else {
+                let response = await fetch(fullUrl, this.request);
+                result.result = new HttpResponse(response);
+            }
+            if (result.result && !result.result.ok) {
+                result.errors.push(new HttpError(HttpErrorCode.status, `${result.result.status} ${result.result.statusText}`.trim(), result.result.status));
+            }
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
         return result;
     }
-    /**
-    * Checks if the error list contains a specific error code.
-    * @template U - The type of error, extending GenericError.
-    * @template T - The type of the error code, which extends either number or Enum.
-    * @param {EnumValue<T>} code - The error code to check for.
-    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
-    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
-    */
-    containsCode(code, type) {
-        if (type) {
-            for (let error of this.errors) {
-                if (error instanceof type) {
-                    if (error.code == code) {
-                        return true;
+    async query(router) {
+        let result = await this._query(router);
+        if (HttpRequest.options?.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
+        return result;
+    }
+    async queryVoid(router) {
+        let resultTemp = await this.query(router);
+        let result = new VoidWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            if (resultTemp.result.status != 204) {
+                let tempResult = await resultTemp.result.json();
+                if (tempResult instanceof VoidWithError) {
+                    for (let error of tempResult.errors) {
+                        result.errors.push(error);
                     }
                 }
             }
         }
-        else {
-            for (let error of this.errors) {
-                if (error.code == code) {
-                    return true;
+        catch (e) {
+        }
+        return result;
+    }
+    async queryJSON(router) {
+        this.setHeader("Accept", "application/json");
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            let tempResult = await resultTemp.result.json();
+            if (tempResult instanceof VoidWithError) {
+                if (tempResult.errors.length > 0) {
+                    result.errors = result.errors.filter(error => !(error instanceof HttpError && error.code === HttpErrorCode.status && error.status === resultTemp.result?.status));
                 }
+                for (let error of tempResult.errors) {
+                    result.errors.push(error);
+                }
+                if (tempResult instanceof ResultWithError) {
+                    result.result = tempResult.result;
+                }
+            }
+            else {
+                result.result = tempResult;
+            }
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async queryTxt(router) {
+        this.setHeader("Accept", "text/plain");
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.text();
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async queryBlob(router) {
+        this.setHeader("Accept", "application/octet-stream");
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.blob();
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    clearCache(router) {
+        const isFull = this.url.match("https?://");
+        if (!this.url.startsWith("/") && !isFull) {
+            this.url = "/" + this.url;
+        }
+        const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
+        HttpCache.clear(fullUrl, this.request);
+    }
+}
+HttpRequest.Namespace=`Aventus`;
+__as1(_, 'HttpRequest', HttpRequest);
+
+let StorableRoute=class StorableRoute extends HttpRoute {
+    async GetAll() {
+        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
+        return await request.queryJSON(this.router);
+    }
+    async Create(body) {
+        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.POST);
+        request.setBody(body);
+        return await request.queryJSON(this.router);
+    }
+    async GetById(id) {
+        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.GET);
+        return await request.queryJSON(this.router);
+    }
+    async Update(id, body) {
+        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.PUT);
+        request.setBody(body);
+        return await request.queryJSON(this.router);
+    }
+    async Delete(id) {
+        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.DELETE);
+        return await request.queryVoid(this.router);
+    }
+}
+StorableRoute.Namespace=`Aventus`;
+__as1(_, 'StorableRoute', StorableRoute);
+
+let Animation=class Animation {
+    /**
+     * Default FPS for all Animation if not set inside options
+     */
+    static FPS_DEFAULT = 60;
+    options;
+    nextFrame = 0;
+    fpsInterval;
+    continueAnimation = false;
+    frame_id = 0;
+    constructor(options) {
+        if (!options.animate) {
+            options.animate = () => { };
+        }
+        if (!options.stopped) {
+            options.stopped = () => { };
+        }
+        if (!options.fps) {
+            options.fps = Animation.FPS_DEFAULT;
+        }
+        this.options = options;
+        this.fpsInterval = 1000 / options.fps;
+    }
+    animate() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (elapsed <= this.fpsInterval) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        const stopping = !this.continueAnimation;
+        setTimeout(() => {
+            try {
+                this.options.animate();
+            }
+            finally {
+                if (stopping) {
+                    this.options.stopped();
+                }
+            }
+        }, 0);
+        if (!stopping) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+        }
+    }
+    /**
+     * Start the of animation
+     */
+    start() {
+        if (this.continueAnimation == false) {
+            this.continueAnimation = true;
+            this.nextFrame = window.performance.now();
+            this.animate();
+        }
+    }
+    /**
+     * Stop the animation
+     */
+    stop() {
+        this.continueAnimation = false;
+    }
+    /**
+     * Stop the animation
+     */
+    immediateStop() {
+        cancelAnimationFrame(this.frame_id);
+        this.continueAnimation = false;
+        this.options.stopped();
+    }
+    /**
+     * Get the FPS
+     */
+    getFPS() {
+        return this.options.fps;
+    }
+    /**
+     * Set the FPS
+     */
+    setFPS(fps) {
+        this.options.fps = fps;
+        this.fpsInterval = 1000 / this.options.fps;
+    }
+    /**
+     * Get the animation status (true if animation is running)
+     */
+    isStarted() {
+        return this.continueAnimation;
+    }
+}
+Animation.Namespace=`Aventus`;
+__as1(_, 'Animation', Animation);
+
+let PressManager=class PressManager {
+    static globalConfig = {
+        delayDblPress: 250,
+        delayLongPress: 700,
+        offsetDrag: 20
+    };
+    static configure(options) {
+        PressManager.globalConfig = options;
+    }
+    static create(options) {
+        if (Array.isArray(options.element)) {
+            let result = [];
+            for (let el of options.element) {
+                let cloneOpt = { ...options };
+                cloneOpt.element = el;
+                result.push(new PressManager(cloneOpt));
+            }
+            return result;
+        }
+        else {
+            return new PressManager(options);
+        }
+    }
+    static onEvent = new Callback();
+    options;
+    element;
+    delayDblPress;
+    delayLongPress;
+    nbPress = 0;
+    offsetDrag;
+    dragDirection;
+    state = {
+        oneActionTriggered: null,
+    };
+    startPosition = { x: 0, y: 0 };
+    customFcts = {};
+    timeoutDblPress = 0;
+    timeoutLongPress = 0;
+    downEventSaved;
+    useDblPress = false;
+    stopPropagation = () => true;
+    pointersRecord = {};
+    functionsBinded = {
+        downAction: (e) => { },
+        downActionDelay: (e) => { },
+        upAction: (e) => { },
+        moveAction: (e) => { },
+        childPressStart: (e) => { },
+        childPressEnd: (e) => { },
+        childPressMove: (e) => { }
+    };
+    /**
+     * @param {*} options - The options
+     * @param {HTMLElement | HTMLElement[]} options.element - The element to manage
+     */
+    constructor(options) {
+        if (options.element === void 0) {
+            throw 'You must provide an element';
+        }
+        this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
+        this.dragDirection = 'XY';
+        this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
+        this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
+        this.element = options.element;
+        this.checkDragConstraint(options);
+        this.assignValueOption(options);
+        this.options = options;
+        this.init();
+    }
+    /**
+     * Get the current element focused by the PressManager
+     */
+    getElement() {
+        return this.element;
+    }
+    checkDragConstraint(options) {
+        if (options.onDrag !== void 0) {
+            if (options.onDragStart === void 0) {
+                options.onDragStart = (e) => { };
+            }
+            if (options.onDragEnd === void 0) {
+                options.onDragEnd = (e) => { };
+            }
+        }
+        if (options.onDragStart !== void 0) {
+            if (options.onDrag === void 0) {
+                options.onDrag = (e) => { };
+            }
+            if (options.onDragEnd === void 0) {
+                options.onDragEnd = (e) => { };
+            }
+        }
+        if (options.onDragEnd !== void 0) {
+            if (options.onDragStart === void 0) {
+                options.onDragStart = (e) => { };
+            }
+            if (options.onDrag === void 0) {
+                options.onDrag = (e) => { };
+            }
+        }
+    }
+    assignValueOption(options) {
+        if (PressManager.globalConfig.delayDblPress !== undefined) {
+            this.delayDblPress = PressManager.globalConfig.delayDblPress;
+        }
+        if (options.delayDblPress !== undefined) {
+            this.delayDblPress = options.delayDblPress;
+        }
+        if (PressManager.globalConfig.delayLongPress !== undefined) {
+            this.delayLongPress = PressManager.globalConfig.delayLongPress;
+        }
+        if (options.delayLongPress !== undefined) {
+            this.delayLongPress = options.delayLongPress;
+        }
+        if (PressManager.globalConfig.offsetDrag !== undefined) {
+            this.offsetDrag = PressManager.globalConfig.offsetDrag;
+        }
+        if (options.offsetDrag !== undefined) {
+            this.offsetDrag = options.offsetDrag;
+        }
+        if (options.dragDirection !== undefined) {
+            this.dragDirection = options.dragDirection;
+        }
+        if (options.onDblPress !== undefined) {
+            this.useDblPress = true;
+        }
+        if (PressManager.globalConfig.forceDblPress !== undefined) {
+            this.useDblPress = PressManager.globalConfig.forceDblPress;
+        }
+        if (options.forceDblPress !== undefined) {
+            this.useDblPress = options.forceDblPress;
+        }
+        if (typeof PressManager.globalConfig.stopPropagation == 'function') {
+            this.stopPropagation = PressManager.globalConfig.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
+        }
+        if (typeof options.stopPropagation == 'function') {
+            this.stopPropagation = options.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
+        }
+        if (!options.buttonAllowed)
+            options.buttonAllowed = PressManager.globalConfig.buttonAllowed;
+        if (!options.buttonAllowed)
+            options.buttonAllowed = [0];
+        if (!options.onEvent)
+            options.onEvent = PressManager.globalConfig.onEvent;
+    }
+    bindAllFunction() {
+        this.functionsBinded.downAction = this.downAction.bind(this);
+        this.functionsBinded.downActionDelay = this.downActionDelay.bind(this);
+        this.functionsBinded.moveAction = this.moveAction.bind(this);
+        this.functionsBinded.upAction = this.upAction.bind(this);
+        this.functionsBinded.childPressStart = this.childPressStart.bind(this);
+        this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
+        this.functionsBinded.childPressMove = this.childPressMove.bind(this);
+    }
+    init() {
+        this.bindAllFunction();
+        this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
+        this.element.addEventListener("touchstart", this.functionsBinded.downActionDelay);
+        this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
+        this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
+        this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
+    }
+    identifyEvent(touch) {
+        if ('Touch' in window && touch instanceof Touch)
+            return touch.identifier;
+        return touch.pointerId;
+    }
+    registerEvent(ev) {
+        if ('TouchEvent' in window && ev instanceof TouchEvent) {
+            for (let touch of ev.targetTouches) {
+                const id = this.identifyEvent(touch);
+                if (this.pointersRecord[id]) {
+                    return false;
+                }
+                this.pointersRecord[id] = ev;
+            }
+            return true;
+        }
+        else {
+            const id = this.identifyEvent(ev);
+            if (this.pointersRecord[id]) {
+                return false;
+            }
+            this.pointersRecord[id] = ev;
+            return true;
+        }
+    }
+    unregisterEvent(ev) {
+        let result = true;
+        if ('TouchEvent' in window && ev instanceof TouchEvent) {
+            for (let touch of ev.changedTouches) {
+                const id = this.identifyEvent(touch);
+                if (!this.pointersRecord[id]) {
+                    result = false;
+                }
+                else {
+                    delete this.pointersRecord[id];
+                }
+            }
+        }
+        else {
+            const id = this.identifyEvent(ev);
+            if (!this.pointersRecord[id]) {
+                result = false;
+            }
+            else {
+                delete this.pointersRecord[id];
+            }
+        }
+        return result;
+    }
+    genericDownAction(state, e) {
+        this.downEventSaved = e;
+        this.startPosition = { x: e.pageX, y: e.pageY };
+        if (this.options.onLongPress) {
+            this.timeoutLongPress = setTimeout(() => {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onLongPress) {
+                        if (this.options.onLongPress(e, this) !== false) {
+                            state.oneActionTriggered = this;
+                        }
+                    }
+                }
+            }, this.delayLongPress);
+        }
+    }
+    pointerEventTriggered = false;
+    downActionDelay(_ev) {
+        const ev = _ev;
+        if (!this.pointerEventTriggered) {
+            this.downAction(ev);
+        }
+        else {
+            ev.stopImmediatePropagation();
+        }
+        setTimeout(() => {
+            this.pointerEventTriggered = false;
+        }, 0);
+    }
+    downAction(_ev) {
+        const ev = _ev;
+        this.pointerEventTriggered = true;
+        const isFirst = Object.values(this.pointersRecord).length == 0;
+        if (!this.registerEvent(ev)) {
+            if (this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        const e = new NormalizedEvent(ev);
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
+        PressManager.onEvent.trigger(e, this);
+        if (e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
+            this.unregisterEvent(ev);
+            return;
+        }
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        this.customFcts = {};
+        if (this.nbPress == 0 && isFirst) {
+            this.state.oneActionTriggered = null;
+            clearTimeout(this.timeoutDblPress);
+        }
+        if (isFirst) {
+            document.addEventListener("pointerup", this.functionsBinded.upAction);
+            document.addEventListener("pointercancel", this.functionsBinded.upAction);
+            document.addEventListener("touchend", this.functionsBinded.upAction);
+            document.addEventListener("touchcancel", this.functionsBinded.upAction);
+            document.addEventListener("pointermove", this.functionsBinded.moveAction);
+        }
+        this.genericDownAction(this.state, e);
+        if (this.options.onPressStart) {
+            this.options.onPressStart(e, this);
+            this.lastEmitEvent = e;
+            // this.emitTriggerFunctionParent("pressstart", e);
+        }
+        this.emitTriggerFunction("pressstart", e);
+    }
+    genericUpAction(state, e) {
+        clearTimeout(this.timeoutLongPress);
+        if (state.oneActionTriggered == this) {
+            if (this.options.onDragEnd) {
+                this.options.onDragEnd(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDragEnd) {
+                this.customFcts.onDragEnd(e, this.customFcts.src);
+            }
+        }
+        else {
+            if (this.useDblPress) {
+                this.nbPress++;
+                if (this.nbPress == 2) {
+                    if (!state.oneActionTriggered) {
+                        this.nbPress = 0;
+                        if (this.options.onDblPress) {
+                            if (this.options.onDblPress(e, this) !== false) {
+                                state.oneActionTriggered = this;
+                            }
+                        }
+                    }
+                }
+                else if (this.nbPress == 1) {
+                    this.timeoutDblPress = setTimeout(() => {
+                        this.nbPress = 0;
+                        if (!state.oneActionTriggered) {
+                            if (this.options.onPress) {
+                                if (this.options.onPress(e, this) !== false) {
+                                    state.oneActionTriggered = this;
+                                }
+                            }
+                        }
+                    }, this.delayDblPress);
+                }
+            }
+            else {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onPress) {
+                        if (this.options.onPress(e, this) !== false) {
+                            state.oneActionTriggered = this;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    cancelAction(state) {
+        clearTimeout(this.timeoutLongPress);
+        clearTimeout(this.timeoutDblPress);
+        this.nbPress = 0;
+        if (state.oneActionTriggered == this) {
+            state.oneActionTriggered = null;
+        }
+    }
+    upAction(_ev) {
+        const ev = _ev;
+        if (!this.unregisterEvent(ev)) {
+            if (this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        const e = new NormalizedEvent(ev);
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
+        PressManager.onEvent.trigger(e, this);
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        if (Object.values(this.pointersRecord).length == 0) {
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        }
+        if (ev.type === 'pointercancel' || ev.type === 'touchcancel') {
+            this.cancelAction(this.state);
+        }
+        else {
+            this.genericUpAction(this.state, e);
+        }
+        if (this.options.onPressEnd) {
+            this.options.onPressEnd(e, this);
+            this.lastEmitEvent = e;
+            // this.emitTriggerFunctionParent("pressend", e);
+        }
+        this.emitTriggerFunction("pressend", e);
+    }
+    genericMoveAction(state, e) {
+        if (!state.oneActionTriggered) {
+            let xDist = e.pageX - this.startPosition.x;
+            let yDist = e.pageY - this.startPosition.y;
+            let distance = 0;
+            if (this.dragDirection == 'XY')
+                distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            else if (this.dragDirection == 'X')
+                distance = Math.abs(xDist);
+            else
+                distance = Math.abs(yDist);
+            if (distance > this.offsetDrag && this.downEventSaved) {
+                if (this.options.onDragStart) {
+                    if (this.options.onDragStart(this.downEventSaved, this) !== false) {
+                        state.oneActionTriggered = this;
+                    }
+                }
+            }
+        }
+        else if (state.oneActionTriggered == this) {
+            if (this.options.onDrag) {
+                this.options.onDrag(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDrag) {
+                this.customFcts.onDrag(e, this.customFcts.src);
+            }
+        }
+    }
+    moveAction(_ev) {
+        const ev = _ev;
+        const e = new NormalizedEvent(ev);
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
+        PressManager.onEvent.trigger(e, this);
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        this.genericMoveAction(this.state, e);
+        this.lastEmitEvent = e;
+        // if(this.options.onDrag) {
+        //     this.emitTriggerFunctionParent("pressmove", e);
+        this.emitTriggerFunction("pressmove", e);
+    }
+    childPressStart(_e) {
+        const e = _e;
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
+        this.genericDownAction(e.detail.state, e.detail.realEvent);
+        if (this.options.onPressStart) {
+            this.options.onPressStart(e.detail.realEvent, this);
+        }
+    }
+    childPressEnd(_e) {
+        const e = _e;
+        this.unregisterEvent(e.detail.realEvent.event);
+        if (Object.values(this.pointersRecord).length == 0) {
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        }
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
+        if (e.detail.realEvent.event.type === 'pointercancel' || e.detail.realEvent.event.type === 'touchcancel') {
+            this.cancelAction(e.detail.state);
+        }
+        else {
+            this.genericUpAction(e.detail.state, e.detail.realEvent);
+        }
+        if (this.options.onPressEnd) {
+            this.options.onPressEnd(e.detail.realEvent, this);
+        }
+    }
+    childPressMove(_e) {
+        const e = _e;
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
+        this.genericMoveAction(e.detail.state, e.detail.realEvent);
+    }
+    lastEmitEvent;
+    emitTriggerFunction(action, e, el) {
+        let ev = new CustomEvent("trigger_pointer_" + action, {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+            detail: {
+                state: this.state,
+                customFcts: this.customFcts,
+                realEvent: e
+            }
+        });
+        this.lastEmitEvent = e;
+        if (!el) {
+            el = this.element;
+        }
+        el.dispatchEvent(ev);
+    }
+    /**
+     * Destroy the Press instance byremoving all events
+     */
+    destroy() {
+        if (this.element) {
+            this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
+            this.element.removeEventListener("touchstart", this.functionsBinded.downActionDelay);
+            this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
+            this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
+            this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        }
+    }
+}
+PressManager.Namespace=`Aventus`;
+__as1(_, 'PressManager', PressManager);
+
+let DragAndDrop=class DragAndDrop {
+    /**
+     * Default offset before drag element
+     */
+    static defaultOffsetDrag = 20;
+    pressManager;
+    options;
+    startCursorPosition = { x: 0, y: 0 };
+    startElementPosition = { x: 0, y: 0 };
+    isEnable = true;
+    draggableElement;
+    constructor(options) {
+        this.options = this.getDefaultOptions(options.element);
+        this.mergeProperties(options);
+        this.mergeFunctions(options);
+        this.options.elementTrigger.style.touchAction = 'none';
+        this.pressManager = new PressManager({
+            element: this.options.elementTrigger,
+            onPressStart: this.onPressStart.bind(this),
+            onPressEnd: this.onPressEnd.bind(this),
+            onDragStart: this.onDragStart.bind(this),
+            onDrag: this.onDrag.bind(this),
+            onDragEnd: this.onDragEnd.bind(this),
+            offsetDrag: this.options.offsetDrag,
+            dragDirection: this.options.dragDirection,
+            stopPropagation: this.options.stopPropagation
+        });
+    }
+    getDefaultOptions(element) {
+        return {
+            applyDrag: true,
+            element: element,
+            elementTrigger: element,
+            offsetDrag: DragAndDrop.defaultOffsetDrag,
+            dragDirection: 'XY',
+            shadow: {
+                enable: false,
+                container: document.body,
+                removeOnStop: true,
+                transform: () => { },
+                delete: (el) => {
+                    el.remove();
+                }
+            },
+            strict: false,
+            targets: [],
+            usePercent: false,
+            stopPropagation: true,
+            useMouseFinalPosition: false,
+            useTransform: false,
+            isDragEnable: () => true,
+            getZoom: () => 1,
+            getOffsetX: () => 0,
+            getOffsetY: () => 0,
+            onPointerDown: (e) => { },
+            onPointerUp: (e) => { },
+            onStart: (e) => { },
+            onMove: (e) => { },
+            onStop: (e) => { },
+            onDrop: (element, targets) => { },
+            correctPosition: (position) => position
+        };
+    }
+    mergeProperties(options) {
+        if (options.element === void 0) {
+            throw "You must define the element for the drag&drop";
+        }
+        this.options.element = options.element;
+        if (options.elementTrigger === void 0) {
+            this.options.elementTrigger = this.options.element;
+        }
+        else {
+            this.options.elementTrigger = options.elementTrigger;
+        }
+        this.defaultMerge(options, "applyDrag");
+        this.defaultMerge(options, "offsetDrag");
+        this.defaultMerge(options, "dragDirection");
+        this.defaultMerge(options, "strict");
+        this.defaultMerge(options, "targets");
+        this.defaultMerge(options, "usePercent");
+        this.defaultMerge(options, "stopPropagation");
+        this.defaultMerge(options, "useMouseFinalPosition");
+        this.defaultMerge(options, "useTransform");
+        if (options.shadow !== void 0) {
+            this.options.shadow.enable = options.shadow.enable;
+            if (options.shadow.container !== void 0) {
+                this.options.shadow.container = options.shadow.container;
+            }
+            else {
+                this.options.shadow.container = document.body;
+            }
+            if (options.shadow.removeOnStop !== void 0) {
+                this.options.shadow.removeOnStop = options.shadow.removeOnStop;
+            }
+            if (options.shadow.transform !== void 0) {
+                this.options.shadow.transform = options.shadow.transform;
+            }
+            if (options.shadow.delete !== void 0) {
+                this.options.shadow.delete = options.shadow.delete;
+            }
+        }
+    }
+    mergeFunctions(options) {
+        this.defaultMerge(options, "isDragEnable");
+        this.defaultMerge(options, "getZoom");
+        this.defaultMerge(options, "getOffsetX");
+        this.defaultMerge(options, "getOffsetY");
+        this.defaultMerge(options, "onPointerDown");
+        this.defaultMerge(options, "onPointerUp");
+        this.defaultMerge(options, "onStart");
+        this.defaultMerge(options, "onMove");
+        this.defaultMerge(options, "onStop");
+        this.defaultMerge(options, "onDrop");
+        this.defaultMerge(options, "correctPosition");
+    }
+    defaultMerge(options, name) {
+        if (options[name] !== void 0) {
+            const opts = this.options;
+            opts[name] = options[name];
+        }
+    }
+    positionShadowRelativeToElement = { x: 0, y: 0 };
+    onPressStart(e) {
+        this.options.onPointerDown(e);
+    }
+    onPressEnd(e) {
+        this.options.onPointerUp(e);
+    }
+    onDragStart(e) {
+        this.isEnable = this.options.isDragEnable();
+        if (!this.isEnable) {
+            return false;
+        }
+        let draggableElement = this.options.element;
+        this.startCursorPosition = {
+            x: e.pageX,
+            y: e.pageY
+        };
+        this.startElementPosition = this.getBoundingBoxRelative(draggableElement);
+        if (this.options.shadow.enable) {
+            draggableElement = this.options.element.cloneNode(true);
+            let elBox = this.options.element.getBoundingClientRect();
+            let containerBox = this.options.shadow.container.getBoundingClientRect();
+            this.positionShadowRelativeToElement = {
+                x: elBox.x - containerBox.x,
+                y: elBox.y - containerBox.y
+            };
+            if (this.options.applyDrag) {
+                draggableElement.style.position = "absolute";
+                draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
+                draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
+                this.options.shadow.transform(draggableElement);
+                this.options.shadow.container.appendChild(draggableElement);
+            }
+        }
+        this.draggableElement = draggableElement;
+        const result = this.options.onStart(e);
+        if (result !== false) {
+            document.body.style.userSelect = 'none';
+            if (window.getSelection) {
+                window.getSelection()?.removeAllRanges();
+            }
+        }
+        return result;
+    }
+    onDrag(e) {
+        if (!this.isEnable) {
+            return;
+        }
+        let zoom = this.options.getZoom();
+        let diff = {
+            x: 0,
+            y: 0
+        };
+        if (this.options.shadow.enable) {
+            diff = {
+                x: (e.pageX - this.startCursorPosition.x) + this.positionShadowRelativeToElement.x + this.options.getOffsetX(),
+                y: (e.pageY - this.startCursorPosition.y) + this.positionShadowRelativeToElement.y + this.options.getOffsetY(),
+            };
+        }
+        else {
+            diff = {
+                x: (e.pageX - this.startCursorPosition.x) / zoom + this.startElementPosition.x + this.options.getOffsetX(),
+                y: (e.pageY - this.startCursorPosition.y) / zoom + this.startElementPosition.y + this.options.getOffsetY()
+            };
+        }
+        let newPos = this.setPosition(diff);
+        this.options.onMove(e, newPos);
+    }
+    onDragEnd(e) {
+        if (!this.isEnable) {
+            return;
+        }
+        document.body.style.userSelect = '';
+        let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
+            x: e.clientX,
+            y: e.clientY
+        }) : this.getMatchingTargets();
+        let draggableElement = this.draggableElement;
+        if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
+            this.options.shadow.delete(draggableElement);
+        }
+        if (targets.length > 0) {
+            this.options.onDrop(this.options.element, targets);
+        }
+        this.options.onStop(e);
+    }
+    setPosition(position) {
+        let draggableElement = this.draggableElement;
+        if (this.options.usePercent) {
+            let elementParent = this.getOffsetParent(draggableElement);
+            if (elementParent instanceof HTMLElement) {
+                let percentPosition = {
+                    x: (position.x / elementParent.offsetWidth) * 100,
+                    y: (position.y / elementParent.offsetHeight) * 100
+                };
+                percentPosition = this.options.correctPosition(percentPosition);
+                if (this.options.applyDrag) {
+                    draggableElement.style.left = percentPosition.x + '%';
+                    draggableElement.style.top = percentPosition.y + '%';
+                }
+                return percentPosition;
+            }
+            else {
+                console.error("Can't find parent. Contact an admin", draggableElement);
+            }
+        }
+        else {
+            position = this.options.correctPosition(position);
+            if (this.options.applyDrag) {
+                if (this.isLeftTopElement(draggableElement)) {
+                    draggableElement.style.left = position.x + 'px';
+                    draggableElement.style.top = position.y + 'px';
+                }
+                else {
+                    if (this.options.useTransform) {
+                        draggableElement.setAttribute("transform", `translate(${position.x},${position.y})`);
+                    }
+                    else {
+                        draggableElement.style.left = position.x + 'px';
+                        draggableElement.style.top = position.y + 'px';
+                    }
+                }
+            }
+        }
+        return position;
+    }
+    getTargets() {
+        if (typeof this.options.targets == "function") {
+            return this.options.targets();
+        }
+        else {
+            return this.options.targets;
+        }
+    }
+    /**
+     * Get targets within the current element position is matching
+     */
+    getMatchingTargets() {
+        let draggableElement = this.draggableElement;
+        let matchingTargets = [];
+        let srcTargets = this.getTargets();
+        for (let target of srcTargets) {
+            let elementCoordinates = this.getBoundingBoxAbsolute(draggableElement);
+            let targetCoordinates = this.getBoundingBoxAbsolute(target);
+            let offsetX = this.options.getOffsetX();
+            let offsetY = this.options.getOffsetY();
+            let zoom = this.options.getZoom();
+            targetCoordinates.x += offsetX;
+            targetCoordinates.y += offsetY;
+            targetCoordinates.width *= zoom;
+            targetCoordinates.height *= zoom;
+            if (this.options.strict) {
+                if ((elementCoordinates.x >= targetCoordinates.x && elementCoordinates.x + elementCoordinates.width <= targetCoordinates.x + targetCoordinates.width) &&
+                    (elementCoordinates.y >= targetCoordinates.y && elementCoordinates.y + elementCoordinates.height <= targetCoordinates.y + targetCoordinates.height)) {
+                    matchingTargets.push(target);
+                }
+            }
+            else {
+                let elementLeft = elementCoordinates.x;
+                let elementRight = elementCoordinates.x + elementCoordinates.width;
+                let elementTop = elementCoordinates.y;
+                let elementBottom = elementCoordinates.y + elementCoordinates.height;
+                let targetLeft = targetCoordinates.x;
+                let targetRight = targetCoordinates.x + targetCoordinates.width;
+                let targetTop = targetCoordinates.y;
+                let targetBottom = targetCoordinates.y + targetCoordinates.height;
+                if (!(elementRight < targetLeft ||
+                    elementLeft > targetRight ||
+                    elementBottom < targetTop ||
+                    elementTop > targetBottom)) {
+                    matchingTargets.push(target);
+                }
+            }
+        }
+        return matchingTargets;
+    }
+    /**
+     * This function will return the targets that are matching with the mouse position
+     * @param mouse The mouse position
+     */
+    getMatchingTargetsWithMousePosition(mouse) {
+        let matchingTargets = [];
+        if (this.options.shadow.enable == false || this.options.shadow.container == null) {
+            console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
+            return matchingTargets;
+        }
+        const container = this.options.shadow.container;
+        let xCorrected = mouse.x - container.getBoundingClientRect().left;
+        let yCorrected = mouse.y - container.getBoundingClientRect().top;
+        for (let target of this.getTargets()) {
+            if (this.isLeftTopElement(target)) {
+                if (this.matchPosition(target, { x: mouse.x, y: mouse.y })) {
+                    matchingTargets.push(target);
+                }
+            }
+            else {
+                if (this.matchPosition(target, { x: xCorrected, y: yCorrected })) {
+                    matchingTargets.push(target);
+                }
+            }
+        }
+        return matchingTargets;
+    }
+    matchPosition(element, point) {
+        let elementCoordinates = this.getBoundingBoxAbsolute(element);
+        if (point.x >= elementCoordinates.x &&
+            point.x <= elementCoordinates.x + elementCoordinates.width &&
+            point.y >= elementCoordinates.y &&
+            point.y <= elementCoordinates.y + elementCoordinates.height) {
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Get element currently dragging
+     */
+    getElementDrag() {
+        return this.options.element;
+    }
+    /**
+     * Set targets where to drop
+     */
+    setTargets(targets) {
+        this.options.targets = targets;
+    }
+    /**
+     * Set targets where to drop
+     */
+    setTargetsFct(targets) {
+        this.options.targets = targets;
+    }
+    /**
+     * Destroy the current drag&drop instance
+     */
+    destroy() {
+        this.pressManager.destroy();
+    }
+    isLeftTopElement(element) {
+        for (let Type of DragElementLeftTopType) {
+            if (element instanceof Type) {
+                return true;
             }
         }
         return false;
     }
-    run(fct) {
-        if (this.success) {
-            let result = fct();
-            if (!Array.isArray(result)) {
-                result = result.errors;
-            }
-            if (result.length > 0) {
-                this.errors = [...this.errors, ...result];
+    isXYElement(element) {
+        for (let Type of DragElementXYType) {
+            if (element instanceof Type) {
+                return true;
             }
         }
-        return this;
+        return false;
     }
-    async runAsync(fct) {
-        if (this.success) {
-            let result = await fct();
-            if (!Array.isArray(result)) {
-                result = result.errors;
-            }
-            if (result.length > 0) {
-                this.errors = [...this.errors, ...result];
-            }
+    getCoordinateFromAttribute(element) {
+        if (this.options.useTransform) {
+            const transform = element.getAttribute("transform");
+            const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
+            const x = tvalue ? parseFloat(tvalue[1]) : 0;
+            const y = tvalue ? parseFloat(tvalue[2]) : 0;
+            return {
+                x: x,
+                y: y
+            };
         }
-        return this;
+        return {
+            x: parseFloat(element.getAttribute("x")),
+            y: parseFloat(element.getAttribute("y"))
+        };
     }
-    extract(fct) {
-        if (this.success) {
-            let result = fct();
-            if (result.success && result.result !== undefined) {
-                return result.result;
+    XYElementToRelativeBox(element) {
+        let coordinates = this.getCoordinateFromAttribute(element);
+        const width = parseFloat(element.getAttribute("width"));
+        const height = parseFloat(element.getAttribute("height"));
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON() {
+                return JSON.stringify(this);
             }
-            this.errors = [...this.errors, ...result.errors];
-        }
-        return undefined;
+        };
     }
-    async extractAsync(fct) {
-        if (this.success) {
-            let result = await fct();
-            if (result.success && result.result !== undefined) {
-                return result.result;
-            }
-            this.errors = [...this.errors, ...result.errors];
+    XYElementToAbsoluteBox(element) {
+        let coordinates = this.getCoordinateFromAttribute(element);
+        const parent = this.getOffsetParent(element);
+        if (parent) {
+            const box = parent.getBoundingClientRect();
+            coordinates = {
+                x: coordinates.x + box.x,
+                y: coordinates.y + box.y
+            };
         }
-        return undefined;
+        const width = parseFloat(element.getAttribute("width"));
+        const height = parseFloat(element.getAttribute("height"));
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getBoundingBoxAbsolute(element) {
+        if (this.isLeftTopElement(element)) {
+            if (element instanceof HTMLElement) {
+                const bounds = element.getBoundingClientRect();
+                return {
+                    x: bounds.x,
+                    y: bounds.y,
+                    width: bounds.width,
+                    height: bounds.height,
+                    bottom: bounds.bottom,
+                    right: bounds.right,
+                    top: bounds.top,
+                    left: bounds.left,
+                    toJSON() {
+                        return JSON.stringify(this);
+                    }
+                };
+            }
+        }
+        else if (this.isXYElement(element)) {
+            return this.XYElementToAbsoluteBox(element);
+        }
+        const parent = this.getOffsetParent(element);
+        if (parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
+            return {
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
+                toJSON() {
+                    return JSON.stringify(this);
+                }
+            };
+        }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getBoundingBoxRelative(element) {
+        if (this.isLeftTopElement(element)) {
+            if (element instanceof HTMLElement) {
+                return {
+                    x: element.offsetLeft,
+                    y: element.offsetTop,
+                    width: element.offsetWidth,
+                    height: element.offsetHeight,
+                    bottom: element.offsetTop + element.offsetHeight,
+                    right: element.offsetLeft + element.offsetWidth,
+                    top: element.offsetTop,
+                    left: element.offsetLeft,
+                    toJSON() {
+                        return JSON.stringify(this);
+                    }
+                };
+            }
+        }
+        else if (this.isXYElement(element)) {
+            return this.XYElementToRelativeBox(element);
+        }
+        const parent = this.getOffsetParent(element);
+        if (parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
+            return {
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
+                toJSON() {
+                    return JSON.stringify(this);
+                }
+            };
+        }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getOffsetParent(element) {
+        if (element instanceof HTMLElement) {
+            return element.offsetParent;
+        }
+        let current = element.parentNode;
+        while (current) {
+            if (current instanceof Element) {
+                const style = getComputedStyle(current);
+                if (style.position !== 'static') {
+                    return current;
+                }
+            }
+            if (current instanceof ShadowRoot) {
+                current = current.host;
+            }
+            else {
+                current = current.parentNode;
+            }
+        }
+        return null;
     }
 }
-VoidWithError.Namespace=`Aventus`;
-VoidWithError.$schema={"success":"boolean","errors":"T[]"};
-Converter.register(VoidWithError.Fullname, VoidWithError);
-__as1(_, 'VoidWithError', VoidWithError);
+DragAndDrop.Namespace=`Aventus`;
+__as1(_, 'DragAndDrop', DragAndDrop);
 
-let ResultWithError=class ResultWithError extends VoidWithError {
-    static get Fullname() { return "Aventus.ResultWithError"; }
-    /**
-      * The result value of the action.
-      * @type {U | undefined}
-      */
-    result;
-    /**
-     * Converts the current instance to a ResultWithError object.
-     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
-     */
-    toGeneric() {
-        const result = new ResultWithError();
-        result.errors = this.errors;
-        result.result = this.result;
+let Instance=class Instance {
+    static elements = new Map();
+    static get(type) {
+        let result = this.elements.get(type);
+        if (!result) {
+            let cst = type.prototype['constructor'];
+            result = new cst();
+            this.elements.set(type, result);
+        }
         return result;
     }
-    run(fct) {
-        if (this.success) {
-            const result = fct();
-            const errors = Array.isArray(result) ? result : result.errors;
-            if (errors.length > 0) {
-                this.errors = [...this.errors, ...errors];
-            }
-            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
-                this.result = result.result;
-            }
+    static set(el) {
+        let cst = el.constructor;
+        if (this.elements.get(cst)) {
+            return false;
         }
-        return this;
+        this.elements.set(cst, el);
+        return true;
     }
-    async runAsync(fct) {
-        if (this.success) {
-            const result = await fct();
-            const errors = Array.isArray(result) ? result : result.errors;
-            if (errors.length > 0) {
-                this.errors = [...this.errors, ...errors];
-            }
-            if (result instanceof ResultWithError && result.success && result.result !== undefined) {
-                this.result = result.result;
-            }
-        }
-        return this;
+    static destroy(el) {
+        let cst = el.constructor;
+        return this.elements.delete(cst);
     }
 }
-ResultWithError.Namespace=`Aventus`;
-ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
-Converter.register(ResultWithError.Fullname, ResultWithError);
-__as1(_, 'ResultWithError', ResultWithError);
+Instance.Namespace=`Aventus`;
+__as1(_, 'Instance', Instance);
+
+let ResizeObserver=class ResizeObserver {
+    callback;
+    targets;
+    fpsInterval = -1;
+    nextFrame;
+    entriesChangedEvent;
+    willTrigger;
+    static resizeObserverClassByObject = {};
+    static uniqueInstance;
+    static getUniqueInstance() {
+        if (!ResizeObserver.uniqueInstance) {
+            ResizeObserver.uniqueInstance = new window.ResizeObserver(entries => {
+                let allClasses = [];
+                for (let j = 0; j < entries.length; j++) {
+                    let entry = entries[j];
+                    const target = entry.target;
+                    let index = target['sourceIndex'];
+                    if (ResizeObserver.resizeObserverClassByObject[index]) {
+                        for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
+                            let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
+                            classTemp.entryChanged(entry);
+                            if (allClasses.indexOf(classTemp) == -1) {
+                                allClasses.push(classTemp);
+                            }
+                        }
+                    }
+                }
+                for (let i = 0; i < allClasses.length; i++) {
+                    allClasses[i].triggerCb();
+                }
+            });
+        }
+        return ResizeObserver.uniqueInstance;
+    }
+    constructor(options) {
+        let realOption;
+        if (options instanceof Function) {
+            realOption = {
+                callback: options,
+            };
+        }
+        else {
+            realOption = options;
+        }
+        this.callback = realOption.callback;
+        this.targets = [];
+        if (!realOption.fps) {
+            realOption.fps = 60;
+        }
+        if (realOption.fps != -1) {
+            this.fpsInterval = 1000 / realOption.fps;
+        }
+        this.nextFrame = 0;
+        this.entriesChangedEvent = {};
+        this.willTrigger = false;
+    }
+    /**
+     * Observe size changing for the element
+     */
+    observe(target) {
+        const _target = target;
+        if (!_target["sourceIndex"]) {
+            _target["sourceIndex"] = Math.random().toString(36);
+        }
+        if (!ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]]) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]] = [];
+        }
+        const subscribers = ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]];
+        if (subscribers.indexOf(this) == -1) {
+            if (subscribers.length == 0) {
+                ResizeObserver.getUniqueInstance().observe(_target);
+            }
+            subscribers.push(this);
+            this.targets.push(_target);
+        }
+    }
+    /**
+     * Stop observing size changing for the element
+     */
+    unobserve(target) {
+        const _target = target;
+        for (let i = 0; i < this.targets.length; i++) {
+            let tempTarget = this.targets[i];
+            if (tempTarget == _target) {
+                const subscribers = ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
+                let position = subscribers.indexOf(this);
+                if (position != -1) {
+                    subscribers.splice(position, 1);
+                }
+                if (subscribers.length == 0) {
+                    delete ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
+                    ResizeObserver.getUniqueInstance().unobserve(_target);
+                }
+                this.targets.splice(i, 1);
+                return;
+            }
+        }
+    }
+    /**
+     * Destroy the resize observer
+     */
+    disconnect() {
+        for (const target of [...this.targets]) {
+            this.unobserve(target);
+        }
+    }
+    entryChanged(entry) {
+        const _target = entry.target;
+        let index = _target.sourceIndex;
+        this.entriesChangedEvent[index] = entry;
+    }
+    triggerCb() {
+        if (!this.willTrigger) {
+            this.willTrigger = true;
+            this._triggerCb();
+        }
+    }
+    _triggerCb() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
+            requestAnimationFrame(() => {
+                this._triggerCb();
+            });
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        let changed = Object.values(this.entriesChangedEvent);
+        this.entriesChangedEvent = {};
+        this.willTrigger = false;
+        setTimeout(() => {
+            this.callback(changed, ResizeObserver.uniqueInstance);
+        }, 0);
+    }
+}
+ResizeObserver.Namespace=`Aventus`;
+__as1(_, 'ResizeObserver', ResizeObserver);
+
+let Uri=class Uri {
+    static prepare(uri) {
+        let params = [];
+        let i = 0;
+        let regexState = uri.replace(/{.*?}/g, (group, position) => {
+            group = group.slice(1, -1);
+            let splitted = group.split(":");
+            let name = splitted[0].trim();
+            let type = "string";
+            let result = "([^\\/]+)";
+            i++;
+            if (splitted.length > 1) {
+                if (splitted[1].trim() == "number") {
+                    result = "([0-9]+)";
+                    type = "number";
+                }
+            }
+            params.push({
+                name,
+                type,
+                position: i
+            });
+            return result;
+        });
+        regexState = regexState.replace(/\*/g, ".*?").toLowerCase();
+        regexState = "^" + regexState + '$';
+        return {
+            regex: new RegExp(regexState),
+            params
+        };
+    }
+    static getParams(from, current) {
+        if (typeof from == "string") {
+            from = this.prepare(from);
+        }
+        let matches = from.regex.exec(current.toLowerCase());
+        if (matches) {
+            let slugs = {};
+            for (let param of from.params) {
+                if (param.type == "number") {
+                    slugs[param.name] = Number(matches[param.position]);
+                }
+                else {
+                    slugs[param.name] = matches[param.position];
+                }
+            }
+            return slugs;
+        }
+        return null;
+    }
+    static isActive(from, current) {
+        if (typeof from == "string") {
+            from = this.prepare(from);
+        }
+        return from.regex.test(current);
+    }
+    static normalize(path) {
+        const isAbsolute = path.startsWith('/');
+        const parts = path.split('/');
+        const normalizedParts = [];
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i] === '..') {
+                normalizedParts.pop();
+            }
+            else if (parts[i] !== '.' && parts[i] !== '') {
+                normalizedParts.push(parts[i]);
+            }
+        }
+        let normalizedPath = normalizedParts.join('/');
+        if (isAbsolute) {
+            normalizedPath = '/' + normalizedPath;
+        }
+        return normalizedPath;
+    }
+}
+Uri.Namespace=`Aventus`;
+__as1(_, 'Uri', Uri);
 
 let RamError=class RamError extends GenericError {
 }
@@ -5954,460 +6408,6 @@ let Ram=class Ram extends GenericRam {
 }
 Ram.Namespace=`Aventus`;
 __as1(_, 'Ram', Ram);
-
-let HttpCache=class HttpCache {
-    static cache = new Map();
-    static pending = new Map();
-    static fetch(fullUrl, request) {
-        const key = this.generateCacheKey(fullUrl, request);
-        if (key) {
-            const value = this.cache.get(key);
-            if (value)
-                return Promise.resolve(value);
-            const pending = this.pending.get(key);
-            if (pending)
-                return pending;
-        }
-        let transport;
-        try {
-            transport = fetch(fullUrl, request);
-        }
-        catch (error) {
-            return Promise.reject(error);
-        }
-        let pending;
-        pending = Promise.resolve(transport).then(result => {
-            const response = new HttpResponse(result);
-            if (key && this.pending.get(key) === pending) {
-                this.cache.set(key, response);
-            }
-            return response;
-        }).finally(() => {
-            if (key && this.pending.get(key) === pending) {
-                this.pending.delete(key);
-            }
-        });
-        if (key) {
-            this.pending.set(key, pending);
-        }
-        return pending;
-    }
-    static clear(fullUrl, request) {
-        const key = this.generateCacheKey(fullUrl, request);
-        if (key) {
-            this.pending.delete(key);
-            if (this.cache.has(key)) {
-                this.cache.delete(key);
-            }
-        }
-    }
-    static generateCacheKey(fullUrl, request) {
-        const method = request.method;
-        const body = request.body;
-        const accept = request.headers ? new Headers(request.headers).get('Accept') ?? '' : '';
-        let bodyKey = "";
-        if (typeof body == 'string') {
-            bodyKey = this.hashStringToInt(body) + '';
-        }
-        else if (body instanceof FormData) {
-        }
-        return fullUrl + "°" + method + "°" + bodyKey + "°" + accept;
-    }
-    static hashStringToInt(str) {
-        let hash = 0x811c9dc5;
-        for (let i = 0; i < str.length; i++) {
-            hash ^= str.charCodeAt(i);
-            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
-        }
-        return hash >>> 0;
-    }
-}
-HttpCache.Namespace=`Aventus`;
-__as1(_, 'HttpCache', HttpCache);
-
-let HttpError=class HttpError extends GenericError {
-    status;
-    constructor(code, message, status) {
-        super(code, message);
-        this.status = status;
-    }
-}
-HttpError.Namespace=`Aventus`;
-HttpError.$schema={...(GenericError?.$schema ?? {}), "status":"number"};
-Converter.register(HttpError.Fullname, HttpError);
-__as1(_, 'HttpError', HttpError);
-
-let HttpRouter=class HttpRouter {
-    static options;
-    static configure(options) {
-        HttpRouter.options = options;
-    }
-    options;
-    constructor() {
-        this.options = this.defineOptions(this.defaultOptionsValue());
-    }
-    defaultOptionsValue() {
-        return HttpRouter.options ?? {
-            url: location.protocol + "//" + location.host
-        };
-    }
-    defineOptions(options) {
-        return options;
-    }
-    async get(url) {
-        return await new HttpRequest(url).queryJSON(this);
-    }
-    async post(url, data) {
-        return await new HttpRequest(url, HttpMethod.POST, data).queryJSON(this);
-    }
-    async put(url, data) {
-        return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON(this);
-    }
-    async delete(url, data) {
-        return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON(this);
-    }
-    async option(url, data) {
-        return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON(this);
-    }
-}
-HttpRouter.Namespace=`Aventus`;
-__as1(_, 'HttpRouter', HttpRouter);
-
-let HttpRoute=class HttpRoute {
-    router;
-    constructor(router) {
-        this.router = router ?? new HttpRouter();
-    }
-    getPrefix() {
-        return "";
-    }
-}
-HttpRoute.Namespace=`Aventus`;
-__as1(_, 'HttpRoute', HttpRoute);
-
-let HttpRequest=class HttpRequest {
-    static options;
-    static configure(options) {
-        HttpRequest.options = options;
-    }
-    request;
-    url;
-    methodSpoofing = false;
-    useCache = false;
-    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false, useCache = false) {
-        this.url = url;
-        this.request = {};
-        this.methodSpoofing = methodSpoofing;
-        this.useCache = useCache;
-        this.setMethod(method);
-        this.prepareBody(body);
-    }
-    setUrl(url) {
-        this.url = url;
-    }
-    toString() {
-        return this.url + " : " + JSON.stringify(this.request);
-    }
-    setBody(body) {
-        this.prepareBody(body);
-    }
-    setMethod(method) {
-        this.request.method = method;
-    }
-    /**
-     * Replace method Put/Delete by _method:"put" inside a form
-     */
-    enableMethodSpoofing() {
-        this.methodSpoofing = true;
-    }
-    enableCache() {
-        this.useCache = true;
-    }
-    disableCache() {
-        this.useCache = false;
-    }
-    objectToFormData(obj, formData, parentKey) {
-        formData = formData || new FormData();
-        let byPass = obj;
-        if (byPass.__isProxy) {
-            obj = byPass.getTarget();
-        }
-        const keys = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            let value = obj[key];
-            const newKey = parentKey ? `${parentKey}[${key}]` : key;
-            if (value instanceof Date || value instanceof DateTime || value instanceof Time) {
-                formData.append(newKey, DateConverter.converter.toString(value));
-            }
-            else if (typeof value === 'object' &&
-                value !== null &&
-                !(value instanceof File)) {
-                if (Array.isArray(value)) {
-                    for (let j = 0; j < value.length; j++) {
-                        const arrayKey = `${newKey}[${j}]`;
-                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
-                    }
-                }
-                else {
-                    this.objectToFormData(value, formData, newKey);
-                }
-            }
-            else {
-                if (value === undefined || value === null) {
-                    value = "";
-                }
-                else if (Watcher.is(value)) {
-                    value = Watcher.extract(value);
-                }
-                formData.append(newKey, value);
-            }
-        }
-        return formData;
-    }
-    jsonReplacer(key, value) {
-        const t = this;
-        if (t[key] instanceof Date || t[key] instanceof DateTime || t[key] instanceof Time) {
-            return DateConverter.converter.toString(t[key]);
-        }
-        return value;
-    }
-    prepareBody(data) {
-        if (!data) {
-            return;
-        }
-        else if (data instanceof FormData) {
-            this.request.body = data;
-        }
-        else {
-            let useFormData = false;
-            const analyseFormData = (obj) => {
-                for (let key in obj) {
-                    if (obj[key] instanceof File) {
-                        useFormData = true;
-                        break;
-                    }
-                    else if (Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
-                        useFormData = true;
-                        break;
-                    }
-                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date) && !(obj[key] instanceof DateTime) && !(obj[key] instanceof Time)) {
-                        analyseFormData(obj[key]);
-                        if (useFormData) {
-                            break;
-                        }
-                    }
-                }
-            };
-            analyseFormData(data);
-            if (useFormData) {
-                this.request.body = this.objectToFormData(data);
-            }
-            else {
-                this.request.body = JSON.stringify(data, this.jsonReplacer);
-                this.setHeader("Content-Type", "Application/json");
-            }
-        }
-        if (this.methodSpoofing) {
-            if (this.request.method?.toUpperCase() == Aventus.HttpMethod.PUT) {
-                if (this.request.body instanceof FormData) {
-                    this.request.body.append("_method", Aventus.HttpMethod.PUT);
-                    this.request.method = Aventus.HttpMethod.POST;
-                }
-            }
-            else if (this.request.method?.toUpperCase() == Aventus.HttpMethod.DELETE) {
-                if (this.request.body instanceof FormData) {
-                    this.request.body.append("_method", Aventus.HttpMethod.DELETE);
-                    this.request.method = Aventus.HttpMethod.POST;
-                }
-            }
-        }
-    }
-    setHeader(name, value) {
-        if (!this.request.headers) {
-            this.request.headers = [];
-        }
-        const headers = this.request.headers;
-        const existing = headers.findIndex(([key]) => key.toLowerCase() === name.toLowerCase());
-        if (existing >= 0) {
-            headers[existing] = [name, value];
-        }
-        else {
-            headers.push([name, value]);
-        }
-    }
-    setCredentials(credentials) {
-        this.request.credentials = credentials;
-    }
-    async _query(router) {
-        let result = new ResultWithError();
-        try {
-            const isFull = this.url.match("https?://");
-            if (!this.url.startsWith("/") && !isFull) {
-                this.url = "/" + this.url;
-            }
-            if (HttpRequest.options?.beforeSend) {
-                const beforeSendResult = await HttpRequest.options.beforeSend(this);
-                result.errors = beforeSendResult.errors;
-                if (!result.success)
-                    return result;
-            }
-            const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
-            if (this.useCache) {
-                result.result = await HttpCache.fetch(fullUrl, this.request);
-            }
-            else {
-                let response = await fetch(fullUrl, this.request);
-                result.result = new HttpResponse(response);
-            }
-            if (result.result && !result.result.ok) {
-                result.errors.push(new HttpError(HttpErrorCode.status, `${result.result.status} ${result.result.statusText}`.trim(), result.result.status));
-            }
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    async query(router) {
-        let result = await this._query(router);
-        if (HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
-        return result;
-    }
-    async queryVoid(router) {
-        let resultTemp = await this.query(router);
-        let result = new VoidWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            if (resultTemp.result.status != 204) {
-                let tempResult = await resultTemp.result.json();
-                if (tempResult instanceof VoidWithError) {
-                    for (let error of tempResult.errors) {
-                        result.errors.push(error);
-                    }
-                }
-            }
-        }
-        catch (e) {
-        }
-        return result;
-    }
-    async queryJSON(router) {
-        this.setHeader("Accept", "application/json");
-        let resultTemp = await this.query(router);
-        let result = new ResultWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            let tempResult = await resultTemp.result.json();
-            if (tempResult instanceof VoidWithError) {
-                if (tempResult.errors.length > 0) {
-                    result.errors = result.errors.filter(error => !(error instanceof HttpError && error.code === HttpErrorCode.status && error.status === resultTemp.result?.status));
-                }
-                for (let error of tempResult.errors) {
-                    result.errors.push(error);
-                }
-                if (tempResult instanceof ResultWithError) {
-                    result.result = tempResult.result;
-                }
-            }
-            else {
-                result.result = tempResult;
-            }
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    async queryTxt(router) {
-        this.setHeader("Accept", "text/plain");
-        let resultTemp = await this.query(router);
-        let result = new ResultWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            result.result = await resultTemp.result.text();
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    async queryBlob(router) {
-        this.setHeader("Accept", "application/octet-stream");
-        let resultTemp = await this.query(router);
-        let result = new ResultWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            result.result = await resultTemp.result.blob();
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    clearCache(router) {
-        const isFull = this.url.match("https?://");
-        if (!this.url.startsWith("/") && !isFull) {
-            this.url = "/" + this.url;
-        }
-        const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
-        HttpCache.clear(fullUrl, this.request);
-    }
-}
-HttpRequest.Namespace=`Aventus`;
-__as1(_, 'HttpRequest', HttpRequest);
-
-let StorableRoute=class StorableRoute extends HttpRoute {
-    async GetAll() {
-        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
-        return await request.queryJSON(this.router);
-    }
-    async Create(body) {
-        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.POST);
-        request.setBody(body);
-        return await request.queryJSON(this.router);
-    }
-    async GetById(id) {
-        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.GET);
-        return await request.queryJSON(this.router);
-    }
-    async Update(id, body) {
-        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.PUT);
-        request.setBody(body);
-        return await request.queryJSON(this.router);
-    }
-    async Delete(id) {
-        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.DELETE);
-        return await request.queryVoid(this.router);
-    }
-}
-StorableRoute.Namespace=`Aventus`;
-__as1(_, 'StorableRoute', StorableRoute);
 
 let StateManager=class StateManager {
     subscribers = {};

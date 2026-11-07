@@ -790,6 +790,191 @@ let DateSettings=class DateSettings {
 DateSettings.Namespace=`Aventus`;
 __as1(_, 'DateSettings', DateSettings);
 
+let Effect=class Effect {
+    callbacks = [];
+    isInit = false;
+    isDestroy = false;
+    __subscribes = [];
+    __allowChanged = [];
+    version = 0;
+    isRunning = false;
+    pendingChange;
+    seenNotifications = new WeakSet();
+    fct;
+    constructor(fct) {
+        this.fct = fct;
+        if (this.autoInit()) {
+            this.init();
+        }
+    }
+    autoInit() {
+        return true;
+    }
+    init() {
+        this.isInit = true;
+        this.run();
+    }
+    run() {
+        if (this.isRunning)
+            return;
+        let result;
+        let pendingNotification;
+        do {
+            this.pendingChange = undefined;
+            this.isRunning = true;
+            this.version++;
+            Watcher._registering.push(this);
+            try {
+                result = this.fct();
+            }
+            finally {
+                Watcher._registering.splice(Watcher._registering.length - 1, 1);
+                this.isRunning = false;
+            }
+            for (let i = 0; i < this.callbacks.length; i++) {
+                if (this.callbacks[i].version != this.version) {
+                    this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
+                    this.callbacks.splice(i, 1);
+                    i--;
+                }
+            }
+            if (pendingNotification) {
+                const notification = pendingNotification;
+                for (let fct of [...this.__subscribes]) {
+                    Watcher.isolate(() => {
+                        fct(notification.action, notification.changePath, notification.value, notification.dones);
+                    });
+                }
+            }
+            pendingNotification = this.pendingChange;
+        } while (pendingNotification && !this.isDestroy);
+        return result;
+    }
+    register(receiver, path, version, fullPath, presenceOnly = false, collectionSizeOnly = false, mapSizeKeyValue = false) {
+        for (let info of this.callbacks) {
+            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath &&
+                info.presenceOnly == presenceOnly && info.collectionSizeOnly == collectionSizeOnly &&
+                info.mapSizeKeyValue == mapSizeKeyValue) {
+                info.version = version;
+                info.fullPath = fullPath;
+                return;
+            }
+        }
+        let cb;
+        if (collectionSizeOnly) {
+            let observedSize = Watcher.untrack(() => receiver.size);
+            cb = (action, changePath, value, dones) => {
+                const currentSize = Watcher.untrack(() => receiver.size);
+                if (currentSize != observedSize) {
+                    observedSize = currentSize;
+                    this.onChange(action, changePath, value, dones);
+                }
+            };
+        }
+        else if (mapSizeKeyValue) {
+            let observedValue = Watcher.untrack(() => Watcher.extract(receiver.get('size')));
+            cb = (action, changePath, value, dones) => {
+                if (changePath == path) {
+                    const currentValue = Watcher.untrack(() => Watcher.extract(receiver.get('size')));
+                    if (!Object.is(currentValue, observedValue)) {
+                        observedValue = currentValue;
+                        this.onChange(action, changePath, value, dones);
+                    }
+                }
+                else if (changePath.startsWith(path + '.') || changePath.startsWith(path + '[')) {
+                    this.onChange(action, changePath, value, dones);
+                }
+            };
+        }
+        else if (path == "*") {
+            cb = (action, changePath, value, dones) => { this.onChange(action, changePath, value, dones); };
+        }
+        else {
+            cb = (action, changePath, value, dones) => {
+                if (presenceOnly) {
+                    if (changePath == path && (action == WatchAction.CREATED || action == WatchAction.DELETED)) {
+                        this.onChange(action, changePath, value, dones);
+                    }
+                }
+                else if (changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
+                    this.onChange(action, changePath, value, dones);
+                }
+            };
+        }
+        this.callbacks.push({
+            receiver,
+            path,
+            registerPath: receiver.__path,
+            cb,
+            version,
+            fullPath,
+            presenceOnly,
+            collectionSizeOnly,
+            mapSizeKeyValue
+        });
+        receiver.subscribe(cb);
+    }
+    canChange(fct) {
+        this.__allowChanged.push(fct);
+    }
+    checkCanChange(action, changePath, value, dones) {
+        if (this.isDestroy || this.isRunning || this.seenNotifications.has(dones)) {
+            return false;
+        }
+        for (let fct of this.__allowChanged) {
+            if (!fct(action, changePath, value, dones)) {
+                return false;
+            }
+        }
+        this.seenNotifications.add(dones);
+        return true;
+    }
+    onChange(action, changePath, value, dones) {
+        if (this.isRunning) {
+            if (!this.isDestroy && !this.seenNotifications.has(dones) &&
+                this.__allowChanged.every(fct => fct(action, changePath, value, dones))) {
+                this.seenNotifications.add(dones);
+                this.pendingChange = { action, changePath, value, dones };
+            }
+            return;
+        }
+        if (!this.checkCanChange(action, changePath, value, dones)) {
+            return;
+        }
+        this.run();
+        for (let fct of [...this.__subscribes]) {
+            Watcher.isolate(() => {
+                fct(action, changePath, value, dones);
+            });
+        }
+    }
+    destroy() {
+        this.isDestroy = true;
+        this.clearCallbacks();
+        this.isInit = false;
+    }
+    clearCallbacks() {
+        for (let pair of this.callbacks) {
+            pair.receiver.unsubscribe(pair.cb);
+        }
+        this.callbacks = [];
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+}
+Effect.Namespace=`Aventus`;
+__as1(_, 'Effect', Effect);
+
 let Time=class Time {
     static configure(options) { DateSettings.configure(options); }
     static get configuration() { return DateSettings.current; }
@@ -888,7 +1073,21 @@ let getValueFromObject=function getValueFromObject(path, obj) {
     }
     const val = (key) => {
         if (obj instanceof Map) {
-            return obj.get(key);
+            if (obj.has(key))
+                return obj.get(key);
+            for (const [mapKey, value] of obj) {
+                if (mapKey !== null && typeof mapKey === 'object' && mapKey.toString() === key) {
+                    return value;
+                }
+            }
+            return undefined;
+        }
+        if (obj instanceof Set) {
+            for (const value of obj) {
+                if (String(value) === key)
+                    return value;
+            }
+            return undefined;
         }
         return obj[key];
     };
@@ -915,133 +1114,6 @@ var WatchAction;
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
 __as1(_, 'WatchAction', WatchAction);
-
-let Effect=class Effect {
-    callbacks = [];
-    isInit = false;
-    isDestroy = false;
-    __subscribes = [];
-    __allowChanged = [];
-    version = 0;
-    isRunning = false;
-    fct;
-    constructor(fct) {
-        this.fct = fct;
-        if (this.autoInit()) {
-            this.init();
-        }
-    }
-    autoInit() {
-        return true;
-    }
-    init() {
-        this.isInit = true;
-        this.run();
-    }
-    run() {
-        if (this.isRunning)
-            return;
-        this.isRunning = true;
-        this.version++;
-        Watcher._registering.push(this);
-        let result;
-        try {
-            result = this.fct();
-        }
-        finally {
-            Watcher._registering.splice(Watcher._registering.length - 1, 1);
-            this.isRunning = false;
-        }
-        for (let i = 0; i < this.callbacks.length; i++) {
-            if (this.callbacks[i].version != this.version) {
-                this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
-                this.callbacks.splice(i, 1);
-                i--;
-            }
-        }
-        return result;
-    }
-    register(receiver, path, version, fullPath) {
-        for (let info of this.callbacks) {
-            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath) {
-                info.version = version;
-                info.fullPath = fullPath;
-                return;
-            }
-        }
-        let cb;
-        if (path == "*") {
-            cb = (action, changePath, value, dones) => { this.onChange(action, changePath, value, dones); };
-        }
-        else {
-            cb = (action, changePath, value, dones) => {
-                if (changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
-                    // if(changePath == path) {
-                    this.onChange(action, changePath, value, dones);
-                }
-            };
-        }
-        this.callbacks.push({
-            receiver,
-            path,
-            registerPath: receiver.__path,
-            cb,
-            version,
-            fullPath
-        });
-        receiver.subscribe(cb);
-    }
-    canChange(fct) {
-        this.__allowChanged.push(fct);
-    }
-    checkCanChange(action, changePath, value, dones) {
-        if (this.isDestroy || this.isRunning) {
-            return false;
-        }
-        for (let fct of this.__allowChanged) {
-            if (!fct(action, changePath, value, dones)) {
-                return false;
-            }
-        }
-        return true;
-    }
-    onChange(action, changePath, value, dones) {
-        if (!this.checkCanChange(action, changePath, value, dones)) {
-            return;
-        }
-        this.run();
-        for (let fct of [...this.__subscribes]) {
-            Watcher.isolate(() => {
-                fct(action, changePath, value, dones);
-            });
-        }
-    }
-    destroy() {
-        this.isDestroy = true;
-        this.clearCallbacks();
-        this.isInit = false;
-    }
-    clearCallbacks() {
-        for (let pair of this.callbacks) {
-            pair.receiver.unsubscribe(pair.cb);
-        }
-        this.callbacks = [];
-    }
-    subscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index == -1) {
-            this.__subscribes.push(fct);
-        }
-    }
-    unsubscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index > -1) {
-            this.__subscribes.splice(index, 1);
-        }
-    }
-}
-Effect.Namespace=`Aventus`;
-__as1(_, 'Effect', Effect);
 
 let Signal=class Signal {
     __subscribes = [];
@@ -1394,7 +1466,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
         }
         if (tableOrder) {
             for (let i = 0; i < obj1.length; i++) {
-                if (!compareObjectRecursive(obj1[i], obj2[i], true, active, proxyData1, proxyData2)) {
+                if (!compareObjectRecursive(obj1[i], obj2[i], tableOrder, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1404,7 +1476,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
             for (let i = 0; i < obj1.length; i++) {
                 let foundElement = false;
                 for (let j = 0; j < obj2.length; j++) {
-                    if (compareObjectRecursive(obj1[i], obj2[j], true, active, proxyData1, proxyData2)) {
+                    if (compareObjectRecursive(obj1[i], obj2[j], tableOrder, active, proxyData1, proxyData2)) {
                         obj2.splice(j, 1);
                         foundElement = true;
                         break;
@@ -1449,7 +1521,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
                 if (!obj2.has(key)) {
                     return false;
                 }
-                if (!compareObjectRecursive(value, obj2.get(key), true, active, proxyData1, proxyData2)) {
+                if (!compareObjectRecursive(value, obj2.get(key), tableOrder, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1465,7 +1537,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
                 if (!keys2.includes(key)) {
                     return false;
                 }
-                if (!compareObjectRecursive(obj1[key], obj2[key], true, active, proxyData1, proxyData2)) {
+                if (!compareObjectRecursive(obj1[key], obj2[key], tableOrder, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1850,7 +1922,9 @@ let Watcher=class Watcher {
                     };
                 }
                 else if (prop == "clearHistory") {
-                    this.history = [];
+                    return () => {
+                        this.history = [];
+                    };
                 }
                 else if (prop == "enableHistory") {
                     return () => {
@@ -1918,6 +1992,12 @@ let Watcher=class Watcher {
             },
             get(target, prop, receiver) {
                 if (typeof prop == 'symbol') {
+                    if (prop == Symbol.iterator && target instanceof Map) {
+                        return () => receiver.entries();
+                    }
+                    if (prop == Symbol.iterator && target instanceof Set) {
+                        return () => receiver.values();
+                    }
                     return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
                 }
                 if (reservedName[prop]) {
@@ -1964,15 +2044,17 @@ let Watcher=class Watcher {
                                 };
                             }
                             else {
-                                result = (index, nbRemove, ...insert) => {
-                                    let oldValues = [];
-                                    const extReceiver = Watcher.extract(receiver);
-                                    for (let i = index; i < index + nbRemove; i++) {
-                                        oldValues.push(extReceiver[i]);
-                                    }
-                                    let updateLength = nbRemove != insert.length;
+                                result = (...args) => {
+                                    const length = target.length;
+                                    const start = Number(args[0]);
+                                    const index = Number.isNaN(start) ? 0 : start < 0
+                                        ? Math.max(length + Math.trunc(start), 0)
+                                        : Math.min(Math.trunc(start), length);
+                                    const insert = args.slice(2);
+                                    const nbRemove = args.length === 0 ? 0 : args.length < 2 ? length - index
+                                        : Math.min(Math.max(Math.trunc(Number(args[1])) || 0, 0), length - index);
+                                    const oldValues = target.splice(index, nbRemove);
                                     for (let i = 0; i < oldValues.length; i++) {
-                                        target.splice((index + i), 1);
                                         trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
                                     }
                                     for (let i = 0; i < insert.length; i++) {
@@ -1982,9 +2064,9 @@ let Watcher=class Watcher {
                                         target.splice((index + i), 0, value);
                                         trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]", dones);
                                     }
-                                    if (updateLength)
+                                    if (oldValues.length != insert.length)
                                         trigger('UPDATED', target, receiver, target.length, "length");
-                                    return target;
+                                    return oldValues;
                                 };
                             }
                         }
@@ -1997,8 +2079,10 @@ let Watcher=class Watcher {
                             }
                             else {
                                 result = () => {
+                                    if (target.length === 0)
+                                        return undefined;
                                     let index = target.length - 1;
-                                    let oldValue = receiver.length ? receiver[receiver.length] : undefined;
+                                    let oldValue = target[index];
                                     let res = target.pop();
                                     trigger('DELETED', target, receiver, oldValue, "[" + index + "]");
                                     trigger('UPDATED', target, receiver, target.length, "length");
@@ -2006,7 +2090,28 @@ let Watcher=class Watcher {
                                 };
                             }
                         }
-                        // else if(prop == 'find') {
+                        else if (['reverse', 'sort', 'shift', 'unshift', 'fill', 'copyWithin'].includes(prop)) {
+                            result = (...args) => {
+                                const value = element.apply(target, args);
+                                trigger('UPDATED', target, receiver, receiver, '');
+                                return value === target ? receiver : value;
+                            };
+                        }
+                        else if ([
+                            'find', 'findLast', 'findIndex', 'findLastIndex', 'some', 'every',
+                            'filter', 'map', 'flatMap', 'forEach', 'reduce', 'reduceRight',
+                            'at', 'values', 'entries'
+                        ].includes(prop)) {
+                            result = (...args) => element.apply(receiver, args);
+                        }
+                        else if (['indexOf', 'lastIndexOf', 'includes'].includes(prop)) {
+                            result = (...args) => {
+                                if (args[0] && Watcher.is(args[0])) {
+                                    args[0] = Watcher.extract(args[0]);
+                                }
+                                return element.apply(target, args);
+                            };
+                        }
                         else {
                             result = element.bind(target);
                         }
@@ -2014,7 +2119,43 @@ let Watcher=class Watcher {
                     }
                     else if (target instanceof Map) {
                         let result;
-                        if (prop == "set") {
+                        const registerIteration = () => {
+                            return Watcher._register?.register(receiver, '*', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size', false, true);
+                        };
+                        if (prop == "entries" || prop == "values") {
+                            result = function* () {
+                                registerIteration();
+                                for (const [key] of target.entries()) {
+                                    const value = receiver.get(key);
+                                    yield prop == "entries" ? [key, value] : value;
+                                }
+                            };
+                        }
+                        else if (prop == "forEach") {
+                            result = (callback, thisArg) => {
+                                if (typeof callback != 'function')
+                                    throw new TypeError('Map.forEach callback must be a function');
+                                registerIteration();
+                                target.forEach((_value, key) => callback.call(thisArg, receiver.get(key), key, receiver));
+                            };
+                        }
+                        else if (prop == "get") {
+                            result = (key) => {
+                                key = Watcher.extract(key);
+                                const path = key + '';
+                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path, false, false, key === 'size');
+                                return this.getProxyObject(target, target.get(key), path);
+                            };
+                        }
+                        else if (prop == "has") {
+                            result = (key) => {
+                                key = Watcher.extract(key);
+                                const path = String(key);
+                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path, true);
+                                return target.has(key);
+                            };
+                        }
+                        else if (prop == "set") {
                             if (target.__isProxy) {
                                 result = (key, value) => {
                                     return target.set(key, value);
@@ -2024,17 +2165,24 @@ let Watcher=class Watcher {
                                 result = (key, value) => {
                                     const out = {};
                                     let dones = [];
-                                    let dones2 = [];
                                     key = Watcher.extract(key);
+                                    const hadKey = target.has(key);
+                                    if (!hadKey && key !== null && typeof key === 'object' && key.toString() === '[object Object]') {
+                                        console.warn('Watcher Map: toString() must return a unique value for each object key; [object Object] is ambiguous.');
+                                    }
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
                                     if (out.otherRoot) {
                                         dones.push(out.otherRoot);
-                                        dones2.push(out.otherRoot);
                                     }
-                                    let result = target.set(key, value);
-                                    trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
-                                    trigger('UPDATED', target, receiver, target.size, "size", dones2);
-                                    return result;
+                                    target.set(key, value);
+                                    trigger(hadKey ? 'UPDATED' : 'CREATED', target, receiver, receiver.get(key), key + '', dones);
+                                    if (!hadKey) {
+                                        dones.length = 0;
+                                        if (out.otherRoot)
+                                            dones.push(out.otherRoot);
+                                        trigger('UPDATED', target, receiver, target.size, "size", dones);
+                                    }
+                                    return receiver;
                                 };
                             }
                         }
@@ -2046,13 +2194,17 @@ let Watcher=class Watcher {
                             }
                             else {
                                 result = () => {
-                                    let keys = target.keys();
-                                    for (let key of keys) {
-                                        let oldValue = receiver.get(key);
-                                        target.delete(key);
-                                        trigger('DELETED', target, receiver, oldValue, key);
-                                        trigger('UPDATED', target, receiver, target.size, "size");
+                                    if (target.size === 0)
+                                        return;
+                                    const entries = [...target.entries()];
+                                    const dones = [];
+                                    target.clear();
+                                    for (const [key, oldValue] of entries) {
+                                        dones.length = 0;
+                                        trigger('DELETED', target, receiver, oldValue, key + '', dones);
                                     }
+                                    dones.length = 0;
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
                                 };
                             }
                         }
@@ -2065,13 +2217,119 @@ let Watcher=class Watcher {
                             else {
                                 result = (key) => {
                                     key = Watcher.extract(key);
+                                    if (!target.has(key))
+                                        return false;
                                     let oldValue = receiver.get(key);
                                     let res = target.delete(key);
-                                    trigger('DELETED', target, receiver, oldValue, key + '');
-                                    trigger('UPDATED', target, receiver, target.size, "size");
+                                    const dones = [];
+                                    trigger('DELETED', target, receiver, oldValue, key + '', dones);
+                                    dones.length = 0;
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
                                     return res;
                                 };
                             }
+                        }
+                        else if (prop == 'keys') {
+                            result = () => {
+                                registerIteration();
+                                return target.keys();
+                            };
+                        }
+                        else {
+                            result = element.bind(target);
+                        }
+                        return result;
+                    }
+                    else if (target instanceof Set) {
+                        let result;
+                        const registerIteration = () => {
+                            return Watcher._register?.register(receiver, '*', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size', false, true);
+                        };
+                        const watchValue = (value) => this.getProxyObject(target, value, String(value));
+                        if (prop == 'values' || prop == 'keys') {
+                            result = function* () {
+                                registerIteration();
+                                for (const value of target)
+                                    yield watchValue(value);
+                            };
+                        }
+                        else if (prop == 'entries') {
+                            result = function* () {
+                                registerIteration();
+                                for (const value of target) {
+                                    const watched = watchValue(value);
+                                    yield [watched, watched];
+                                }
+                            };
+                        }
+                        else if (prop == 'forEach') {
+                            result = (callback, thisArg) => {
+                                if (typeof callback != 'function')
+                                    throw new TypeError('Set.forEach callback must be a function');
+                                registerIteration();
+                                target.forEach(value => {
+                                    const watched = watchValue(value);
+                                    callback.call(thisArg, watched, watched, receiver);
+                                });
+                            };
+                        }
+                        else if (prop == 'has') {
+                            result = (value) => {
+                                if (value && Watcher.is(value)) {
+                                    value = Watcher.extract(value);
+                                }
+                                const path = String(value);
+                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path, true);
+                                return target.has(value);
+                            };
+                        }
+                        else if (prop == 'add') {
+                            result = (value) => {
+                                if (value && Watcher.is(value)) {
+                                    value = Watcher.extract(value);
+                                }
+                                if (target.has(value))
+                                    return receiver;
+                                if (value !== null && typeof value === 'object' && value.toString() === '[object Object]') {
+                                    console.warn('Watcher Set: toString() must return a unique value for each object; [object Object] is ambiguous.');
+                                }
+                                target.add(value);
+                                const dones = [];
+                                trigger('CREATED', target, receiver, value, String(value), dones);
+                                dones.length = 0;
+                                trigger('UPDATED', target, receiver, target.size, 'size', dones);
+                                return receiver;
+                            };
+                        }
+                        else if (prop == 'delete') {
+                            result = (value) => {
+                                if (value && Watcher.is(value)) {
+                                    value = Watcher.extract(value);
+                                }
+                                if (!target.has(value))
+                                    return false;
+                                const deleted = target.delete(value);
+                                const dones = [];
+                                trigger('DELETED', target, receiver, value, String(value), dones);
+                                dones.length = 0;
+                                trigger('UPDATED', target, receiver, target.size, 'size', dones);
+                                return deleted;
+                            };
+                        }
+                        else if (prop == 'clear') {
+                            result = () => {
+                                if (target.size === 0)
+                                    return;
+                                const values = [...target];
+                                const dones = [];
+                                target.clear();
+                                for (const value of values) {
+                                    dones.length = 0;
+                                    trigger('DELETED', target, receiver, value, String(value), dones);
+                                }
+                                dones.length = 0;
+                                trigger('UPDATED', target, receiver, target.size, 'size', dones);
+                            };
                         }
                         else {
                             result = element.bind(target);
@@ -2084,23 +2342,29 @@ let Watcher=class Watcher {
                     return element.value;
                 }
                 if (Watcher._registering.length > 0) {
-                    let currentPath;
-                    let fullPath;
-                    let isArray = Array.isArray(receiver);
-                    if (isArray && /^[0-9]*$/g.exec(prop)) {
-                        fullPath = receiver.__path + "[" + prop + "]";
-                        currentPath = "[" + prop + "]";
+                    if (prop == 'size' && (target instanceof Map || target instanceof Set)) {
+                        Watcher._register?.register(receiver, '*', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size', false, true);
                     }
                     else {
-                        fullPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                        currentPath = prop;
+                        let currentPath;
+                        let fullPath;
+                        let isArray = Array.isArray(receiver);
+                        if (isArray && /^[0-9]*$/g.exec(prop)) {
+                            fullPath = receiver.__path + "[" + prop + "]";
+                            currentPath = "[" + prop + "]";
+                        }
+                        else {
+                            fullPath = receiver.__path ? receiver.__path + '.' + prop : prop;
+                            currentPath = prop;
+                        }
+                        Watcher._register?.register(receiver, currentPath, Watcher._register.version, fullPath);
                     }
-                    Watcher._register?.register(receiver, currentPath, Watcher._register.version, fullPath);
                 }
                 if (typeof (element) == 'object') {
                     return this.getProxyObject(target, element, prop);
                 }
-                return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
+                return Watcher.isNative(target) || target instanceof Map || target instanceof Set
+                    ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
                 if (typeof prop == 'symbol') {
@@ -2238,7 +2502,7 @@ let Watcher=class Watcher {
         if (onDataChanged) {
             proxyData.callbacks[''] = [onDataChanged];
         }
-        const trigger = (type, target, receiver, value, prop, dones = []) => {
+        const trigger = (type, target, receiver, value, prop, dones = [], pathOverride) => {
             if (dones.includes(proxyData.baseData)) {
                 return;
             }
@@ -2246,11 +2510,20 @@ let Watcher=class Watcher {
                 return;
             }
             let rootPath;
-            if (receiver == null) {
+            if (pathOverride !== undefined) {
+                rootPath = pathOverride;
+            }
+            else if (receiver == null) {
                 rootPath = target.__path;
             }
             else {
                 rootPath = receiver.__path;
+                if (rootPath !== '') {
+                    const current = rootPath === undefined ? undefined : getValueFromObject(rootPath, proxyData.baseData);
+                    const currentTarget = Watcher.is(current) ? current.getTarget(false) : current;
+                    if (currentTarget !== target)
+                        return;
+                }
             }
             if (rootPath != "") {
                 if (Array.isArray(receiver)) {
@@ -2287,6 +2560,7 @@ let Watcher=class Watcher {
                     stacks.push(current);
                 }
             }
+            const initialDones = [...dones];
             dones.push(proxyData.baseData);
             let aliasesDone = [];
             const callbacks = { ...proxyData.callbacks };
@@ -2371,6 +2645,48 @@ let Watcher=class Watcher {
                     }
                 }
             }
+            if (pathOverride === undefined && receiver != null && target !== proxyData.baseData) {
+                const visited = new Set();
+                const notifyShared = (data, path) => {
+                    if (data === null || typeof data !== 'object')
+                        return;
+                    if (Watcher.is(data)) {
+                        data = data.getTarget(false);
+                    }
+                    if (data === target) {
+                        if (path !== receiver.__path) {
+                            trigger(type, target, receiver, value, prop, [...initialDones], path);
+                        }
+                        return;
+                    }
+                    if (data === null ||
+                        typeof data !== 'object' ||
+                        visited.has(data) ||
+                        data instanceof Map ||
+                        data instanceof Set ||
+                        Watcher.isNative(data)) {
+                        return;
+                    }
+                    visited.add(data);
+                    for (const key of Object.keys(data)) {
+                        if (reservedName[key])
+                            continue;
+                        let childPath;
+                        if (Array.isArray(data) && /^[0-9]+$/.test(key)) {
+                            childPath = path + '[' + key + ']';
+                        }
+                        else if (path) {
+                            childPath = path + '.' + key;
+                        }
+                        else {
+                            childPath = key;
+                        }
+                        notifyShared(data[key], childPath);
+                    }
+                    visited.delete(data);
+                };
+                notifyShared(proxyData.baseData, '');
+            }
         };
         var realProxy = new Proxy(obj, proxyData);
         proxyData.baseData = obj;
@@ -2378,7 +2694,7 @@ let Watcher=class Watcher {
         return realProxy;
     }
     static is(obj) {
-        return typeof obj == 'object' && obj.__isProxy;
+        return obj !== null && typeof obj == 'object' && obj.__isProxy;
     }
     static clearReservedNames(data) {
         if (data instanceof Object && !data.__isProxy) {
@@ -4932,13 +5248,8 @@ let WebComponent=class WebComponent extends HTMLElement {
             }
         }
         else {
-            if (this.hasAttribute(prop)) {
-                let value = this.getAttribute(prop);
-                delete t[prop];
-                t[prop] = value;
-            }
-            else if (Object.hasOwn(this, prop)) {
-                const value = t[prop];
+            if (Object.hasOwn(this, prop)) {
+                const value = this.hasAttribute(prop) ? this.getAttribute(prop) : t[prop];
                 delete t[prop];
                 t[prop] = value;
             }
@@ -7441,6 +7752,11 @@ __as1(_, 'DragAndDrop', DragAndDrop);
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
+(() => {
+const _ = globalThis;
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; };
+ 
+})();
 
 var Aventus;
 (Aventus||(Aventus = {}));

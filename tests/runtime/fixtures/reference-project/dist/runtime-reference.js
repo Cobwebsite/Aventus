@@ -33,6 +33,17 @@ const _ = {};
 
 
 let _n;
+let sleep=function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+__as1(_, 'sleep', sleep);
+
+let uuidv4=function uuidv4() {
+    let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
+    return uid;
+}
+__as1(_, 'uuidv4', uuidv4);
+
 var RamErrorCode;
 (function (RamErrorCode) {
     RamErrorCode[RamErrorCode["unknow"] = 0] = "unknow";
@@ -120,6 +131,54 @@ __as1(_, 'DragElementXYType', DragElementXYType);
 
 let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
 __as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
+
+let CallbackGroup=class CallbackGroup {
+    callbacks = {};
+    /**
+     * Clear all callbacks
+     */
+    clearAll() {
+        this.callbacks = {};
+    }
+    /**
+     * Clear all callbacks for a specific group
+     */
+    clear(group) {
+        delete this.callbacks[group];
+    }
+    /**
+     * Add a callback for a group
+     */
+    add(group, cb, scope = null) {
+        if (!this.callbacks[group]) {
+            this.callbacks[group] = new Map();
+        }
+        if (!this.callbacks[group].has(cb)) {
+            this.callbacks[group].set(cb, scope);
+        }
+    }
+    /**
+     * Remove a callback for a group
+     */
+    remove(group, cb) {
+        if (this.callbacks[group]) {
+            this.callbacks[group].delete(cb);
+        }
+    }
+    /**
+     * Trigger all callbacks inside a group
+     */
+    trigger(group, ...args) {
+        if (this.callbacks[group]) {
+            let cbs = [...this.callbacks[group]];
+            for (let [cb, scope] of cbs) {
+                cb.apply(scope, args);
+            }
+        }
+    }
+}
+CallbackGroup.Namespace=`Aventus`;
+__as1(_, 'CallbackGroup', CallbackGroup);
 
 let ElementExtension=class ElementExtension {
     /**
@@ -948,7 +1007,21 @@ let getValueFromObject=function getValueFromObject(path, obj) {
     }
     const val = (key) => {
         if (obj instanceof Map) {
-            return obj.get(key);
+            if (obj.has(key))
+                return obj.get(key);
+            for (const [mapKey, value] of obj) {
+                if (mapKey !== null && typeof mapKey === 'object' && mapKey.toString() === key) {
+                    return value;
+                }
+            }
+            return undefined;
+        }
+        if (obj instanceof Set) {
+            for (const value of obj) {
+                if (String(value) === key)
+                    return value;
+            }
+            return undefined;
         }
         return obj[key];
     };
@@ -968,14 +1041,6 @@ let getValueFromObject=function getValueFromObject(path, obj) {
 }
 __as1(_, 'getValueFromObject', getValueFromObject);
 
-var WatchAction;
-(function (WatchAction) {
-    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
-    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
-    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
-})(WatchAction || (WatchAction = {}));
-__as1(_, 'WatchAction', WatchAction);
-
 let Effect=class Effect {
     callbacks = [];
     isInit = false;
@@ -984,6 +1049,8 @@ let Effect=class Effect {
     __allowChanged = [];
     version = 0;
     isRunning = false;
+    pendingChange;
+    seenNotifications = new WeakSet();
     fct;
     constructor(fct) {
         this.fct = fct;
@@ -1001,42 +1068,86 @@ let Effect=class Effect {
     run() {
         if (this.isRunning)
             return;
-        this.isRunning = true;
-        this.version++;
-        Watcher._registering.push(this);
         let result;
-        try {
-            result = this.fct();
-        }
-        finally {
-            Watcher._registering.splice(Watcher._registering.length - 1, 1);
-            this.isRunning = false;
-        }
-        for (let i = 0; i < this.callbacks.length; i++) {
-            if (this.callbacks[i].version != this.version) {
-                this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
-                this.callbacks.splice(i, 1);
-                i--;
+        let pendingNotification;
+        do {
+            this.pendingChange = undefined;
+            this.isRunning = true;
+            this.version++;
+            Watcher._registering.push(this);
+            try {
+                result = this.fct();
             }
-        }
+            finally {
+                Watcher._registering.splice(Watcher._registering.length - 1, 1);
+                this.isRunning = false;
+            }
+            for (let i = 0; i < this.callbacks.length; i++) {
+                if (this.callbacks[i].version != this.version) {
+                    this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
+                    this.callbacks.splice(i, 1);
+                    i--;
+                }
+            }
+            if (pendingNotification) {
+                const notification = pendingNotification;
+                for (let fct of [...this.__subscribes]) {
+                    Watcher.isolate(() => {
+                        fct(notification.action, notification.changePath, notification.value, notification.dones);
+                    });
+                }
+            }
+            pendingNotification = this.pendingChange;
+        } while (pendingNotification && !this.isDestroy);
         return result;
     }
-    register(receiver, path, version, fullPath) {
+    register(receiver, path, version, fullPath, presenceOnly = false, collectionSizeOnly = false, mapSizeKeyValue = false) {
         for (let info of this.callbacks) {
-            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath) {
+            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath &&
+                info.presenceOnly == presenceOnly && info.collectionSizeOnly == collectionSizeOnly &&
+                info.mapSizeKeyValue == mapSizeKeyValue) {
                 info.version = version;
                 info.fullPath = fullPath;
                 return;
             }
         }
         let cb;
-        if (path == "*") {
+        if (collectionSizeOnly) {
+            let observedSize = Watcher.untrack(() => receiver.size);
+            cb = (action, changePath, value, dones) => {
+                const currentSize = Watcher.untrack(() => receiver.size);
+                if (currentSize != observedSize) {
+                    observedSize = currentSize;
+                    this.onChange(action, changePath, value, dones);
+                }
+            };
+        }
+        else if (mapSizeKeyValue) {
+            let observedValue = Watcher.untrack(() => Watcher.extract(receiver.get('size')));
+            cb = (action, changePath, value, dones) => {
+                if (changePath == path) {
+                    const currentValue = Watcher.untrack(() => Watcher.extract(receiver.get('size')));
+                    if (!Object.is(currentValue, observedValue)) {
+                        observedValue = currentValue;
+                        this.onChange(action, changePath, value, dones);
+                    }
+                }
+                else if (changePath.startsWith(path + '.') || changePath.startsWith(path + '[')) {
+                    this.onChange(action, changePath, value, dones);
+                }
+            };
+        }
+        else if (path == "*") {
             cb = (action, changePath, value, dones) => { this.onChange(action, changePath, value, dones); };
         }
         else {
             cb = (action, changePath, value, dones) => {
-                if (changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
-                    // if(changePath == path) {
+                if (presenceOnly) {
+                    if (changePath == path && (action == WatchAction.CREATED || action == WatchAction.DELETED)) {
+                        this.onChange(action, changePath, value, dones);
+                    }
+                }
+                else if (changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
                     this.onChange(action, changePath, value, dones);
                 }
             };
@@ -1047,7 +1158,10 @@ let Effect=class Effect {
             registerPath: receiver.__path,
             cb,
             version,
-            fullPath
+            fullPath,
+            presenceOnly,
+            collectionSizeOnly,
+            mapSizeKeyValue
         });
         receiver.subscribe(cb);
     }
@@ -1055,7 +1169,7 @@ let Effect=class Effect {
         this.__allowChanged.push(fct);
     }
     checkCanChange(action, changePath, value, dones) {
-        if (this.isDestroy || this.isRunning) {
+        if (this.isDestroy || this.isRunning || this.seenNotifications.has(dones)) {
             return false;
         }
         for (let fct of this.__allowChanged) {
@@ -1063,9 +1177,18 @@ let Effect=class Effect {
                 return false;
             }
         }
+        this.seenNotifications.add(dones);
         return true;
     }
     onChange(action, changePath, value, dones) {
+        if (this.isRunning) {
+            if (!this.isDestroy && !this.seenNotifications.has(dones) &&
+                this.__allowChanged.every(fct => fct(action, changePath, value, dones))) {
+                this.seenNotifications.add(dones);
+                this.pendingChange = { action, changePath, value, dones };
+            }
+            return;
+        }
         if (!this.checkCanChange(action, changePath, value, dones)) {
             return;
         }
@@ -1102,6 +1225,14 @@ let Effect=class Effect {
 }
 Effect.Namespace=`Aventus`;
 __as1(_, 'Effect', Effect);
+
+var WatchAction;
+(function (WatchAction) {
+    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
+    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
+    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
+})(WatchAction || (WatchAction = {}));
+__as1(_, 'WatchAction', WatchAction);
 
 let Signal=class Signal {
     __subscribes = [];
@@ -1150,6 +1281,99 @@ let Signal=class Signal {
 }
 Signal.Namespace=`Aventus`;
 __as1(_, 'Signal', Signal);
+
+let Animation=class Animation {
+    /**
+     * Default FPS for all Animation if not set inside options
+     */
+    static FPS_DEFAULT = 60;
+    options;
+    nextFrame = 0;
+    fpsInterval;
+    continueAnimation = false;
+    frame_id = 0;
+    constructor(options) {
+        if (!options.animate) {
+            options.animate = () => { };
+        }
+        if (!options.stopped) {
+            options.stopped = () => { };
+        }
+        if (!options.fps) {
+            options.fps = Animation.FPS_DEFAULT;
+        }
+        this.options = options;
+        this.fpsInterval = 1000 / options.fps;
+    }
+    animate() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (elapsed <= this.fpsInterval) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        const stopping = !this.continueAnimation;
+        setTimeout(() => {
+            try {
+                this.options.animate();
+            }
+            finally {
+                if (stopping) {
+                    this.options.stopped();
+                }
+            }
+        }, 0);
+        if (!stopping) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+        }
+    }
+    /**
+     * Start the of animation
+     */
+    start() {
+        if (this.continueAnimation == false) {
+            this.continueAnimation = true;
+            this.nextFrame = window.performance.now();
+            this.animate();
+        }
+    }
+    /**
+     * Stop the animation
+     */
+    stop() {
+        this.continueAnimation = false;
+    }
+    /**
+     * Stop the animation
+     */
+    immediateStop() {
+        cancelAnimationFrame(this.frame_id);
+        this.continueAnimation = false;
+        this.options.stopped();
+    }
+    /**
+     * Get the FPS
+     */
+    getFPS() {
+        return this.options.fps;
+    }
+    /**
+     * Set the FPS
+     */
+    setFPS(fps) {
+        this.options.fps = fps;
+        this.fpsInterval = 1000 / this.options.fps;
+    }
+    /**
+     * Get the animation status (true if animation is running)
+     */
+    isStarted() {
+        return this.continueAnimation;
+    }
+}
+Animation.Namespace=`Aventus`;
+__as1(_, 'Animation', Animation);
 
 let Date=class Date {
     static configure(options) { DateSettings.configure(options); }
@@ -1454,7 +1678,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
         }
         if (tableOrder) {
             for (let i = 0; i < obj1.length; i++) {
-                if (!compareObjectRecursive(obj1[i], obj2[i], true, active, proxyData1, proxyData2)) {
+                if (!compareObjectRecursive(obj1[i], obj2[i], tableOrder, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1464,7 +1688,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
             for (let i = 0; i < obj1.length; i++) {
                 let foundElement = false;
                 for (let j = 0; j < obj2.length; j++) {
-                    if (compareObjectRecursive(obj1[i], obj2[j], true, active, proxyData1, proxyData2)) {
+                    if (compareObjectRecursive(obj1[i], obj2[j], tableOrder, active, proxyData1, proxyData2)) {
                         obj2.splice(j, 1);
                         foundElement = true;
                         break;
@@ -1509,7 +1733,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
                 if (!obj2.has(key)) {
                     return false;
                 }
-                if (!compareObjectRecursive(value, obj2.get(key), true, active, proxyData1, proxyData2)) {
+                if (!compareObjectRecursive(value, obj2.get(key), tableOrder, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1525,7 +1749,7 @@ let compareObjectValue=function compareObjectValue(obj1, obj2, tableOrder, activ
                 if (!keys2.includes(key)) {
                     return false;
                 }
-                if (!compareObjectRecursive(obj1[key], obj2[key], true, active, proxyData1, proxyData2)) {
+                if (!compareObjectRecursive(obj1[key], obj2[key], tableOrder, active, proxyData1, proxyData2)) {
                     return false;
                 }
             }
@@ -1910,7 +2134,9 @@ let Watcher=class Watcher {
                     };
                 }
                 else if (prop == "clearHistory") {
-                    this.history = [];
+                    return () => {
+                        this.history = [];
+                    };
                 }
                 else if (prop == "enableHistory") {
                     return () => {
@@ -1978,6 +2204,12 @@ let Watcher=class Watcher {
             },
             get(target, prop, receiver) {
                 if (typeof prop == 'symbol') {
+                    if (prop == Symbol.iterator && target instanceof Map) {
+                        return () => receiver.entries();
+                    }
+                    if (prop == Symbol.iterator && target instanceof Set) {
+                        return () => receiver.values();
+                    }
                     return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
                 }
                 if (reservedName[prop]) {
@@ -2024,15 +2256,17 @@ let Watcher=class Watcher {
                                 };
                             }
                             else {
-                                result = (index, nbRemove, ...insert) => {
-                                    let oldValues = [];
-                                    const extReceiver = Watcher.extract(receiver);
-                                    for (let i = index; i < index + nbRemove; i++) {
-                                        oldValues.push(extReceiver[i]);
-                                    }
-                                    let updateLength = nbRemove != insert.length;
+                                result = (...args) => {
+                                    const length = target.length;
+                                    const start = Number(args[0]);
+                                    const index = Number.isNaN(start) ? 0 : start < 0
+                                        ? Math.max(length + Math.trunc(start), 0)
+                                        : Math.min(Math.trunc(start), length);
+                                    const insert = args.slice(2);
+                                    const nbRemove = args.length === 0 ? 0 : args.length < 2 ? length - index
+                                        : Math.min(Math.max(Math.trunc(Number(args[1])) || 0, 0), length - index);
+                                    const oldValues = target.splice(index, nbRemove);
                                     for (let i = 0; i < oldValues.length; i++) {
-                                        target.splice((index + i), 1);
                                         trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
                                     }
                                     for (let i = 0; i < insert.length; i++) {
@@ -2042,9 +2276,9 @@ let Watcher=class Watcher {
                                         target.splice((index + i), 0, value);
                                         trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]", dones);
                                     }
-                                    if (updateLength)
+                                    if (oldValues.length != insert.length)
                                         trigger('UPDATED', target, receiver, target.length, "length");
-                                    return target;
+                                    return oldValues;
                                 };
                             }
                         }
@@ -2057,8 +2291,10 @@ let Watcher=class Watcher {
                             }
                             else {
                                 result = () => {
+                                    if (target.length === 0)
+                                        return undefined;
                                     let index = target.length - 1;
-                                    let oldValue = receiver.length ? receiver[receiver.length] : undefined;
+                                    let oldValue = target[index];
                                     let res = target.pop();
                                     trigger('DELETED', target, receiver, oldValue, "[" + index + "]");
                                     trigger('UPDATED', target, receiver, target.length, "length");
@@ -2066,7 +2302,28 @@ let Watcher=class Watcher {
                                 };
                             }
                         }
-                        // else if(prop == 'find') {
+                        else if (['reverse', 'sort', 'shift', 'unshift', 'fill', 'copyWithin'].includes(prop)) {
+                            result = (...args) => {
+                                const value = element.apply(target, args);
+                                trigger('UPDATED', target, receiver, receiver, '');
+                                return value === target ? receiver : value;
+                            };
+                        }
+                        else if ([
+                            'find', 'findLast', 'findIndex', 'findLastIndex', 'some', 'every',
+                            'filter', 'map', 'flatMap', 'forEach', 'reduce', 'reduceRight',
+                            'at', 'values', 'entries'
+                        ].includes(prop)) {
+                            result = (...args) => element.apply(receiver, args);
+                        }
+                        else if (['indexOf', 'lastIndexOf', 'includes'].includes(prop)) {
+                            result = (...args) => {
+                                if (args[0] && Watcher.is(args[0])) {
+                                    args[0] = Watcher.extract(args[0]);
+                                }
+                                return element.apply(target, args);
+                            };
+                        }
                         else {
                             result = element.bind(target);
                         }
@@ -2074,7 +2331,43 @@ let Watcher=class Watcher {
                     }
                     else if (target instanceof Map) {
                         let result;
-                        if (prop == "set") {
+                        const registerIteration = () => {
+                            return Watcher._register?.register(receiver, '*', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size', false, true);
+                        };
+                        if (prop == "entries" || prop == "values") {
+                            result = function* () {
+                                registerIteration();
+                                for (const [key] of target.entries()) {
+                                    const value = receiver.get(key);
+                                    yield prop == "entries" ? [key, value] : value;
+                                }
+                            };
+                        }
+                        else if (prop == "forEach") {
+                            result = (callback, thisArg) => {
+                                if (typeof callback != 'function')
+                                    throw new TypeError('Map.forEach callback must be a function');
+                                registerIteration();
+                                target.forEach((_value, key) => callback.call(thisArg, receiver.get(key), key, receiver));
+                            };
+                        }
+                        else if (prop == "get") {
+                            result = (key) => {
+                                key = Watcher.extract(key);
+                                const path = key + '';
+                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path, false, false, key === 'size');
+                                return this.getProxyObject(target, target.get(key), path);
+                            };
+                        }
+                        else if (prop == "has") {
+                            result = (key) => {
+                                key = Watcher.extract(key);
+                                const path = String(key);
+                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path, true);
+                                return target.has(key);
+                            };
+                        }
+                        else if (prop == "set") {
                             if (target.__isProxy) {
                                 result = (key, value) => {
                                     return target.set(key, value);
@@ -2084,17 +2377,24 @@ let Watcher=class Watcher {
                                 result = (key, value) => {
                                     const out = {};
                                     let dones = [];
-                                    let dones2 = [];
                                     key = Watcher.extract(key);
+                                    const hadKey = target.has(key);
+                                    if (!hadKey && key !== null && typeof key === 'object' && key.toString() === '[object Object]') {
+                                        console.warn('Watcher Map: toString() must return a unique value for each object key; [object Object] is ambiguous.');
+                                    }
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
                                     if (out.otherRoot) {
                                         dones.push(out.otherRoot);
-                                        dones2.push(out.otherRoot);
                                     }
-                                    let result = target.set(key, value);
-                                    trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
-                                    trigger('UPDATED', target, receiver, target.size, "size", dones2);
-                                    return result;
+                                    target.set(key, value);
+                                    trigger(hadKey ? 'UPDATED' : 'CREATED', target, receiver, receiver.get(key), key + '', dones);
+                                    if (!hadKey) {
+                                        dones.length = 0;
+                                        if (out.otherRoot)
+                                            dones.push(out.otherRoot);
+                                        trigger('UPDATED', target, receiver, target.size, "size", dones);
+                                    }
+                                    return receiver;
                                 };
                             }
                         }
@@ -2106,13 +2406,17 @@ let Watcher=class Watcher {
                             }
                             else {
                                 result = () => {
-                                    let keys = target.keys();
-                                    for (let key of keys) {
-                                        let oldValue = receiver.get(key);
-                                        target.delete(key);
-                                        trigger('DELETED', target, receiver, oldValue, key);
-                                        trigger('UPDATED', target, receiver, target.size, "size");
+                                    if (target.size === 0)
+                                        return;
+                                    const entries = [...target.entries()];
+                                    const dones = [];
+                                    target.clear();
+                                    for (const [key, oldValue] of entries) {
+                                        dones.length = 0;
+                                        trigger('DELETED', target, receiver, oldValue, key + '', dones);
                                     }
+                                    dones.length = 0;
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
                                 };
                             }
                         }
@@ -2125,13 +2429,119 @@ let Watcher=class Watcher {
                             else {
                                 result = (key) => {
                                     key = Watcher.extract(key);
+                                    if (!target.has(key))
+                                        return false;
                                     let oldValue = receiver.get(key);
                                     let res = target.delete(key);
-                                    trigger('DELETED', target, receiver, oldValue, key + '');
-                                    trigger('UPDATED', target, receiver, target.size, "size");
+                                    const dones = [];
+                                    trigger('DELETED', target, receiver, oldValue, key + '', dones);
+                                    dones.length = 0;
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
                                     return res;
                                 };
                             }
+                        }
+                        else if (prop == 'keys') {
+                            result = () => {
+                                registerIteration();
+                                return target.keys();
+                            };
+                        }
+                        else {
+                            result = element.bind(target);
+                        }
+                        return result;
+                    }
+                    else if (target instanceof Set) {
+                        let result;
+                        const registerIteration = () => {
+                            return Watcher._register?.register(receiver, '*', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size', false, true);
+                        };
+                        const watchValue = (value) => this.getProxyObject(target, value, String(value));
+                        if (prop == 'values' || prop == 'keys') {
+                            result = function* () {
+                                registerIteration();
+                                for (const value of target)
+                                    yield watchValue(value);
+                            };
+                        }
+                        else if (prop == 'entries') {
+                            result = function* () {
+                                registerIteration();
+                                for (const value of target) {
+                                    const watched = watchValue(value);
+                                    yield [watched, watched];
+                                }
+                            };
+                        }
+                        else if (prop == 'forEach') {
+                            result = (callback, thisArg) => {
+                                if (typeof callback != 'function')
+                                    throw new TypeError('Set.forEach callback must be a function');
+                                registerIteration();
+                                target.forEach(value => {
+                                    const watched = watchValue(value);
+                                    callback.call(thisArg, watched, watched, receiver);
+                                });
+                            };
+                        }
+                        else if (prop == 'has') {
+                            result = (value) => {
+                                if (value && Watcher.is(value)) {
+                                    value = Watcher.extract(value);
+                                }
+                                const path = String(value);
+                                Watcher._register?.register(receiver, path, Watcher._register.version, receiver.__path ? receiver.__path + '.' + path : path, true);
+                                return target.has(value);
+                            };
+                        }
+                        else if (prop == 'add') {
+                            result = (value) => {
+                                if (value && Watcher.is(value)) {
+                                    value = Watcher.extract(value);
+                                }
+                                if (target.has(value))
+                                    return receiver;
+                                if (value !== null && typeof value === 'object' && value.toString() === '[object Object]') {
+                                    console.warn('Watcher Set: toString() must return a unique value for each object; [object Object] is ambiguous.');
+                                }
+                                target.add(value);
+                                const dones = [];
+                                trigger('CREATED', target, receiver, value, String(value), dones);
+                                dones.length = 0;
+                                trigger('UPDATED', target, receiver, target.size, 'size', dones);
+                                return receiver;
+                            };
+                        }
+                        else if (prop == 'delete') {
+                            result = (value) => {
+                                if (value && Watcher.is(value)) {
+                                    value = Watcher.extract(value);
+                                }
+                                if (!target.has(value))
+                                    return false;
+                                const deleted = target.delete(value);
+                                const dones = [];
+                                trigger('DELETED', target, receiver, value, String(value), dones);
+                                dones.length = 0;
+                                trigger('UPDATED', target, receiver, target.size, 'size', dones);
+                                return deleted;
+                            };
+                        }
+                        else if (prop == 'clear') {
+                            result = () => {
+                                if (target.size === 0)
+                                    return;
+                                const values = [...target];
+                                const dones = [];
+                                target.clear();
+                                for (const value of values) {
+                                    dones.length = 0;
+                                    trigger('DELETED', target, receiver, value, String(value), dones);
+                                }
+                                dones.length = 0;
+                                trigger('UPDATED', target, receiver, target.size, 'size', dones);
+                            };
                         }
                         else {
                             result = element.bind(target);
@@ -2144,23 +2554,29 @@ let Watcher=class Watcher {
                     return element.value;
                 }
                 if (Watcher._registering.length > 0) {
-                    let currentPath;
-                    let fullPath;
-                    let isArray = Array.isArray(receiver);
-                    if (isArray && /^[0-9]*$/g.exec(prop)) {
-                        fullPath = receiver.__path + "[" + prop + "]";
-                        currentPath = "[" + prop + "]";
+                    if (prop == 'size' && (target instanceof Map || target instanceof Set)) {
+                        Watcher._register?.register(receiver, '*', Watcher._register.version, receiver.__path ? receiver.__path + '.size' : 'size', false, true);
                     }
                     else {
-                        fullPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                        currentPath = prop;
+                        let currentPath;
+                        let fullPath;
+                        let isArray = Array.isArray(receiver);
+                        if (isArray && /^[0-9]*$/g.exec(prop)) {
+                            fullPath = receiver.__path + "[" + prop + "]";
+                            currentPath = "[" + prop + "]";
+                        }
+                        else {
+                            fullPath = receiver.__path ? receiver.__path + '.' + prop : prop;
+                            currentPath = prop;
+                        }
+                        Watcher._register?.register(receiver, currentPath, Watcher._register.version, fullPath);
                     }
-                    Watcher._register?.register(receiver, currentPath, Watcher._register.version, fullPath);
                 }
                 if (typeof (element) == 'object') {
                     return this.getProxyObject(target, element, prop);
                 }
-                return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
+                return Watcher.isNative(target) || target instanceof Map || target instanceof Set
+                    ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
                 if (typeof prop == 'symbol') {
@@ -2298,7 +2714,7 @@ let Watcher=class Watcher {
         if (onDataChanged) {
             proxyData.callbacks[''] = [onDataChanged];
         }
-        const trigger = (type, target, receiver, value, prop, dones = []) => {
+        const trigger = (type, target, receiver, value, prop, dones = [], pathOverride) => {
             if (dones.includes(proxyData.baseData)) {
                 return;
             }
@@ -2306,11 +2722,20 @@ let Watcher=class Watcher {
                 return;
             }
             let rootPath;
-            if (receiver == null) {
+            if (pathOverride !== undefined) {
+                rootPath = pathOverride;
+            }
+            else if (receiver == null) {
                 rootPath = target.__path;
             }
             else {
                 rootPath = receiver.__path;
+                if (rootPath !== '') {
+                    const current = rootPath === undefined ? undefined : getValueFromObject(rootPath, proxyData.baseData);
+                    const currentTarget = Watcher.is(current) ? current.getTarget(false) : current;
+                    if (currentTarget !== target)
+                        return;
+                }
             }
             if (rootPath != "") {
                 if (Array.isArray(receiver)) {
@@ -2347,6 +2772,7 @@ let Watcher=class Watcher {
                     stacks.push(current);
                 }
             }
+            const initialDones = [...dones];
             dones.push(proxyData.baseData);
             let aliasesDone = [];
             const callbacks = { ...proxyData.callbacks };
@@ -2431,6 +2857,48 @@ let Watcher=class Watcher {
                     }
                 }
             }
+            if (pathOverride === undefined && receiver != null && target !== proxyData.baseData) {
+                const visited = new Set();
+                const notifyShared = (data, path) => {
+                    if (data === null || typeof data !== 'object')
+                        return;
+                    if (Watcher.is(data)) {
+                        data = data.getTarget(false);
+                    }
+                    if (data === target) {
+                        if (path !== receiver.__path) {
+                            trigger(type, target, receiver, value, prop, [...initialDones], path);
+                        }
+                        return;
+                    }
+                    if (data === null ||
+                        typeof data !== 'object' ||
+                        visited.has(data) ||
+                        data instanceof Map ||
+                        data instanceof Set ||
+                        Watcher.isNative(data)) {
+                        return;
+                    }
+                    visited.add(data);
+                    for (const key of Object.keys(data)) {
+                        if (reservedName[key])
+                            continue;
+                        let childPath;
+                        if (Array.isArray(data) && /^[0-9]+$/.test(key)) {
+                            childPath = path + '[' + key + ']';
+                        }
+                        else if (path) {
+                            childPath = path + '.' + key;
+                        }
+                        else {
+                            childPath = key;
+                        }
+                        notifyShared(data[key], childPath);
+                    }
+                    visited.delete(data);
+                };
+                notifyShared(proxyData.baseData, '');
+            }
         };
         var realProxy = new Proxy(obj, proxyData);
         proxyData.baseData = obj;
@@ -2438,7 +2906,7 @@ let Watcher=class Watcher {
         return realProxy;
     }
     static is(obj) {
-        return typeof obj == 'object' && obj.__isProxy;
+        return obj !== null && typeof obj == 'object' && obj.__isProxy;
     }
     static clearReservedNames(data) {
         if (data instanceof Object && !data.__isProxy) {
@@ -4684,6 +5152,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     __watchActionsCb = {};
     __watchFunctions = {};
     __watchFunctionsComputed = {};
+    __watchFunctionsDestroyed = false;
     __pressManagers = [];
     __signalActions = {};
     __signals = {};
@@ -4719,6 +5188,7 @@ let WebComponent=class WebComponent extends HTMLElement {
      * State + press
      */
     destructor() {
+        this.__watchFunctionsDestroyed = true;
         WebComponentInstance.removeInstance(this);
         this.__unsubscribeState();
         for (let press of this.__pressManagers) {
@@ -4817,7 +5287,12 @@ let WebComponent=class WebComponent extends HTMLElement {
         for (let name in this.__watchFunctions) {
             this.__watchFunctionsComputed[name] = Watcher.computed(this[name].bind(this));
             if (this.__watchFunctions[name].autoInit) {
-                this.__watchFunctionsComputed[name].value;
+                const computed = this.__watchFunctionsComputed[name];
+                queueMicrotask(() => {
+                    if (!this.__watchFunctionsDestroyed) {
+                        computed.value;
+                    }
+                });
             }
         }
     }
@@ -4985,13 +5460,8 @@ let WebComponent=class WebComponent extends HTMLElement {
             }
         }
         else {
-            if (this.hasAttribute(prop)) {
-                let value = this.getAttribute(prop);
-                delete t[prop];
-                t[prop] = value;
-            }
-            else if (Object.hasOwn(this, prop)) {
-                const value = t[prop];
+            if (Object.hasOwn(this, prop)) {
+                const value = this.hasAttribute(prop) ? this.getAttribute(prop) : t[prop];
                 delete t[prop];
                 t[prop] = value;
             }
@@ -5471,6 +5941,682 @@ let WebComponentInstance=class WebComponentInstance {
 }
 WebComponentInstance.Namespace=`Aventus`;
 __as1(_, 'WebComponentInstance', WebComponentInstance);
+
+let ConverterTransform=class ConverterTransform {
+    transform(data) {
+        return this.transformLoop(data);
+    }
+    createInstance(data) {
+        if (data.$type) {
+            let cst = Converter.info.get(data.$type);
+            if (cst) {
+                return new cst();
+            }
+        }
+        return undefined;
+    }
+    beforeTransformObject(obj) {
+    }
+    afterTransformObject(obj) {
+    }
+    transformLoop(data) {
+        if (data === null) {
+            return data;
+        }
+        if (Array.isArray(data)) {
+            let result = [];
+            for (let element of data) {
+                result.push(this.transformLoop(element));
+            }
+            return result;
+        }
+        if (data instanceof Date || data instanceof DateTime || data instanceof Time) {
+            return data;
+        }
+        if (typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
+            let objTemp = this.createInstance(data);
+            if (objTemp) {
+                if (objTemp instanceof Map) {
+                    if (data.values) {
+                        for (const keyValue of data.values) {
+                            objTemp.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                        }
+                    }
+                    return objTemp;
+                }
+                let obj = objTemp;
+                this.beforeTransformObject(obj);
+                if (obj.fromJSON) {
+                    obj = obj.fromJSON(data);
+                }
+                else {
+                    const registeredSchema = Converter.getSchema(data.$type);
+                    const staticSchema = obj instanceof Data ? obj.constructor.$schema : undefined;
+                    obj = Json.classFromJson(obj, data, {
+                        transformValue: (key, value) => {
+                            const schemaType = registeredSchema?.[key] ?? staticSchema?.[key];
+                            if (schemaType === 'boolean')
+                                return !!value;
+                            if (schemaType === 'number')
+                                return isNaN(Number(value)) ? 0 : Number(value);
+                            if (schemaType === 'string')
+                                return value == null ? value : String(value);
+                            if (schemaType && ['Date', 'Aventus.Date', 'date'].includes(schemaType)) {
+                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
+                            }
+                            if (schemaType && ['DateTime', 'Aventus.DateTime', 'datetime'].includes(schemaType)) {
+                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
+                            }
+                            if (schemaType && ['Time', 'Aventus.Time', 'time'].includes(schemaType)) {
+                                return value == null ? null : value instanceof Time ? value : Time.parse(value);
+                            }
+                            if (obj[key] instanceof Date) {
+                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
+                            }
+                            else if (obj[key] instanceof DateTime) {
+                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
+                            }
+                            else if (obj[key] instanceof Time) {
+                                return value == null ? null : value instanceof Time ? value : Time.parse(value);
+                            }
+                            else if (obj[key] instanceof Map) {
+                                let map = new Map();
+                                if ("$type" in value && value['$type'] == "Aventus.Map") {
+                                    value = value.values;
+                                }
+                                for (const keyValue of value) {
+                                    map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                                }
+                                return map;
+                            }
+                            return this.transformLoop(value);
+                        }
+                    });
+                }
+                this.afterTransformObject(obj);
+                return obj;
+            }
+            let result = {};
+            for (let key in data) {
+                result[key] = this.transformLoop(data[key]);
+            }
+            return result;
+        }
+        if (typeof data === 'string' && /^\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/.test(data)) {
+            return Time.tryParse(data) ?? data;
+        }
+        if (typeof data == 'string' && DateConverter.converter.isStringDate(data)) {
+            return DateConverter.converter.fromString(data) ?? data;
+        }
+        return data;
+    }
+    copyValuesClass(target, src, options) {
+        const realOptions = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+        };
+        this.__classCopyValues(target, src, realOptions);
+    }
+    __classCopyValues(target, src, options) {
+        let props = Object.getOwnPropertyNames(target);
+        for (let prop of props) {
+            let propInfo = Object.getOwnPropertyDescriptor(target, prop);
+            if (propInfo?.writable) {
+                if (options.isValidKey(prop)) {
+                    const _target = target;
+                    const _src = src;
+                    _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
+                }
+            }
+        }
+        let cstTemp = target.constructor;
+        while (cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for (let prop of props) {
+                let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                if (propInfo?.set && propInfo.get) {
+                    if (options.isValidKey(prop)) {
+                        const _target = target;
+                        const _src = src;
+                        _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
+                    }
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+    }
+}
+ConverterTransform.Namespace=`Aventus`;
+__as1(_, 'ConverterTransform', ConverterTransform);
+
+let Json=class Json {
+    /**
+     * Converts a JavaScript class instance to a JSON object.
+     * @template T - The type of the object to convert.
+     * @param {T} obj - The object to convert to JSON.
+     * @param {JsonToOptions} [options] - Options for JSON conversion.
+     * @returns {{ [key: string | number]: any; }} Returns the JSON representation of the object.
+     */
+    static classToJson(obj, options) {
+        const realOptions = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+            beforeEnd: options?.beforeEnd ?? ((res) => res)
+        };
+        return this.__classToJson(obj, realOptions);
+    }
+    static __classToJson(obj, options) {
+        let result = {};
+        let descriptors = Object.getOwnPropertyDescriptors(obj);
+        for (let key in descriptors) {
+            if (options.isValidKey(key))
+                result[options.replaceKey(key)] = options.transformValue(key, descriptors[key].value);
+        }
+        let cst = obj.constructor;
+        while (cst.prototype && cst != Object.prototype) {
+            let descriptorsClass = Object.getOwnPropertyDescriptors(cst.prototype);
+            for (let key in descriptorsClass) {
+                if (options.isValidKey(key)) {
+                    let descriptor = descriptorsClass[key];
+                    if (descriptor?.get) {
+                        const o = obj;
+                        result[options.replaceKey(key)] = options.transformValue(key, o[key]);
+                    }
+                }
+            }
+            cst = Object.getPrototypeOf(cst);
+        }
+        result = options.beforeEnd(result);
+        return result;
+    }
+    /**
+    * Converts a JSON object to a JavaScript class instance.
+    * @template T - The type of the object to convert.
+    * @param {T} obj - The object to populate with JSON data.
+    * @param {*} data - The JSON data to populate the object with.
+    * @param {JsonFromOptions} [options] - Options for JSON deserialization.
+    * @returns {T} Returns the populated object.
+    */
+    static classFromJson(obj, data, options) {
+        let realOptions = {
+            transformValue: options?.transformValue ?? ((key, value) => value),
+            replaceUndefined: options?.replaceUndefined ?? false,
+            replaceUndefinedWithKey: options?.replaceUndefinedWithKey ?? false,
+        };
+        return this.__classFromJson(obj, data, realOptions);
+    }
+    static __classFromJson(obj, data, options) {
+        let props = Object.getOwnPropertyNames(obj);
+        for (let prop of props) {
+            let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+            let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
+            if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
+                let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
+                if (propInfo?.writable) {
+                    const o = obj;
+                    o[prop] = options.transformValue(prop, value);
+                }
+            }
+        }
+        let cstTemp = obj.constructor;
+        while (cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for (let prop of props) {
+                let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+                let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
+                if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
+                    let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                    if (propInfo?.set) {
+                        const o = obj;
+                        o[prop] = options.transformValue(prop, value);
+                    }
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+        return obj;
+    }
+}
+Json.Namespace=`Aventus`;
+__as1(_, 'Json', Json);
+
+let Converter=class Converter {
+    /**
+    * Map storing information about registered types.
+    */
+    static info = new Map([["Aventus.Map", Map]]);
+    /**
+    * Map storing schemas for registered types.
+    */
+    static schema = new Map();
+    static getSchema($type) {
+        return this.schema.get($type);
+    }
+    /**
+     * Internal converter instance.
+     */
+    static __converter = new ConverterTransform();
+    /**
+     * Getter for the internal converter instance.
+     */
+    static get converterTransform() {
+        return this.__converter;
+    }
+    /**
+    * Sets the converter instance.
+    * @param converter The converter instance to set.
+    */
+    static setConverter(converter) {
+        this.__converter = converter;
+    }
+    /**
+    * Registers a unique string type for any class.
+    * @param $type The unique string type identifier.
+    * @param cst The constructor function for the class.
+    * @param schema Optional schema for the registered type.
+    */
+    static register($type, cst, schema) {
+        this.info.set($type, cst);
+        if (schema) {
+            this.schema.set($type, schema);
+        }
+    }
+    /**
+     * Transforms the provided data using the current converter instance.
+     * @template T
+     * @param {*} data The data to transform.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for transformation.
+     * @returns {T} Returns the transformed data.
+     */
+    static transform(data, converter) {
+        if (!converter) {
+            converter = this.converterTransform;
+        }
+        return converter.transform(data);
+    }
+    /**
+     * Copies values from one class instance to another using the current converter instance.
+     * @template T
+     * @param {T} to The destination class instance to copy values into.
+     * @param {T} from The source class instance to copy values from.
+     * @param {ClassCopyOptions} [options] Optional options for the copy operation.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for the copy operation.
+     * @returns {T} Returns the destination class instance with copied values.
+     */
+    static copyValuesClass(to, from, options, converter) {
+        if (!converter) {
+            converter = this.converterTransform;
+        }
+        return converter.copyValuesClass(to, from, options);
+    }
+}
+Converter.Namespace=`Aventus`;
+__as1(_, 'Converter', Converter);
+
+let HttpResponse=class HttpResponse {
+    get status() {
+        return this.response.status;
+    }
+    get statusText() {
+        return this.response.statusText;
+    }
+    get redirected() {
+        return this.response.redirected;
+    }
+    get ok() {
+        return this.response.ok;
+    }
+    get type() {
+        return this.response.type;
+    }
+    get url() {
+        return this.response.url;
+    }
+    get headers() {
+        return this.response.headers;
+    }
+    response;
+    constructor(response) {
+        this.response = response;
+    }
+    bodyFormat;
+    bodyPromise;
+    async readBody(format, read) {
+        if (this.bodyFormat && this.bodyFormat !== format) {
+            throw new TypeError(`Response body already read as ${this.bodyFormat}`);
+        }
+        if (!this.bodyPromise) {
+            this.bodyFormat = format;
+            this.bodyPromise = read();
+        }
+        return this.bodyPromise;
+    }
+    json() {
+        return this.readBody('json', async () => Converter.transform(await this.response.json()));
+    }
+    blob() {
+        return this.readBody('blob', () => this.response.blob());
+    }
+    text() {
+        return this.readBody('text', () => this.response.text());
+    }
+}
+HttpResponse.Namespace=`Aventus`;
+__as1(_, 'HttpResponse', HttpResponse);
+
+let HttpCache=class HttpCache {
+    static cache = new Map();
+    static pending = new Map();
+    static fetch(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            const value = this.cache.get(key);
+            if (value)
+                return Promise.resolve(value);
+            const pending = this.pending.get(key);
+            if (pending)
+                return pending;
+        }
+        let transport;
+        try {
+            transport = fetch(fullUrl, request);
+        }
+        catch (error) {
+            return Promise.reject(error);
+        }
+        let pending;
+        pending = Promise.resolve(transport).then(result => {
+            const response = new HttpResponse(result);
+            if (key && this.pending.get(key) === pending) {
+                this.cache.set(key, response);
+            }
+            return response;
+        }).finally(() => {
+            if (key && this.pending.get(key) === pending) {
+                this.pending.delete(key);
+            }
+        });
+        if (key) {
+            this.pending.set(key, pending);
+        }
+        return pending;
+    }
+    static clear(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            this.pending.delete(key);
+            if (this.cache.has(key)) {
+                this.cache.delete(key);
+            }
+        }
+    }
+    static generateCacheKey(fullUrl, request) {
+        const method = request.method;
+        const body = request.body;
+        const accept = request.headers ? new Headers(request.headers).get('Accept') ?? '' : '';
+        let bodyKey = "";
+        if (typeof body == 'string') {
+            bodyKey = this.hashStringToInt(body) + '';
+        }
+        else if (body instanceof FormData) {
+        }
+        return fullUrl + "°" + method + "°" + bodyKey + "°" + accept;
+    }
+    static hashStringToInt(str) {
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < str.length; i++) {
+            hash ^= str.charCodeAt(i);
+            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+        }
+        return hash >>> 0;
+    }
+}
+HttpCache.Namespace=`Aventus`;
+__as1(_, 'HttpCache', HttpCache);
+
+let Data=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+class Data {
+    static converter = new Converter();
+    /**
+     * The schema for the class
+     */
+    static $schema;
+    /**
+     * The current namespace
+     */
+    static Namespace = "";
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    static get Fullname() { return this.Namespace + "." + this.name; }
+    /**
+     * The current namespace
+     */
+    get namespace() {
+        return this.constructor['Namespace'];
+    }
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    get $type() {
+        return this.constructor['Fullname'];
+    }
+    /**
+     * Get the name of the class
+     */
+    get className() {
+        return this.constructor.name;
+    }
+    /**
+     * Get a JSON for the current object
+     */
+    toJSON() {
+        let toAvoid = ['className', 'namespace'];
+        return Json.classToJson(this, {
+            isValidKey: (key) => !toAvoid.includes(key)
+        });
+    }
+    /**
+     * Clone the object by transforming a parsed JSON string back into the original type
+     */
+    clone() {
+        return Converter.transform(JSON.parse(JSON.stringify(this)));
+    }
+}
+Data.Namespace=`Aventus`;
+Data.$schema={"namespace":"string","$type":"string","className":"string"};
+Converter.register(Data.Fullname, Data);
+__as1(_, 'Data', Data);
+
+let ResourceLoader=class ResourceLoader {
+    static headerLoaded = {};
+    static headerWaiting = {};
+    /**
+     * Load the resource inside the head tag
+     */
+    static async loadInHead(options) {
+        const _options = this.prepareOptions(options);
+        if (this.headerLoaded[_options.url]) {
+            return true;
+        }
+        else if (this.headerWaiting.hasOwnProperty(_options.url)) {
+            return await this.awaitFctHead(_options.url);
+        }
+        else {
+            let tagEl;
+            if (_options.type == "js") {
+                tagEl = document.createElement("SCRIPT");
+                const el = document.querySelector(`script[src="${_options.url}"]`);
+                if (el) {
+                    this.headerLoaded[_options.url] = true;
+                    return true;
+                }
+            }
+            else if (_options.type == "css") {
+                tagEl = document.createElement("LINK");
+                tagEl.setAttribute("rel", "stylesheet");
+                const el = document.querySelector(`link[rel="stylesheet"][href="${_options.url}"]`);
+                if (el) {
+                    this.headerLoaded[_options.url] = true;
+                    return true;
+                }
+            }
+            else {
+                throw "unknow type " + _options.type + " to append into head";
+            }
+            this.headerWaiting[_options.url] = [];
+            if (_options.nonce) {
+                tagEl.setAttribute("nonce", _options.nonce);
+            }
+            document.head.appendChild(tagEl);
+            let result = await this.loadTag(tagEl, _options.url);
+            if (result) {
+                this.headerLoaded[_options.url] = true;
+            }
+            else {
+                tagEl.remove();
+            }
+            this.releaseAwaitFctHead(_options.url, result);
+            return result;
+        }
+    }
+    static loadTag(tagEl, url) {
+        return new Promise((resolve, reject) => {
+            tagEl.addEventListener("load", (e) => {
+                resolve(true);
+            });
+            tagEl.addEventListener("error", (e) => {
+                resolve(false);
+            });
+            if (tagEl instanceof HTMLLinkElement) {
+                tagEl.setAttribute("href", url);
+            }
+            else {
+                tagEl.setAttribute('src', url);
+            }
+        });
+    }
+    static releaseAwaitFctHead(url, result) {
+        if (this.headerWaiting[url]) {
+            for (let i = 0; i < this.headerWaiting[url].length; i++) {
+                this.headerWaiting[url][i](result);
+            }
+            delete this.headerWaiting[url];
+        }
+    }
+    static awaitFctHead(url) {
+        return new Promise((resolve) => {
+            this.headerWaiting[url].push((result) => {
+                resolve(result);
+            });
+        });
+    }
+    static requestLoaded = {};
+    static requestWaiting = {};
+    /**
+     *
+    */
+    static async load(options) {
+        options = this.prepareOptions(options);
+        if (this.requestLoaded[options.url]) {
+            return this.requestLoaded[options.url];
+        }
+        else if (this.requestWaiting.hasOwnProperty(options.url)) {
+            await this.awaitFct(options.url);
+            return this.requestLoaded[options.url];
+        }
+        else {
+            this.requestWaiting[options.url] = [];
+            let blob = false;
+            if (options.type == "img") {
+                blob = true;
+            }
+            let content = await this.fetching(options.url, blob);
+            if (options.type == "img" && content.startsWith("data:text/html;")) {
+                console.error("Can't load img " + options.url);
+                content = "";
+            }
+            this.requestLoaded[options.url] = content;
+            this.releaseAwaitFct(options.url);
+            return content;
+        }
+    }
+    static releaseAwaitFct(url) {
+        if (this.requestWaiting[url]) {
+            for (let i = 0; i < this.requestWaiting[url].length; i++) {
+                this.requestWaiting[url][i]();
+            }
+            delete this.requestWaiting[url];
+        }
+    }
+    static awaitFct(url) {
+        return new Promise((resolve) => {
+            this.requestWaiting[url].push(() => {
+                resolve('');
+            });
+        });
+    }
+    static async fetching(url, useBlob = false) {
+        if (useBlob) {
+            let result = await fetch(url, {
+                headers: {
+                    responseType: 'blob'
+                }
+            });
+            let blob = await result.blob();
+            return await this.readFile(blob);
+        }
+        else {
+            let result = await fetch(url);
+            return await result.text();
+        }
+    }
+    static readFile(blob) {
+        return new Promise((resolve) => {
+            var reader = new FileReader();
+            reader.onloadend = function () {
+                resolve(reader.result);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+    static imgExtensions = ["png", "jpg", "jpeg", "gif"];
+    static prepareOptions(options) {
+        let result;
+        if (typeof options === 'string' || options instanceof String) {
+            result = {
+                url: options,
+                type: 'js'
+            };
+            let splittedURI = result.url.split('.');
+            let extension = splittedURI[splittedURI.length - 1];
+            extension = extension.split("?")[0];
+            if (extension == "svg") {
+                result.type = 'svg';
+            }
+            else if (extension == "js") {
+                result.type = 'js';
+            }
+            else if (extension == "css") {
+                result.type = 'css';
+            }
+            else if (this.imgExtensions.indexOf(extension) != -1) {
+                result.type = 'img';
+            }
+            else {
+                delete result.type;
+            }
+        }
+        else {
+            result = options;
+        }
+        return result;
+    }
+}
+ResourceLoader.Namespace=`Aventus`;
+__as1(_, 'ResourceLoader', ResourceLoader);
 
 let DragAndDrop=class DragAndDrop {
     /**
@@ -6043,494 +7189,6 @@ let DragAndDrop=class DragAndDrop {
 }
 DragAndDrop.Namespace=`Aventus`;
 __as1(_, 'DragAndDrop', DragAndDrop);
-
-let ConverterTransform=class ConverterTransform {
-    transform(data) {
-        return this.transformLoop(data);
-    }
-    createInstance(data) {
-        if (data.$type) {
-            let cst = Converter.info.get(data.$type);
-            if (cst) {
-                return new cst();
-            }
-        }
-        return undefined;
-    }
-    beforeTransformObject(obj) {
-    }
-    afterTransformObject(obj) {
-    }
-    transformLoop(data) {
-        if (data === null) {
-            return data;
-        }
-        if (Array.isArray(data)) {
-            let result = [];
-            for (let element of data) {
-                result.push(this.transformLoop(element));
-            }
-            return result;
-        }
-        if (data instanceof Date || data instanceof DateTime || data instanceof Time) {
-            return data;
-        }
-        if (typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
-            let objTemp = this.createInstance(data);
-            if (objTemp) {
-                if (objTemp instanceof Map) {
-                    if (data.values) {
-                        for (const keyValue of data.values) {
-                            objTemp.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
-                        }
-                    }
-                    return objTemp;
-                }
-                let obj = objTemp;
-                this.beforeTransformObject(obj);
-                if (obj.fromJSON) {
-                    obj = obj.fromJSON(data);
-                }
-                else {
-                    const registeredSchema = Converter.getSchema(data.$type);
-                    const staticSchema = obj instanceof Data ? obj.constructor.$schema : undefined;
-                    obj = Json.classFromJson(obj, data, {
-                        transformValue: (key, value) => {
-                            const schemaType = registeredSchema?.[key] ?? staticSchema?.[key];
-                            if (schemaType === 'boolean')
-                                return !!value;
-                            if (schemaType === 'number')
-                                return isNaN(Number(value)) ? 0 : Number(value);
-                            if (schemaType === 'string')
-                                return value == null ? value : String(value);
-                            if (schemaType && ['Date', 'Aventus.Date', 'date'].includes(schemaType)) {
-                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
-                            }
-                            if (schemaType && ['DateTime', 'Aventus.DateTime', 'datetime'].includes(schemaType)) {
-                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
-                            }
-                            if (schemaType && ['Time', 'Aventus.Time', 'time'].includes(schemaType)) {
-                                return value == null ? null : value instanceof Time ? value : Time.parse(value);
-                            }
-                            if (obj[key] instanceof Date) {
-                                return value == null ? null : value instanceof Date ? value : Date.parse(value);
-                            }
-                            else if (obj[key] instanceof DateTime) {
-                                return value == null ? null : value instanceof DateTime ? value : DateTime.parse(value);
-                            }
-                            else if (obj[key] instanceof Time) {
-                                return value == null ? null : value instanceof Time ? value : Time.parse(value);
-                            }
-                            else if (obj[key] instanceof Map) {
-                                let map = new Map();
-                                if ("$type" in value && value['$type'] == "Aventus.Map") {
-                                    value = value.values;
-                                }
-                                for (const keyValue of value) {
-                                    map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
-                                }
-                                return map;
-                            }
-                            return this.transformLoop(value);
-                        }
-                    });
-                }
-                this.afterTransformObject(obj);
-                return obj;
-            }
-            let result = {};
-            for (let key in data) {
-                result[key] = this.transformLoop(data[key]);
-            }
-            return result;
-        }
-        if (typeof data === 'string' && /^\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/.test(data)) {
-            return Time.tryParse(data) ?? data;
-        }
-        if (typeof data == 'string' && DateConverter.converter.isStringDate(data)) {
-            return DateConverter.converter.fromString(data) ?? data;
-        }
-        return data;
-    }
-    copyValuesClass(target, src, options) {
-        const realOptions = {
-            isValidKey: options?.isValidKey ?? (() => true),
-            replaceKey: options?.replaceKey ?? ((key) => key),
-            transformValue: options?.transformValue ?? ((key, value) => value),
-        };
-        this.__classCopyValues(target, src, realOptions);
-    }
-    __classCopyValues(target, src, options) {
-        let props = Object.getOwnPropertyNames(target);
-        for (let prop of props) {
-            let propInfo = Object.getOwnPropertyDescriptor(target, prop);
-            if (propInfo?.writable) {
-                if (options.isValidKey(prop)) {
-                    const _target = target;
-                    const _src = src;
-                    _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
-                }
-            }
-        }
-        let cstTemp = target.constructor;
-        while (cstTemp.prototype && cstTemp != Object.prototype) {
-            props = Object.getOwnPropertyNames(cstTemp.prototype);
-            for (let prop of props) {
-                let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
-                if (propInfo?.set && propInfo.get) {
-                    if (options.isValidKey(prop)) {
-                        const _target = target;
-                        const _src = src;
-                        _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
-                    }
-                }
-            }
-            cstTemp = Object.getPrototypeOf(cstTemp);
-        }
-    }
-}
-ConverterTransform.Namespace=`Aventus`;
-__as1(_, 'ConverterTransform', ConverterTransform);
-
-let Json=class Json {
-    /**
-     * Converts a JavaScript class instance to a JSON object.
-     * @template T - The type of the object to convert.
-     * @param {T} obj - The object to convert to JSON.
-     * @param {JsonToOptions} [options] - Options for JSON conversion.
-     * @returns {{ [key: string | number]: any; }} Returns the JSON representation of the object.
-     */
-    static classToJson(obj, options) {
-        const realOptions = {
-            isValidKey: options?.isValidKey ?? (() => true),
-            replaceKey: options?.replaceKey ?? ((key) => key),
-            transformValue: options?.transformValue ?? ((key, value) => value),
-            beforeEnd: options?.beforeEnd ?? ((res) => res)
-        };
-        return this.__classToJson(obj, realOptions);
-    }
-    static __classToJson(obj, options) {
-        let result = {};
-        let descriptors = Object.getOwnPropertyDescriptors(obj);
-        for (let key in descriptors) {
-            if (options.isValidKey(key))
-                result[options.replaceKey(key)] = options.transformValue(key, descriptors[key].value);
-        }
-        let cst = obj.constructor;
-        while (cst.prototype && cst != Object.prototype) {
-            let descriptorsClass = Object.getOwnPropertyDescriptors(cst.prototype);
-            for (let key in descriptorsClass) {
-                if (options.isValidKey(key)) {
-                    let descriptor = descriptorsClass[key];
-                    if (descriptor?.get) {
-                        const o = obj;
-                        result[options.replaceKey(key)] = options.transformValue(key, o[key]);
-                    }
-                }
-            }
-            cst = Object.getPrototypeOf(cst);
-        }
-        result = options.beforeEnd(result);
-        return result;
-    }
-    /**
-    * Converts a JSON object to a JavaScript class instance.
-    * @template T - The type of the object to convert.
-    * @param {T} obj - The object to populate with JSON data.
-    * @param {*} data - The JSON data to populate the object with.
-    * @param {JsonFromOptions} [options] - Options for JSON deserialization.
-    * @returns {T} Returns the populated object.
-    */
-    static classFromJson(obj, data, options) {
-        let realOptions = {
-            transformValue: options?.transformValue ?? ((key, value) => value),
-            replaceUndefined: options?.replaceUndefined ?? false,
-            replaceUndefinedWithKey: options?.replaceUndefinedWithKey ?? false,
-        };
-        return this.__classFromJson(obj, data, realOptions);
-    }
-    static __classFromJson(obj, data, options) {
-        let props = Object.getOwnPropertyNames(obj);
-        for (let prop of props) {
-            let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-            let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
-            if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
-                let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
-                if (propInfo?.writable) {
-                    const o = obj;
-                    o[prop] = options.transformValue(prop, value);
-                }
-            }
-        }
-        let cstTemp = obj.constructor;
-        while (cstTemp.prototype && cstTemp != Object.prototype) {
-            props = Object.getOwnPropertyNames(cstTemp.prototype);
-            for (let prop of props) {
-                let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-                let value = Object.hasOwn(data, prop) ? data[prop] : data[propUpperFirst];
-                if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
-                    let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
-                    if (propInfo?.set) {
-                        const o = obj;
-                        o[prop] = options.transformValue(prop, value);
-                    }
-                }
-            }
-            cstTemp = Object.getPrototypeOf(cstTemp);
-        }
-        return obj;
-    }
-}
-Json.Namespace=`Aventus`;
-__as1(_, 'Json', Json);
-
-let Converter=class Converter {
-    /**
-    * Map storing information about registered types.
-    */
-    static info = new Map([["Aventus.Map", Map]]);
-    /**
-    * Map storing schemas for registered types.
-    */
-    static schema = new Map();
-    static getSchema($type) {
-        return this.schema.get($type);
-    }
-    /**
-     * Internal converter instance.
-     */
-    static __converter = new ConverterTransform();
-    /**
-     * Getter for the internal converter instance.
-     */
-    static get converterTransform() {
-        return this.__converter;
-    }
-    /**
-    * Sets the converter instance.
-    * @param converter The converter instance to set.
-    */
-    static setConverter(converter) {
-        this.__converter = converter;
-    }
-    /**
-    * Registers a unique string type for any class.
-    * @param $type The unique string type identifier.
-    * @param cst The constructor function for the class.
-    * @param schema Optional schema for the registered type.
-    */
-    static register($type, cst, schema) {
-        this.info.set($type, cst);
-        if (schema) {
-            this.schema.set($type, schema);
-        }
-    }
-    /**
-     * Transforms the provided data using the current converter instance.
-     * @template T
-     * @param {*} data The data to transform.
-     * @param {IConverterTransform} [converter] Optional converter instance to use for transformation.
-     * @returns {T} Returns the transformed data.
-     */
-    static transform(data, converter) {
-        if (!converter) {
-            converter = this.converterTransform;
-        }
-        return converter.transform(data);
-    }
-    /**
-     * Copies values from one class instance to another using the current converter instance.
-     * @template T
-     * @param {T} to The destination class instance to copy values into.
-     * @param {T} from The source class instance to copy values from.
-     * @param {ClassCopyOptions} [options] Optional options for the copy operation.
-     * @param {IConverterTransform} [converter] Optional converter instance to use for the copy operation.
-     * @returns {T} Returns the destination class instance with copied values.
-     */
-    static copyValuesClass(to, from, options, converter) {
-        if (!converter) {
-            converter = this.converterTransform;
-        }
-        return converter.copyValuesClass(to, from, options);
-    }
-}
-Converter.Namespace=`Aventus`;
-__as1(_, 'Converter', Converter);
-
-let HttpResponse=class HttpResponse {
-    get status() {
-        return this.response.status;
-    }
-    get statusText() {
-        return this.response.statusText;
-    }
-    get redirected() {
-        return this.response.redirected;
-    }
-    get ok() {
-        return this.response.ok;
-    }
-    get type() {
-        return this.response.type;
-    }
-    get url() {
-        return this.response.url;
-    }
-    get headers() {
-        return this.response.headers;
-    }
-    response;
-    constructor(response) {
-        this.response = response;
-    }
-    bodyFormat;
-    bodyPromise;
-    async readBody(format, read) {
-        if (this.bodyFormat && this.bodyFormat !== format) {
-            throw new TypeError(`Response body already read as ${this.bodyFormat}`);
-        }
-        if (!this.bodyPromise) {
-            this.bodyFormat = format;
-            this.bodyPromise = read();
-        }
-        return this.bodyPromise;
-    }
-    json() {
-        return this.readBody('json', async () => Converter.transform(await this.response.json()));
-    }
-    blob() {
-        return this.readBody('blob', () => this.response.blob());
-    }
-    text() {
-        return this.readBody('text', () => this.response.text());
-    }
-}
-HttpResponse.Namespace=`Aventus`;
-__as1(_, 'HttpResponse', HttpResponse);
-
-let HttpCache=class HttpCache {
-    static cache = new Map();
-    static pending = new Map();
-    static fetch(fullUrl, request) {
-        const key = this.generateCacheKey(fullUrl, request);
-        if (key) {
-            const value = this.cache.get(key);
-            if (value)
-                return Promise.resolve(value);
-            const pending = this.pending.get(key);
-            if (pending)
-                return pending;
-        }
-        let transport;
-        try {
-            transport = fetch(fullUrl, request);
-        }
-        catch (error) {
-            return Promise.reject(error);
-        }
-        let pending;
-        pending = Promise.resolve(transport).then(result => {
-            const response = new HttpResponse(result);
-            if (key && this.pending.get(key) === pending) {
-                this.cache.set(key, response);
-            }
-            return response;
-        }).finally(() => {
-            if (key && this.pending.get(key) === pending) {
-                this.pending.delete(key);
-            }
-        });
-        if (key) {
-            this.pending.set(key, pending);
-        }
-        return pending;
-    }
-    static clear(fullUrl, request) {
-        const key = this.generateCacheKey(fullUrl, request);
-        if (key) {
-            this.pending.delete(key);
-            if (this.cache.has(key)) {
-                this.cache.delete(key);
-            }
-        }
-    }
-    static generateCacheKey(fullUrl, request) {
-        const method = request.method;
-        const body = request.body;
-        const accept = request.headers ? new Headers(request.headers).get('Accept') ?? '' : '';
-        let bodyKey = "";
-        if (typeof body == 'string') {
-            bodyKey = this.hashStringToInt(body) + '';
-        }
-        else if (body instanceof FormData) {
-        }
-        return fullUrl + "°" + method + "°" + bodyKey + "°" + accept;
-    }
-    static hashStringToInt(str) {
-        let hash = 0x811c9dc5;
-        for (let i = 0; i < str.length; i++) {
-            hash ^= str.charCodeAt(i);
-            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
-        }
-        return hash >>> 0;
-    }
-}
-HttpCache.Namespace=`Aventus`;
-__as1(_, 'HttpCache', HttpCache);
-
-let Data=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
-class Data {
-    static converter = new Converter();
-    /**
-     * The schema for the class
-     */
-    static $schema;
-    /**
-     * The current namespace
-     */
-    static Namespace = "";
-    /**
-     * Get the unique type for the data. Define it as the namespace + class name
-     */
-    static get Fullname() { return this.Namespace + "." + this.name; }
-    /**
-     * The current namespace
-     */
-    get namespace() {
-        return this.constructor['Namespace'];
-    }
-    /**
-     * Get the unique type for the data. Define it as the namespace + class name
-     */
-    get $type() {
-        return this.constructor['Fullname'];
-    }
-    /**
-     * Get the name of the class
-     */
-    get className() {
-        return this.constructor.name;
-    }
-    /**
-     * Get a JSON for the current object
-     */
-    toJSON() {
-        let toAvoid = ['className', 'namespace'];
-        return Json.classToJson(this, {
-            isValidKey: (key) => !toAvoid.includes(key)
-        });
-    }
-    /**
-     * Clone the object by transforming a parsed JSON string back into the original type
-     */
-    clone() {
-        return Converter.transform(JSON.parse(JSON.stringify(this)));
-    }
-}
-Data.Namespace=`Aventus`;
-Data.$schema={"namespace":"string","$type":"string","className":"string"};
-Converter.register(Data.Fullname, Data);
-__as1(_, 'Data', Data);
 
 let GenericError=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class GenericError {
@@ -8267,7 +8925,15 @@ __as1(_, 'ResizeObserver', ResizeObserver);
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
+(() => {
+const _ = globalThis;
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; };
+ 
+})();
 
+(() => {
+const _ = globalThis;
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; };
 (() => {
     if(!Object.hasOwn(window, "t")) {
 
@@ -8300,6 +8966,7 @@ for(let key in _) { Aventus[key] = _[key] }
 })();
 
 
+})();
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
@@ -8928,14 +9595,6 @@ RuntimeNested.Namespace=`RuntimeReference`;
 RuntimeNested.Tag=`rt-runtime-nested`;
 __as1(_, 'RuntimeNested', RuntimeNested);
 if(!window.customElements.get('rt-runtime-nested')){window.customElements.define('rt-runtime-nested', RuntimeNested);Aventus.WebComponentInstance.registerDefinition(RuntimeNested);}
-
-let RuntimeScoped=class RuntimeScoped {
-    static name() {
-        return "scoped";
-    }
-}
-RuntimeScoped.Namespace=`RuntimeReference`;
-__as1(_, 'RuntimeScoped', RuntimeScoped);
 
 let RuntimeNamedState=class RuntimeNamedState extends Aventus.State {
     payload = '';
@@ -10282,7 +10941,7 @@ let RuntimeAnimation=class RuntimeAnimation {
         animation.setFPS(120);
         animation.start();
         const started = animation.isStarted();
-        await new Promise(resolve => setTimeout(resolve, 45));
+        await new Promise(resolve => setTimeout(resolve, 120));
         animation.immediateStop();
         const afterStop = { fps: animation.getFPS(), started: animation.isStarted(), frames, stopped };
         await new Promise(resolve => setTimeout(resolve, 45));
