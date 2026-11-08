@@ -720,7 +720,9 @@ export class TemplateManager {
 		};
 		const allowedTemplates = await filterAllowed(templates);
 		if (Object.keys(allowedTemplates).length === 0) {
-			throw new NoTemplatesAvailableError('No templates available for this location');
+			if (!quickPicks || quickPicks.length === 0) {
+				throw new NoTemplatesAvailableError('No templates available for this location');
+			}
 		}
 		return this.queryAllowed(allowedTemplates, quickPicks);
 	}

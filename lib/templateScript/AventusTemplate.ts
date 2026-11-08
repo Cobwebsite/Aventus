@@ -116,19 +116,25 @@ export abstract class AventusTemplate {
 			this.templatePath = templatePath;
 			this.workspacePath = workspacePath;
 			this.defaultBlocks();
+			let inputBuffer = '';
 			process.stdin.on("data", (data) => {
-				try {
-					const txt = data.toString().trim();
-					const payload: { cmd: string, result: string | null } = JSON.parse(txt);
-					if (payload.result == 'NULL') {
-						payload.result = null;
+				inputBuffer += data.toString();
+				let newline: number;
+				while ((newline = inputBuffer.indexOf('\n')) !== -1) {
+					const txt = inputBuffer.slice(0, newline).trim();
+					inputBuffer = inputBuffer.slice(newline + 1);
+					if (!txt) continue;
+					try {
+						const payload: { cmd: string, result: string | null } = JSON.parse(txt);
+						if (payload.result == 'NULL') {
+							payload.result = null;
+						}
+						if (this.waitingResponse[payload.cmd]) {
+							this.waitingResponse[payload.cmd](payload.result);
+						}
+					} catch (e) {
+						this.runCommand("error", String(e));
 					}
-					if (this.waitingResponse[payload.cmd]) {
-						this.waitingResponse[payload.cmd](payload.result);
-					}
-				}
-				catch (e) {
-					this.runCommand("error", e);
 				}
 			})
 			this.run(destination).then(
