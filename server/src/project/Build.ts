@@ -2287,12 +2287,12 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
     private async onNewFile(file: AventusFile) {
         if (this.buildConfig.srcPathRegex) {
             if (file.path.match(this.buildConfig.srcPathRegex)) {
-                this.registerFile(file, false);
+                await this.registerFile(file, false);
             }
         }
         if (this.buildConfig.outsideModulePathRegex) {
             if (file.path.match(this.buildConfig.outsideModulePathRegex)) {
-                this.registerFile(file, false);
+                await this.registerFile(file, false);
                 this.noNamespaceUri[file.uri] = true;
             }
         }

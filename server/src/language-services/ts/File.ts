@@ -1,6 +1,6 @@
 import { Diagnostic, Range } from "vscode-languageserver";
 import { AventusErrorCode, AventusExtension } from "../../definition";
-import { AventusFile } from '../../files/AventusFile';
+import { AventusFile, InternalAventusFile } from '../../files/AventusFile';
 import { Build } from "../../project/Build";
 import { createErrorTsPos } from '../../tools';
 import { AventusBaseFile } from "../BaseFile";
@@ -14,6 +14,7 @@ import { normalize } from 'path';
 export abstract class AventusTsFile extends AventusBaseFile {
     private static readonly dependentValidationDelay = 2000;
     private static readonly pendingValidations = new WeakMap<Build, { uris: Set<string>, timer?: NodeJS.Timeout }>();
+    private suppressDependentValidation = false;
     public get tsLanguageService() {
         return this.build.tsLanguageService;
     }
@@ -61,12 +62,21 @@ export abstract class AventusTsFile extends AventusBaseFile {
     }
 
     protected async revalidateAfterDependencyChange(): Promise<void> {
+        ParserTs.invalidate(this.file.uri, this.build);
         this.refreshFileParsed();
         await this.file.validate();
+        this.suppressDependentValidation = true;
+        try {
+            if (this.file instanceof InternalAventusFile) {
+                await this.file.triggerSave();
+            }
+        } finally {
+            this.suppressDependentValidation = false;
+        }
     }
 
     protected async onSave(): Promise<void> {
-        if (!this.build.initDone) return;
+        if (!this.build.initDone || this.suppressDependentValidation) return;
 
         let pending = AventusTsFile.pendingValidations.get(this.build);
         if (!pending) {

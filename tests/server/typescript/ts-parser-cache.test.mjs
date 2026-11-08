@@ -51,6 +51,17 @@ test('parser cache separates the same URI and version between distinct builds', 
     assert.equal(ParserTs.getCached(uri, secondBuild), second);
 });
 
+test('parser cache can reparse an unchanged importer after a generated dependency appears', () => {
+    const uri = 'file:///D:/test/generated-importer.lib.avt';
+    const projectBuild = build();
+    const input = file('export class Importer {}', uri);
+    const first = ParserTs.parse(input, false, projectBuild);
+    ParserTs.invalidate(uri, projectBuild);
+    const second = ParserTs.parse(input, false, projectBuild);
+    assert.notEqual(second, first);
+    assert.ok(second.classes.Importer);
+});
+
 test('parser cache separates internal and external views of the same URI/version', () => {
     const uri = 'file:///D:/test/parse-cache-external-round7.lib.avt';
     const projectBuild = build();
