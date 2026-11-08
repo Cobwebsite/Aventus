@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.5.1 (2026-11-08)
+ - Correct template
+ - Correct url dependencies changes
+
 ## 1.5.0 (2026-11-08)
 
 ### Features
