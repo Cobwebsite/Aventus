@@ -45,6 +45,12 @@ export class ParserTs {
         const entry = this.parsedByBuild.get(build)?.get(uri);
         return isExternal ? entry?.external : entry?.internal;
     }
+    public static invalidate(uri: string, build: Build): void {
+        const entry = this.parsedByBuild.get(build)?.get(uri);
+        if (entry) {
+            entry.internal = undefined;
+        }
+    }
     public static parse(document: AventusFile, isExternal: boolean, build: Build): ParserTs {
         const cached = this.getCached(document.uri, build, isExternal);
         if (cached && cached.parsedVersion === document.versionInternal) {
