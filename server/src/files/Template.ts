@@ -152,152 +152,150 @@ export class TemplateScript {
 					console.log(error)
 				});
 
-				child.stdout.on("data", async (data) => {
-					const txt = data.toString().trim();
-					let messages = [txt];
-					if (txt.indexOf("}\n{") != -1) {
-						messages = txt.split("}\n{");
-						for (let i = 1; i < messages.length; i++) {
-							messages[i - 1] += "}";
-							messages[i] = "{" + messages[i];
-						}
-					}
-
+				let outputBuffer = '';
+				let pendingMessages = Promise.resolve();
+				const handleMessage = async (txt: string) => {
 					try {
-						for (let message of messages) {
-							const payload: { cmd: string, config?: any } = JSON.parse(message);
-							if (payload.cmd == "input") {
-								const config: InputOptions = payload.config
-								let response = await GenericServer.Input(config)
-								answer(payload.cmd, response)
+						const payload: { cmd: string, config?: any } = JSON.parse(txt);
+						if (payload.cmd == "input") {
+							const config: InputOptions = payload.config
+							let response = await GenericServer.Input(config)
+							answer(payload.cmd, response)
+						}
+						else if (payload.cmd == "select") {
+							const config: {
+								items: SelectItem[],
+								options: SelectOptions,
+							} = payload.config
+							let response = await GenericServer.Select(config.items, config.options);
+							if (response == null) {
+								answer(payload.cmd, "NULL");
 							}
-							else if (payload.cmd == "select") {
-								const config: {
-									items: SelectItem[],
-									options: SelectOptions,
-								} = payload.config
-								let response = await GenericServer.Select(config.items, config.options);
-								if (response == null) {
-									answer(payload.cmd, "NULL");
-								}
-								else {
-									answer(payload.cmd, JSON.stringify(response));
-								}
+							else {
+								answer(payload.cmd, JSON.stringify(response));
 							}
-							else if (payload.cmd == "selectMultiple") {
-								const config: {
-									items: SelectItem[],
-									options: SelectOptions,
-								} = payload.config
-								let response = await GenericServer.SelectMultiple(config.items, config.options);
-								if (response == null) {
-									answer(payload.cmd, "NULL");
-								}
-								else {
-									answer(payload.cmd, JSON.stringify(response));
-								}
+						}
+						else if (payload.cmd == "selectMultiple") {
+							const config: {
+								items: SelectItem[],
+								options: SelectOptions,
+							} = payload.config
+							let response = await GenericServer.SelectMultiple(config.items, config.options);
+							if (response == null) {
+								answer(payload.cmd, "NULL");
 							}
-							else if (payload.cmd == "registerFile") {
-								let config = payload.config as string[];
-								for (let path of config) {
-									FilesManager.getInstance().onCreatedUri(pathToUri(path));
-								}
+							else {
+								answer(payload.cmd, JSON.stringify(response));
 							}
-							else if (payload.cmd == "openFile") {
-								let config = payload.config as string[];
-								for (let path of config) {
-									GenericServer.sendNotification("aventus/openfile", pathToFileURL(path).toString());
-								}
+						}
+						else if (payload.cmd == "registerFile") {
+							let config = payload.config as string[];
+							for (let path of config) {
+								FilesManager.getInstance().onCreatedUri(pathToUri(path));
 							}
-							else if (payload.cmd == "getNamespace") {
-								let config = payload.config as string;
-								let builds = ProjectManager.getInstance().getMatchingBuildsByUri(pathToUri(config));
-								if (builds.length > 0) {
-									const namespace = builds[0].getNamespaceForUri(pathToUri(config));
-									answer(payload.cmd, namespace);
-								}
-								else {
-									answer(payload.cmd, null);
-								}
+						}
+						else if (payload.cmd == "openFile") {
+							let config = payload.config as string[];
+							for (let path of config) {
+								GenericServer.sendNotification("aventus/openfile", pathToFileURL(path).toString());
 							}
-							else if (payload.cmd == "exec") {
-								let params: ExecSyncOptionsWithBufferEncoding = {};
-								let cwd = uriToPath(GenericServer.getWorkspaceUri());
-								params.cwd = cwd;
-								let config = payload.config as string
-								try {
-									await execAsync(config, params)
-								} catch (e) {
-									GenericServer.error(e);
-									GenericServer.showErrorMessage("The command " + config + " failed");
-								}
-								answer(payload.cmd, "done");
+						}
+						else if (payload.cmd == "getNamespace") {
+							let config = payload.config as string;
+							let builds = ProjectManager.getInstance().getMatchingBuildsByUri(pathToUri(config));
+							if (builds.length > 0) {
+								const namespace = builds[0].getNamespaceForUri(pathToUri(config));
+								answer(payload.cmd, namespace);
 							}
-							else if (payload.cmd == "execAdmin") {
-								let config = payload.config as string
-								let cwd = uriToPath(GenericServer.getWorkspaceUri());
+							else {
+								answer(payload.cmd, null);
+							}
+						}
+						else if (payload.cmd == "exec") {
+							let params: ExecSyncOptionsWithBufferEncoding = {};
+							let cwd = uriToPath(GenericServer.getWorkspaceUri());
+							params.cwd = cwd;
+							let config = payload.config as string
+							try {
+								await execAsync(config, params)
+							} catch (e) {
+								GenericServer.error(e);
+								GenericServer.showErrorMessage("The command " + config + " failed");
+							}
+							answer(payload.cmd, "done");
+						}
+						else if (payload.cmd == "execAdmin") {
+							let config = payload.config as string
+							let cwd = uriToPath(GenericServer.getWorkspaceUri());
 
-								try {
-									let moveToCwd = `cd /d "${cwd}"`;
-									if (process.platform == 'darwin') {
-										moveToCwd = `cd "${cwd}"`;
+							try {
+								let moveToCwd = `cd /d "${cwd}"`;
+								if (process.platform == 'darwin') {
+									moveToCwd = `cd "${cwd}"`;
+								}
+								execAdmin("cd " + cwd + " && " + config, (error, stdout, stderr) => {
+									if (error) {
+										GenericServer.error('error: ' + error);
+										GenericServer.error('stdout: ' + stdout);
+										GenericServer.error('stderr: ' + stderr);
 									}
-									execAdmin("cd " + cwd + " && " + config, (error, stdout, stderr) => {
-										if (error) {
-											GenericServer.error('error: ' + error);
-											GenericServer.error('stdout: ' + stdout);
-											GenericServer.error('stderr: ' + stderr);
-										}
-									})
-								} catch (e) {
-									GenericServer.error(e);
-									GenericServer.showErrorMessage("The command " + config + " failed");
-								}
-								answer(payload.cmd, "done");
+								})
+							} catch (e) {
+								GenericServer.error(e);
+								GenericServer.showErrorMessage("The command " + config + " failed");
 							}
-							else if (payload.cmd == "aventusCommand") {
-								let config = payload.config as { command: string, arguments: any[] }
+							answer(payload.cmd, "done");
+						}
+						else if (payload.cmd == "aventusCommand") {
+							let config = payload.config as { command: string, arguments: any[] }
 
-								try {
-									await Commands.execute({
-										command: config.command,
-										arguments: config.arguments
-									})
-								} catch (e) {
-									GenericServer.error(e);
-									GenericServer.showErrorMessage("The command " + config + " failed");
-								}
-								answer(payload.cmd, "done");
+							try {
+								await Commands.execute({
+									command: config.command,
+									arguments: config.arguments
+								})
+							} catch (e) {
+								GenericServer.error(e);
+								GenericServer.showErrorMessage("The command " + config + " failed");
 							}
-							else if (payload.cmd == "showErrorMessage") {
-								GenericServer.showErrorMessage(payload.config as string);
-							}
-							else if (payload.cmd == "showWarningMessage") {
-								GenericServer.showWarningMessage(payload.config as string);
-							}
-							else if (payload.cmd == "showInformationMessage") {
-								GenericServer.showInformationMessage(payload.config as string);
-							}
-							else if (payload.cmd == "progressStart") {
-								let txt = payload.config as string;
-								let uuid = ProgressStart.send(txt);
-								answer(payload.cmd, uuid);
-							}
-							else if (payload.cmd == "progressStop") {
-								let uuid = payload.config as string;
-								ProgressStop.send(uuid);
-							}
-							else if (payload.cmd == "log") {
-								GenericServer.debug(payload.config)
-							}
-							else if (payload.cmd == "error") {
-								console.error(payload.config)
-							}
+							answer(payload.cmd, "done");
+						}
+						else if (payload.cmd == "showErrorMessage") {
+							GenericServer.showErrorMessage(payload.config as string);
+						}
+						else if (payload.cmd == "showWarningMessage") {
+							GenericServer.showWarningMessage(payload.config as string);
+						}
+						else if (payload.cmd == "showInformationMessage") {
+							GenericServer.showInformationMessage(payload.config as string);
+						}
+						else if (payload.cmd == "progressStart") {
+							let txt = payload.config as string;
+							let uuid = ProgressStart.send(txt);
+							answer(payload.cmd, uuid);
+						}
+						else if (payload.cmd == "progressStop") {
+							let uuid = payload.config as string;
+							ProgressStop.send(uuid);
+						}
+						else if (payload.cmd == "log") {
+							GenericServer.debug(payload.config)
+						}
+						else if (payload.cmd == "error") {
+							console.error(payload.config)
 						}
 					} catch (e) {
 						GenericServer.error(e);
 						GenericServer.error("message " + txt);
-						GenericServer.error(messages);
+					}
+				};
+				child.stdout.on("data", (data) => {
+					outputBuffer += data.toString();
+					let newline: number;
+					while ((newline = outputBuffer.indexOf('\n')) !== -1) {
+						const message = outputBuffer.slice(0, newline).trim();
+						outputBuffer = outputBuffer.slice(newline + 1);
+						if (message) pendingMessages = pendingMessages.then(() => handleMessage(message));
 					}
 				});
 

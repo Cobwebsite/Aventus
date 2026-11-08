@@ -1,6 +1,6 @@
 # Change Log
 
-## 1.5.0 (2026-09-23)
+## 1.5.0 (2026-11-08)
 
 ### Features
  - Add OKLCH color detection
