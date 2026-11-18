@@ -41,7 +41,7 @@ test('template variables preserve dollar sequences in paths and file contents', 
     };
     TemplateScript.memory = {};
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
-    FilesManager.instance = { onCreatedUri: uri => registered.push(uri) };
+    FilesManager.instance = { applyBatch: ({ created: [uri] }) => registered.push(uri) };
     t.after(() => {
         [GenericServer.instance, TemplateScript.memory, ProjectManager.instance, FilesManager.instance] = previous;
     });

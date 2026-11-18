@@ -18,7 +18,7 @@ test('a project routes its config and global style to their own handlers and rem
     const styleUri = pathToUri(stylePath);
     const previous = [FilesManager.instance, ProjectManager.instance, ProjectManager.autoLoad,
         FilesWatcher.instance, GenericServer.instance, SettingsManager.instance];
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false,
         onNewFileCb: {}, onFileRemoveCb: {} });
@@ -41,10 +41,10 @@ test('a project routes its config and global style to their own handlers and rem
         assert.equal(project.scssFiles[styleUri]?.constructor.name.endsWith('AventusGlobalSCSSFile'), true);
         assert.equal(project.scssFiles[styleUri].file, manager.getByUri(styleUri));
 
-        await manager.onDeletedUri(styleUri);
+        await manager.applyBatch({ created: [], updated: [], deleted: [styleUri] });
         assert.equal(project.scssFiles[styleUri], undefined);
         assert.equal(manager.getByUri(styleUri), undefined);
-        await manager.onDeletedUri(configUri);
+        await manager.applyBatch({ created: [], updated: [], deleted: [configUri] });
         assert.equal(projects.getProjectByUri(configUri), undefined);
         assert.equal(manager.getByUri(configUri), undefined);
     } finally {

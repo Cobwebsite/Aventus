@@ -57,13 +57,13 @@ export class FilesWatcher {
         GenericServer.debug("onContentChange : " + path)
         let uri = pathToUri(path);
         if (this.watcheUris.includes(uri)) {
-            await this.enqueue(uri, () => FilesManager.getInstance().onUpdatedUri(uri));
+            await this.enqueue(uri, () => FilesManager.getInstance().applyBatch({ created: [], updated: [uri], deleted: [] }));
         }
     }
     public async onRemove(path: string) {
         let uri = pathToUri(path);
         if (this.watcheUris.includes(uri)) {
-            await this.enqueue(uri, () => FilesManager.getInstance().onDeletedUri(uri));
+            await this.enqueue(uri, () => FilesManager.getInstance().applyBatch({ created: [], updated: [], deleted: [uri] }));
         }
     }
     private enqueue(uri: string, action: () => Promise<void>): Promise<void> {

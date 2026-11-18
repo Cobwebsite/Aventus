@@ -23,8 +23,9 @@ test('destroy settles after a rejected active event and discards its queued dele
     const updateGate = new Promise((_, reject) => { rejectUpdate = reject; });
     FilesWatcher.instance = watcher;
     FilesManager.instance = {
-        onUpdatedUri: async () => { calls.push('update start'); await updateGate; },
-        onDeletedUri: async () => { calls.push('delete'); },
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async () => { calls.push('update start'); await updateGate; },
+        remove: async () => { calls.push('delete'); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {

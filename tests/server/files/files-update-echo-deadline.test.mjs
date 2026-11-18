@@ -13,12 +13,15 @@ test('disk echo is suppressed until exactly two seconds after the last suppressi
     const dir = mkdtempSync(join(process.cwd(), 'aventus-update-deadline-'));
     const path = join(dir, 'sample.wcl.avt');
     const uri = pathToUri(path);
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     manager.files = { [uri]: { versionUser: 1 } };
     manager.lockedUpdatedUri = {};
     const events = [];
-    manager.onContentChange = async document => events.push(['change', document.version, document.getText()]);
+    manager.onContentChange = async document => {
+        manager.files[document.uri].versionUser = document.version;
+        events.push(['change', document.version, document.getText()]);
+    };
     manager.onSave = async document => events.push(['save', document.version]);
     try {
         writeFileSync(path, 'changed on disk');
@@ -26,13 +29,13 @@ test('disk echo is suppressed until exactly two seconds after the last suppressi
         t.mock.timers.tick(1_000);
         manager.preventUpdateUri(uri);
         t.mock.timers.tick(1_999);
-        await manager.onUpdatedUri(uri);
+        await manager.applyBatch({ created: [], updated: [uri], deleted: [] });
         assert.deepEqual(events, []);
         assert.ok(manager.lockedUpdatedUri[uri]);
 
         t.mock.timers.tick(1);
         assert.equal(manager.lockedUpdatedUri[uri], undefined);
-        await manager.onUpdatedUri(uri);
+        await manager.applyBatch({ created: [], updated: [uri], deleted: [] });
         assert.deepEqual(events, [['change', 2, 'changed on disk'], ['save', 2]]);
     } finally {
         for (const timeout of Object.values(manager.lockedUpdatedUri)) clearTimeout(timeout);

@@ -10,7 +10,7 @@ const [{ FilesManager }, { SettingsManager }, { pathToUri }] = await loadServerM
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     instance.files = {};
     instance.lockedUpdatedUri = {};
@@ -45,7 +45,10 @@ test('a second server write extends suppression of its matching filesystem updat
     const first = 'file:///d%3A/project/first.wcl.avt';
     const second = 'file:///d%3A/project/second.wcl.avt';
     const seen = [];
-    current.onContentChange = async document => seen.push(document.uri);
+    current.onContentChange = async document => {
+        current.files[document.uri].versionUser = document.version;
+        seen.push(document.uri);
+    };
     current.onSave = async document => seen.push(`save:${document.uri}`);
     const root = mkdtempSync(join(tmpdir(), 'aventus-suppress-'));
     const other = join(root, 'second.wcl.avt');
@@ -57,10 +60,10 @@ test('a second server write extends suppression of its matching filesystem updat
         current.preventUpdateUri(first);
         assert.notEqual(current.lockedUpdatedUri[first], originalTimer);
         assert.equal(current.lockedUpdatedUri[second], undefined);
-        await current.onUpdatedUri(first);
+        await current.applyBatch({ created: [], updated: [first], deleted: [] });
         assert.deepEqual(seen, []);
         current.files[otherUri] = { versionUser: 1 };
-        await current.onUpdatedUri(otherUri);
+        await current.applyBatch({ created: [], updated: [otherUri], deleted: [] });
         assert.deepEqual(seen, [otherUri, `save:${otherUri}`]);
     } finally {
         clearTimeout(current.lockedUpdatedUri[first]);

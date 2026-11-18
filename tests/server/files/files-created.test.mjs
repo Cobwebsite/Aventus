@@ -5,12 +5,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadServerModules } from '../helpers/load-ts.mjs';
 
-const [{ FilesManager }, { GenericServer }, { FilesWatcher }, { pathToUri }] = await loadServerModules([
-    'files/FilesManager.ts', 'GenericServer.ts', 'files/FilesWatcher.ts', 'tools.ts',
+const [{ FilesManager }, { GenericServer }, { FilesWatcher }, { SettingsManager }, { pathToUri }] = await loadServerModules([
+    'files/FilesManager.ts', 'GenericServer.ts', 'files/FilesWatcher.ts', 'settings/Settings.ts', 'tools.ts',
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     Object.assign(instance, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return instance;
@@ -22,9 +22,11 @@ test('disk creation registers a recognized document once and sends its save noti
     const uri = pathToUri(path);
     const previousServer = GenericServer.instance;
     const previousWatcher = FilesWatcher.instance;
+    const previousSettings = SettingsManager.instance;
     const events = [];
     const current = manager();
-    GenericServer.instance = { isIDE: false, logLevel: 99 };
+    GenericServer.instance = { isIDE: false, logLevel: 99, connection: { sendDiagnostics() {} } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
     FilesWatcher.instance = { watch: value => events.push(['watch', value]) };
     current.onNewFile(async file => {
         events.push(['new', file.contentUser]);
@@ -32,20 +34,21 @@ test('disk creation registers a recognized document once and sends its save noti
     });
     try {
         writeFileSync(path, 'class Created {}');
-        await current.onCreatedUri(uri);
+        await current.applyBatch({ created: [uri], updated: [], deleted: [] });
         await new Promise(resolve => setImmediate(resolve));
         const file = current.getByUri(uri);
         assert.ok(file);
         assert.equal(file.contentUser, 'class Created {}');
         assert.equal(file.versionUser, 0);
         assert.deepEqual(events, [['new', 'class Created {}'], ['watch', uri], ['save', 'class Created {}']]);
-        await current.onCreatedUri(uri);
+        await current.applyBatch({ created: [uri], updated: [], deleted: [] });
         assert.equal(current.getByUri(uri), file);
         assert.equal(events.length, 3);
     } finally {
         for (const file of Object.values(current.files)) clearTimeout(file.delayValidate);
         FilesWatcher.instance = previousWatcher;
         GenericServer.instance = previousServer;
+        SettingsManager.instance = previousSettings;
         rmSync(root, { recursive: true, force: true });
     }
 });
@@ -60,7 +63,7 @@ test('creation of an unrecognized extension leaves the cache and watcher untouch
     FilesWatcher.instance = { watch: value => watched.push(value) };
     try {
         writeFileSync(path, 'text');
-        await current.onCreatedUri(uri);
+        await current.applyBatch({ created: [uri], updated: [], deleted: [] });
         assert.deepEqual(current.getUris(), []);
         assert.deepEqual(watched, []);
     } finally {

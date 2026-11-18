@@ -15,7 +15,7 @@ test('an edited and saved document is discarded on close after disk removal, the
     const path = join(root, 'entry.wcl.avt');
     const uri = pathToUri(path);
     const previous = [GenericServer.instance, FilesWatcher.instance, SettingsManager.instance];
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const events = [];
@@ -57,7 +57,8 @@ test('an edited and saved document is discarded on close after disk removal, the
         assert.equal(second.versionUser, 7);
         assert.deepEqual(events, [
             ['new', 'opened first'], ['change', 2, 'edited first'], ['save', 2, 'edited first'],
-            ['diagnostics', uri, []], ['delete', 'edited first'], ['unwatch', uri],
+            ['diagnostics', uri, []], ['delete', 'edited first'],
+            ['unwatch', uri], ['diagnostics', uri, []],
             ['new', 'opened second'],
         ]);
     } finally {

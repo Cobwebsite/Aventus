@@ -10,7 +10,7 @@ const [{ FilesManager }, { GenericServer }, { FilesWatcher }, { SettingsManager 
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     instance.files = {};
     instance.lockedUpdatedUri = {};
@@ -39,12 +39,12 @@ test('disk update creates an unknown Aventus file, then refreshes its cached con
     });
     try {
         writeFileSync(path, 'first');
-        await instance.onUpdatedUri(uri);
+        await instance.applyBatch({ created: [], updated: [uri], deleted: [] });
         const file = instance.getByUri(uri);
         assert.equal(file.contentUser, 'first');
         const firstVersion = file.versionUser;
         writeFileSync(path, 'second');
-        await instance.onUpdatedUri(uri);
+        await instance.applyBatch({ created: [], updated: [uri], deleted: [] });
         assert.equal(instance.getByUri(uri), file);
         assert.equal(file.contentUser, 'second');
         assert.equal(file.versionUser, firstVersion + 1);
@@ -83,14 +83,14 @@ test('missing disk file update waits for its asynchronous deletion', async () =>
     };
     try {
         let updateFinished = false;
-        const update = instance.onUpdatedUri(uri).then(() => { updateFinished = true; });
+        const update = instance.applyBatch({ created: [], updated: [uri], deleted: [] }).then(() => { updateFinished = true; });
         await new Promise(resolve => setImmediate(resolve));
-        assert.deepEqual(events, ['diagnostics', 'delete-start']);
+        assert.deepEqual(events, ['delete-start']);
         assert.equal(instance.getByUri(uri), undefined);
         assert.equal(updateFinished, false);
         finishDelete();
         await update;
-        assert.deepEqual(events, ['diagnostics', 'delete-start', 'delete-end', 'unwatch']);
+        assert.deepEqual(events, ['delete-start', 'delete-end', 'unwatch', 'diagnostics']);
         assert.equal(instance.getByUri(uri), undefined);
     } finally {
         finishDelete();

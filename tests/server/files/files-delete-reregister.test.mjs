@@ -47,7 +47,7 @@ test('a replacement registered while deletion is pending stays registered', asyn
 
     await manager.registerFile(doc(1, 'old'));
     const oldFile = manager.getByUri(uri);
-    const deletion = manager.onDeletedUri(uri);
+    const deletion = manager.applyBatch({ created: [], updated: [], deleted: [uri] });
     await started.promise;
     assert.equal(oldFile.isDeleted, true);
 

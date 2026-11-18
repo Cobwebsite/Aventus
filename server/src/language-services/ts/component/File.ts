@@ -205,12 +205,14 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (htmlFile) {
             let mustWrite = false;
             let tsIsDiff = false;
+            let htmlIsDiff = false;
             if (this.lastFileVersionCreated.js != this.file.documentUser.version) {
                 mustWrite = true;
                 tsIsDiff = true;
             }
             else if (this.lastFileVersionCreated.html != htmlVersion) {
                 mustWrite = true;
+                htmlIsDiff = true;
             }
             else if (this.lastFileVersionCreated.i18n != i18nVersion) {
                 mustWrite = true;
@@ -386,7 +388,19 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 }
                                 else if (node.isLoop && node.loopInfo) {
                                     const header = node.loopInfo.loopTxt.replace(/\s*}\s*$/, '');
-                                    newContent += `${t}    ${header}\n`;
+                                    const statementStart = newContent.length;
+                                    newContent += `${t}    `;
+                                    const generatedStart = newContent.length;
+                                    newContent += `${header}\n`;
+                                    this.viewValidationMappings.push({
+                                        generatedStart,
+                                        generatedEnd: generatedStart + header.length,
+                                        statementStart,
+                                        statementEnd: newContent.length,
+                                        sourceStart: node.loopInfo.start,
+                                        sourceEnd: node.loopInfo.startBlock,
+                                    });
+                                    this.viewValidatedMethods.set(node.loopInfo.loopName, 1);
                                     // A mutable for-index is not narrowed by TypeScript across
                                     // repeated indexed accesses. Snapshot it as a callback
                                     // parameter, while keeping the template expressions intact.
@@ -449,8 +463,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                     writeViewValidation();
 
-                    if (tsIsDiff) {
-                        // if the typescript, maybe the type of the loop changed => we must reinfered all types
+                    if (tsIsDiff || htmlIsDiff) {
+                        // A logic edit can change a loop variable's type, and a view edit can introduce a new variable.
                         const inferForType = () => {
                             if (!htmlFile) return;
                             let fors = htmlFile.fileParsed?.loops ?? [];
@@ -523,7 +537,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         let end = newContent.length;
                         newContent += t + '}';
 
-                        const wrapper = function () {
+                        const wrapper = () => {
                             let result: ViewMethodInfo = {
                                 name: _for.loopName,
                                 fullStart: fullStart,
@@ -532,6 +546,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 offsetBefore: 0,
                                 offsetAfter: 0,
                                 kind: "loop",
+                                validatedExpression: this.viewValidatedMethods.has(_for.loopName),
                                 fct: {
                                     txt: _for.loopTxt,
                                     positions: [{
@@ -903,11 +918,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         this.diagnostics = this.compilationResult?.diagnostics || []
         // extract diagnostics
         this.transformDiagnosticForView();
-        if (this.HTMLFile?.file instanceof InternalAventusFile) {
-            await this.HTMLFile.file.validate(false);
-        }
-        else {
-            await this.HTMLFile?.validate();
+        if (this.HTMLFile) {
+            // A .wc.avt view shares the logic URI; its parent publishes the combined diagnostics.
+            await this.HTMLFile.file.validate(this.HTMLFile.file.uri !== this.file.uri);
         }
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)
@@ -1097,11 +1110,11 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
     }
     protected async onDelete(): Promise<void> {
-		const i18nFile = this.I18nFile;
-		if (i18nFile) {
-			i18nFile.transformForExport();
-			await i18nFile.validate();
-		}
+        const i18nFile = this.I18nFile;
+        if (i18nFile) {
+            i18nFile.transformForExport();
+            await i18nFile.validate();
+        }
         await super.onDelete();
         this.build.scssLanguageService.removeInternalDefinition(this.file.uri);
         this.build.htmlLanguageService.removeInternalDefinition(this.file.uri);
@@ -1113,7 +1126,34 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (!html) {
             return null;
         }
+        await this.runWebCompiler();
         let offsetFrom = html.file.documentInternal.offsetAt(htmlPosition);
+        // add local variables generated by loop or @Context
+        const mapping = this.viewValidationMappings.find(item => item.insertedAt === undefined && offsetFrom >= item.sourceStart && offsetFrom <= item.sourceEnd);
+        if (mapping) {
+            const offsetOnFile = mapping.generatedStart + offsetFrom - mapping.sourceStart;
+            const positionOnFile = this.file.documentInternal.positionAt(offsetOnFile);
+            const completions = await this.tsLanguageService.doComplete(this.file, positionOnFile);
+            completions.items = completions.items.filter(item => {
+                if (item.label.startsWith(this.viewMethodName)) return false;
+                if (item.additionalTextEdits?.length) return false;
+                if (item.data?.uri) {
+                    item.data.languageId = AventusLanguageId.HTML;
+                    item.data.uri = html.file.uri;
+                }
+                const edit = item.textEdit as TextEdit | undefined;
+                if (!edit?.range) return true;
+                const start = this.file.documentInternal.offsetAt(edit.range.start);
+                const end = this.file.documentInternal.offsetAt(edit.range.end);
+                if (start < mapping.generatedStart || end > mapping.generatedEnd) return false;
+                edit.range = {
+                    start: html.file.documentInternal.positionAt(mapping.sourceStart + start - mapping.generatedStart),
+                    end: html.file.documentInternal.positionAt(mapping.sourceStart + end - mapping.generatedStart),
+                };
+                return true;
+            });
+            return completions;
+        }
         for (let viewMethodInfo of this.viewMethodsInfo) {
             for (let position of viewMethodInfo.fct.positions) {
                 if (offsetFrom >= position.start + viewMethodInfo.offsetBefore && offsetFrom <= position.end) {
@@ -1277,15 +1317,15 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             let diagStart = this.file.documentInternal.offsetAt(format.range.start);
             let diagEnd = this.file.documentInternal.offsetAt(format.range.end);
             let found = false;
-            
+
             const hasGeneratedSection = this.viewGeneratedStart >= 0 && this.viewGeneratedEnd >= this.viewGeneratedStart;
             let avoid = diagStart >= this.file.contentUser.length;
-            if(hasGeneratedSection) {
+            if (hasGeneratedSection) {
                 avoid = (diagStart < this.viewGeneratedEnd && diagEnd > this.viewGeneratedStart) ||
-                  (diagStart >= this.viewGeneratedStart && diagStart < this.viewGeneratedEnd) ||
-                  diagEnd > this.viewUserSuffixEnd
+                    (diagStart >= this.viewGeneratedStart && diagStart < this.viewGeneratedEnd) ||
+                    diagEnd > this.viewUserSuffixEnd
             }
-            
+
             if (html) {
                 for (let i = 0; i < this.viewMethodsInfo.length; i++) {
                     let start = this.viewMethodsInfo[i].start;

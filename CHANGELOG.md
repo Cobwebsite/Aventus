@@ -1,5 +1,17 @@
 # Change Log
 
+## 1.5.2 (2026-11-18)
+
+### Features
+
+### Bug Fixes
+
+ - Fix multiple delete / update / create as one batch
+ - Fix multiple suggestion when multiple build exists
+ - Fix autocompletion with local variables (loop and @Context)
+ - Fix undefined inside loop if checked before with a if
+ - Fix file validation inside .wcv.act on .wcl.avt changed
+
 ## 1.5.1 (2026-11-08)
  - Correct template
  - Correct url dependencies changes

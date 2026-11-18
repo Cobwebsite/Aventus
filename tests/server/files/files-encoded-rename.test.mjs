@@ -18,7 +18,7 @@ test('disk rename and recreation keep encoded URI and path cache entries distinc
     const newUri = pathToUri(newPath);
     const previous = [GenericServer.instance, FilesWatcher.instance, SettingsManager.instance];
     const events = [];
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     GenericServer.instance = { isIDE: false, logLevel: 99, connection: { sendDiagnostics: value => events.push(['diagnostics', value.uri]) } };
@@ -27,15 +27,15 @@ test('disk rename and recreation keep encoded URI and path cache entries distinc
     try {
         mkdirSync(folder);
         writeFileSync(oldPath, 'class Before {}');
-        await manager.onCreatedUri(oldUri);
+        await manager.applyBatch({ created: [oldUri], updated: [], deleted: [] });
         const first = manager.getByPath(oldPath);
         assert.ok(first);
         assert.equal(pathToUri(uriToPath(oldUri)), oldUri);
         assert.equal(first.uri, oldUri);
 
         renameSync(oldPath, newPath);
-        await manager.onDeletedUri(oldUri);
-        await manager.onCreatedUri(newUri);
+        await manager.applyBatch({ created: [], updated: [], deleted: [oldUri] });
+        await manager.applyBatch({ created: [newUri], updated: [], deleted: [] });
         assert.equal(manager.getByUri(oldUri), undefined);
         assert.equal(manager.getByPath(oldPath), undefined);
         assert.equal(manager.getByPath(newPath), manager.getByUri(newUri));
@@ -43,7 +43,7 @@ test('disk rename and recreation keep encoded URI and path cache entries distinc
         assert.equal(manager.getByUri(newUri).contentUser, 'class Before {}');
 
         writeFileSync(oldPath, 'class Restored {}');
-        await manager.onCreatedUri(oldUri);
+        await manager.applyBatch({ created: [oldUri], updated: [], deleted: [] });
         assert.equal(manager.getByUri(oldUri).contentUser, 'class Restored {}');
         assert.equal(manager.getByUri(newUri).contentUser, 'class Before {}');
         assert.deepEqual(new Set(manager.getUris()), new Set([oldUri, newUri]));

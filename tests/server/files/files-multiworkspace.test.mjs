@@ -10,7 +10,7 @@ const [{ FilesManager }, { SettingsManager }, { GenericServer }, { FilesWatcher 
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     instance.files = {};
     instance.lockedUpdatedUri = {};
@@ -135,7 +135,7 @@ test('deletion clears diagnostics for every build associated with the file befor
         triggerDelete: async () => { events.push(['delete', uri]); },
     };
     try {
-        await current.onDeletedUri(uri);
+        await current.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.deepEqual(sent, [
             [{ uri, diagnostics: [] }, 'Demo.A'],
             [{ uri, diagnostics: [] }, 'Demo.B'],

@@ -56,7 +56,7 @@ test('real template can regenerate into an existing destination, then cancel aft
     };
     TemplateScript.memory = {};
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
-    FilesManager.instance = { onCreatedUri: uri => registered.push(uri) };
+    FilesManager.instance = { applyBatch: ({ created: [uri] }) => registered.push(uri) };
     try {
         const script = await TemplateScript.create(config);
         assert.ok(script, errors.join('\n'));

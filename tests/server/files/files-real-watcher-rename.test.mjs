@@ -19,7 +19,7 @@ test('renaming a disk file removes its watched URI without discovering the new p
     const oldUri = pathToUri(oldPath);
     const newUri = pathToUri(newPath);
     const previous = [FilesManager.instance, FilesWatcher.instance, GenericServer.instance, SettingsManager.instance];
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const watcher = Object.create(FilesWatcher.prototype);

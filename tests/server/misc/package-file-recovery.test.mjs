@@ -34,7 +34,7 @@ test('package file accepts a corrected dependencies section after malformed JSON
         htmlLanguageService: { addExternalDefinition() {}, removeExternalDefinition() {} },
         externalPackageInformation: { rebuild: () => rebuilds.push(file.versionUser) },
         npmBuilder: { unregister() {} },
-        build() {}, diagnostics: new Map(), reloadPage: false,
+        build() {}, rebuildAll() {}, diagnostics: new Map(), reloadPage: false,
     };
     const pkg = new AventusPackageFile(file, build);
     assert.deepEqual(pkg.dependencies, {});

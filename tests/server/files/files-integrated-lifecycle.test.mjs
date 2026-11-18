@@ -11,7 +11,7 @@ const [{ FilesManager }, { GenericServer }, { SettingsManager }, { FilesWatcher 
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     Object.assign(instance, {
         files: {}, lockedUpdatedUri: {}, loadingInProgress: false,
@@ -66,7 +66,7 @@ test('workspace scan, disk refresh and shutdown preserve the file cache lifecycl
 
         const cached = current.getByUri(logicUri);
         writeFileSync(logic, 'class EntryUpdated {}');
-        await current.onUpdatedUri(logicUri);
+        await current.applyBatch({ created: [], updated: [logicUri], deleted: [] });
         assert.equal(current.getByUri(logicUri), cached);
         assert.equal(cached.contentUser, 'class EntryUpdated {}');
         assert.equal(cached.versionUser, 1);

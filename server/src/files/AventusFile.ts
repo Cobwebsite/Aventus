@@ -504,17 +504,20 @@ export class InternalAventusFile implements AventusFile {
             proms.push(this.onCompletionCb[uuid](this, position));
         }
         let promsResult = await Promise.all(proms);
-        let items: { [key: string]: CompletionItem } = {};
+        let items = new Map<string, CompletionItem>();
         for (let promResult of promsResult) {
             for (let item of promResult.items) {
-                let key = JSON.stringify(item);
-                if (!items[key]) {
-                    items[key] = item;
+                // Each build has its own resolution data, even for the same visible completion.
+                // Keep the first item's data so completion resolve still has a valid source.
+                const { data, ...proposal } = item;
+                const key = JSON.stringify(proposal);
+                if (!items.has(key)) {
+                    items.set(key, item);
                 }
             }
 
         }
-        result.items = Object.values(items);
+        result.items = Array.from(items.values());
         return result;
     }
 

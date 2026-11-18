@@ -17,57 +17,42 @@ const { ProjectManager } = projectModule;
 const { TemplateScript } = templateModule;
 const { pathToUri } = toolsModule;
 
-test('client file notifications delegate each URI exactly once and ignore empty input', async () => {
+test('client file batch delegates all changes together', async () => {
     const previous = FilesManager.getInstance;
     const calls = [];
-    FilesManager.getInstance = () => ({
-        onCreatedUri: uri => calls.push(['created', uri]),
-        onUpdatedUri: uri => calls.push(['updated', uri]),
-        onDeletedUri: uri => calls.push(['deleted', uri]),
-    });
+    FilesManager.getInstance = () => ({ applyBatch: changes => calls.push(changes) });
     try {
-        await commands['aventus.filesystem.created'].run('file:///a.wcl.avt');
-        await commands['aventus.filesystem.updated'].run('file:///a.wcl.avt');
-        await commands['aventus.filesystem.deleted'].run('file:///a.wcl.avt');
-        for (const cmd of ['created', 'updated', 'deleted']) {
-            await commands[`aventus.filesystem.${cmd}`].run('');
-        }
-        assert.deepEqual(calls, [
-            ['created', 'file:///a.wcl.avt'],
-            ['updated', 'file:///a.wcl.avt'],
-            ['deleted', 'file:///a.wcl.avt'],
-        ]);
+        const changes = { created: ['file:///a.wcl.avt'], updated: ['file:///b.wcl.avt'], deleted: ['file:///c.wcl.avt'] };
+        await commands['aventus.filesystem.batch'].run(changes);
+        assert.deepEqual(calls, [changes]);
     } finally {
         FilesManager.getInstance = previous;
     }
 });
 
-for (const [command, handler] of [
-    ['created', 'onCreatedUri'], ['updated', 'onUpdatedUri'], ['deleted', 'onDeletedUri'],
-]) {
-    test(`${command} command waits for its handler and forwards failures`, async () => {
+test('batch command waits for applyBatch and forwards failures', async () => {
         const previous = FilesManager.getInstance;
         let release;
         const gate = new Promise(resolve => { release = resolve; });
         let finished = false;
-        FilesManager.getInstance = () => ({ [handler]: async () => { await gate; } });
+        FilesManager.getInstance = () => ({ applyBatch: async () => { await gate; } });
         try {
-            const running = commands[`aventus.filesystem.${command}`].run('file:///a.wcl.avt').then(() => { finished = true; });
+            const changes = { created: ['file:///a.wcl.avt'], updated: [], deleted: [] };
+            const running = commands['aventus.filesystem.batch'].run(changes).then(() => { finished = true; });
             await Promise.resolve();
             assert.equal(finished, false);
             release();
             await running;
             assert.equal(finished, true);
 
-            const failure = new Error(`${command} failed`);
-            FilesManager.getInstance = () => ({ [handler]: async () => { throw failure; } });
-            await assert.rejects(commands[`aventus.filesystem.${command}`].run('file:///a.wcl.avt'), error => error === failure);
+            const failure = new Error('batch failed');
+            FilesManager.getInstance = () => ({ applyBatch: async () => { throw failure; } });
+            await assert.rejects(commands['aventus.filesystem.batch'].run(changes), error => error === failure);
         } finally {
             release();
             FilesManager.getInstance = previous;
         }
-    });
-}
+});
 
 function withStore(run) {
     const previous = {

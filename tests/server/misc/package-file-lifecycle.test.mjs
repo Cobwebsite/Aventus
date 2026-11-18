@@ -45,7 +45,7 @@ test('package file replaces parsed sections on the same instance and removes ext
         },
         externalPackageInformation: { rebuild: () => events.push(['rebuild']) },
         npmBuilder: { unregister: key => events.push(['unregister', key]) },
-        build: () => events.push(['build']),
+        build: () => events.push(['build']), rebuildAll: async () => {},
         diagnostics: new Map(),
         reloadPage: false,
     };

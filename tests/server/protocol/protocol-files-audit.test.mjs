@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from '../helpers/load-ts.mjs';
 
-const [{ FilesManager }, { InternalAventusFile }, { GenericServer }, { FilesWatcher }, { pathToUri }] = await loadServerModules([
-    'files/FilesManager.ts', 'files/AventusFile.ts', 'GenericServer.ts', 'files/FilesWatcher.ts', 'tools.ts',
+const [{ FilesManager }, { InternalAventusFile }, { GenericServer }, { FilesWatcher }, { SettingsManager }, { pathToUri }] = await loadServerModules([
+    'files/FilesManager.ts', 'files/AventusFile.ts', 'GenericServer.ts', 'files/FilesWatcher.ts', 'settings/Settings.ts', 'tools.ts',
 ]);
 
 function deferred() {
@@ -21,15 +21,17 @@ test('disk creation waits for its asynchronous save callback', async () => {
     const path = join(root, 'sample.wcl.avt');
     writeFileSync(path, 'class Sample {}');
     const uri = pathToUri(path);
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const previousServer = GenericServer.instance;
     const previousWatcher = FilesWatcher.instance;
+    const previousSettings = SettingsManager.instance;
     const gate = deferred();
     const started = deferred();
     const events = [];
-    GenericServer.instance = { isIDE: false, logLevel: 99 };
+    GenericServer.instance = { isIDE: false, logLevel: 99, connection: { sendDiagnostics() {} } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
     FilesWatcher.instance = { watch: () => {} };
     manager.onNewFile(async file => {
         file.onSave(async () => {
@@ -41,7 +43,7 @@ test('disk creation waits for its asynchronous save callback', async () => {
     });
     try {
         let finished = false;
-        const creation = manager.onCreatedUri(uri).then(() => { finished = true; });
+        const creation = manager.applyBatch({ created: [uri], updated: [], deleted: [] }).then(() => { finished = true; });
         await started.promise;
         assert.deepEqual(events, ['save-started']);
         assert.equal(finished, false);
@@ -54,6 +56,7 @@ test('disk creation waits for its asynchronous save callback', async () => {
         for (const file of Object.values(manager.files)) clearTimeout(file.delayValidate);
         GenericServer.instance = previousServer;
         FilesWatcher.instance = previousWatcher;
+        SettingsManager.instance = previousSettings;
         rmSync(root, { recursive: true, force: true });
     }
 });
@@ -62,7 +65,7 @@ test('disk updates wait for save when registering and refreshing a file', async 
     const root = mkdtempSync(join(tmpdir(), 'aventus-update-save-'));
     const path = join(root, 'sample.wcl.avt');
     const uri = pathToUri(path);
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     manager.files = {};
     manager.lockedUpdatedUri = {};
@@ -81,7 +84,7 @@ test('disk updates wait for save when registering and refreshing a file', async 
     try {
         writeFileSync(path, 'first');
         let firstFinished = false;
-        const first = manager.onUpdatedUri(uri).then(() => { firstFinished = true; });
+        const first = manager.applyBatch({ created: [], updated: [uri], deleted: [] }).then(() => { firstFinished = true; });
         await new Promise(resolve => setImmediate(resolve));
         assert.equal(saves.length, 1);
         assert.equal(firstFinished, false);
@@ -90,7 +93,7 @@ test('disk updates wait for save when registering and refreshing a file', async 
 
         writeFileSync(path, 'second');
         let secondFinished = false;
-        const second = manager.onUpdatedUri(uri).then(() => { secondFinished = true; });
+        const second = manager.applyBatch({ created: [], updated: [uri], deleted: [] }).then(() => { secondFinished = true; });
         await new Promise(resolve => setImmediate(resolve));
         assert.equal(saves.length, 2);
         assert.equal(secondFinished, false);

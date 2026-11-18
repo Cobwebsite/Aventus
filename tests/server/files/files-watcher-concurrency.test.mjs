@@ -26,12 +26,13 @@ test('filesystem processing is ordered per URI without blocking another URI', as
     let releaseSlow;
     const slowGate = new Promise(resolve => { releaseSlow = resolve; });
     FilesManager.instance = {
-        onUpdatedUri: async uri => {
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async uri => {
             events.push(['update-start', uri]);
             if (uri === slowUri) await slowGate;
             events.push(['update-end', uri]);
         },
-        onDeletedUri: async uri => { events.push(['delete', uri]); },
+        remove: async uri => { events.push(['delete', uri]); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {
@@ -69,11 +70,12 @@ test('a failed event clears its URI queue and does not affect another file', asy
     const previousServer = GenericServer.instance;
     const events = [];
     FilesManager.instance = {
-        onUpdatedUri: async uri => {
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async uri => {
             events.push(['update', uri]);
             if (uri === failedUri) throw new Error('failed update');
         },
-        onDeletedUri: async uri => { events.push(['delete', uri]); },
+        remove: async uri => { events.push(['delete', uri]); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {

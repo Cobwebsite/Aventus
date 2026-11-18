@@ -28,7 +28,7 @@ const module = { exports: {} };
 new Function('module', 'exports', 'require', result.outputFiles[0].text)(module, module.exports, require);
 const { FilesWatcher } = module.exports;
 
-test('CLI watcher coalesces transitions and emits deletion before creation and update', async () => {
+test('CLI watcher coalesces transitions into one batch', async () => {
   const originalSetTimeout = globalThis.setTimeout;
   const originalClearTimeout = globalThis.clearTimeout;
   const scheduled = [];
@@ -45,11 +45,11 @@ test('CLI watcher coalesces transitions and emits deletion before creation and u
     await handlers.add('removed.avt');
     await handlers.unlink('removed.avt');
     await watcher.sendStack();
-    assert.deepEqual(notifications, [
-      ['FileDeleted', 'file:///removed.avt'],
-      ['FileCreated', 'file:///new.avt'],
-      ['FileUpdated', 'file:///updated.avt'],
-    ]);
+    assert.deepEqual(notifications, [['FileBatch', {
+      created: ['file:///new.avt'],
+      updated: ['file:///updated.avt'],
+      deleted: ['file:///removed.avt'],
+    }]]);
     assert.equal(scheduled.length, 5);
     assert.equal(closeCalls, 0);
     await watcher.stop();

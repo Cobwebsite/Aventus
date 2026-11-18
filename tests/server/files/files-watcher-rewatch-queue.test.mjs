@@ -20,12 +20,13 @@ test('a deletion queued before unwatch is discarded after rewatch', async () => 
     let releaseUpdate;
     const updateGate = new Promise(resolve => { releaseUpdate = resolve; });
     FilesManager.instance = {
-        onUpdatedUri: async () => {
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async () => {
             calls.push('old update start');
             await updateGate;
             calls.push('old update end');
         },
-        onDeletedUri: async () => { calls.push('old delete'); },
+        remove: async () => { calls.push('old delete'); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {
@@ -65,12 +66,13 @@ test('destroy waits for an active event and cancels a queued deletion', async ()
     const updateGate = new Promise(resolve => { releaseUpdate = resolve; });
     FilesWatcher.instance = watcher;
     FilesManager.instance = {
-        onUpdatedUri: async () => {
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async () => {
             calls.push('update start');
             await updateGate;
             calls.push('update end');
         },
-        onDeletedUri: async () => { calls.push('delete'); },
+        remove: async () => { calls.push('delete'); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {

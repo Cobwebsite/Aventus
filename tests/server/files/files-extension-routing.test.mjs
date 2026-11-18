@@ -11,7 +11,7 @@ const [{ FilesManager }, { GenericServer }, { SettingsManager }, { FilesWatcher 
 ]);
 
 function manager() {
-    const current = Object.create(FilesManager.prototype);
+    const current = new FilesManager();
     current.pendingRegistrations = new Map();
     Object.assign(current, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {},
         pendingTemplateInitializations: new Map(), failedTemplateInitializations: new Set() });
@@ -41,13 +41,13 @@ test('workspace scan routes single components and packages; disk creation routes
         assert.deepEqual(events.filter(event => event[0] === 'new').map(event => event.slice(1)).sort((a, b) => a[0].localeCompare(b[0])), [
             [uris[0], AventusLanguageId.TypeScript], [uris[1], AventusLanguageId.TypeScript],
         ].sort((a, b) => a[0].localeCompare(b[0])));
-        await current.onCreatedUri(uris[2]);
+        await current.applyBatch({ created: [uris[2]], updated: [], deleted: [] });
         assert.equal(current.getByUri(uris[2]).documentUser.languageId, AventusLanguageId.TypeScript);
         assert.deepEqual(events.filter(event => event[0] === 'watch').map(event => event[1]).sort(), uris.toSorted());
 
         for (const uri of uris) {
             unlinkSync(paths[uris.indexOf(uri)]);
-            await current.onDeletedUri(uri);
+            await current.applyBatch({ created: [], updated: [], deleted: [uri] });
             assert.equal(current.getByUri(uri), undefined);
         }
         assert.deepEqual(events.filter(event => event[0] === 'delete').map(event => event[1]), uris);
@@ -76,7 +76,7 @@ test('template LSP access registers an uncached document, then deletion allows f
         assert.equal(current.getByUri(uri).contentUser, 'export default 1');
         assert.equal(await current.fileExists(first), true);
         assert.deepEqual(events.filter(event => event[0] === 'new'), [['new', 'export default 1']]);
-        await current.onDeletedUri(uri);
+        await current.applyBatch({ created: [], updated: [], deleted: [uri] });
         const second = TextDocument.create(uri, AventusLanguageId.TypeScript, 2, 'export default 2');
         assert.equal(await current.fileExists(second), true);
         assert.equal(current.getByUri(uri).contentUser, 'export default 2');

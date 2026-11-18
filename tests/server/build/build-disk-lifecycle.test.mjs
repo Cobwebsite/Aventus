@@ -33,7 +33,7 @@ test('disk create and edit replace output; deletion removes the source in one re
         [GenericServer.instance, FilesWatcher.instance, SettingsManager.instance, DependencyManager.instance] = prior;
     });
 
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
 
     manager.pendingRegistrations = new Map();
     Object.assign(manager, {
@@ -75,20 +75,22 @@ test('disk create and edit replace output; deletion removes the source in one re
     manager.onNewFile(build.onNewFile.bind(build));
 
     writeFileSync(source, 'class First {}');
-    await manager.onCreatedUri(sourceUri);
+    await manager.applyBatch({ created: [sourceUri], updated: [], deleted: [] });
     assert.match(readFileSync(output, 'utf8'), /class First/);
     assert.ok(build.tsFiles[sourceUri]);
 
     writeFileSync(source, 'class Second {}');
-    await manager.onUpdatedUri(sourceUri);
+    await manager.applyBatch({ created: [], updated: [sourceUri], deleted: [] });
     assert.match(readFileSync(output, 'utf8'), /class Second/);
     assert.doesNotMatch(readFileSync(output, 'utf8'), /class First/);
 
     unlinkSync(source);
-    await manager.onDeletedUri(sourceUri);
+    await manager.applyBatch({ created: [], updated: [], deleted: [sourceUri] });
     assert.equal(manager.getByUri(sourceUri), undefined);
     assert.equal(build.tsFiles[sourceUri], undefined);
     assert.equal(build.onFileDeleteUUIDs[sourceUri], undefined);
+    assert.match(readFileSync(output, 'utf8'), /class Second/, 'deletion does not compile implicitly');
+    await build.rebuildAll();
     assert.doesNotMatch(readFileSync(output, 'utf8'), /class First|class Second/);
     assert.equal(notifications.filter(([name]) => name === 'aventus/compiled').length, 3);
 });

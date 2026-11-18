@@ -1,8 +1,6 @@
 import { FSWatcher, watch } from 'chokidar';
 import { pathToUri } from '@server/tools'
-import { FileCreated } from '@server/cmds/file-system/FileCreated';
-import { FileUpdated } from '@server/cmds/file-system/FileUpdated';
-import { FileDeleted } from '@server/cmds/file-system/FileDeleted';
+import { FileBatch } from '@server/cmds/file-system/FileBatch';
 
 
 export class FilesWatcher {
@@ -123,17 +121,16 @@ export class FilesWatcher {
 			return; 
 		}
 
-		for (let deleted of this.stack.deleted) {
-			FileDeleted.run(pathToUri(deleted));
+		try {
+			await FileBatch.run({
+				deleted: this.stack.deleted.map(pathToUri),
+				created: this.stack.created.map(pathToUri),
+				updated: this.stack.updated.map(pathToUri),
+			});
+			this.stack = { created: [], deleted: [], updated: [] };
+		} finally {
+			this.mutex.release();
 		}
-		for (let created of this.stack.created) {
-			FileCreated.run(pathToUri(created));
-		}
-		for (let updated of this.stack.updated) {
-			FileUpdated.run(pathToUri(updated));
-		}
-		this.stack = { created: [], deleted: [], updated: [] };
-		this.mutex.release();
 	}
 }
 

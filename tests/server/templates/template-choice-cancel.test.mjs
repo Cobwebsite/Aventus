@@ -56,7 +56,7 @@ test('cancelled single and multiple template choices become empty variables with
     };
     TemplateScript.memory = {};
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
-    FilesManager.instance = { onCreatedUri: uri => registered.push(uri) };
+    FilesManager.instance = { applyBatch: ({ created: [uri] }) => registered.push(uri) };
     const script = await TemplateScript.create(config);
     assert.ok(script, errors.join('\n'));
     await script.init(destination, root);

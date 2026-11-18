@@ -8,6 +8,7 @@ const events = [];
 const callbacks = {};
 let watcherDisposed = false;
 let renameDisposed = false;
+let deleteDisposed = false;
 const workspace = {
   createFileSystemWatcher(pattern) {
     events.push(['watch', pattern]);
@@ -21,6 +22,10 @@ const workspace = {
   onWillRenameFiles(callback, context) {
     callbacks.rename = event => callback.call(context, event);
     return { dispose() { renameDisposed = true; } };
+  },
+  onDidDeleteFiles(callback) {
+    callbacks.deleteFiles = callback;
+    return { dispose() { deleteDisposed = true; } };
   },
 };
 globalThis.__aventusFsTest = { events };
@@ -46,12 +51,12 @@ test('file watcher collapses create/change/delete transitions and flushes notifi
   await callbacks.create(uri('file:///one.avt'));
   await callbacks.change(uri('file:///one.avt'));
   await fs.sendStack();
-  assert.deepEqual(events.slice(1), [['FileCreated', 'file:///one.avt']]);
+  assert.deepEqual(events.slice(1), [['FileBatch', { created: ['file:///one.avt'], updated: [], deleted: [] }]]);
   events.length = 0;
   await callbacks.change(uri('file:///one.avt'));
   await callbacks.delete(uri('file:///one.avt'));
   await fs.sendStack();
-  assert.deepEqual(events, [['FileDeleted', 'file:///one.avt']]);
+  assert.deepEqual(events, [['FileBatch', { created: [], updated: [], deleted: ['file:///one.avt'] }]]);
   fs.stop();
   assert.equal(watcherDisposed, true);
 });
@@ -60,9 +65,20 @@ test('rename listener is disposed when file watcher stops', () => {
   const fs = new FileSystem();
   fs.stop();
   assert.equal(renameDisposed, true);
+  assert.equal(deleteDisposed, true);
   const files = [{ oldUri: uri('file:///old.avt'), newUri: uri('file:///new.avt') }];
   callbacks.rename({ files });
   assert.notDeepEqual(events.at(-1), ['Rename', files]);
+});
+
+test('deleting a folder in the VS Code explorer forwards its URI once', async () => {
+  const fs = new FileSystem();
+  events.length = 0;
+  callbacks.deleteFiles({ files: [uri('file:///project/src/BillGenerator')] });
+  await new Promise(resolve => setImmediate(resolve));
+  await fs.sendStack();
+  assert.deepEqual(events, [['FileBatch', { created: [], updated: [], deleted: ['file:///project/src/BillGenerator'] }]]);
+  fs.stop();
 });
 
 test('queued file notification is cancelled when watcher stops', async () => {
@@ -97,10 +113,10 @@ test('file event burst coalesces separate paths and ignores unrelated files', as
   await callbacks.change(uri('file:///c.avt'));
   await callbacks.create(uri('file:///notes.txt'));
   await fs.sendStack();
-  assert.deepEqual(events, [
-    ['FileDeleted', 'file:///b.avt'],
-    ['FileCreated', 'file:///a.avt'],
-    ['FileUpdated', 'file:///c.avt'],
-  ]);
+  assert.deepEqual(events, [['FileBatch', {
+    created: ['file:///a.avt'],
+    updated: ['file:///c.avt'],
+    deleted: ['file:///b.avt'],
+  }]]);
   fs.stop();
 });

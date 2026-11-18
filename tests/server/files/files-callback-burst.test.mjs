@@ -11,7 +11,7 @@ const [{ FilesManager }, { FilesWatcher }, { GenericServer }, { SettingsManager 
 ]);
 
 function freshManager() {
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return manager;
@@ -53,10 +53,10 @@ test('disk update burst retains latest cache and removed file subscribers stay s
         file.removeOnSave(removedSave);
         file.removeOnDelete(removedDelete);
         writeFileSync(path, 'disk two');
-        const first = manager.onUpdatedUri(uri);
+        const first = manager.applyBatch({ created: [], updated: [uri], deleted: [] });
         await firstEntered;
         writeFileSync(path, 'disk three');
-        const second = manager.onUpdatedUri(uri);
+        const second = manager.applyBatch({ created: [], updated: [uri], deleted: [] });
         release();
         await Promise.all([first, second]);
 
@@ -69,7 +69,7 @@ test('disk update burst retains latest cache and removed file subscribers stay s
         ]);
 
         unlinkSync(path);
-        await manager.onDeletedUri(uri);
+        await manager.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.equal(manager.getByUri(uri), undefined);
         assert.deepEqual(events.slice(-2), [['delete', uri], ['unwatch', uri]]);
         assert.equal(events.some(event => event[0].startsWith('removed')), false);

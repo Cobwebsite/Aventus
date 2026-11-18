@@ -59,6 +59,21 @@ test('Aventus file combines completion and formatting results without duplicates
     assert.deepEqual(await current.getFormatting(), [edit]);
 });
 
+test('Aventus file merges identical completions from builds with different resolution data', async () => {
+    const current = file('GenericS');
+    const position = { line: 0, character: 8 };
+    const edit = { range: { start: { line: 0, character: 0 }, end: position }, newText: 'GenericSheet' };
+    for (const build of ['Main', 'carte', 'delivery']) {
+        current.onCompletion(async () => ({ isIncomplete: false, items: [{
+            label: 'GenericSheet', kind: 7, textEdit: edit,
+            data: { uri: current.uri, build },
+        }] }));
+    }
+    const items = (await current.getCompletion(position)).items;
+    assert.equal(items.length, 1);
+    assert.equal(items[0].data.build, 'Main');
+});
+
 test('Aventus file combines navigation and code action callbacks', async () => {
     const current = file();
     const position = { line: 0, character: 1 };

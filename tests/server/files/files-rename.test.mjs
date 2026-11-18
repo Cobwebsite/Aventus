@@ -10,7 +10,7 @@ const [{ FilesManager }, { FilesWatcher }, { GenericServer }, { SettingsManager 
 ]);
 
 function createManager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     Object.assign(instance, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return instance;
@@ -33,12 +33,12 @@ test('disk rename removes the old URI and registers the new URI with its disk co
     manager.onNewFile(async file => events.push(['new', file.uri]));
     try {
         writeFileSync(oldPath, 'class Before {}');
-        await manager.onCreatedUri(oldUri);
+        await manager.applyBatch({ created: [oldUri], updated: [], deleted: [] });
         const oldFile = manager.getByUri(oldUri);
         writeFileSync(newPath, 'class Before {}');
         unlinkSync(oldPath);
-        await manager.onDeletedUri(oldUri);
-        await manager.onCreatedUri(newUri);
+        await manager.applyBatch({ created: [], updated: [], deleted: [oldUri] });
+        await manager.applyBatch({ created: [newUri], updated: [], deleted: [] });
         assert.equal(manager.getByUri(oldUri), undefined);
         assert.equal(manager.getByPath(oldPath), undefined);
         assert.equal(manager.getByUri(newUri).contentUser, 'class Before {}');

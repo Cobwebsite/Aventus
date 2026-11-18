@@ -51,7 +51,7 @@ test('real template substitutes Unicode text and copies binary assets byte for b
     };
     TemplateScript.memory = {};
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
-    FilesManager.instance = { onCreatedUri: uri => registered.push(uri) };
+    FilesManager.instance = { applyBatch: ({ created: [uri] }) => registered.push(uri) };
 
     const script = await TemplateScript.create(config);
     assert.ok(script, errors.join('\n'));

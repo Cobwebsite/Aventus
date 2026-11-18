@@ -19,8 +19,9 @@ test('unwatch cancels queued events for a file', async () => {
     let releaseUpdate;
     const updateGate = new Promise(resolve => { releaseUpdate = resolve; });
     FilesManager.instance = {
-        onUpdatedUri: async () => { calls.push('update start'); await updateGate; calls.push('update end'); },
-        onDeletedUri: async () => { calls.push('delete'); },
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async () => { calls.push('update start'); await updateGate; calls.push('update end'); },
+        remove: async () => { calls.push('delete'); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {
@@ -57,12 +58,13 @@ test('rewatching the same URI does not revive an event from the previous watch',
     let releaseUpdate;
     const updateGate = new Promise(resolve => { releaseUpdate = resolve; });
     FilesManager.instance = {
-        onUpdatedUri: async () => {
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async () => {
             calls.push('update start');
             await updateGate;
             calls.push('update end');
         },
-        onDeletedUri: async () => { calls.push('delete'); },
+        remove: async () => { calls.push('delete'); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {

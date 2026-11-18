@@ -54,7 +54,7 @@ test('real template publishes no files when a callback throws, then retries', { 
     };
     TemplateScript.memory = {};
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
-    FilesManager.instance = { onCreatedUri: uri => registered.push(uri) };
+    FilesManager.instance = { applyBatch: ({ created: [uri] }) => registered.push(uri) };
 
     const first = await TemplateScript.create(config);
     assert.ok(first, errors.join('\n'));

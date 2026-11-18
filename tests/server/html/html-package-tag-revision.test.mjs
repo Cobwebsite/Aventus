@@ -35,7 +35,7 @@ test('package file tag revisions remove old HTML definitions while preserving a 
         htmlLanguageService: html,
         scssLanguageService: { addExternalDefinition() {}, removeExternalDefinition() {} },
         externalPackageInformation: { rebuild() {} },
-        build() { builds++; },
+        build() { builds++; }, rebuildAll() {},
     };
     file.version = { major: 0, minor: 0, patch: 0 };
     file.tsFile = { triggerContentChange() {}, triggerDelete() {} };

@@ -21,7 +21,7 @@ test('project forgets a deleted global style and unregisters its delete listener
     assert.deepEqual(project.onFileDeleteUUIDs, {});
 });
 
-test('build deletes each file category before asking for a rebuild', async () => {
+test('build removes each deleted file category and unregisters its listener', async () => {
     const extensions = [
         ['style.wcs.avt', 'scssFiles'],
         ['view.wcv.avt', 'htmlFiles'],
@@ -37,12 +37,11 @@ test('build deletes each file category before asking for a rebuild', async () =>
         build.wcFiles = { [uri]: { name: 'widget' } };
         build.tsFiles = { [uri]: { name: 'logic' } };
         build.onFileDeleteUUIDs = { [uri]: 'listener' };
-        build.rebuildAll = async () => calls.push('rebuild');
         const file = { uri, removeOnDelete: id => calls.push(`remove:${id}`) };
 
         await build.onFileDelete(file);
 
-        assert.deepEqual(calls, ['remove:listener', 'rebuild'], name);
+        assert.deepEqual(calls, ['remove:listener'], name);
         assert.equal(Object.hasOwn(build[category], uri), false, name);
         assert.deepEqual(build.onFileDeleteUUIDs, {}, name);
     }

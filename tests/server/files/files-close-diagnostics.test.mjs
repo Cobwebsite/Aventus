@@ -11,7 +11,7 @@ const [{ FilesManager }, { GenericServer }, { SettingsManager }, { FilesWatcher 
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     instance.files = {};
     instance.lockedUpdatedUri = {};
@@ -44,7 +44,7 @@ test('closing a document keeps a still-present disk file, then clears its diagno
         assert.ok(current.getByUri(uri));
         assert.equal(deleted, 0);
         unlinkSync(path);
-        await current.onDeletedUri(uri);
+        await current.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.equal(deleted, 1);
         assert.equal(current.getByUri(uri), undefined);
         assert.deepEqual(diagnostics, [{ uri, diagnostics: [] }]);
@@ -69,7 +69,7 @@ test('build-scoped deletion clears unscoped diagnostics when a file reports no b
     FilesWatcher.instance = { unwatch() {} };
     current.files[uri] = { getBuild: () => null, triggerDelete: async () => {} };
     try {
-        await current.onDeletedUri(uri);
+        await current.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.deepEqual(sent, [[{ uri, diagnostics: [] }, undefined]]);
     } finally {
         GenericServer.instance = previousServer;

@@ -42,7 +42,7 @@ test('package file revisions and deletion restore a local HTML component without
     const build = { htmlLanguageService: html,
         scssLanguageService: { addExternalDefinition() {}, removeExternalDefinition() {} },
         externalPackageInformation: { rebuild() { rebuilds++; } },
-        build() { builds++; } };
+        build() { builds++; }, rebuildAll() {} };
     const file = Object.create(AventusPackageFile.prototype);
     file._file = { uri, contentUser: packageSource(definition('PackageOne', 'package-one')) };
     file._build = build;

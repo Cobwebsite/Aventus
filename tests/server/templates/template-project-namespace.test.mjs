@@ -57,7 +57,7 @@ test('real project template resolves namespace per file and registers config aft
             return uri.endsWith('Panel.wcl.avt') ? [{ getNamespaceForUri: () => 'App.Panel' }] : [];
         },
     };
-    FilesManager.instance = { onCreatedUri: uri => registered.push(uri) };
+    FilesManager.instance = { applyBatch: ({ created: [uri] }) => registered.push(uri) };
 
     const script = await TemplateScript.create(templatePath);
     assert.ok(script, errors.join('\n'));

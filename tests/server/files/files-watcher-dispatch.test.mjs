@@ -17,8 +17,9 @@ test('watcher forwards disk changes and removals only for registered URIs', asyn
     watcher.pendingEvents = new Map();
     watcher.watchGeneration = new Map();
     FilesManager.instance = {
-        onUpdatedUri: current => calls.push(['update', current]),
-        onDeletedUri: current => calls.push(['delete', current]),
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: current => calls.push(['update', current]),
+        remove: current => calls.push(['delete', current]),
     };
     GenericServer.instance = { logLevel: 99 };
     try {
@@ -59,8 +60,9 @@ test('watcher callbacks wait for file processing and preserve event order per UR
     const updateGate = new Promise(resolve => { releaseUpdate = resolve; });
     const deleteGate = new Promise(resolve => { releaseDelete = resolve; });
     FilesManager.instance = {
-        onUpdatedUri: async () => { calls.push('update start'); await updateGate; calls.push('update end'); },
-        onDeletedUri: async () => { calls.push('delete start'); await deleteGate; calls.push('delete end'); },
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async () => { calls.push('update start'); await updateGate; calls.push('update end'); },
+        remove: async () => { calls.push('delete start'); await deleteGate; calls.push('delete end'); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {
@@ -98,8 +100,9 @@ test('watcher propagates processing errors and continues with the next event', a
     watcher.watchGeneration = new Map();
     const calls = [];
     FilesManager.instance = {
-        onUpdatedUri: async () => { calls.push('update'); throw new Error('update failed'); },
-        onDeletedUri: async () => { calls.push('delete'); },
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async () => { calls.push('update'); throw new Error('update failed'); },
+        remove: async () => { calls.push('delete'); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {

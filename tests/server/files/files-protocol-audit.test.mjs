@@ -10,7 +10,7 @@ const [{ FilesManager }, { GenericServer }, { SettingsManager }, { FilesWatcher 
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     Object.assign(instance, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return instance;
@@ -22,8 +22,10 @@ test('saving an uncached document registers it and invokes its save callbacks im
     const document = TextDocument.create(uri, 'typescript', 1, 'class Entry {}');
     const previousServer = GenericServer.instance;
     const previousWatcher = FilesWatcher.instance;
+    const previousSettings = SettingsManager.instance;
     const events = [];
-    GenericServer.instance = { isIDE: false, logLevel: 99 };
+    GenericServer.instance = { isIDE: false, logLevel: 99, connection: { sendDiagnostics() {} } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
     FilesWatcher.instance = { watch: value => events.push(['watch', value]) };
     current.onNewFile(async file => {
         events.push(['new', file.uri]);
@@ -39,6 +41,7 @@ test('saving an uncached document registers it and invokes its save callbacks im
         for (const file of Object.values(current.files)) clearTimeout(file.delayValidate);
         GenericServer.instance = previousServer;
         FilesWatcher.instance = previousWatcher;
+        SettingsManager.instance = previousSettings;
     }
 });
 
