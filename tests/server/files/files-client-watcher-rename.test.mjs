@@ -11,7 +11,7 @@ const [{ FilesManager }, { FilesWatcher }, { GenericServer }, { SettingsManager 
 ]);
 
 function manager() {
-    const current = Object.create(FilesManager.prototype);
+    const current = new FilesManager();
     current.pendingRegistrations = new Map();
     Object.assign(current, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return current;
@@ -71,7 +71,7 @@ test('client save on one path and disk rename on another keep file cache, callba
         assert.equal(current.getByUri(newUri).contentUser, 'old disk');
         assert.deepEqual(watcher.watcheUris, [clientUri, newUri]);
         assert.deepEqual(diagnostics.filter(item => item.uri === oldUri), [{ uri: oldUri, diagnostics: [] }]);
-        assert.equal(diagnostics.some(item => item.uri === clientUri), false);
+        assert.deepEqual(diagnostics.filter(item => item.uri === clientUri), [{ uri: clientUri, diagnostics: [] }]);
         assert.deepEqual(events, [
             ['new', clientUri], ['new', oldUri],
             ['change', clientUri, 2, 'client saved'], ['save', clientUri, 2],

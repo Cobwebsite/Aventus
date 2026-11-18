@@ -6,7 +6,13 @@ export class FileDeleted {
 
 	public static async run(uri: string) {
 		if (uri) {
-			await FilesManager.getInstance().onDeletedUri(uri);
+			const manager = FilesManager.getInstance();
+			const prefix = uri.replace(/\/+$/, '') + '/';
+			for (const fileUri of manager.getUris()) {
+				if (fileUri === uri || fileUri.startsWith(prefix)) {
+					await manager.onDeletedUri(fileUri);
+				}
+			}
 		}
 	}
 }

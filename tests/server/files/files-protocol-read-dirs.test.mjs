@@ -10,7 +10,7 @@ const [{ FilesManager }, { SettingsManager }, { pathToUri }] = await loadServerM
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     instance.files = {};
     instance.lockedUpdatedUri = {};

@@ -11,7 +11,7 @@ const [{ FilesManager }, { SettingsManager }, { GenericServer }, { FilesWatcher 
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     instance.files = {};
     instance.lockedUpdatedUri = {};
@@ -136,9 +136,13 @@ test('file manager caches create, change, save and delete events and clears diag
         await instance.onDeletedUri(uri);
         assert.equal(instance.getByUri(uri), undefined);
         assert.deepEqual(events, [['create', 'old'], ['change', 'new'], ['save', 'new'], ['delete']]);
-        assert.deepEqual(diagnostics, [[{ uri, diagnostics: [] }, undefined]]);
+        assert.deepEqual(diagnostics, [
+            [{ uri, diagnostics: [] }, undefined],
+            [{ uri, diagnostics: [] }, undefined],
+        ]);
         assert.deepEqual(watched, [['unwatch', uri]]);
     } finally {
+        clearTimeout(instance.pendingTimeout);
         for (const file of Object.values(instance.files)) clearTimeout(file.delayValidate);
         GenericServer.instance = oldServer;
         FilesWatcher.instance = oldWatcher;

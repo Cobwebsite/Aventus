@@ -14,6 +14,7 @@ import { SettingsManager } from '../settings/Settings';
 import { relative } from 'path';
 import { ProjectManager } from '../project/ProjectManager';
 import { Statistics } from '../notification/Statistics';
+import { ActionGuard, Mutex } from '../Mutex';
 
 export class FilesManager {
     private static instance: FilesManager;
@@ -32,6 +33,37 @@ export class FilesManager {
 
     private lockedUpdatedUri: { [uri: string]: NodeJS.Timeout } = {};
     private loadingInProgress: boolean = true;
+
+    protected mutexPending: Mutex = new Mutex();
+    protected pendingTimeout?: NodeJS.Timeout;
+    protected pendingActions: Map<string, () => Promise<void>> = new Map();
+
+    protected clearPendingTimeout() {
+        if (this.pendingTimeout) {
+            clearTimeout(this.pendingTimeout);
+        }
+    }
+
+    protected async addPending(uri: string, action: () => Promise<void>) {
+        await this.mutexPending.waitOne();
+        this.pendingActions.set(uri, action);
+        this.clearPendingTimeout();
+        this.pendingTimeout = setTimeout(() => {
+            this.runPending();
+        }, 300);
+        this.mutexPending.release();
+    }
+    protected async runPending() {
+        await this.mutexPending.waitOne();
+        for (const [uri, action] of this.pendingActions) {
+            try {
+                await action();
+            } catch { }
+        }
+        this.pendingActions.clear();
+        this.mutexPending.release();
+    }
+
     /**
      * Prevent double trigger from fileSystem and vscode
      */
@@ -50,8 +82,12 @@ export class FilesManager {
             if (extension) {
                 let currentPath = uriToPath(uri);
                 let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
+                this.clearPendingTimeout();
                 await this.registerFile(textDoc);
-                await this.onSave(textDoc);
+                await this.addPending(uri, async () => {
+                    await this.onSave(textDoc);
+                })
+                //await this.onSave(textDoc);
             }
         }
     }
@@ -72,38 +108,45 @@ export class FilesManager {
         }
         if (!this.files[uri]) {
             let textDoc = TextDocument.create(uri, extension, 0, content);
+            this.clearPendingTimeout();
+
             await this.registerFile(textDoc);
-            await this.onSave(textDoc);
+            await this.addPending(uri, async () => {
+                await this.onSave(textDoc);
+            })
+            //await this.onSave(textDoc);
         }
         else {
             let newVersion = this.files[uri].versionUser + 1;
             let textDoc = TextDocument.create(uri, extension, newVersion, content);
+
+            this.clearPendingTimeout();
             await this.onContentChange(textDoc);
-            await this.onSave(textDoc);
+            await this.addPending(uri, async () => {
+                await this.onSave(textDoc);
+            })
+            //await this.onSave(textDoc);
         }
     }
 
     public async onDeletedUri(uri: string) {
         const file = this.files[uri];
         if (file) {
-            if (SettingsManager.getInstance().settings.errorByBuild) {
-                const builds = file.getBuild();
-                if (builds === null) {
-                    GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] })
-                }
-                else {
-                    for (let build of builds) {
-                        GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] }, build)
-                    }
-                }
-            }
-            else {
-                GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] })
-            }
+            const builds = SettingsManager.getInstance().settings.errorByBuild ? file.getBuild() : null;
             delete this.files[uri];
-            await file.triggerDelete();
-            if (!this.files[uri]) {
-                FilesWatcher.getInstance().unwatch(uri);
+            try {
+                await file.triggerDelete();
+            } finally {
+                if (!this.files[uri]) {
+                    // Deletion callbacks can rebuild and publish diagnostics for this file.
+                    if (builds === null) GenericServer.sendDiagnostics({ uri, diagnostics: [] });
+                    else for (const build of builds) GenericServer.sendDiagnostics({ uri, diagnostics: [] }, build);
+                    FilesWatcher.getInstance().unwatch(uri);
+                    await this.addPending(uri, async () => {
+                        if (builds === null) GenericServer.sendDiagnostics({ uri, diagnostics: [] });
+                        else for (const build of builds) GenericServer.sendDiagnostics({ uri, diagnostics: [] }, build);
+                    })
+                }
             }
         }
     }
@@ -449,6 +492,7 @@ export class FilesManager {
             await this.triggerOnNewFile(document);
         }
         await this.files[document.uri]?.triggerSave();
+        await this.files[document.uri]?.validate();
     }
     public async onClose(document: TextDocument) {
         if (!existsSync(uriToPath(document.uri))) {

@@ -33,7 +33,7 @@ test('disk create and edit replace output; deletion removes the source in one re
         [GenericServer.instance, FilesWatcher.instance, SettingsManager.instance, DependencyManager.instance] = prior;
     });
 
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
 
     manager.pendingRegistrations = new Map();
     Object.assign(manager, {

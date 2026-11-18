@@ -29,7 +29,7 @@ test('two projects replace a deleted global style without retaining its former f
         autoLoad: ProjectManager.autoLoad, watcher: FilesWatcher.instance,
         server: GenericServer.instance, settings: SettingsManager.instance,
     };
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false,
         onNewFileCb: {}, onFileRemoveCb: {} });

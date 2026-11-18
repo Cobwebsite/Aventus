@@ -30,6 +30,7 @@ const vscode = {
     }; },
     onDidChangeConfiguration() { return { dispose() {} }; },
     onWillRenameFiles(callback) { callbacks.rename = callback; return { dispose() {} }; },
+    onDidDeleteFiles(callback) { callbacks.deleteFiles = callback; return { dispose() {} }; },
     createFileSystemWatcher(pattern) { callbacks.pattern = pattern; return {
       onDidCreate(callback) { callbacks.create = callback; },
       onDidChange(callback) { callbacks.change = callback; },

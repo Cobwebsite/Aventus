@@ -11,7 +11,7 @@ const [{ FilesManager }, { GenericServer }, { SettingsManager }, { FilesWatcher 
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     Object.assign(instance, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return instance;
@@ -79,7 +79,7 @@ test('interleaved document changes keep callbacks, versions, and diagnostics sco
         await current.onClose(document(bUri, 2, 'second b'));
         await until(() => current.getByUri(bUri) === undefined);
         assert.deepEqual(deletions, [bUri]);
-        assert.deepEqual(diagnostics.filter(item => item.uri === bUri), [{ uri: bUri, diagnostics: [] }]);
+        assert.deepEqual(diagnostics.filter(item => item.uri === bUri).at(-1), { uri: bUri, diagnostics: [] });
         assert.equal(current.getByUri(aUri), a);
 
         await until(() => diagnostics.some(item => item.uri === aUri));

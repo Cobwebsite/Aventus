@@ -11,7 +11,7 @@ const [{ FilesManager }, { GenericServer }, { SettingsManager }, { FilesWatcher 
 ]);
 
 function manager() {
-    const current = Object.create(FilesManager.prototype);
+    const current = new FilesManager();
     current.pendingRegistrations = new Map();
     Object.assign(current, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {},
         pendingTemplateInitializations: new Map(), failedTemplateInitializations: new Set() });

@@ -35,7 +35,7 @@ test('disk changes to one of two sources preserve the other source in build outp
         [GenericServer.instance, FilesWatcher.instance, SettingsManager.instance, DependencyManager.instance] = prior;
     });
 
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
 
     manager.pendingRegistrations = new Map();
     Object.assign(manager, {

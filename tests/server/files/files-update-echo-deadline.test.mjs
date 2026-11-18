@@ -13,7 +13,7 @@ test('disk echo is suppressed until exactly two seconds after the last suppressi
     const dir = mkdtempSync(join(process.cwd(), 'aventus-update-deadline-'));
     const path = join(dir, 'sample.wcl.avt');
     const uri = pathToUri(path);
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     manager.files = { [uri]: { versionUser: 1 } };
     manager.lockedUpdatedUri = {};

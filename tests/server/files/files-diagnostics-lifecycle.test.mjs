@@ -11,7 +11,7 @@ const [{ FilesManager }, { GenericServer }, { SettingsManager }, { FilesWatcher 
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     Object.assign(instance, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return instance;
@@ -98,9 +98,9 @@ test('close and reopen same URI replaces divergent buffer and publishes diagnost
         assert.equal(current.getByUri(uri), file);
         assert.equal(file.contentUser, 'reopened buffer');
         assert.equal(file.versionUser, 3);
-        await until(() => sent.length > 0);
+        await until(() => validated.includes('reopened buffer'));
         assert.deepEqual(validated, ['reopened buffer']);
-        assert.equal(sent[0].diagnostics[0].message, 'reopened buffer');
+        assert.ok(sent.some(item => item.diagnostics[0]?.message === 'reopened buffer'));
     } finally {
         for (const file of Object.values(current.files)) clearTimeout(file.delayValidate);
         GenericServer.instance = previousServer;

@@ -11,7 +11,7 @@ const [{ FilesManager }, { FilesWatcher }, { GenericServer }, { SettingsManager 
 ]);
 
 function freshManager() {
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return manager;

@@ -29,6 +29,7 @@ const vscode = {
       dispose() { disposed = true; },
     }; },
     onWillRenameFiles(callback, context) { callbacks.rename = event => callback.call(context, event); return { dispose() {} }; },
+    onDidDeleteFiles(callback) { callbacks.deleteFiles = callback; return { dispose() {} }; },
   },
 };
 const module = { exports: {} };

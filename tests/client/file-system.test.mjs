@@ -8,6 +8,7 @@ const events = [];
 const callbacks = {};
 let watcherDisposed = false;
 let renameDisposed = false;
+let deleteDisposed = false;
 const workspace = {
   createFileSystemWatcher(pattern) {
     events.push(['watch', pattern]);
@@ -21,6 +22,10 @@ const workspace = {
   onWillRenameFiles(callback, context) {
     callbacks.rename = event => callback.call(context, event);
     return { dispose() { renameDisposed = true; } };
+  },
+  onDidDeleteFiles(callback) {
+    callbacks.deleteFiles = callback;
+    return { dispose() { deleteDisposed = true; } };
   },
 };
 globalThis.__aventusFsTest = { events };
@@ -60,9 +65,20 @@ test('rename listener is disposed when file watcher stops', () => {
   const fs = new FileSystem();
   fs.stop();
   assert.equal(renameDisposed, true);
+  assert.equal(deleteDisposed, true);
   const files = [{ oldUri: uri('file:///old.avt'), newUri: uri('file:///new.avt') }];
   callbacks.rename({ files });
   assert.notDeepEqual(events.at(-1), ['Rename', files]);
+});
+
+test('deleting a folder in the VS Code explorer forwards its URI once', async () => {
+  const fs = new FileSystem();
+  events.length = 0;
+  callbacks.deleteFiles({ files: [uri('file:///project/src/BillGenerator')] });
+  await new Promise(resolve => setImmediate(resolve));
+  await fs.sendStack();
+  assert.deepEqual(events, [['FileDeleted', 'file:///project/src/BillGenerator']]);
+  fs.stop();
 });
 
 test('queued file notification is cancelled when watcher stops', async () => {

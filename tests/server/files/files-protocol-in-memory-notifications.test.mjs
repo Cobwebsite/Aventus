@@ -11,7 +11,7 @@ const [{ FilesManager }, { GenericServer }, { SettingsManager }, { FilesWatcher 
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     Object.assign(instance, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return instance;
@@ -20,9 +20,11 @@ function manager() {
 test('content and save notifications for a new in-memory file create one cached file', async () => {
     const current = manager();
     const oldServer = GenericServer.instance;
+    const oldSettings = SettingsManager.instance;
     const events = [];
     const uri = 'file:///round17-unsaved.wcl.avt';
-    GenericServer.instance = { logLevel: 99, isIDE: true };
+    GenericServer.instance = { logLevel: 99, isIDE: true, connection: { sendDiagnostics() {} } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
     current.onNewFile(async file => {
         events.push(['create', file.contentUser]);
         file.onContentChange(async changed => events.push(['change', changed.contentUser]));
@@ -39,6 +41,7 @@ test('content and save notifications for a new in-memory file create one cached 
     } finally {
         for (const file of Object.values(current.files)) clearTimeout(file.delayValidate);
         GenericServer.instance = oldServer;
+        SettingsManager.instance = oldSettings;
     }
 });
 

@@ -3,12 +3,12 @@ import test from 'node:test';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { loadServerModules } from '../helpers/load-ts.mjs';
 
-const [{ FilesManager }, { GenericServer }, { FilesWatcher }] = await loadServerModules([
-    'files/FilesManager.ts', 'GenericServer.ts', 'files/FilesWatcher.ts',
+const [{ FilesManager }, { GenericServer }, { FilesWatcher }, { SettingsManager }] = await loadServerModules([
+    'files/FilesManager.ts', 'GenericServer.ts', 'files/FilesWatcher.ts', 'settings/Settings.ts',
 ]);
 
 function manager() {
-    const instance = Object.create(FilesManager.prototype);
+    const instance = new FilesManager();
     instance.pendingRegistrations = new Map();
     instance.files = {};
     instance.lockedUpdatedUri = {};
@@ -44,8 +44,10 @@ test('a template LSP request lazily registers the file once and saves it before 
     const document = TextDocument.create(uri, 'typescript', 1, 'export class Template {}');
     const previousServer = GenericServer.instance;
     const previousWatcher = FilesWatcher.instance;
+    const previousSettings = SettingsManager.instance;
     const events = [];
-    GenericServer.instance = { isIDE: false, logLevel: 99 };
+    GenericServer.instance = { isIDE: false, logLevel: 99, connection: { sendDiagnostics() {} } };
+    SettingsManager.instance = { settings: { errorByBuild: false } };
     FilesWatcher.instance = { watch: value => events.push(['watch', value]) };
     current.onNewFile(async file => {
         events.push(['new', file.uri]);
@@ -61,5 +63,6 @@ test('a template LSP request lazily registers the file once and saves it before 
         for (const file of Object.values(current.files)) clearTimeout(file.delayValidate);
         GenericServer.instance = previousServer;
         FilesWatcher.instance = previousWatcher;
+        SettingsManager.instance = previousSettings;
     }
 });

@@ -8,7 +8,7 @@ const { FilesManager } = await loadServerModule('files/FilesManager.ts');
 test('concurrent first template completions wait for the same asynchronous save callback', async () => {
     const uri = 'file:///workspace/template.avt.ts';
     const document = TextDocument.create(uri, 'typescript', 1, 'export default {}');
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     manager.files = {};
     manager.pendingTemplateInitializations = new Map();
@@ -19,6 +19,7 @@ test('concurrent first template completions wait for the same asynchronous save 
     let saves = 0;
     manager.registerFile = async input => {
         manager.files[input.uri] = {
+            validate: async () => [],
             triggerSave: async () => {
                 saves++;
                 events.push('save started');
@@ -51,7 +52,7 @@ test('concurrent first template completions wait for the same asynchronous save 
 test('failed template initialization reaches the request and can be retried', async () => {
     const uri = 'file:///workspace/template.avt.ts';
     const document = TextDocument.create(uri, 'typescript', 1, 'export default {}');
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     manager.files = {};
     manager.pendingTemplateInitializations = new Map();
@@ -59,6 +60,7 @@ test('failed template initialization reaches the request and can be retried', as
     let saves = 0;
     manager.registerFile = async input => {
         manager.files[input.uri] = {
+            validate: async () => [],
             triggerSave: async () => {
                 if (++saves === 1) throw Error('template preparation failed');
             },

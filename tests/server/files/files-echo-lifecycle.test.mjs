@@ -11,7 +11,7 @@ const [{ FilesManager }, { FilesWatcher }, { GenericServer }, { SettingsManager 
 ]);
 
 function freshManager() {
-    const current = Object.create(FilesManager.prototype);
+    const current = new FilesManager();
     current.pendingRegistrations = new Map();
     Object.assign(current, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     return current;
@@ -122,8 +122,8 @@ test('closing a present file retains its cache, whereas disk removal unwatches a
         assert.deepEqual(watcher.watcheUris, [retainedUri, recycledUri]);
         assert.deepEqual(events, [
             ['new', retainedUri], ['new', recycledUri],
-            ['diagnostics', recycledUri], ['delete', recycledUri],
-            ['new', recycledUri],
+            ['delete', recycledUri], ['diagnostics', recycledUri],
+            ['new', recycledUri], ['diagnostics', recycledUri],
         ]);
     } finally {
         for (const file of Object.values(manager.files)) clearTimeout(file.delayValidate);

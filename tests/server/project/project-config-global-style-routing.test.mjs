@@ -18,7 +18,7 @@ test('a project routes its config and global style to their own handlers and rem
     const styleUri = pathToUri(stylePath);
     const previous = [FilesManager.instance, ProjectManager.instance, ProjectManager.autoLoad,
         FilesWatcher.instance, GenericServer.instance, SettingsManager.instance];
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false,
         onNewFileCb: {}, onFileRemoveCb: {} });

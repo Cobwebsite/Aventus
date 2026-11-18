@@ -14,7 +14,7 @@ test('client create, update and delete commands carry a disk file through the ma
     const path = join(root, 'component.wcl.avt');
     const uri = pathToUri(path);
     const old = [FilesManager.instance, GenericServer.instance, FilesWatcher.instance, SettingsManager.instance];
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     const events = [];
@@ -42,10 +42,12 @@ test('client create, update and delete commands carry a disk file through the ma
 
         await Commands.allCommandes['aventus.filesystem.deleted'].run(uri);
         assert.equal(manager.getByUri(uri), undefined);
-        assert.deepEqual(events, [
+        assert.deepEqual(events.filter(event => event[0] !== 'diagnostics'), [
             ['new', 'first'], ['save', 'first'], ['change', 'second'], ['save', 'second'],
-            ['diagnostics', { uri, diagnostics: [] }], ['delete', uri], ['unwatch', uri],
+            ['delete', uri], ['unwatch', uri],
         ]);
+        assert.deepEqual(events.filter(event => event[0] === 'diagnostics').at(-1),
+            ['diagnostics', { uri, diagnostics: [] }]);
     } finally {
         for (const file of Object.values(manager.files)) clearTimeout(file.delayValidate);
         [FilesManager.instance, GenericServer.instance, FilesWatcher.instance, SettingsManager.instance] = old;

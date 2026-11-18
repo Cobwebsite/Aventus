@@ -25,7 +25,7 @@ test('LSP document notifications create, edit, save and close a real file cache 
     const events = {};
     const callbacks = [];
     const diagnostics = [];
-    const manager = Object.create(FilesManager.prototype);
+    const manager = new FilesManager();
     manager.pendingRegistrations = new Map();
     Object.assign(manager, { files: {}, lockedUpdatedUri: {}, loadingInProgress: false, onNewFileCb: {}, onFileRemoveCb: {} });
     FilesManager.instance = manager;
