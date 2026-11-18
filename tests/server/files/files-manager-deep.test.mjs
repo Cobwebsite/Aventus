@@ -69,7 +69,7 @@ test('deletion clears diagnostics separately for each build and awaits file clea
         triggerDelete: async () => { await new Promise(resolve => setTimeout(resolve, 5)); events.push(['delete']); },
     };
     try {
-        await current.onDeletedUri(uri);
+        await current.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.deepEqual(sent, [
             [{ uri, diagnostics: [] }, 'first'],
             [{ uri, diagnostics: [] }, 'second'],

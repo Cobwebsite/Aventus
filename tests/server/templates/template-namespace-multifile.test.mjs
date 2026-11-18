@@ -49,7 +49,7 @@ test('template generation resolves namespace for each destination file and opens
             return [{ getNamespaceForUri: target => target.includes('Alpha') ? 'Alpha.Namespace' : 'Beta.Namespace' }];
         },
     };
-    FilesManager.instance = { onCreatedUri: uri => registered.push(uri) };
+    FilesManager.instance = { applyBatch: ({ created: [uri] }) => registered.push(uri) };
     try {
         const script = await TemplateScript.create(config);
         assert.ok(script);

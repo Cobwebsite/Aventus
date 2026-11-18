@@ -72,14 +72,14 @@ test('deleting a file clears diagnostics independently for every associated buil
         triggerDelete: async () => events.push('delete'),
     };
     try {
-        await current.onDeletedUri(uri);
+        await current.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.deepEqual(sent, [
             [{ uri, diagnostics: [] }, 'alpha'],
             [{ uri, diagnostics: [] }, 'beta'],
         ]);
         assert.deepEqual(events, ['delete', `unwatch:${uri}`]);
         assert.equal(current.getByUri(uri), undefined);
-        await current.onDeletedUri(uri);
+        await current.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.equal(sent.length, 2);
     } finally {
         GenericServer.instance = previousServer;

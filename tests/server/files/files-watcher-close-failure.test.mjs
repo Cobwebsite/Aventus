@@ -23,12 +23,13 @@ test('watcher close failure still waits for an active update and clears its sing
     watcher.watcher = { close: async () => { calls.push('close'); throw Error('close failed'); } };
     FilesWatcher.instance = watcher;
     FilesManager.instance = {
-        onUpdatedUri: async () => {
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async () => {
             calls.push('update start');
             await updateGate;
             calls.push('update end');
         },
-        onDeletedUri: async () => { calls.push('delete'); },
+        remove: async () => { calls.push('delete'); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {

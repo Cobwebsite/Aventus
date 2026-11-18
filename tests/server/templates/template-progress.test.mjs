@@ -57,7 +57,7 @@ test('real template pairs sequential progress notifications around generation', 
     };
     TemplateScript.memory = {};
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
-    FilesManager.instance = { onCreatedUri: uri => {
+    FilesManager.instance = { applyBatch: ({ created: [uri] }) => {
         registered.push(uri);
         events.push('registerFile');
     } };

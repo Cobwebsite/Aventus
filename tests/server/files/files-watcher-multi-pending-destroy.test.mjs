@@ -27,13 +27,14 @@ test('destroy waits for active callbacks on separate files even when one fails',
     watcher.watcher = { close: async () => { calls.push('close'); } };
     FilesWatcher.instance = watcher;
     FilesManager.instance = {
-        onUpdatedUri: async uri => {
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async uri => {
             calls.push(['start', uri]);
             if (uri === firstUri) await firstGate;
             else await secondGate;
             calls.push(['end', uri]);
         },
-        onDeletedUri: async uri => { calls.push(['delete', uri]); },
+        remove: async uri => { calls.push(['delete', uri]); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {

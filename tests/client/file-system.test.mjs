@@ -51,12 +51,12 @@ test('file watcher collapses create/change/delete transitions and flushes notifi
   await callbacks.create(uri('file:///one.avt'));
   await callbacks.change(uri('file:///one.avt'));
   await fs.sendStack();
-  assert.deepEqual(events.slice(1), [['FileCreated', 'file:///one.avt']]);
+  assert.deepEqual(events.slice(1), [['FileBatch', { created: ['file:///one.avt'], updated: [], deleted: [] }]]);
   events.length = 0;
   await callbacks.change(uri('file:///one.avt'));
   await callbacks.delete(uri('file:///one.avt'));
   await fs.sendStack();
-  assert.deepEqual(events, [['FileDeleted', 'file:///one.avt']]);
+  assert.deepEqual(events, [['FileBatch', { created: [], updated: [], deleted: ['file:///one.avt'] }]]);
   fs.stop();
   assert.equal(watcherDisposed, true);
 });
@@ -77,7 +77,7 @@ test('deleting a folder in the VS Code explorer forwards its URI once', async ()
   callbacks.deleteFiles({ files: [uri('file:///project/src/BillGenerator')] });
   await new Promise(resolve => setImmediate(resolve));
   await fs.sendStack();
-  assert.deepEqual(events, [['FileDeleted', 'file:///project/src/BillGenerator']]);
+  assert.deepEqual(events, [['FileBatch', { created: [], updated: [], deleted: ['file:///project/src/BillGenerator'] }]]);
   fs.stop();
 });
 
@@ -113,10 +113,10 @@ test('file event burst coalesces separate paths and ignores unrelated files', as
   await callbacks.change(uri('file:///c.avt'));
   await callbacks.create(uri('file:///notes.txt'));
   await fs.sendStack();
-  assert.deepEqual(events, [
-    ['FileDeleted', 'file:///b.avt'],
-    ['FileCreated', 'file:///a.avt'],
-    ['FileUpdated', 'file:///c.avt'],
-  ]);
+  assert.deepEqual(events, [['FileBatch', {
+    created: ['file:///a.avt'],
+    updated: ['file:///c.avt'],
+    deleted: ['file:///b.avt'],
+  }]]);
   fs.stop();
 });

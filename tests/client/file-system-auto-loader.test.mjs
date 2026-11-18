@@ -53,6 +53,6 @@ test('file watcher registers a created HTML manifest and sends .avt creation sep
   assert.deepEqual(notifications, []);
   await callbacks.create(uri('app/component.avt'));
   await fileSystem.sendStack();
-  assert.deepEqual(notifications, [['FileCreated', 'file:///project/app/component.avt']]);
+  assert.deepEqual(notifications, [['FileBatch', { created: ['file:///project/app/component.avt'], updated: [], deleted: [] }]]);
   fileSystem.stop();
 });

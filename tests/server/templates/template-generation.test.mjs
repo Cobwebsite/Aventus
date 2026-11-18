@@ -52,7 +52,7 @@ test('real template process writes substituted files, skips defaults and reports
         },
     };
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
-    FilesManager.instance = { onCreatedUri: uri => registered.push(uri) };
+    FilesManager.instance = { applyBatch: ({ created: [uri] }) => registered.push(uri) };
     TemplateScript.memory = {};
     try {
         const script = await TemplateScript.create(config);

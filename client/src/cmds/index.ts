@@ -1,9 +1,7 @@
 import { AddConfigSection } from './AddConfigSection';
 import { BuildProject } from "./BuildProject";
 import { Create } from "./Create";
-import { FileCreated } from './file-system/FileCreated';
-import { FileDeleted } from './file-system/FileDeleted';
-import { FileUpdated } from './file-system/FileUpdated';
+import { FileBatch } from './file-system/FileBatch';
 import { TemplateImport } from './file-system/ImportTemplate';
 import { OpenAventusFolder } from './file-system/OpenAventusFolder';
 import { Rename } from './Rename';
@@ -47,9 +45,7 @@ export const Commands = {
         [CreateSignal.cmd]: CreateSignal,
         [ImportViewElement.cmd]: ImportViewElement,
         [ImportViewMethod.cmd]: ImportViewMethod,
-        [FileCreated.cmd]: FileCreated,
-        [FileUpdated.cmd]: FileUpdated,
-        [FileDeleted.cmd]: FileDeleted,
+        [FileBatch.cmd]: FileBatch,
         [TemplateImport.cmd]: TemplateImport,
         [ProjectImport.cmd]: ProjectImport,
         [OpenAventusFolder.cmd]: OpenAventusFolder,

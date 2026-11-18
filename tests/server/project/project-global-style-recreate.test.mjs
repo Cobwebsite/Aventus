@@ -72,7 +72,7 @@ test('two projects replace a deleted global style without retaining its former f
         assert.equal(Object.keys(entries[i].onFileDeleteUUIDs).length, 1);
     }
 
-    await manager.onDeletedUri(styleUri);
+    await manager.applyBatch({ created: [], updated: [], deleted: [styleUri] });
     for (const project of entries) {
         assert.equal(project.scssFiles[styleUri], undefined);
         assert.deepEqual(project.onFileDeleteUUIDs, {});

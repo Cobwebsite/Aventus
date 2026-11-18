@@ -237,6 +237,7 @@ export class AventusPackageFile extends AventusBaseFile {
 		if (this.tsFile) {
 			this.tsFile.triggerDelete();
 		}
+		await this.build.rebuildAll();
 	}
 	protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {
 		return { isIncomplete: true, items: [] }

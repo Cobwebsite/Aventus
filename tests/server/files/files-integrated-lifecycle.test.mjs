@@ -66,7 +66,7 @@ test('workspace scan, disk refresh and shutdown preserve the file cache lifecycl
 
         const cached = current.getByUri(logicUri);
         writeFileSync(logic, 'class EntryUpdated {}');
-        await current.onUpdatedUri(logicUri);
+        await current.applyBatch({ created: [], updated: [logicUri], deleted: [] });
         assert.equal(current.getByUri(logicUri), cached);
         assert.equal(cached.contentUser, 'class EntryUpdated {}');
         assert.equal(cached.versionUser, 1);

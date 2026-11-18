@@ -51,7 +51,7 @@ test('deleting a file during validation clears diagnostics without republishing 
         await current.onContentChange(doc(2, 'changed'));
         const pendingValidation = file.validate();
         unlinkSync(path);
-        await current.onDeletedUri(uri);
+        await current.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.equal(current.getByUri(uri), undefined);
         assert.deepEqual(sent, [{ uri, diagnostics: [] }]);
         releaseValidation();

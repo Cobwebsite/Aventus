@@ -57,7 +57,7 @@ test('real template writes nested and root config files after sources and opens 
     };
     TemplateScript.memory = {};
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
-    FilesManager.instance = { onCreatedUri: uri => registered.push(uri) };
+    FilesManager.instance = { applyBatch: ({ created: [uri] }) => registered.push(uri) };
 
     const script = await TemplateScript.create(config);
     assert.ok(script, errors.join('\n'));

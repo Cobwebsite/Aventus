@@ -21,12 +21,13 @@ test('a failed update discards an old queued deletion while allowing recreation 
     const firstGate = new Promise((_, reject) => { rejectFirst = reject; });
     let updateCount = 0;
     FilesManager.instance = {
-        onUpdatedUri: async currentUri => {
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async currentUri => {
             calls.push(['update start', currentUri]);
             if (++updateCount === 1) await firstGate;
             calls.push(['update end', currentUri]);
         },
-        onDeletedUri: async currentUri => { calls.push(['delete', currentUri]); },
+        remove: async currentUri => { calls.push(['delete', currentUri]); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {

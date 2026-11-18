@@ -10,10 +10,10 @@ const [{ FilesManager }, { FilesWatcher }, { GenericServer }, { SettingsManager 
 ]);
 
 for (const [label, invoke] of [
-    ['disk update', (manager, uri) => manager.onUpdatedUri(uri)],
+    ['disk update', (manager, uri) => manager.applyBatch({ created: [], updated: [uri], deleted: [] })],
     ['document close', (manager, uri) => manager.onClose(TextDocument.create(uri, 'typescript', 1, 'old'))],
 ]) {
-    test(`${label} of a missing file waits for deferred deletion`, async () => {
+    test(`${label} of a missing file waits for deletion before clearing diagnostics`, async () => {
         const uri = pathToUri(join(tmpdir(), `aventus-round123-missing-${label.replace(' ', '-')}.wcl.avt`));
         const manager = Object.create(FilesManager.prototype);
         manager.files = {};
@@ -43,12 +43,12 @@ for (const [label, invoke] of [
             let operationFinished = false;
             const operation = invoke(manager, uri).then(() => { operationFinished = true; });
             await new Promise(resolve => setImmediate(resolve));
-            assert.deepEqual(events, ['diagnostics', 'delete-start']);
+            assert.deepEqual(events, ['delete-start']);
             assert.equal(manager.getByUri(uri), undefined, 'the cache releases the file before deletion callbacks finish');
             assert.equal(operationFinished, false);
             releaseDelete();
             await operation;
-            assert.deepEqual(events, ['diagnostics', 'delete-start', 'delete-end', 'unwatch']);
+            assert.deepEqual(events, ['delete-start', 'delete-end', 'unwatch', 'diagnostics']);
             assert.equal(manager.getByUri(uri), undefined);
         } finally {
             releaseDelete();

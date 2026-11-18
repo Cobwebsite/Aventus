@@ -1,5 +1,13 @@
 # Change Log
 
+## 1.5.2 (2026-11-18)
+
+### Features
+
+### Bug Fixes
+
+ - Fix multiple delete / update / create as one batch
+
 ## 1.5.1 (2026-11-08)
  - Correct template
  - Correct url dependencies changes

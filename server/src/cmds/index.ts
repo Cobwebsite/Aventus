@@ -2,9 +2,7 @@ import { ExecuteCommandParams } from "vscode-languageserver";
 import { AddConfigSection } from './AddConfigSection';
 import { BuildProject } from "./BuildProject";
 import { Create } from "./Create";
-import { FileCreated } from './file-system/FileCreated';
-import { FileDeleted } from './file-system/FileDeleted';
-import { FileUpdated } from './file-system/FileUpdated';
+import { FileBatch } from './file-system/FileBatch';
 import { MergeComponent } from "./MergeComponent";
 import { SplitComponent } from "./SplitComponent";
 import { StartServer } from './live-server/StartServer';
@@ -68,9 +66,7 @@ export const Commands = {
         [CreateSignal.cmd]: CreateSignal,
         [ImportViewElement.cmd]: ImportViewElement,
         [ImportViewMethod.cmd]: ImportViewMethod,
-        [FileCreated.cmd]: FileCreated,
-        [FileUpdated.cmd]: FileUpdated,
-        [FileDeleted.cmd]: FileDeleted,
+        [FileBatch.cmd]: FileBatch,
         [OpenAventusFolder.cmd]: OpenAventusFolder,
         [PopupResponse.cmd]: PopupResponse,
         [ReceiveInput.cmd]: ReceiveInput,

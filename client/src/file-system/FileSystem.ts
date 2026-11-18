@@ -1,7 +1,5 @@
 import { Disposable, FileRenameEvent, FileSystemWatcher, Uri, workspace } from 'vscode';
-import { FileCreated } from '../cmds/file-system/FileCreated';
-import { FileDeleted } from '../cmds/file-system/FileDeleted';
-import { FileUpdated } from '../cmds/file-system/FileUpdated';
+import { FileBatch } from '../cmds/file-system/FileBatch';
 import { Rename } from '../cmds/Rename';
 import { AutoLoader } from '../manifest/AutoLoader';
 
@@ -162,15 +160,7 @@ export class FileSystem {
 			return;
 		}
 
-		for (let deleted of this.stack.deleted) {
-			FileDeleted.execute(deleted);
-		}
-		for (let created of this.stack.created) {
-			FileCreated.execute(created);
-		}
-		for (let updated of this.stack.updated) {
-			FileUpdated.execute(updated);
-		}
+		FileBatch.execute(this.stack);
 		this.stack = { created: [], deleted: [], updated: [] };
 		this.mutex.release();
 	}

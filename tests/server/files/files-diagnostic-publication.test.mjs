@@ -45,8 +45,8 @@ test('diagnostics are replaced by an empty publication after revalidation, then 
         assert.equal(manager.getByUri(uri), file);
         assert.equal(publications.length, 2);
         unlinkSync(path);
-        await manager.onDeletedUri(uri);
-        await manager.onDeletedUri(uri);
+        await manager.applyBatch({ created: [], updated: [], deleted: [uri] });
+        await manager.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.deepEqual(publications[2], { uri, diagnostics: [] });
         assert.equal(publications.length, 3);
         assert.deepEqual(unwatched, [uri]);

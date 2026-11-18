@@ -41,10 +41,10 @@ test('a project routes its config and global style to their own handlers and rem
         assert.equal(project.scssFiles[styleUri]?.constructor.name.endsWith('AventusGlobalSCSSFile'), true);
         assert.equal(project.scssFiles[styleUri].file, manager.getByUri(styleUri));
 
-        await manager.onDeletedUri(styleUri);
+        await manager.applyBatch({ created: [], updated: [], deleted: [styleUri] });
         assert.equal(project.scssFiles[styleUri], undefined);
         assert.equal(manager.getByUri(styleUri), undefined);
-        await manager.onDeletedUri(configUri);
+        await manager.applyBatch({ created: [], updated: [], deleted: [configUri] });
         assert.equal(projects.getProjectByUri(configUri), undefined);
         assert.equal(manager.getByUri(configUri), undefined);
     } finally {

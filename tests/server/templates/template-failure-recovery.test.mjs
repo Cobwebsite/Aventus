@@ -52,7 +52,7 @@ test('template child failure after writing derived variables cleans its generate
     };
     TemplateScript.memory = {};
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
-    FilesManager.instance = { onCreatedUri: () => {} };
+    FilesManager.instance = { applyBatch: () => {} };
     try {
         const first = await TemplateScript.create(config);
         assert.ok(first);

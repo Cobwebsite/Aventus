@@ -135,7 +135,7 @@ test('deletion clears diagnostics for every build associated with the file befor
         triggerDelete: async () => { events.push(['delete', uri]); },
     };
     try {
-        await current.onDeletedUri(uri);
+        await current.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.deepEqual(sent, [
             [{ uri, diagnostics: [] }, 'Demo.A'],
             [{ uri, diagnostics: [] }, 'Demo.B'],

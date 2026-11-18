@@ -21,12 +21,13 @@ test('watcher serializes each URI while a second URI continues independently', a
     let releaseFirst;
     const firstGate = new Promise(resolve => { releaseFirst = resolve; });
     FilesManager.instance = {
-        onUpdatedUri: async uri => {
+        applyBatch(changes) { return changes.updated.length ? this.update(changes.updated[0]) : this.remove(changes.deleted[0]); },
+        update: async uri => {
             calls.push(['update start', uri]);
             if (uri === firstUri) await firstGate;
             calls.push(['update end', uri]);
         },
-        onDeletedUri: async uri => { calls.push(['delete', uri]); },
+        remove: async uri => { calls.push(['delete', uri]); },
     };
     GenericServer.instance = { logLevel: 99 };
     try {

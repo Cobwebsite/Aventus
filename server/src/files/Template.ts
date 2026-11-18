@@ -191,7 +191,7 @@ export class TemplateScript {
 						else if (payload.cmd == "registerFile") {
 							let config = payload.config as string[];
 							for (let path of config) {
-								FilesManager.getInstance().onCreatedUri(pathToUri(path));
+								FilesManager.getInstance().applyBatch({ created: [pathToUri(path)], updated: [], deleted: [] });
 							}
 						}
 						else if (payload.cmd == "openFile") {

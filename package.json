@@ -451,16 +451,8 @@
 				"title": "Aventus : Import view method"
 			},
 			{
-				"command": "aventus.filesystem.created",
-				"title": "Aventus : File created"
-			},
-			{
-				"command": "aventus.filesystem.updated",
-				"title": "Aventus : File updated"
-			},
-			{
-				"command": "aventus.filesystem.deleted",
-				"title": "Aventus : File deleted"
+				"command": "aventus.filesystem.batch",
+				"title": "Aventus : File batch"
 			},
 			{
 				"command": "aventus.filesystem.openAventus",
@@ -774,15 +766,7 @@
 					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
 				},
 				{
-					"command": "aventus.filesystem.created",
-					"when": "false"
-				},
-				{
-					"command": "aventus.filesystem.updated",
-					"when": "false"
-				},
-				{
-					"command": "aventus.filesystem.deleted",
+					"command": "aventus.filesystem.batch",
 					"when": "false"
 				},
 				{

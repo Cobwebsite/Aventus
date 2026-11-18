@@ -16,6 +16,12 @@ import { ProjectManager } from '../project/ProjectManager';
 import { Statistics } from '../notification/Statistics';
 import { ActionGuard, Mutex } from '../Mutex';
 
+export interface FileBatchChanges {
+    created: string[];
+    updated: string[];
+    deleted: string[];
+}
+
 export class FilesManager {
     private static instance: FilesManager;
     public static getInstance(): FilesManager {
@@ -76,76 +82,97 @@ export class FilesManager {
         }, 2000);
     }
 
-    public async onCreatedUri(uri: string) {
-        if (!this.files[uri]) {
-            let extension = getLanguageIdByUri(uri);
-            if (extension) {
-                let currentPath = uriToPath(uri);
-                let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
+    public async applyBatch(changes: FileBatchChanges) {
+        const getDeletedBuilds = (file: AventusFile) => SettingsManager.getInstance().settings.errorByBuild ? file.getBuild() : null;
+        const deletedUris = new Map<string, Build[] | null>();
+        for (const uri of changes.deleted) {
+            const prefix = uri.replace(/\/+$/, '') + '/';
+            for (const fileUri of this.getUris()) {
+                if (fileUri === uri || fileUri.startsWith(prefix)) {
+                    const file = this.files[fileUri];
+                    if (file) {
+                        deletedUris.set(fileUri, getDeletedBuilds(file));
+                    }
+                }
+            }
+        }
+        try {
+            for (const [uri, _] of deletedUris) {
+                await this.deleteUri(uri);
+            }
+
+            const documents = new Map<string, TextDocument>();
+            for (const uri of changes.created) {
+                if (this.files[uri]) continue;
+                const extension = getLanguageIdByUri(uri);
+                if (!extension || !existsSync(uriToPath(uri))) continue;
+                const document = TextDocument.create(uri, extension, 0, readFileSync(uriToPath(uri), 'utf8'));
                 this.clearPendingTimeout();
-                await this.registerFile(textDoc);
-                await this.addPending(uri, async () => {
-                    await this.onSave(textDoc);
-                })
-                //await this.onSave(textDoc);
+                await this.registerFile(document);
+                documents.set(uri, document);
+                if (deletedUris.has(uri)) {
+                    deletedUris.delete(uri);
+                }
+            }
+
+            for (const uri of changes.updated) {
+                if (this.lockedUpdatedUri[uri]) continue;
+                const extension = getLanguageIdByUri(uri);
+                if (!extension) continue;
+                const path = uriToPath(uri);
+                if (!existsSync(path)) {
+                    const file = this.files[uri];
+                    if (file) {
+                        deletedUris.set(uri, getDeletedBuilds(file));
+                    }
+                    await this.deleteUri(uri);
+                    continue;
+                }
+                const version = this.files[uri] ? this.files[uri].versionUser + 1 : 0;
+                const document = TextDocument.create(uri, extension, version, readFileSync(path, 'utf8'));
+                this.clearPendingTimeout();
+                if (this.files[uri]) {
+                    await this.onContentChange(document);
+                }
+                else {
+                    await this.registerFile(document);
+                }
+                documents.set(uri, document);
+                if (deletedUris.has(uri)) {
+                    deletedUris.delete(uri);
+                }
+            }
+
+            for (const document of documents.values()) {
+                const file = this.files[document.uri];
+                if (file && file.versionUser === document.version) {
+                    await this.onSave(document);
+                }
+            }
+        } finally {
+            for (const [uri, builds] of deletedUris) {
+                if (builds === null) {
+                    GenericServer.sendDiagnostics({ uri, diagnostics: [] });
+                }
+                else {
+                    for (const build of builds) {
+                        GenericServer.sendDiagnostics({ uri, diagnostics: [] }, build);
+                    }
+                }
+
             }
         }
     }
-    public async onUpdatedUri(uri: string) {
-        if (this.lockedUpdatedUri[uri]) {
-            return;
-        }
-        let extension = getLanguageIdByUri(uri);
-        let currentPath = uriToPath(uri);
 
-        let content: string = "";
-        if (existsSync(currentPath)) {
-            content = readFileSync(currentPath, 'utf8');
-        }
-        else {
-            await this.onDeletedUri(uri);
-            return;
-        }
-        if (!this.files[uri]) {
-            let textDoc = TextDocument.create(uri, extension, 0, content);
-            this.clearPendingTimeout();
-
-            await this.registerFile(textDoc);
-            await this.addPending(uri, async () => {
-                await this.onSave(textDoc);
-            })
-            //await this.onSave(textDoc);
-        }
-        else {
-            let newVersion = this.files[uri].versionUser + 1;
-            let textDoc = TextDocument.create(uri, extension, newVersion, content);
-
-            this.clearPendingTimeout();
-            await this.onContentChange(textDoc);
-            await this.addPending(uri, async () => {
-                await this.onSave(textDoc);
-            })
-            //await this.onSave(textDoc);
-        }
-    }
-
-    public async onDeletedUri(uri: string) {
+    private async deleteUri(uri: string) {
         const file = this.files[uri];
         if (file) {
-            const builds = SettingsManager.getInstance().settings.errorByBuild ? file.getBuild() : null;
             delete this.files[uri];
             try {
                 await file.triggerDelete();
             } finally {
                 if (!this.files[uri]) {
-                    // Deletion callbacks can rebuild and publish diagnostics for this file.
-                    if (builds === null) GenericServer.sendDiagnostics({ uri, diagnostics: [] });
-                    else for (const build of builds) GenericServer.sendDiagnostics({ uri, diagnostics: [] }, build);
                     FilesWatcher.getInstance().unwatch(uri);
-                    await this.addPending(uri, async () => {
-                        if (builds === null) GenericServer.sendDiagnostics({ uri, diagnostics: [] });
-                        else for (const build of builds) GenericServer.sendDiagnostics({ uri, diagnostics: [] }, build);
-                    })
                 }
             }
         }
@@ -496,7 +523,7 @@ export class FilesManager {
     }
     public async onClose(document: TextDocument) {
         if (!existsSync(uriToPath(document.uri))) {
-            await this.onDeletedUri(document.uri);
+            await this.applyBatch({ created: [], updated: [], deleted: [document.uri] });
         }
     }
 

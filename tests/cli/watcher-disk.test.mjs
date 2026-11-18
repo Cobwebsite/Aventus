@@ -48,20 +48,23 @@ test('CLI watcher reports .avt creation, changes, deletion and coalesced bursts 
   writeFileSync(ignoredFile, 'ignored');
   writeFileSync(file, 'one');
   await waitForNotification(1);
-  assert.deepEqual(notifications, [['FileCreated', file]]);
+  assert.deepEqual(notifications, [['FileBatch', { created: [file], updated: [], deleted: [] }]]);
 
   writeFileSync(file, 'two');
   await waitForNotification(2);
-  assert.deepEqual(notifications.at(-1), ['FileUpdated', file]);
+  assert.deepEqual(notifications.at(-1), ['FileBatch', { created: [], updated: [file], deleted: [] }]);
 
   unlinkSync(file);
   await waitForNotification(3);
-  assert.deepEqual(notifications.at(-1), ['FileDeleted', file]);
+  assert.deepEqual(notifications.at(-1), ['FileBatch', { created: [], updated: [], deleted: [file] }]);
 
   writeFileSync(file, 'three');
   await waitForNotification(4);
   writeFileSync(file, 'four');
   writeFileSync(file, 'five');
   await waitForNotification(5);
-  assert.deepEqual(notifications.slice(3), [['FileCreated', file], ['FileUpdated', file]]);
+  assert.deepEqual(notifications.slice(3), [
+    ['FileBatch', { created: [file], updated: [], deleted: [] }],
+    ['FileBatch', { created: [], updated: [file], deleted: [] }],
+  ]);
 });

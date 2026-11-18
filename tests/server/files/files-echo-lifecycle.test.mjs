@@ -115,7 +115,7 @@ test('closing a present file retains its cache, whereas disk removal unwatches a
         await until(() => manager.getByUri(recycledUri) === undefined);
         assert.deepEqual(watcher.watcheUris, [retainedUri]);
         writeFileSync(recycledPath, 'new');
-        await manager.onCreatedUri(recycledUri);
+        await manager.applyBatch({ created: [recycledUri], updated: [], deleted: [] });
         assert.notEqual(manager.getByUri(recycledUri), recycled);
         assert.equal(manager.getByUri(recycledUri).contentUser, 'new');
         assert.equal(existsSync(recycledPath), true);

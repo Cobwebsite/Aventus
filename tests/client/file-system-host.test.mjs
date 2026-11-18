@@ -54,11 +54,11 @@ test('VS Code file events on temporary files reach the actual Aventus commands',
     await rm(deleted);
     await callbacks.delete(uri(deleted));
     await fs.sendStack();
-    assert.deepEqual(commands, [
-      ['aventus.filesystem.deleted', uri(deleted).toString()],
-      ['aventus.filesystem.created', uri(created).toString()],
-      ['aventus.filesystem.updated', uri(updated).toString()],
-    ]);
+    assert.deepEqual(commands, [['aventus.filesystem.batch', {
+      created: [uri(created).toString()],
+      updated: [uri(updated).toString()],
+      deleted: [uri(deleted).toString()],
+    }]]);
     const renamed = join(root, 'renamed.avt');
     await rename(created, renamed);
     callbacks.rename({ files: [{ oldUri: uri(created), newUri: uri(renamed) }] });

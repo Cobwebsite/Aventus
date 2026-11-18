@@ -77,29 +77,31 @@ test('disk changes to one of two sources preserve the other source in build outp
     manager.onNewFile(build.onNewFile.bind(build));
 
     writeFileSync(firstPath, 'class First {}');
-    await manager.onCreatedUri(firstUri);
+    await manager.applyBatch({ created: [firstUri], updated: [], deleted: [] });
     writeFileSync(secondPath, 'class Second {}');
-    await manager.onCreatedUri(secondUri);
+    await manager.applyBatch({ created: [secondUri], updated: [], deleted: [] });
     assert.match(readFileSync(output, 'utf8'), /class First/);
     assert.match(readFileSync(output, 'utf8'), /class Second/);
 
     writeFileSync(firstPath, 'class Updated {}');
-    await manager.onUpdatedUri(firstUri);
+    await manager.applyBatch({ created: [], updated: [firstUri], deleted: [] });
     const updated = readFileSync(output, 'utf8');
     assert.match(updated, /class Updated/);
     assert.match(updated, /class Second/);
     assert.doesNotMatch(updated, /class First/);
 
     unlinkSync(firstPath);
-    await manager.onDeletedUri(firstUri);
+    await manager.applyBatch({ created: [], updated: [], deleted: [firstUri] });
     assert.equal(manager.getByUri(firstUri), undefined);
     assert.ok(manager.getByUri(secondUri));
+    assert.match(readFileSync(output, 'utf8'), /class Updated/, 'deletion does not compile implicitly');
+    await build.rebuildAll();
     const afterDelete = readFileSync(output, 'utf8');
     assert.doesNotMatch(afterDelete, /class First|class Updated/);
     assert.match(afterDelete, /class Second/);
 
     writeFileSync(firstPath, 'class Recreated {}');
-    await manager.onCreatedUri(firstUri);
+    await manager.applyBatch({ created: [firstUri], updated: [], deleted: [] });
     const recreated = readFileSync(output, 'utf8');
     assert.match(recreated, /class Recreated/);
     assert.match(recreated, /class Second/);

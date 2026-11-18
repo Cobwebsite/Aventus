@@ -83,7 +83,7 @@ test('filesystem create notification ignores an unknown extension', async () => 
     try {
         writeFileSync(path, 'not Aventus');
         const instance = manager();
-        await instance.onCreatedUri(tools.pathToUri(path));
+        await instance.applyBatch({ created: [tools.pathToUri(path)], updated: [], deleted: [] });
         assert.deepEqual(instance.getUris(), []);
     } finally {
         rmSync(root, { recursive: true, force: true });
@@ -133,7 +133,7 @@ test('file manager caches create, change, save and delete events and clears diag
         await instance.onContentChange(second);
         await instance.onSave(second);
         clearTimeout(instance.getByUri(uri).delayValidate);
-        await instance.onDeletedUri(uri);
+        await instance.applyBatch({ created: [], updated: [], deleted: [uri] });
         assert.equal(instance.getByUri(uri), undefined);
         assert.deepEqual(events, [['create', 'old'], ['change', 'new'], ['save', 'new'], ['delete']]);
         assert.deepEqual(diagnostics, [
@@ -155,7 +155,7 @@ test('file manager prevents filesystem update echo until its suppression timer e
     const uri = 'file:///d%3A/app/test.wcl.avt';
     instance.preventUpdateUri(uri);
     try {
-        await instance.onUpdatedUri(uri);
+        await instance.applyBatch({ created: [], updated: [uri], deleted: [] });
         assert.equal(instance.getByUri(uri), undefined);
         assert.ok(instance.lockedUpdatedUri[uri]);
     } finally {

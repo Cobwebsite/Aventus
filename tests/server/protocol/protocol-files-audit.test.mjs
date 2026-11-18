@@ -43,7 +43,7 @@ test('disk creation waits for its asynchronous save callback', async () => {
     });
     try {
         let finished = false;
-        const creation = manager.onCreatedUri(uri).then(() => { finished = true; });
+        const creation = manager.applyBatch({ created: [uri], updated: [], deleted: [] }).then(() => { finished = true; });
         await started.promise;
         assert.deepEqual(events, ['save-started']);
         assert.equal(finished, false);
@@ -84,7 +84,7 @@ test('disk updates wait for save when registering and refreshing a file', async 
     try {
         writeFileSync(path, 'first');
         let firstFinished = false;
-        const first = manager.onUpdatedUri(uri).then(() => { firstFinished = true; });
+        const first = manager.applyBatch({ created: [], updated: [uri], deleted: [] }).then(() => { firstFinished = true; });
         await new Promise(resolve => setImmediate(resolve));
         assert.equal(saves.length, 1);
         assert.equal(firstFinished, false);
@@ -93,7 +93,7 @@ test('disk updates wait for save when registering and refreshing a file', async 
 
         writeFileSync(path, 'second');
         let secondFinished = false;
-        const second = manager.onUpdatedUri(uri).then(() => { secondFinished = true; });
+        const second = manager.applyBatch({ created: [], updated: [uri], deleted: [] }).then(() => { secondFinished = true; });
         await new Promise(resolve => setImmediate(resolve));
         assert.equal(saves.length, 2);
         assert.equal(secondFinished, false);

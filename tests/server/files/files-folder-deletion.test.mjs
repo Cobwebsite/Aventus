@@ -33,9 +33,9 @@ test('deleting a folder URI removes every registered file below it', async () =>
     const events = [];
     const manager = setupManager(events);
     try {
-        for (const uri of uris) await manager.onCreatedUri(uri);
+        for (const uri of uris) await manager.applyBatch({ created: [uri], updated: [], deleted: [] });
         rmSync(folder, { recursive: true });
-        await Commands.allCommandes['aventus.filesystem.deleted'].run(pathToUri(folder));
+        await Commands.allCommandes['aventus.filesystem.batch'].run({ created: [], updated: [], deleted: [pathToUri(folder)] });
         assert.deepEqual(manager.getUris(), []);
         assert.deepEqual(events.filter(event => event[0] === 'unwatch').map(event => event[1]).sort(), [...uris].sort());
         for (const uri of uris) {

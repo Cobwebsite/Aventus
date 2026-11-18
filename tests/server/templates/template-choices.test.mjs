@@ -51,7 +51,7 @@ test('real template forwards input validation and maps single and multiple choic
     };
     TemplateScript.memory = {};
     ProjectManager.instance = { getMatchingBuildsByUri: () => [] };
-    FilesManager.instance = { onCreatedUri: () => {} };
+    FilesManager.instance = { applyBatch: () => {} };
     try {
         const script = await TemplateScript.create(config);
         assert.ok(script, errors.join('\n'));

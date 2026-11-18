@@ -9,7 +9,7 @@ const [{ Commands }, { FilesManager }, { GenericServer }, { FilesWatcher }, { Se
     'cmds/index.ts', 'files/FilesManager.ts', 'GenericServer.ts', 'files/FilesWatcher.ts', 'settings/Settings.ts', 'tools.ts',
 ]);
 
-test('client create, update and delete commands carry a disk file through the manager lifecycle', async () => {
+test('client batches carry a disk file through the manager lifecycle', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aventus-client-file-'));
     const path = join(root, 'component.wcl.avt');
     const uri = pathToUri(path);
@@ -30,17 +30,17 @@ test('client create, update and delete commands carry a disk file through the ma
     });
     try {
         writeFileSync(path, 'first');
-        await Commands.allCommandes['aventus.filesystem.created'].run(uri);
+        await Commands.allCommandes['aventus.filesystem.batch'].run({ created: [uri], updated: [], deleted: [] });
         const file = manager.getByUri(uri);
         assert.ok(file);
         assert.equal(file.versionUser, 0);
 
         writeFileSync(path, 'second');
-        await Commands.allCommandes['aventus.filesystem.updated'].run(uri);
+        await Commands.allCommandes['aventus.filesystem.batch'].run({ created: [], updated: [uri], deleted: [] });
         assert.equal(manager.getByUri(uri), file);
         assert.equal(file.versionUser, 1);
 
-        await Commands.allCommandes['aventus.filesystem.deleted'].run(uri);
+        await Commands.allCommandes['aventus.filesystem.batch'].run({ created: [], updated: [], deleted: [uri] });
         assert.equal(manager.getByUri(uri), undefined);
         assert.deepEqual(events.filter(event => event[0] !== 'diagnostics'), [
             ['new', 'first'], ['save', 'first'], ['change', 'second'], ['save', 'second'],

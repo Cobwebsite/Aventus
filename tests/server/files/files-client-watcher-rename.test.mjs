@@ -59,7 +59,7 @@ test('client save on one path and disk rename on another keep file cache, callba
         current.preventUpdateUri(clientUri);
         renameSync(oldPath, newPath);
         await watcher.onRemove(oldPath);
-        await current.onCreatedUri(newUri);
+        await current.applyBatch({ created: [newUri], updated: [], deleted: [] });
         await watcher.onContentChange(clientPath);
         await current.onClose(doc(oldUri, 1, 'old open'));
 

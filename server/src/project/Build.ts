@@ -2430,8 +2430,6 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
         else {
             delete this.tsFiles[file.uri];
         }
-
-        await this.rebuildAll();
     }
 
     public getLocalWebComponentDefinition(tagName: string, searchInsideProject: boolean = false): ClassInfo | undefined {

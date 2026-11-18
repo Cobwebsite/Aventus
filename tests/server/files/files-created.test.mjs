@@ -34,14 +34,14 @@ test('disk creation registers a recognized document once and sends its save noti
     });
     try {
         writeFileSync(path, 'class Created {}');
-        await current.onCreatedUri(uri);
+        await current.applyBatch({ created: [uri], updated: [], deleted: [] });
         await new Promise(resolve => setImmediate(resolve));
         const file = current.getByUri(uri);
         assert.ok(file);
         assert.equal(file.contentUser, 'class Created {}');
         assert.equal(file.versionUser, 0);
         assert.deepEqual(events, [['new', 'class Created {}'], ['watch', uri], ['save', 'class Created {}']]);
-        await current.onCreatedUri(uri);
+        await current.applyBatch({ created: [uri], updated: [], deleted: [] });
         assert.equal(current.getByUri(uri), file);
         assert.equal(events.length, 3);
     } finally {
@@ -63,7 +63,7 @@ test('creation of an unrecognized extension leaves the cache and watcher untouch
     FilesWatcher.instance = { watch: value => watched.push(value) };
     try {
         writeFileSync(path, 'text');
-        await current.onCreatedUri(uri);
+        await current.applyBatch({ created: [uri], updated: [], deleted: [] });
         assert.deepEqual(current.getUris(), []);
         assert.deepEqual(watched, []);
     } finally {
