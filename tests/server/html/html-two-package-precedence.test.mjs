@@ -32,7 +32,7 @@ test('two package files with the same HTML tag reveal the surviving definition a
         htmlLanguageService: html,
         scssLanguageService: { addExternalDefinition() {}, removeExternalDefinition() {} },
         externalPackageInformation: { rebuild() {} },
-        build() {},
+        build() {}, rebuildAll() {},
     };
     const makeFile = (name, className, attribute) => {
         const file = Object.create(AventusPackageFile.prototype);

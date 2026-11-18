@@ -58,7 +58,7 @@ test('an edited and saved document is discarded on close after disk removal, the
         assert.deepEqual(events, [
             ['new', 'opened first'], ['change', 2, 'edited first'], ['save', 2, 'edited first'],
             ['diagnostics', uri, []], ['delete', 'edited first'],
-            ['diagnostics', uri, []], ['unwatch', uri],
+            ['unwatch', uri], ['diagnostics', uri, []],
             ['new', 'opened second'],
         ]);
     } finally {
